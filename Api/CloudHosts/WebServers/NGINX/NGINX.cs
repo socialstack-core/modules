@@ -50,6 +50,7 @@ namespace Api.CloudHosts
 			{
 				var from = redirect.From.Trim();
 				var to = redirect.To.Trim();
+				var statusCode = redirect.PermanentRedirect ? "301 " : "302 ";
 
 				// From & to originate from the admin panel.
 				// They could be null, empty strings etc.
@@ -60,8 +61,8 @@ namespace Api.CloudHosts
 				}
 
 				// Add 2 location contexts to the NGINX config:
-				httpsContext.AddLocationContext($"= " + from).AddDirective($"return", "301 " + to);
-				httpsContext.AddLocationContext($"= " + from + "/").AddDirective($"return", "301 " + to);
+				httpsContext.AddLocationContext($"= " + from).AddDirective($"return", statusCode + to);
+				httpsContext.AddLocationContext($"= " + from + "/").AddDirective($"return", statusCode + to);
 			}
 
 			// check - redirect primary locale (e.g. /en-gb -> /)?
@@ -80,8 +81,10 @@ namespace Api.CloudHosts
 			// redirect /[primary-locale-code/* to root (e.g. /en-gb/abc -> /abc)
 			if (htmlConfig.RedirectPrimaryLocale)
 			{
-				httpsContext.AddLocationContext($"= /" + primaryLocale.Code.ToLower()).AddDirective($"return", "301 /"); // root
-				httpsContext.AddLocationContext($"~ /" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1"); // underlying pages
+				var statusCode = htmlConfig.PermanentRedirect ? "301 " : "302 ";
+
+				httpsContext.AddLocationContext($"= /" + primaryLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
+				httpsContext.AddLocationContext($"~ /" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
 			}
 
 			// each locale can also be optionally redirected
@@ -94,8 +97,9 @@ namespace Api.CloudHosts
 
 					if (altLocale.isRedirected)
 					{
-						httpsContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", "301 /"); // root
-						httpsContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", "301 /$1"); // underlying pages
+						var statusCode = altLocale.PermanentRedirect ? "301 " : "302 ";
+						httpsContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
+						httpsContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
 					}
 				}
 			}

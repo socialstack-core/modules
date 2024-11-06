@@ -1,8 +1,5 @@
-using System;
-using Api.Database;
-using Api.Translate;
+using Api.AutoForms;
 using Api.Users;
-
 
 namespace Api.Redirects
 {
@@ -25,6 +22,13 @@ namespace Api.Redirects
 		/// Only use full URLs with a host name if they are not "this" site to make the redirect rules portable between environments.
 		/// </summary>
 		public string To;
+
+		/// <summary>
+		/// True if this redirect should be considered permanent (i.e. a 301);
+		/// Will default to a temporary 302 redirect if not set
+		/// </summary>
+		[Data("hint", "Redirect will be temporary (302) by default - select here for a permanent (301) redirect. PLEASE NOTE - do not use this option if you are likely to require this URL again")]
+		public bool PermanentRedirect { get; set; } = false;
 	}
 
 }

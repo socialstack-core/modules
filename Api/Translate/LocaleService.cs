@@ -136,6 +136,7 @@ namespace Api.Translate
 
 						if (langsUpTo == -1)
 						{
+							acceptLanguageHeader = acceptLanguageHeader.ToLower();
 							var localeId = GetId(acceptLanguageHeader);
 
 							if (localeId.HasValue)

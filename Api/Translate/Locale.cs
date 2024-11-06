@@ -47,6 +47,13 @@ namespace Api.Translate
 		public bool isRedirected;
 
 		/// <summary>
+		/// True if this redirect should be considered permanent (i.e. a 301);
+		/// Will default to a temporary 302 redirect if not set
+		/// </summary>
+		[Data("hint", "Redirect will be temporary (302) by default - select here for a permanent (301) redirect. PLEASE NOTE - do not use this option if you are likely to require this locale again")]
+		public bool PermanentRedirect { get; set; } = false;
+
+		/// <summary>
 		/// Indicates this locale goes primarily right to left, such as Hebrew or Arabic.
 		/// </summary>
 		[Data("hint", "Set this if the locale goes right to left, such as Hebrew or Arabic")]
