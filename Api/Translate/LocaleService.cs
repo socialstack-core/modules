@@ -96,7 +96,7 @@ namespace Api.Translate
 
 			});
 
-			Events.Context.OnLoad.AddEventListener((Context context, HttpRequest request) =>
+			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
 			{
 				if (_multiDomain)
 				{
@@ -113,19 +113,24 @@ namespace Api.Translate
 						context.LocaleId = localeId.Value;
 					}
 				}
-
-				return new ValueTask<HttpRequest>(request);
-			});
-
-			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
-			{
-				if (cfg.HandleAcceptLanguageHeader && result != null)
+				else if (cfg.HandleAcceptLanguageHeader && result != null)
 				{
-					// Identify most suitable locale from the accept-lang header.
+					// Identify most suitable locale from headers
+					StringValues ipCountry;
 					StringValues acceptLangs;
 
-					// Could also handle Accept-Language here. For now we use a custom header called Locale (an ID).
-					if (request.Headers.TryGetValue("Accept-Language", out acceptLangs) && !string.IsNullOrEmpty(acceptLangs))
+					// check for CloudFlare (NB: NOT CloudFront!) header
+					if (request.Headers.TryGetValue("CF-IPCountry", out ipCountry) && !string.IsNullOrEmpty(ipCountry))
+					{
+						// will be a 2-character country code (e.g. "US")
+						var ipCountryHeader = ipCountry.FirstOrDefault();
+						ipCountryHeader = ipCountryHeader.ToLower();
+
+						// update context LocaleId if we have a suitable locale available
+						await UpdateContextLocale(context, ipCountryHeader);
+					}
+					// Identify most suitable locale from the accept-lang header.
+					else if (request.Headers.TryGetValue("Accept-Language", out acceptLangs) && !string.IsNullOrEmpty(acceptLangs))
 					{
 						// Locale header is set:
 						var acceptLanguageHeader = acceptLangs.FirstOrDefault();
@@ -162,7 +167,6 @@ namespace Api.Translate
 								}
 
 								string langCode = acceptLanguageHeader.Substring(index, next - index);
-
 								var localeId = GetId(langCode);
 
 								if (localeId.HasValue)
@@ -174,7 +178,9 @@ namespace Api.Translate
 								index = next + 1;
 							}
 						}
+
 					}
+
 				}
 
 				return new ValueTask<Context>(result);
@@ -245,6 +251,78 @@ namespace Api.Translate
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// A mapping of alpha-2 country code (e.g. "us") -> full country code (e.g. "en-US").
+		/// </summary>
+		private static readonly Dictionary<string, string> countryToLanguageMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+			{ "ar", "es-AR" },
+			{ "au", "en-AU" },
+			{ "br", "pt-BR" },
+			{ "ca", "en-CA" },
+			{ "cl", "es-CL" },
+			{ "cn", "zh-CN" },
+			{ "co", "es-CO" },
+			{ "de", "de-DE" },
+			{ "dk", "da-DK" },
+			{ "eg", "ar-EG" },
+			{ "es", "es-ES" },
+			{ "fi", "fi-FI" },
+			{ "fr", "fr-FR" },
+			{ "gb", "en-GB" },
+			{ "gr", "el-GR" },
+			{ "id", "id-ID" },
+			{ "il", "he-IL" },
+			{ "in", "hi-IN" },
+			{ "it", "it-IT" },
+			{ "jp", "ja-JP" },
+			{ "kr", "ko-KR" },
+			{ "mx", "es-MX" },
+			{ "my", "ms-MY" },
+			{ "nl", "nl-NL" },
+			{ "no", "nb-NO" },
+			{ "pe", "es-PE" },
+			{ "pk", "ur-PK" },
+			{ "pl", "pl-PL" },
+			{ "pt", "pt-PT" },
+			{ "ru", "ru-RU" },
+			{ "sa", "ar-SA" },
+			{ "se", "sv-SE" },
+			{ "th", "th-TH" },
+			{ "tr", "tr-TR" },
+			{ "us", "en-US" },
+			{ "ve", "es-VE" },
+			{ "vn", "vi-VN" },
+			{ "za", "en-ZA" }
+		};
+
+		/// <summary>
+		/// Updates the given context LocaleId if the alpha-2 country code supplied relates to an available locale.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="countryCode"></param>
+		/// <returns></returns>
+		private async ValueTask UpdateContextLocale(Context context, string countryCode)
+		{
+			var all = await Where(DataOptions.IgnorePermissions).ListAll(new Context());
+			string languageCode;
+
+			// check for alpha-2 country code in dictionary (e.g. "us") and return the matching full country code (e.g. "en-US")
+			if (countryToLanguageMap.TryGetValue(countryCode.ToLower(), out languageCode))
+			{
+
+				// check all locales for a matching language code
+				foreach (var locale in all)
+				{
+
+					// if found, update context
+					if (string.Compare(locale.Code, languageCode, StringComparison.CurrentCultureIgnoreCase) == 0)
+					{
+						context.LocaleId = locale.Id;
+					}
+				}
+			}
 		}
 
 		private async ValueTask UpdateMaps()
