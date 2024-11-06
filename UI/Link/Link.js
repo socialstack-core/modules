@@ -56,7 +56,11 @@ export default function Link(props) {
 						url = url.substring(1);
 					}
 
-					url = prefix + url;
+					let disablePrefix = "/" + session.locale.code.toLowerCase() == prefix && session.locale.isRedirected && session.locale.permanentRedirect;
+
+					if (!disablePrefix) {
+						url = prefix + url;
+					}
 				}
 			}
 		}
