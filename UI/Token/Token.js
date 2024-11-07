@@ -3,22 +3,30 @@ import Time from 'UI/Time';
 import { useSession, useRouter } from 'UI/Session';
 import { useContent } from 'UI/Content';
 import { isoConvert } from 'UI/Functions/DateTools';
+import { useState, useEffect } from 'react';
+import isNumeric from 'UI/Functions/IsNumeric';
 
-var modes = { 'content': 1, 'context': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary': 1, 'theme': 1 };
+var modes = { 'content': 1, 'context': 1, 'session': 1, 'url': 1, 'customdata': 1, 'primary': 1, 'theme': 1, 'currencysymbol': 1 };
 
 export function TokenResolver(props) {
-	return props.children(useTokens(props.value, props));
+	const [initialRender, setInitialRender] = useState(true);
+
+	useEffect(() => {
+		setInitialRender(false);
+	}, []);
+
+	return props.children(useTokens(props.value, props, initialRender));
 }
 
-export function useTokens(str, opts) {
+export function useTokens(str, opts, initialRender) {
 	var { session } = useSession();
 	var localContent = useContent();
 	var { pageState } = useRouter();
 
-	return handleString(str, session, opts && opts.content ? opts.content : localContent, pageState, opts);
+	return handleString(str, session, opts && opts.content ? opts.content : localContent, pageState, opts, initialRender);
 }
 
-export function handleString(str, session, localContent, pageState, opts) {
+export function handleString(str, session, localContent, pageState, opts, initialRender) {
 	return (str || '').toString().replace(/\$\{(\w|\.)+\}/g, function (textToken) {
 		var fields = textToken.substring(2, textToken.length - 1).split('.');
 
@@ -29,24 +37,34 @@ export function handleString(str, session, localContent, pageState, opts) {
 			mode = first;
 		}
 
-		return resolveValue(mode, fields, session, localContent, pageState, opts);
+		return resolveValue(mode, fields, session, localContent, pageState, opts, initialRender);
 	});
 }
 
-export function resolveValue(mode, fields, session, localContent, pageState, opts) {
+export function resolveValue(mode, fields, session, localContent, pageState, opts, initialRender) {
 	var value = resolveRawValue(mode, fields, session, localContent, pageState);
-	
+
 	// Post-processing:
-	if(opts && opts.date){
+	if (opts && opts.date) {
 		// treat it as a date.
 		value = isoConvert(value);
-		
-		if(typeof opts.date == 'object'){
+
+		if (typeof opts.date == 'object') {
 			// it would like a react element.
 			return <Time date={value} absolute {...opts.date} />;
 		}
+	} else if (value && isNumeric(value) && fields) {
+		let fieldNames = ['currency', 'price'];
+		let isFormatted = fieldNames.some(fieldname => fields[0].startsWith(fieldname) || fields[0].endsWith(fieldname));
+
+		// Add commas to numeric strings representing financial values
+		if (isFormatted) {
+			let localeCode = session.currencylocale?.code || session.locale?.code || 'en-GB';
+			return (initialRender || window.SERVER) ? value : value.toLocaleString(localeCode);
+		}
+
 	}
-	
+
 	return value;
 }
 
@@ -56,7 +74,19 @@ function resolveRawValue(mode, fields, session, localContent, pageState) {
 	if (mode) {
 		mode = mode.toLowerCase();
 	}
-	
+
+	if (mode == "currencysymbol") {
+		var currencySymbol = '';
+
+		if (session && session.currencylocale) {
+			currencySymbol = session.currencylocale.currencySymbol;
+		} else if (session && session.locale) {
+			currencySymbol = session.locale.currencySymbol;
+		}
+
+		return currencySymbol;
+	}
+
 	if (mode == "content" || mode == "context") {
 		token = localContent;
 	} else if (mode == "url") {

@@ -9,7 +9,11 @@ export default function(props) {
 	const [options, setOptions] = React.useState();
 
 	var { session } = useSession();
-    var currencyLocale = session && session.currencylocale ? session.currencylocale : null;
+	var currencyLocale = null;
+
+	if (session) {
+		currencyLocale = session.currencylocale ? session.currencylocale : session.locale;
+	}
 
 	React.useEffect(() => {
 		var locale = (optionsArePrices && currencyLocale) ? currencyLocale.id : null;
