@@ -2229,16 +2229,6 @@ svg {
 			response.ContentType = "text/html";
 			response.Headers["Content-Encoding"] = "gzip";
 
-			if (pullFromCache)
-			{
-				response.Headers["Cache-Control"] = _cacheControlHeader;
-			}
-			else
-			{
-				response.Headers["Cache-Control"] = "no-store";
-				response.Headers["Pragma"] = "no-cache";
-			}
-
 			List<DocumentNode> flatNodes = null;
 
 			// If we have a block wall password set, and there either isn't a time limit or the limit is in the future, and the user is not an admin:
@@ -2254,9 +2244,26 @@ svg {
 				if (string.IsNullOrEmpty(cookie) || cookie != _config.BlockWallPassword)
 				{
 					flatNodes = GenerateBlockPage();
+					response.Headers["Cache-Control"] = "no-store";
+					response.Headers["Pragma"] = "no-cache";
 					await WriteCompressed(context, flatNodes, response.Body, pageAndTokens);
 					return;
 				}
+				else
+				{
+					// Block wall is active but cannot cache this state:
+					pullFromCache = false;
+				}
+			}
+
+			if (pullFromCache)
+			{
+				response.Headers["Cache-Control"] = _cacheControlHeader;
+			}
+			else
+			{
+				response.Headers["Cache-Control"] = "no-store";
+				response.Headers["Pragma"] = "no-cache";
 			}
 
 			if (pageAndTokens.RedirectTo != null)
