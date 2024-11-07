@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.Extensions.Primitives;
 
 namespace Api.Translate
 {
@@ -76,32 +77,60 @@ namespace Api.Translate
 			context.LocaleId = locale;
 			context.CurrencyLocaleId = locale;
 
-			if (context.RoleId == 6)
-            {
+			if (context.User == null)
+			{
 				ContextService _contexts = Services.Get<ContextService>();
 
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
-					{
-						Path = "/",
-						Domain = _contexts.GetDomain(context.LocaleId),
-						IsEssential = true,
-						Expires = ThePast
-					}
-				);
+				// What is the default locale for this request?
+				// If it matches the requested one, delete the cookies.
+				// Otherwise, send the token.
+				uint defaultLocaleId = 1;
 
-				Response.Cookies.Append(
-					_contexts.CookieName,
-					"",
-					new Microsoft.AspNetCore.Http.CookieOptions()
+				StringValues ipCountry;
+
+				if (Request.Headers.TryGetValue("CF-IPCountry", out ipCountry) && !string.IsNullOrEmpty(ipCountry))
+				{
+					var ipCountryHeader = ipCountry.FirstOrDefault();
+					ipCountryHeader = ipCountryHeader.ToLower();
+
+					// TODO: allow mapping between 2-char country codes to full locale code (e.g. US -> en-US)
+					if (ipCountryHeader == "us")
 					{
-						Path = "/",
-						Expires = ThePast
+						defaultLocaleId = 2;
 					}
-				);
-			} 
+				}
+
+				if (locale == defaultLocaleId)
+				{
+					Response.Cookies.Append(
+						_contexts.CookieName,
+						"",
+						new Microsoft.AspNetCore.Http.CookieOptions()
+						{
+							Path = "/",
+							Domain = _contexts.GetDomain(context.LocaleId),
+							IsEssential = true,
+							Expires = ThePast
+							}
+						);
+
+					Response.Cookies.Append(
+						_contexts.CookieName,
+						"",
+						new Microsoft.AspNetCore.Http.CookieOptions()
+						{
+							Path = "/",
+							Expires = ThePast
+						}
+					);
+
+				}
+				else
+				{
+					context.SendToken(Response);
+				}
+
+			}
 			else
             {
 				context.SendToken(Response);

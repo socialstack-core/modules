@@ -13,6 +13,12 @@ namespace Api.Translate
 		/// establish default language when a user is seen for the first time.
 		/// </summary>
 		public bool HandleAcceptLanguageHeader {get; set;} = true;
+
+		/// <summary>
+		/// True (default) if the CF-IPCountry header will be used to 
+		/// establish default language.
+		/// </summary>
+		public bool HandleCloudFlareHeader { get; set; } = true;
 	}
-	
+
 }

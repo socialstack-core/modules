@@ -113,11 +113,10 @@ namespace Api.Translate
 						context.LocaleId = localeId.Value;
 					}
 				}
-				else if (cfg.HandleAcceptLanguageHeader && result != null)
+				else if (cfg.HandleCloudFlareHeader && result != null)
 				{
 					// Identify most suitable locale from headers
 					StringValues ipCountry;
-					StringValues acceptLangs;
 
 					// check for CloudFlare (NB: NOT CloudFront!) header
 					if (request.Headers.TryGetValue("CF-IPCountry", out ipCountry) && !string.IsNullOrEmpty(ipCountry))
@@ -127,56 +126,62 @@ namespace Api.Translate
 						ipCountryHeader = ipCountryHeader.ToLower();
 
 						// update context LocaleId if we have a suitable locale available
-						await UpdateContextLocale(context, ipCountryHeader);
+						UpdateContextLocale(context, ipCountryHeader);
 					}
-					// Identify most suitable locale from the accept-lang header.
-					else if (request.Headers.TryGetValue("Accept-Language", out acceptLangs) && !string.IsNullOrEmpty(acceptLangs))
+					else if (cfg.HandleAcceptLanguageHeader && result != null)
 					{
-						// Locale header is set:
-						var acceptLanguageHeader = acceptLangs.FirstOrDefault();
-						acceptLanguageHeader = acceptLanguageHeader.ToLower();
+						StringValues acceptLangs;
 
-						acceptLanguageHeader = acceptLanguageHeader.ToLower();
-						var langsUpTo = acceptLanguageHeader.IndexOf(';');
-						var index = 0;
-
-						if (langsUpTo == -1)
+						// Identify most suitable locale from the accept-lang header.
+						if (request.Headers.TryGetValue("Accept-Language", out acceptLangs) && !string.IsNullOrEmpty(acceptLangs))
 						{
-							var localeId = GetId(acceptLanguageHeader);
+							// Locale header is set:
+							var acceptLanguageHeader = acceptLangs.FirstOrDefault();
+							acceptLanguageHeader = acceptLanguageHeader.ToLower();
 
-							if (localeId.HasValue)
+							acceptLanguageHeader = acceptLanguageHeader.ToLower();
+							var langsUpTo = acceptLanguageHeader.IndexOf(';');
+							var index = 0;
+
+							if (langsUpTo == -1)
 							{
-								context.LocaleId = localeId.Value;
-							}
-						}
-						else
-						{
-
-							while (index < langsUpTo)
-							{
-								var next = acceptLanguageHeader.IndexOf(',', index + 1);
-
-								if (next > langsUpTo)
-								{
-									break;
-								}
-
-								if (next == -1 || next > langsUpTo)
-								{
-									next = langsUpTo;
-								}
-
-								string langCode = acceptLanguageHeader.Substring(index, next - index);
-								var localeId = GetId(langCode);
+								var localeId = GetId(acceptLanguageHeader);
 
 								if (localeId.HasValue)
 								{
 									context.LocaleId = localeId.Value;
-									break;
 								}
-
-								index = next + 1;
 							}
+							else
+							{
+
+								while (index < langsUpTo)
+								{
+									var next = acceptLanguageHeader.IndexOf(',', index + 1);
+
+									if (next > langsUpTo)
+									{
+										break;
+									}
+
+									if (next == -1 || next > langsUpTo)
+									{
+										next = langsUpTo;
+									}
+
+									string langCode = acceptLanguageHeader.Substring(index, next - index);
+									var localeId = GetId(langCode);
+
+									if (localeId.HasValue)
+									{
+										context.LocaleId = localeId.Value;
+										break;
+									}
+
+									index = next + 1;
+								}
+							}
+
 						}
 
 					}
@@ -302,25 +307,18 @@ namespace Api.Translate
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="countryCode"></param>
-		/// <returns></returns>
-		private async ValueTask UpdateContextLocale(Context context, string countryCode)
+		private void UpdateContextLocale(Context context, string countryCode)
 		{
-			var all = await Where(DataOptions.IgnorePermissions).ListAll(new Context());
 			string languageCode;
 
 			// check for alpha-2 country code in dictionary (e.g. "us") and return the matching full country code (e.g. "en-US")
 			if (countryToLanguageMap.TryGetValue(countryCode.ToLower(), out languageCode))
 			{
+				var localeId = GetId(languageCode);
 
-				// check all locales for a matching language code
-				foreach (var locale in all)
+				if (localeId.HasValue)
 				{
-
-					// if found, update context
-					if (string.Compare(locale.Code, languageCode, StringComparison.CurrentCultureIgnoreCase) == 0)
-					{
-						context.LocaleId = locale.Id;
-					}
+					context.LocaleId = localeId.Value;
 				}
 			}
 		}
