@@ -247,6 +247,13 @@ namespace Api.Uploader
                 var basePath = locator.IsPrivate ? "Content/content-private/" : "Content/content/";
                 var filePath = System.IO.Path.GetFullPath(basePath + locator.Path);
 
+                var fileTypePipe = filePath.IndexOf('|');
+
+                if (fileTypePipe != -1)
+                {
+                    filePath = filePath.Substring(0, fileTypePipe);
+                }
+
                 try
                 {
                     if (locator.Size == 0)
