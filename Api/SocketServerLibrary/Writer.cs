@@ -2,6 +2,7 @@ using Api.Startup;
 using Api.Startup.Utf8Helpers;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -878,7 +879,7 @@ namespace Api.SocketServerLibrary
 		{
 			// TODO: Replace this (+decimal and double) with a copy from the internal method to avoid the str alloc:
 			// https://github.com/dotnet/runtime/blob/927b1c54956ddb031a2e1a3eddb94ccc16004c27/src/libraries/System.Private.CoreLib/src/System/Number.Formatting.cs#L520
-			WriteS(f.ToString());
+			WriteS(f.ToString(CultureInfo.InvariantCulture));
 		}
 
 		/// <summary>
@@ -887,7 +888,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="f"></param>
 		public void WriteS(decimal f)
 		{
-			WriteS(f.ToString());
+			WriteS(f.ToString(CultureInfo.InvariantCulture));
 		}
 
 		/// <summary>
@@ -896,7 +897,7 @@ namespace Api.SocketServerLibrary
 		/// <param name="d"></param>
 		public void WriteS(double d)
 		{
-			WriteS(d.ToString());
+			WriteS(d.ToString(CultureInfo.InvariantCulture));
 		}
 
 		/// <summary>
@@ -1421,7 +1422,18 @@ namespace Api.SocketServerLibrary
 		public ulong ReadCompressedAt(ref int index)
 		{
 			var buff = FirstBuffer.Bytes;
+			return ReadCompressed(buff, ref index);
+		}
 
+		/// <summary>
+		/// Read a compressed number at the given index in the given buffer.
+		/// The index will be updated with the actual length of the compressed number.
+		/// </summary>
+		/// <param name="buff"></param>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		public static ulong ReadCompressed(byte[] buff, ref int index)
+		{
 			var first = buff[index++];
 			switch (first)
 			{
@@ -1497,6 +1509,34 @@ namespace Api.SocketServerLibrary
 			}
 
 			// 255 for n bytes
+		}
+
+		/// <summary>
+		/// Ensures the writer has the specified number of bytes added to it.
+		/// </summary>
+		/// <param name="bytesRequired"></param>
+		public void EnsureBytes(int bytesRequired)
+		{
+			// The current buffer space is..
+			var space = Pool.BufferSize - Fill;
+
+			if (bytesRequired <= space)
+			{
+				Fill += bytesRequired;
+				return;
+			}
+
+			bytesRequired -= space;
+			NextBuffer();
+
+			while (bytesRequired > Pool.BufferSize)
+			{
+				NextBuffer();
+				bytesRequired -= Pool.BufferSize;
+			}
+
+			// Add final bit to the fill:
+			Fill += bytesRequired;
 		}
 
 		/// <summary>
