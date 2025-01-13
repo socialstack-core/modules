@@ -40,6 +40,11 @@ namespace Api.Eventing
 		public EventHandler<Upload, string, string> StoreFile;
 		
 		/// <summary>
+		/// Called when the upload system must delete a file.
+		/// </summary>
+		public EventHandler<FileDelete> DeleteFile;
+		
+		/// <summary>
 		/// Called when the upload system must list files in a search directory.
 		/// </summary>
 		public EventHandler<FileMetaStream> ListFiles;

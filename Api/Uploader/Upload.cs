@@ -20,7 +20,7 @@ namespace Api.Uploader
         /// <summary>
         /// The signature service for priv uploads.
         /// </summary>
-        private static SignatureService _sigService;
+        private static UploadService _uploadService;
 
         /// <summary>
         /// The original file name.
@@ -116,9 +116,6 @@ namespace Api.Uploader
         [JsonIgnore]
         public string TemporaryPath { get; set; }
 
-        private static byte[] TimestampStart = new byte[] { (byte)'?', (byte)'t', (byte)'=' };
-        private static byte[] SignatureStart = new byte[] { (byte)'&', (byte)'s', (byte)'=' };
-
         /// <summary>
         /// Gets a ref which may be signed.
         /// The HMAC is for the complete string "private:ID.FILETYPE?t=TIMESTAMP&amp;s="
@@ -127,97 +124,12 @@ namespace Api.Uploader
         {
             get
             {
-
-                var writer = Writer.GetPooled();
-                writer.Start(null);
-
-                if (IsPrivate)
+                if (_uploadService == null)
                 {
-                    if (_sigService == null)
-                    {
-                        _sigService = Services.Get<SignatureService>();
-                    }
-
-                    writer.WriteASCII("private:");
-
-                    if (!string.IsNullOrEmpty(Subdirectory))
-                    {
-                        writer.WriteASCII(Subdirectory);
-                        writer.Write((byte)'/');
-                    }
-
-                    writer.WriteS(Id);
-                    writer.Write((byte)'.');
-                    if (FileType != null)
-                    {
-                        writer.WriteASCII(FileType);
-                    }
-                    // Private uploads don't support variants (yet) because the signature would include them
-                    writer.Write(TimestampStart, 0, 3);
-                    writer.WriteS(DateTime.UtcNow.Ticks);
-                    writer.Write(SignatureStart, 0, 3);
-                    _sigService.SignHmac256AlphaChar(writer);
-                }
-                else
-                {
-                    writer.WriteASCII("public:");
-
-                    if (!string.IsNullOrEmpty(Subdirectory))
-                    {
-                        writer.WriteASCII(Subdirectory);
-                        writer.Write((byte)'/');
-                    }
-
-                    writer.WriteS(Id);
-                    writer.Write((byte)'.');
-                    if (FileType != null)
-                    {
-                        writer.WriteASCII(FileType);
-                    }
-                    if (Variants != null)
-                    {
-                        writer.Write((byte)'|');
-                        writer.WriteASCII(Variants);
-                    }
+                    _uploadService = Services.Get<UploadService>();
                 }
 
-                if (IsImage && Width.HasValue && Height.HasValue)
-                {
-                    writer.WriteASCII(IsPrivate ? "&w=" : "?w=");
-                    writer.WriteS(Width.Value);
-                    writer.WriteASCII("&h=");
-                    writer.WriteS(Height.Value);
-
-                    if (!string.IsNullOrEmpty(Blurhash))
-                    {
-                        writer.WriteASCII("&b=");
-                        writer.WriteASCII(System.Uri.EscapeDataString(Blurhash));
-                    }
-
-                    if (FocalX.HasValue && FocalY.HasValue)
-                    {
-                        writer.WriteASCII("&fx=");
-                        writer.WriteS(FocalX.Value);
-                        writer.WriteASCII("&fy=");
-                        writer.WriteS(FocalY.Value);
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(Alt))
-                    {
-                        writer.WriteASCII("&al=");
-                        writer.WriteASCII(System.Uri.EscapeDataString(Alt));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(Author))
-                    {
-                        writer.WriteASCII("&au=");
-                        writer.WriteASCII(System.Uri.EscapeDataString(Author));
-                    }
-
-                }
-                var result = writer.ToASCIIString();
-                writer.Release();
-                return result;
+                return _uploadService.BuildRef(this);
             }
         }
 
@@ -338,19 +250,39 @@ namespace Api.Uploader
             var scheme = (protoIndex == -1) ? "https" : refText.Substring(0, protoIndex);
 
             refText = protoIndex == -1 ? refText : refText.Substring(protoIndex + 1);
-            string fileParts;
+            var basePath = refText;
+
+			var argsIndex = basePath.IndexOf('?');
+			var queryStr = "";
+			if (argsIndex != -1)
+			{
+				queryStr = basePath.Substring(argsIndex + 1);
+				basePath = basePath.Substring(0, argsIndex);
+			}
+
+			string fileParts;
             string fileType = null;
 
-            var lastIndexOf = refText.LastIndexOf('.');
+            var lastSlash = basePath.LastIndexOf('/');
+            var dotIndex = basePath.IndexOf('.', lastSlash);
 
-            if (lastIndexOf != -1)
+            if (dotIndex != -1)
             {
-                fileType = refText.Substring(lastIndexOf + 1);
-                fileParts = refText.Substring(0, lastIndexOf);
+				// It has a filetype - might have variants too.
+
+				var multiTypes = basePath.IndexOf('|', dotIndex);
+				if (multiTypes != -1)
+				{
+					// Remove multi types from basepath:
+					basePath = basePath.Substring(0, multiTypes);
+				}
+
+				fileType = basePath.Substring(dotIndex + 1);
+                fileParts = basePath.Substring(0, dotIndex);
             }
             else
             {
-                fileParts = refText;
+                fileParts = basePath;
             }
 
             return new FileRef()

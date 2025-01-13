@@ -28,7 +28,15 @@ namespace Api.Uploader
     {
         private UploaderConfig _configuration;
 
-        private static readonly Regex nonAlphaNumericRegex = new Regex("[^a-zA-Z0-9]");
+        /// <summary>
+        /// Used to generate refs (typically a URL) for given uploads.
+        /// It's a generic object such that other modules can hook in to it 
+        /// but without creating the async requirement of an event. This is because 
+        /// generated refs are frequently used by both properties and dynamic includes. 
+        /// </summary>
+        public UploadRefGenerator RefGenerator;
+
+		private static readonly Regex nonAlphaNumericRegex = new Regex("[^a-zA-Z0-9]");
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
@@ -135,6 +143,29 @@ namespace Api.Uploader
                 return upload;
             }, 50);
 
+            Events.Upload.DeleteFile.AddEventListener((Context context, FileDelete fDel) => {
+
+                if (fDel.Succeeded || fDel.Handled)
+                {
+					return new ValueTask<FileDelete>(fDel);
+				}
+
+                var fullPath = System.IO.Path.GetFullPath(fDel.Path);
+
+                try
+                {
+                    File.Delete(fullPath);
+					fDel.Succeeded = true;
+				}
+                catch (Exception e)
+                {
+                    Log.Warn(LogTag, e, "Attempted to delete a file but was unable to do so.");
+                }
+
+                fDel.Handled = true;
+				return new ValueTask<FileDelete>(fDel);
+            }, 15);
+
             Events.Upload.StoreFile.AddEventListener((Context context, Upload upload, string tempFile, string variantName) =>
             {
 
@@ -151,7 +182,7 @@ namespace Api.Uploader
                         Directory.CreateDirectory(dir);
                     }
 
-                    System.IO.File.Move(tempFile, writePath);
+                    System.IO.File.Move(tempFile, writePath, true);
 
                     if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
                     {
@@ -263,13 +294,13 @@ namespace Api.Uploader
                     else
                     {
                         // Read part of a file specified by offset and size.
-                        
+
                         using (var fs = File.Open(filePath, FileMode.Open))
                         {
                             var len = fs.Length;
-							var maxLen = len - (locator.Offset + locator.Size);
+                            var maxLen = len - locator.Offset;
 
-							if (maxLen <= 0)
+                            if (maxLen <= 0)
                             {
                                 return null;
                             }
@@ -281,9 +312,9 @@ namespace Api.Uploader
                                 size = (int)maxLen;
                             }
 
-							result = new byte[size];
-                            
-							fs.Seek(locator.Offset, SeekOrigin.Begin);
+                            result = new byte[size];
+
+                            fs.Seek(locator.Offset, SeekOrigin.Begin);
 
                             var bytesToRead = size;
                             const int chunkSize = 4096;
@@ -297,6 +328,11 @@ namespace Api.Uploader
                         }
                     }
                 }
+                catch (DirectoryNotFoundException)
+                {
+					// Attempted read of a file which does not exist. Return null.
+					return null;
+				}
                 catch (FileNotFoundException)
                 {
                     // Attempted read of a file which does not exist. Return null.
@@ -321,9 +357,22 @@ namespace Api.Uploader
 
                 var filePath = System.IO.Path.GetFullPath(basePath + storagePath);
 
-                result = File.OpenRead(filePath);
+                try
+                {
+                    result = File.OpenRead(filePath);
+				}
+				catch (DirectoryNotFoundException)
+				{
+					// Attempted read of a file which does not exist. Return null.
+					return new ValueTask<Stream>((Stream)null);
+				}
+				catch (FileNotFoundException)
+				{
+					// Attempted read of a file which does not exist. Return null.
+					return new ValueTask<Stream>((Stream)null);
+				}
 
-                return new ValueTask<Stream>(result);
+				return new ValueTask<Stream>(result);
             }, 15);
 
             InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
@@ -1270,13 +1319,13 @@ namespace Api.Uploader
             return GetFileBytesForStoragePath(uploadPath, fileRef.Scheme == "private");
         }
 
-        /// <summary>
-        /// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
-        /// </summary>
-        /// <param name="fileRef"></param>
-        /// <param name="sizeName"></param>
-        /// <returns></returns>
-        public ValueTask<Stream> OpenFile(string fileRef, string sizeName = "original")
+		/// <summary>
+		/// Gets the file bytes of the given ref, if it is a file ref. Supports remote filesystems as well.
+		/// </summary>
+		/// <param name="fileRef"></param>
+		/// <param name="sizeName"></param>
+		/// <returns>Null if the file was not found.</returns>
+		public ValueTask<Stream> OpenFile(string fileRef, string sizeName = "original")
         {
             var refMeta = FileRef.Parse(fileRef);
 
@@ -1290,7 +1339,7 @@ namespace Api.Uploader
         /// </summary>
         /// <param name="fileRef"></param>
         /// <param name="sizeName"></param>
-        /// <returns></returns>
+        /// <returns>Null if the file was not found.</returns>
         public ValueTask<Stream> OpenFile(FileRef fileRef, string sizeName = "original")
         {
             var uploadPath = fileRef.GetRelativePath(sizeName);
@@ -1389,7 +1438,144 @@ namespace Api.Uploader
 
         }
 
-        private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
+        /// <summary>
+        /// Deletes an uploaded file. Returns true if it succeeded.
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="path"></param>
+        /// <param name="isPrivate"></param>
+        /// <returns></returns>
+        public async ValueTask<bool> DeleteFile(Context context, string path, bool isPrivate)
+        {
+            var delReq = new FileDelete() {
+                Path = path,
+                IsPrivate = isPrivate
+            };
+
+			delReq = await Events.Upload.DeleteFile.Dispatch(context, delReq);
+            return delReq.Succeeded;
+		}
+
+        /// <summary>
+        /// Gets a signed ref (usually going to be a URL) for the given size name.
+        /// </summary>
+        /// <param name="upload"></param>
+        /// <param name="sizeName"></param>
+        /// <returns></returns>
+        public string GetSignedRef(Upload upload, string sizeName = "original")
+        {
+            if (RefGenerator == null)
+            {
+                // Size name not used in this route.
+                return BuildRef(upload);
+            }
+
+            return RefGenerator.GetSignedRef(upload, sizeName);
+        }
+
+		private static byte[] TimestampStart = new byte[] { (byte)'?', (byte)'t', (byte)'=' };
+		private static byte[] SignatureStart = new byte[] { (byte)'&', (byte)'s', (byte)'=' };
+
+		/// <summary>
+		/// Builds a general use ref for the given upload. 
+		/// If it is a private upload, it will be a signed private ref. 
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <returns></returns>
+		public string BuildRef(Upload upload)
+        {
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+
+			if (upload.IsPrivate)
+			{
+				if (_sigService == null)
+				{
+					_sigService = Services.Get<SignatureService>();
+				}
+
+				writer.WriteASCII("private:");
+
+				if (!string.IsNullOrEmpty(upload.Subdirectory))
+				{
+					writer.WriteASCII(upload.Subdirectory);
+					writer.Write((byte)'/');
+				}
+
+				writer.WriteS(upload.Id);
+				writer.Write((byte)'.');
+				if (upload.FileType != null)
+				{
+					writer.WriteASCII(upload.FileType);
+				}
+				// Private uploads don't support variants (yet) because the signature would include them
+				writer.Write(TimestampStart, 0, 3);
+				writer.WriteS(DateTime.UtcNow.Ticks);
+				writer.Write(SignatureStart, 0, 3);
+				_sigService.SignHmac256AlphaChar(writer);
+			}
+			else
+			{
+				writer.WriteASCII("public:");
+
+				if (!string.IsNullOrEmpty(upload.Subdirectory))
+				{
+					writer.WriteASCII(upload.Subdirectory);
+					writer.Write((byte)'/');
+				}
+
+				writer.WriteS(upload.Id);
+				writer.Write((byte)'.');
+				if (upload.FileType != null)
+				{
+					writer.WriteASCII(upload.FileType);
+				}
+				if (upload.Variants != null)
+				{
+					writer.Write((byte)'|');
+					writer.WriteASCII(upload.Variants);
+				}
+			}
+
+			if (upload.IsImage && upload.Width.HasValue && upload.Height.HasValue)
+			{
+				writer.WriteASCII(upload.IsPrivate ? "&w=" : "?w=");
+				writer.WriteS(upload.Width.Value);
+				writer.WriteASCII("&h=");
+				writer.WriteS(upload.Height.Value);
+
+				if (!string.IsNullOrEmpty(upload.Blurhash))
+				{
+					writer.WriteASCII("&b=");
+					writer.WriteASCII(System.Uri.EscapeDataString(upload.Blurhash));
+				}
+
+				if (upload.FocalX.HasValue && upload.FocalY.HasValue)
+				{
+					writer.WriteASCII("&fx=");
+					writer.WriteS(upload.FocalX.Value);
+					writer.WriteASCII("&fy=");
+					writer.WriteS(upload.FocalY.Value);
+				}
+
+				if (!string.IsNullOrWhiteSpace(upload.Alt))
+				{
+					writer.WriteASCII("&al=");
+					writer.WriteASCII(System.Uri.EscapeDataString(upload.Alt));
+				}
+
+				if (!string.IsNullOrWhiteSpace(upload.Author))
+				{
+					writer.WriteASCII("&au=");
+					writer.WriteASCII(System.Uri.EscapeDataString(upload.Author));
+				}
+			}
+			var result = writer.ToASCIIString();
+			writer.Release();
+			return result;
+		}
+
+		private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
         {
             var buffer = new byte[512];
 
