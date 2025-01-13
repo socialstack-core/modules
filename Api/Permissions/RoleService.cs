@@ -222,7 +222,7 @@ namespace Api.Permissions
 
 			if (grantSameAs != null)
 			{
-				role.GrantTheSameAsImportant(grantSameAs);
+				role.GrantTheSameAsImportant(grantSameAs, true);
 			}
 
 			if (string.IsNullOrWhiteSpace(role.GrantRuleJson))

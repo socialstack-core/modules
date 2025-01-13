@@ -11,9 +11,11 @@ using Newtonsoft.Json;
 
 namespace Api.Permissions
 {
-    /// <summary>
-    /// A role which defines a set of capabilities to a user who is granted this particular role.
-    /// </summary>
+	/// <summary>
+	/// A role which defines a set of capabilities to a user who is granted this particular role.
+	/// </summary>
+	[ListAs("composition", Explicit = true)]
+	[ImplicitFor("composition", typeof(Role))]
     public partial class Role : VersionedContent<uint>
 	{
 		/// <summary>
@@ -30,6 +32,11 @@ namespace Api.Permissions
 		/// True if this role can view the admin panel.
 		/// </summary>
 		public bool CanViewAdmin;
+
+		/// <summary>
+		/// True if this role is composed from other roles. The child roles are in the composite set.
+		/// </summary>
+		public bool IsComposite;
 
 		/// <summary>
 		/// Admin dashboard JSON. Only sent to roles which can view the admin panel.
@@ -216,7 +223,8 @@ namespace Api.Permissions
 		/// Adds the given rule to the grant set.
 		/// </summary>
 		/// <param name="rule"></param>
-		public void AddRule(RoleGrantRule rule)
+		/// <param name="addToStart"></param>
+		public void AddRule(RoleGrantRule rule, bool addToStart = false)
 		{
 			// If it has patterns, make sure they're lowercase:
 			if (rule.Patterns != null)
@@ -228,7 +236,12 @@ namespace Api.Permissions
 			}
 
 			// Add rules in the order that they were requested.
-			GrantRules.Add(rule);
+			if(addToStart)
+			{
+				GrantRules.Insert(0, rule);
+			}else{
+				GrantRules.Add(rule);
+			}
 		}
 
 		/// <summary>
@@ -290,14 +303,15 @@ namespace Api.Permissions
 		/// If no other rules apply, the given role will be used.
 		/// </summary>
 		/// <param name="copyFrom"></param>
+		/// <param name="addToStart"></param>
 		/// <returns></returns>
-		public Role GrantTheSameAsImportant(Role copyFrom)
+		public Role GrantTheSameAsImportant(Role copyFrom, bool addToStart = false)
         {
 			AddRule(new RoleGrantRule()
 			{
 				RuleType = RoleGrantRuleType.Role | RoleGrantRuleType.Important,
 				SameAsRole = copyFrom
-			});
+			}, addToStart);
             return this;
         }
 		
@@ -403,7 +417,6 @@ namespace Api.Permissions
 				{
 					continue;
 				}
-
 				return rule;
 			}
 
