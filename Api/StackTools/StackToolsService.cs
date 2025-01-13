@@ -46,9 +46,9 @@ namespace Api.StackTools
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public StackToolsService(
-#if !NETCOREAPP2_1 && !NETCOREAPP2_2
-			IHostApplicationLifetime lifetime
-#endif
+// #if !NETCOREAPP2_1 && !NETCOREAPP2_2
+// 			IHostApplicationLifetime lifetime
+// #endif
 		)
 		{
 			#if DEBUG
