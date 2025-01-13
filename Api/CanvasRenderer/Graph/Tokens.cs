@@ -4,8 +4,15 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+	/// <summary>
+	/// A token resolver in a graph.
+	/// </summary>
     public class Tokens : Executor
     {
+		/// <summary>
+		/// Create a new token resolver from the info in the given JSON object.
+		/// </summary>
+		/// <param name="d"></param>
         public Tokens(JToken d) : base(d)
         {
         }

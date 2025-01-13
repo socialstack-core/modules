@@ -6,10 +6,17 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+    /// <summary>
+    /// A list of fields from an object.
+    /// </summary>
     public class FromList : Executor
     {
 		private FieldBuilder _targetField;
 
+        /// <summary>
+        /// Creates a new list using data in the given JSON token.
+        /// </summary>
+        /// <param name="d"></param>
 		public FromList(JToken d) : base(d)
         {
         }

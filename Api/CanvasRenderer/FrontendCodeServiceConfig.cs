@@ -35,6 +35,11 @@ namespace Api.CanvasRenderer
 		/// e.g. wss://node${server.id}.mysite.com/live-websocket/
 		/// </summary>
 		public string WebSocketUrl { get; set; } = null;
+		
+		/// <summary>
+		/// Set this to true to entirely disable the websocket.
+		/// </summary>
+		public bool DisableWebSocket {get; set;}
 
 	}
 }

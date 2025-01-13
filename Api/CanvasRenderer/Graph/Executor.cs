@@ -35,8 +35,15 @@ namespace Api.CanvasRenderer
         /// </summary>
         public List<NodeLinkSet> ReverseLinks;
 
+        /// <summary>
+        /// The output set.
+        /// </summary>
 		public JToken Outputs { get; set; }
 
+        /// <summary>
+        /// Creates a new graph node.
+        /// </summary>
+        /// <param name="graphNode"></param>
         public Executor(JToken graphNode)
         {
             LoadData(graphNode);
@@ -273,6 +280,9 @@ namespace Api.CanvasRenderer
             return true;
 		}
 
+        /// <summary>
+        /// 
+        /// </summary>
         public Executor AddedAs => _addedToLoader;
 
         /// <summary>
@@ -353,7 +363,10 @@ namespace Api.CanvasRenderer
             Order = maxOrder + 1;
         }
 
-
+        /// <summary>
+        /// Loads the data from the given graph node token.
+        /// </summary>
+        /// <param name="graphNode"></param>
 		public virtual void LoadData(JToken graphNode)
         {
             if (graphNode == null)

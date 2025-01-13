@@ -6,10 +6,18 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+    /// <summary>
+    /// A conditional "if" node.
+    /// </summary>
     public class If : Executor
     {
 		private FieldBuilder _targetField;
         
+
+        /// <summary>
+        /// Create a new conditional "if" node using data in the given JSON token.
+        /// </summary>
+        /// <param name="d"></param>
 		public If(JToken d) : base(d)
         {
         }

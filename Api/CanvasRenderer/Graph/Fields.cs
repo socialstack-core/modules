@@ -10,6 +10,9 @@ using Api.Database;
 
 namespace Api.CanvasRenderer
 {
+	/// <summary>
+	/// A set of fields.
+	/// </summary>
 	public class Fields : Executor
 	{
 		private Type _srcType;
@@ -19,6 +22,10 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public object _typeReadWrite;
 
+		/// <summary>
+		/// Creates a set of fields from the info in the given JSON token.
+		/// </summary>
+		/// <param name="d"></param>
 		public Fields(JToken d) : base(d)
 		{
 		}

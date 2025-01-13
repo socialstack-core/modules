@@ -1455,6 +1455,15 @@ namespace Api.CanvasRenderer
         /// </summary>
         private int ScssHeaderLineCount;
 
+        /// <summary>
+        /// Gets the SCSS globals.
+        /// </summary>
+        /// <returns></returns>
+        public string GetScssGlobals()
+        {
+            return ScssHeader;
+        }
+
         private void ConstructScssHeader()
         {
             var sb = new StringBuilder();
@@ -1584,7 +1593,9 @@ namespace Api.CanvasRenderer
                 // Transform the SCSS now:
                 var transpiledCss = BuildEngine.Invoke(
                     "transformScss",
-                    ScssHeader + rawContent,
+                    rawContent,
+					ScssHeader,
+					file.Path,
                     Minified
                 ) as string;
 
@@ -1845,6 +1856,27 @@ namespace Api.CanvasRenderer
             return translations;
         }
 
+        private static async ValueTask<string> WaitUntilAvailable(string path)
+        {
+            for (var i = 0; i < 20; i++)
+            {
+                try
+                {
+                    var content = await File.ReadAllTextAsync(path);
+                    return content;
+                }
+                catch (Exception)
+                {
+                    await Task.Delay(50);
+                }
+            }
+ 
+            // If it fell down here, we can assume a
+            // permanent filesystem failure has occurred.
+            // Try reading one last time to emit the actual exception outward:
+            return File.ReadAllText(path);
+		}
+
 
         /// <summary>
         /// A full compile of everything.
@@ -1860,10 +1892,18 @@ namespace Api.CanvasRenderer
 
                 if (file.FileType == SourceFileType.Javascript)
                 {
+                    // do a check here make sure the file is writeable, await it being writeable
+                    // set to key, shou;d've been that initially, didn't commit tho
+                    await WaitUntilAvailable(kvp.Key);  
+
                     BuildJsFile(file);
                 }
                 else if (file.FileType == SourceFileType.Scss && !file.IsGlobal)
                 {
+                    // do a check here make sure the file is writeable, await it being writeable
+                    // set to key, shou;d've been that initially, didn't commit tho
+                    await WaitUntilAvailable(kvp.Key);
+
                     BuildScssFile(file);
                 }
             }

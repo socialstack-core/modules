@@ -5,8 +5,15 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+	/// <summary>
+	/// A React component.
+	/// </summary>
     public class Component : Executor
     {
+		/// <summary>
+		/// Create a react component entry from the given token.
+		/// </summary>
+		/// <param name="d"></param>
         public Component(JToken d) : base(d)
         {
         }

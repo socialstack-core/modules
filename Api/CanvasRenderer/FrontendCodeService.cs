@@ -163,7 +163,7 @@ namespace Api.CanvasRenderer
 				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString()).Replace("${server.id-1}", (_contentSync.ServerId-1).ToString());
 			}
 
-			var servicePaths = "wsUrl='" + wsUrl + "';";
+			var servicePaths = _config.DisableWebSocket ? "wsUrl=null;" : "wsUrl='" + wsUrl + "';";
 
 			if (_contentUrl != null)
 			{
@@ -580,6 +580,36 @@ namespace Api.CanvasRenderer
 			return combined;
 		}
 #endif
+
+		/// <summary>
+		/// Gets the global scss for a named bundle.
+		/// </summary>
+		/// <param name="bundle"></param>
+		/// <returns></returns>
+		public string GetGlobalScss(string bundle)
+		{
+			if (SourceBuilders == null || string.IsNullOrEmpty(bundle))
+			{
+				return null;
+			}
+
+			bundle = bundle.ToLower();
+
+			foreach(var bundler in  SourceBuilders)
+			{
+				if (bundler == null)
+				{
+					continue;
+				}
+
+				if (bundler.RootName.ToLower() == bundle)
+				{
+					return bundler.GetScssGlobals();
+				}
+			}
+
+			return null;
+		}
 
 		/// <summary>
 		/// Each source builder currently running (if there are any - can be null on production systems).

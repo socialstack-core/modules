@@ -7,10 +7,20 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+	/// <summary>
+	/// A counter.
+	/// </summary>
     public class Count : Executor
     {
+		/// <summary>
+		/// 
+		/// </summary>
 		private FieldBuilder _targetField;
 
+		/// <summary>
+		/// Create a new counter node from the given JSON token.
+		/// </summary>
+		/// <param name="d"></param>
         public Count(JToken d) : base(d)
         {
         }

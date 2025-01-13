@@ -96,6 +96,19 @@ namespace Api.CanvasRenderer
 			return File(file.FileContent, "text/javascript; charset=UTF-8");
 		}
 
+#if DEBUG
+		/// <summary>
+		/// Gets global scss (debug dev builds only) so it can be seen. Bundle is e.g. "ui" or "admin".
+		/// </summary>
+		/// <returns></returns>
+		[Route("/pack/scss/{bundle}")]
+		public string GetGlobalScss(string bundle)
+		{
+			var file = _codeService.GetGlobalScss(bundle);
+			return file;
+		}
+#endif
+
 		/// <summary>
 		/// Gets the main.js file (site locale 1). The URL should be of the form /pack/main.js?loc=1&amp;v=123123123123&amp;h=ma83md83jd7hdur8
 		/// Where loc is the locale ID, v is the original code build timestamp in ms, and h is the hash of the file.

@@ -59,7 +59,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// <param name="filterJson"></param>
 	/// <param name="includes"></param>
 	/// <returns></returns>
-	public async Task<string> ListForSSR(Context context, string filterJson, string includes)
+	public override async Task<string> ListForSSR(Context context, string filterJson, string includes)
 	{
 		var filterNs = Newtonsoft.Json.JsonConvert.DeserializeObject(filterJson) as JObject;
 

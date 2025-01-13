@@ -4,8 +4,15 @@ using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer
 {
+    /// <summary>
+    /// A graph node which converts inputs to a singular list.
+    /// </summary>
     public class ToList : Executor
     {
+        /// <summary>
+        /// Create a new ToList graph node using info in the given JSON token.
+        /// </summary>
+        /// <param name="d"></param>
         public ToList(JToken d) : base(d)
         {
         }
