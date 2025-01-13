@@ -20,10 +20,20 @@ namespace Api.CloudHosts
         /// <returns></returns>
         public virtual async ValueTask Apply(Context context)
         {
-
-
             await Reload();
         }
+
+		/// <summary>
+		/// Informs the webserver that the certificate set has updated. It might have not changed at all.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="certSet"></param>
+		/// <returns></returns>
+		public virtual async ValueTask UpdateCertificates(Context context, Dictionary<string, DomainCertificateLocales> certSet)
+		{
+			// Simply calls Apply by default. It is expected that Apply internally gets the cert set from the webserver service.
+			await Apply(context);
+		}
 
         /// <summary>
         /// Tells the webserver to reload config live. On supported servers this results in no downtime.

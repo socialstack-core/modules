@@ -1,9 +1,9 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
+using Api.Configuration;
 using Api.Eventing;
+using System;
 
 namespace Api.CloudHosts
 {
@@ -16,16 +16,17 @@ namespace Api.CloudHosts
 		/// <summary>
 		/// Underlying platform. Currently it's always NGINX.
 		/// </summary>
-		private WebServer platform = new NGINX();
-		
+		private WebServer platform;
+		private DomainCertificateService _certs;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public WebServerService(WebSecurityService secService)
+		public WebServerService(DomainCertificateService certs)
         {
-			// WebSecurityService has the job of ensuring certs are good.
-			// It provides us with the details of the certs (their file location for example) to be then used in webserver config.
-
+			_certs = certs;
+			platform = new NGINX(this);
+			
 			Events.Configuration.AfterUpdate.AddEventListener(async (Context ctx, Configuration.Configuration configuration) =>
 			{
 
@@ -48,9 +49,86 @@ namespace Api.CloudHosts
 
 				return configuration;
 			});
-
+			
 			// Ensure webserver is initted.
+		}
 
+		/// <summary>
+		/// Get the latest cert info. Will generate incomplete info if they haven't been obtained yet.
+		/// </summary>
+		/// <returns></returns>
+		public Dictionary<string, DomainCertificateLocales> GetCertificateInfo()
+		{
+			// Get latest:
+			var latestCerts = _certs.GetLatestCertificates();
+
+			if (latestCerts != null)
+			{
+				return latestCerts;
+			}
+
+			// Generating a temporary set without the certificates
+			// When the certs are available it is expected to cause the webserver service to update again.
+			latestCerts = new Dictionary<string, DomainCertificateLocales>();
+
+			var publicUrls = AppSettings.GetRawPublicUrls();
+
+			if (publicUrls == null)
+			{
+				return latestCerts;
+			}
+
+			// For each public URL, check its cert.
+			for (var i = 0; i < publicUrls.Length; i++)
+			{
+				var publicUrl = publicUrls[i];
+
+				if (string.IsNullOrEmpty(publicUrl))
+				{
+					continue;
+				}
+
+				if (!publicUrl.StartsWith("https://"))
+				{
+					continue;
+				}
+
+				// Get the host:
+				var parsedUrl = new Uri(publicUrl);
+				var host = parsedUrl.Host;
+
+				if (!latestCerts.TryGetValue(host, out DomainCertificateLocales locales))
+				{
+					locales.Add((uint)(i + 1));
+				}
+				else
+				{
+					locales = new DomainCertificateLocales() { Host = host };
+					locales.Add((uint)(i + 1));
+					latestCerts.Add(host, locales);
+				}
+
+			}
+
+			return latestCerts;
+		}
+
+		/// <summary>
+		/// Informs the webserver that the certificate set has updated. It might have not changed at all.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="certSet"></param>
+		/// <returns></returns>
+		public async ValueTask UpdateCertificates(Context context, Dictionary<string, DomainCertificateLocales> certSet)
+		{
+			try
+			{
+				await platform.UpdateCertificates(context, certSet);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(LogTag, ex, "Unable to update certificates");
+			}
 		}
 
 		/// <summary>

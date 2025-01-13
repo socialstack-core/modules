@@ -1,15 +1,11 @@
-using Api.Database;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
-using Api.Eventing;
 using Api.Startup;
 using Api.Redirects;
-using Api.Pages;
 using Api.Translate;
-using Api.Configuration;
 using System.Linq;
+using System.IO;
 
 namespace Api.CloudHosts
 {
@@ -20,11 +16,21 @@ namespace Api.CloudHosts
 	public partial class NGINX : WebServer
     {
 		private RedirectService _redirectService;
-		private ConfigSet<HtmlServiceConfig> _configSet;
-		private HtmlServiceConfig[] _configurationTable = new HtmlServiceConfig[0];
-		private HtmlServiceConfig _defaultConfig = new HtmlServiceConfig();
 		private LocaleService _localeService;
 		private List<Locale> _allLocales;
+		/// <summary>
+		/// The webserver service this belongs to.
+		/// </summary>
+		public WebServerService Service;
+
+		/// <summary>
+		/// Creates a new NGINX config manager as part of the given webserver service.
+		/// </summary>
+		/// <param name="service"></param>
+		public NGINX(WebServerService service)
+		{
+			Service = service;
+		}
 
 		/// <summary>
 		/// Applies config changes and then performs a reload.
@@ -32,18 +38,41 @@ namespace Api.CloudHosts
 		/// <returns></returns>
 		public override async ValueTask Apply(Context context)
 		{
-			_localeService = Services.Get<LocaleService>();
-			_redirectService = Services.Get<RedirectService>(); // In Startup namespace
-																// Start constructing new NGINX config.
-			var configFile = new Api.CloudHosts.NGINXConfigFile();
+			_localeService ??= Services.Get<LocaleService>();
+			_redirectService ??= Services.Get<RedirectService>(); // In Startup namespace
+												// Start constructing new NGINX config.
+			var configFile = new NGINXConfigFile();
 
-			// Apply the default config in to it.
-			configFile.SetupDefaults();
+			// Get the cert info:
+			var certInfo = Service.GetCertificateInfo();
+
+			// Ensure this dir exists as it's referenced by the config.
+			Directory.CreateDirectory("./nginx");
+
+			List<string> hostnames = new List<string>();
+
+			foreach (var kvp in certInfo)
+			{
+				hostnames.Add(kvp.Key);
+				var serviceCert = kvp.Value;
+
+				if (serviceCert.Certificate != null)
+				{
+					// Ensure this certs pk and chain are written out.
+					// SetupDefaults assumes they are at ./nginx/{host}-privkey.pem and ./nginx/{host}-fullchain.pem
+					File.WriteAllText("./nginx/" + kvp.Key + "-privkey.pem", serviceCert.Certificate.PrivateKeyPem);
+					File.WriteAllText("./nginx/" + kvp.Key + "-fullchain.pem", serviceCert.Certificate.FullchainPem);
+				}
+			}
+
+			// Apply the default config in to it for the given set of hostnames.
+			configFile.SetupDefaults(hostnames);
 
 			// Add the redirects - get them all from the DB:
 			var redirects = await _redirectService.Where("", DataOptions.IgnorePermissions).ListAll(context);
 
-			var httpsContext = configFile.GetHttpsContext();
+			// Get the configurable context, the one into which we can put our custom redirect rules:
+			var cfgContext = configFile.GetConfigurableContext();
 
 			// For each redirect:
 			foreach (var redirect in redirects)
@@ -61,30 +90,8 @@ namespace Api.CloudHosts
 				}
 
 				// Add 2 location contexts to the NGINX config:
-				httpsContext.AddLocationContext($"= " + from).AddDirective($"return", statusCode + to);
-				httpsContext.AddLocationContext($"= " + from + "/").AddDirective($"return", statusCode + to);
-			}
-
-			// check - redirect primary locale (e.g. /en-gb -> /)?
-			_configSet = Services.Get<HtmlService>().GetAllConfig<HtmlServiceConfig>();
-
-			_configSet.OnChange += () =>
-			{
-				BuildConfigLocaleTable();
-				return new ValueTask();
-			};
-
-			BuildConfigLocaleTable();
-			var htmlConfig = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
-			var primaryLocale = await _localeService.Get(context, 1);
-
-			// redirect /[primary-locale-code/* to root (e.g. /en-gb/abc -> /abc)
-			if (htmlConfig.RedirectPrimaryLocale)
-			{
-				var statusCode = htmlConfig.PermanentRedirect ? "301 " : "302 ";
-
-				httpsContext.AddLocationContext($"= /" + primaryLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
-				httpsContext.AddLocationContext($"~ /" + primaryLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
+				cfgContext.AddLocationContext($"= " + from).AddDirective($"return", statusCode + to);
+				cfgContext.AddLocationContext($"= " + from + "/").AddDirective($"return", statusCode + to);
 			}
 
 			// each locale can also be optionally redirected
@@ -98,8 +105,8 @@ namespace Api.CloudHosts
 					if (altLocale.isRedirected)
 					{
 						var statusCode = altLocale.PermanentRedirect ? "301 " : "302 ";
-						httpsContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
-						httpsContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
+						cfgContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
+						cfgContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
 					}
 				}
 			}
@@ -109,7 +116,6 @@ namespace Api.CloudHosts
 
 			// Tell NGINX to reload:
 			await Reload();
-
 		}
 
 		/// <summary>
@@ -145,7 +151,7 @@ namespace Api.CloudHosts
 		/// </summary>
 		public override async ValueTask Reload()
 		{
-			await CommandLine.Execute("nginx -s reload");
+			await CommandLine.Execute("sudo nginx -s reload");
 		}
 
 		/// <summary>
@@ -156,73 +162,6 @@ namespace Api.CloudHosts
 			await CommandLine.Execute("sudo service nginx restart");
 		}
 
-		private void BuildConfigLocaleTable()
-		{
-			if (_configSet == null || _configSet.Configurations == null || _configSet.Configurations.Count == 0)
-			{
-				// Not configured at all.
-				_configurationTable = new HtmlServiceConfig[0];
-				_defaultConfig = new HtmlServiceConfig();
-				return;
-			}
-
-			// First collect highest locale ID.
-			uint highest = 0;
-			uint lowest = uint.MaxValue;
-
-			foreach (var config in _configSet.Configurations)
-			{
-				if (config == null)
-				{
-					continue;
-				}
-
-				if (config.LocaleId > highest)
-				{
-					highest = config.LocaleId;
-				}
-				else if (config.LocaleId < lowest)
-				{
-					lowest = config.LocaleId;
-				}
-			}
-
-			if (lowest == uint.MaxValue)
-			{
-				// Not configured at all.
-				_configurationTable = new HtmlServiceConfig[0];
-				_defaultConfig = new HtmlServiceConfig();
-				return;
-			}
-
-			var ct = new HtmlServiceConfig[highest + 1];
-
-			// Slot them:
-			foreach (var config in _configSet.Configurations)
-			{
-				if (config == null)
-				{
-					continue;
-				}
-
-				ct[config.LocaleId] = config;
-			}
-
-			// Fill any gaps with the default entry. The default simply has the lowest ID (ideally 0 or 1).
-			var defaultEntry = ct[lowest];
-
-			for (var i = 0; i < ct.Length; i++)
-			{
-				if (ct[i] == null)
-				{
-					ct[i] = defaultEntry;
-				}
-			}
-
-			_defaultConfig = defaultEntry;
-			_configurationTable = ct;
-		}
-
 	}
-    
+
 }

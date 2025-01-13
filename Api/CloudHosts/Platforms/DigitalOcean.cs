@@ -68,7 +68,7 @@ namespace Api.CloudHosts
             //_cloudHost = chs;
             _config = config;
 
-            if (!string.IsNullOrEmpty(_config.SpaceKey) && !string.IsNullOrEmpty(_config.SpaceSecret) && !string.IsNullOrEmpty(_config.SpaceOriginUrl))
+			if (!string.IsNullOrEmpty(_config.SpaceKey) && !string.IsNullOrEmpty(_config.SpaceSecret) && !string.IsNullOrEmpty(_config.SpaceOriginUrl))
             {
                 // Establish the space name + service URL.
                 var partUrl = _config.SpaceOriginUrl.Trim().ToLower();
@@ -106,8 +106,11 @@ namespace Api.CloudHosts
 
                         // Got a space which can be uploaded to:
                         SetConfigured("upload");
-                    }
-                }
+
+						// Indicate that this provider can sign URLs:
+						SetConfigured("ref-signing");
+					}
+				}
             }
         }
 
@@ -117,6 +120,33 @@ namespace Api.CloudHosts
         private string _spaceRegionUrl;
 
         private IAmazonS3 _uploadClient;
+
+		/// <summary>
+		/// Gets a signed URL for the given private upload.
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public override string GetSignedRef(Upload upload, string sizeName = "original")
+        {
+			if (_uploadClient == null)
+			{
+				SetupClient();
+			}
+
+			DateTime expiration = DateTime.UtcNow.AddHours(1);
+
+			var key = (upload.IsPrivate ? "content-private/" : "content/") + upload.GetRelativePath(sizeName);
+
+			var request = new GetPreSignedUrlRequest
+			{
+				BucketName = _spaceName,
+				Key = key,
+				Expires = expiration
+			};
+
+            return _uploadClient.GetPreSignedURL(request);
+		}
 
 		/// <summary>
 		/// Reads a files bytes from the remote host.
@@ -133,22 +163,34 @@ namespace Api.CloudHosts
             
             var key = (locator.IsPrivate ? "content-private/" : "content/") + locator.Path;
 
-			if (locator.Size != 0)
-			{
-				var gor = new GetObjectRequest
-				{
-					BucketName = _spaceName,
-					Key = key
-				};
+            try
+            {
+                if (locator.Size != 0)
+                {
+                    var gor = new GetObjectRequest
+                    {
+                        BucketName = _spaceName,
+                        Key = key
+                    };
 
-				gor.ByteRange = new ByteRange(locator.Offset, locator.Offset + locator.Size - 1);
+                    gor.ByteRange = new ByteRange(locator.Offset, locator.Offset + locator.Size - 1);
 
-				var resp = await _uploadClient.GetObjectAsync(gor);
-				return resp.ResponseStream;
-			}
+                    var resp = await _uploadClient.GetObjectAsync(gor);
+                    return resp.ResponseStream;
+                }
 
-			var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
-            return str;
+                var str = await _uploadClient.GetObjectStreamAsync(_spaceName, key, null);
+                return str;
+            }
+            catch (Amazon.S3.AmazonS3Exception e)
+            {
+                if (e.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    return null;
+                }
+
+                throw;
+            }
         }
 
         /// <summary>
@@ -231,15 +273,51 @@ namespace Api.CloudHosts
                 _uploadClient = new AmazonS3Client(creds, s3ClientConfig);
             }
         }
-        
+
+		/// <summary>
+		/// Runs when deleting a file.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="fDel"></param>
+		/// <returns></returns>
+		public override async Task<bool> Delete(Context context, FileDelete fDel)
+        {
+            if (_uploadClient == null)
+            {
+                SetupClient();
+            }
+
+			try
+            {
+                await _uploadClient.DeleteAsync(
+                    _spaceName,
+                    (fDel.IsPrivate ? "content-private/" : "content/") + fDel.Path,
+                    null
+                );
+                return true;
+            }
+            catch (AmazonS3Exception e)
+            {
+				// File not found etc.
+				Log.Warn("storage", e, "Error when trying to delete a file");
+				return false;
+            }
+            catch (Exception e)
+            {
+                Log.Warn("storage", e, "Unexpected error when trying to delete a file");
+            }
+
+            return false;
+        }
+
         /// <summary>
-        /// Runs when uploading a file.
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="upload"></param>
-        /// <param name="tempFile"></param>
-        /// <param name="variantName"></param>
-        /// <returns></returns>
+         /// Runs when uploading a file.
+         /// </summary>
+         /// <param name="context"></param>
+         /// <param name="upload"></param>
+         /// <param name="tempFile"></param>
+         /// <param name="variantName"></param>
+         /// <returns></returns>
         public override async Task<bool> Upload(Context context, Upload upload, string tempFile, string variantName)
         {
             if(_uploadClient == null)

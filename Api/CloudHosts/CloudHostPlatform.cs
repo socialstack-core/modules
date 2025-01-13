@@ -34,13 +34,24 @@ namespace Api.CloudHosts
             return null;
         }
 
-        /// <summary>
-        /// Lists files from the storage area into the given file meta stream.
-        /// The source can cancel the request via cancelling the meta stream.
-        /// </summary>
-        /// <param name="metaStream"></param>
-        /// <returns></returns>
-        public virtual Task ListFiles(FileMetaStream metaStream)
+		/// <summary>
+		/// Gets a signed URL for the given private upload.
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <param name="sizeName"></param>
+		/// <returns></returns>
+		public virtual string GetSignedRef(Upload upload, string sizeName = "original")
+        {
+            return null;
+        }
+
+		/// <summary>
+		/// Lists files from the storage area into the given file meta stream.
+		/// The source can cancel the request via cancelling the meta stream.
+		/// </summary>
+		/// <param name="metaStream"></param>
+		/// <returns></returns>
+		public virtual Task ListFiles(FileMetaStream metaStream)
         {
 			throw new NotImplementedException();
 		}
@@ -77,5 +88,16 @@ namespace Api.CloudHosts
         {
             throw new NotImplementedException();
         }
-    }
+
+		/// <summary>
+		/// Runs when deleting a file.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="fDel"></param>
+		/// <returns></returns>
+		public virtual Task<bool> Delete(Context context, FileDelete fDel)
+		{
+			throw new NotImplementedException();
+		}
+	}
 }

@@ -22,14 +22,16 @@ namespace Api.CloudHosts
 	public partial class CloudHostService : AutoService
     {
         private CloudHostConfig _config;
+        private UploadService _uploads;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
-        public CloudHostService()
+        public CloudHostService(UploadService uploads)
         {
             // Get config:
             _config = GetConfig<CloudHostConfig>();
+            _uploads = uploads;
 
             SelectConfiguredHost();
 
@@ -55,8 +57,25 @@ namespace Api.CloudHosts
 
 				return metaStream;
             });
-				
-            Events.Upload.StoreFile.AddEventListener(async (Context context, Upload upload, string tempFile, string variantName) => {
+
+			Events.Upload.DeleteFile.AddEventListener(async (Context context, FileDelete fDel) => {
+
+				if (fDel.Succeeded || fDel.Handled)
+				{
+					return fDel;
+				}
+
+				if (_uploadHost != null)
+				{
+					var result = await _uploadHost.Delete(context, fDel);
+                    fDel.Succeeded = result;
+				}
+
+				fDel.Handled = true;
+				return fDel;
+			}, 10);
+
+			Events.Upload.StoreFile.AddEventListener(async (Context context, Upload upload, string tempFile, string variantName) => {
 
                 if (upload != null)
                 {
@@ -93,6 +112,13 @@ namespace Api.CloudHosts
                     if (locator.IsPrivate)
                     {
                         var stream = await _uploadHost.ReadFile(locator);
+
+                        if (stream == null)
+                        {
+                            // Not found
+                            return null;
+                        }
+
                         var ms = new MemoryStream();
                         await stream.CopyToAsync(ms);
                         return ms.ToArray();
@@ -120,7 +146,14 @@ namespace Api.CloudHosts
                             try
                             {
                                 var stream = await _uploadHost.ReadFile(locator);
-                                var ms = new MemoryStream();
+
+								if (stream == null)
+								{
+									// Not found
+									return null;
+								}
+
+								var ms = new MemoryStream();
                                 await stream.CopyToAsync(ms);
                                 return ms.ToArray();
                             }
@@ -251,6 +284,24 @@ namespace Api.CloudHosts
                     setContentUrl.Invoke(frontend, new object[] { null });
                 }
             }
+
+            // Upload service is required by CloudHosts always.
+            if (uploadHost == null || !uploadHost.HasService("ref-signing"))
+            {
+                if(_uploads.RefGenerator != null && _uploads.RefGenerator is SignedUrlGenerator)
+				{
+                    _uploads.RefGenerator = null;
+				}
+            }
+            else
+            {
+                // Connect the ref generator to the cloudhost:
+                _uploads.RefGenerator = new SignedUrlGenerator()
+                {
+                    Host = uploadHost
+                };
+			}
+
         }
     }
 

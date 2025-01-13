@@ -108,7 +108,35 @@ namespace Api.CloudHosts
             return strResult.Value.Content;
         }
 
-        private async Task SetupContainers()
+		/// <summary>
+		/// Runs when deleting a file.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="fDel"></param>
+		/// <returns></returns>
+		public override async Task<bool> Delete(Context context, FileDelete fDel)
+		{
+			if (_publicContainer == null)
+			{
+				await SetupContainers();
+			}
+
+			var blobClient = (fDel.IsPrivate ? _privateContainer : _publicContainer).GetBlobClient(fDel.Path);
+            
+			try
+			{
+				var result = await blobClient.DeleteAsync(DeleteSnapshotsOption.IncludeSnapshots);
+				return result.Status >= 200 && result.Status <= 299;
+			}
+			catch (Exception e)
+			{
+				Log.Warn("storage", e, "Unexpected error when trying to delete a file");
+			}
+
+			return false;
+		}
+
+		private async Task SetupContainers()
         {
             // Verify existence of the two:
             var hasPrivate = false;
