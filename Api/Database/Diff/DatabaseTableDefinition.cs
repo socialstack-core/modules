@@ -139,6 +139,17 @@ namespace Api.Database
 				}
 			}
 
+			// For each column that I have which is not present in the new one..
+			foreach (var kvp in Columns)
+			{
+				var existingColumn = newTable.GetColumn(kvp.Key);
+
+				if (existingColumn == null)
+				{
+					result.Removed.Add(kvp.Value);
+				}
+			}
+
 			return result;
 		}
 	}

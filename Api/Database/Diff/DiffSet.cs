@@ -13,12 +13,15 @@ namespace Api.Database
         /// </summary>
         public List<T> Added = new List<T>();
 
-        // Note that we don't track removals.
-
         /// <summary>
         /// A list of things that were changed.
         /// </summary>
         public List<U> Changed = new List<U>();
-    }
+
+		/// <summary>
+		/// A list of things that were removed.
+		/// </summary>
+		public List<T> Removed = new List<T>();
+	}
 
 }
