@@ -21,16 +21,16 @@ namespace Api.AutoForms
 	/// </summary>
 	public partial class AutoFormService
 	{
-		private IActionDescriptorCollectionProvider _descriptionProvider;
+		// private IActionDescriptorCollectionProvider _descriptionProvider;
 		private RoleService _roleService;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public AutoFormService(IActionDescriptorCollectionProvider descriptionProvider, RoleService roleService)
+		public AutoFormService(/**IActionDescriptorCollectionProvider descriptionProvider,**/ RoleService roleService)
 		{
-			_descriptionProvider = descriptionProvider;
+			// _descriptionProvider = descriptionProvider;
 			_roleService = roleService;
 
 			contentCache = new AutoFormCache(PopulateContentCache, roleService);
