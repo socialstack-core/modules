@@ -1259,37 +1259,37 @@ svg {
 				canonicalPath = "";
 			}
 
-			var canonicalUrl = UrlCombine(_frontend.GetPublicUrl(locale.Id), canonicalPath)?.ToLower();
-
-			if (!_config.DisableCanonicalTag)
+			if (_config.EnableCanonicalTag)
 			{
+				var canonicalUrl = UrlCombine(_frontend.GetPublicUrl(locale.Id), canonicalPath)?.ToLower();
+
 				head.AppendChild(new DocumentNode("link", true).With("rel", "canonical").With("href", canonicalUrl));
-			}
 
-			if (!_config.DisableHrefLangTags)
-			{
-				// include x-default alternate
-				var defaultUrl = GetPathWithoutLocale(canonicalUrl);
-				head.AppendChild(new DocumentNode("link", true).With("rel", "alternate").With("hreflang", "x-default").With("href", defaultUrl));
-
-				// include alternates for each available locale
-				if (locales != null && locales.Count > 0)
+				if (_config.EnableHrefLangTags)
 				{
-					foreach (var altLocale in locales)
-					{
+					// include x-default alternate
+					var defaultUrl = GetPathWithoutLocale(canonicalUrl);
+					head.AppendChild(new DocumentNode("link", true).With("rel", "alternate").With("hreflang", "x-default").With("href", defaultUrl));
 
-						// NB: locale with ID=1 is assumed to be the primary locale
-						if (_config.RedirectPrimaryLocale && altLocale.Id == 1)
+					// include alternates for each available locale
+					if (locales != null && locales.Count > 0)
+					{
+						foreach (var altLocale in locales)
 						{
-							continue;
+
+							// NB: locale with ID=1 is assumed to be the primary locale
+							if (_config.RedirectPrimaryLocale && altLocale.Id == 1)
+							{
+								continue;
+							}
+
+							var altUrl = GetLocaleUrl(altLocale, defaultUrl)?.ToLower();
+							head.AppendChild(new DocumentNode("link", true).With("rel", "alternate").With("hreflang", altLocale.Code).With("href", altUrl));
 						}
 
-						var altUrl = GetLocaleUrl(altLocale, defaultUrl)?.ToLower();
-						head.AppendChild(new DocumentNode("link", true).With("rel", "alternate").With("hreflang", altLocale.Code).With("href", altUrl));
 					}
 
 				}
-
 			}
 
 			head.AppendChild(new DocumentNode("link", true).With("rel", "icon").With("type", "image/png").With("sizes", "32x32").With("href", "/favicon-32x32.png"))

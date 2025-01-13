@@ -138,14 +138,14 @@ namespace Api.Pages
 		public bool PermanentRedirect = false;
 
 		/// <summary>
-		/// True if <link rel="canonical" href="https://www.mydomain.com" /> entry should be excluded from the head
+		/// True if link rel="canonical" href="https://www.mydomain.com" entry should be excluded from the head
 		/// </summary>
-		public bool DisableCanonicalTag = false;
+		public bool EnableCanonicalTag = false;
 
 		/// <summary>
-		/// True if <link rel="alternate" hreflang="xx-XX" href="https://www.mydomain.com/xx-XX" /> style entries should be excluded from the head
+		/// True if link rel="alternate" hreflang="xx-XX" href="https://www.mydomain.com/xx-XX" style entries should be excluded from the head
 		/// </summary>
-		public bool DisableHrefLangTags = false;
+		public bool EnableHrefLangTags = false;
 	}
 
 	/// <summary>
