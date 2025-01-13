@@ -48,6 +48,11 @@ namespace Api.Eventing
 		public EventHandler<UrlLookupCache> AfterLookupReady;
 
 		/// <summary>
+		/// Just before adding a particular terminal.
+		/// </summary>
+		public EventHandler<UrlLookupTerminal> BeforeAddTerminal;
+
+		/// <summary>
 		/// On admin page install.
 		/// </summary>
 		public EventHandler<Page, CanvasRenderer.CanvasNode, System.Type, AdminPageType> BeforeAdminPageInstall;

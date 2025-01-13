@@ -788,7 +788,8 @@ svg {
 				"Blame Mike.",
 				"Contact your system admin. If you are the system admin, I'm so sorry.",
 				"You shall not pass!",
-				"Ruh-roh Rorge!"
+				"Ruh-roh Rorge!",
+				"I'm not sure what happened, but I think I might have eaten the source code."
 			};
 
 			var rng = new Random();

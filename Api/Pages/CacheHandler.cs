@@ -8,11 +8,18 @@ using System.Threading.Tasks;
 
 namespace Api.ThirdParty.Pages
 {
+	/// <summary>
+	/// Handles the page cache.
+	/// </summary>
     [LoadPriority(101)]
     public class CacheHandlerService : AutoService
     {
         private readonly HtmlService _htmlService;
 
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		/// <param name="htmlService"></param>
         public CacheHandlerService(HtmlService htmlService)
         {
             _htmlService = htmlService;
@@ -73,20 +80,20 @@ namespace Api.ThirdParty.Pages
 			var editLine = "Cache cleared by edit of " + service.EntityName;
 			var createLine = "Cache cleared by creation of " + service.EntityName;
 
-			service.EventGroup.AfterUpdate.AddEventListener(async (Context ctx, T entity) =>
+			service.EventGroup.AfterUpdate.AddEventListener((Context ctx, T entity) =>
             {
 				Log.Info("htmlcache", editLine);
                 _htmlService.ClearCache();
 
-                return entity;
-            });
+				return new ValueTask<T>(entity);
+			});
 
-            service.EventGroup.AfterCreate.AddEventListener(async (Context ctx, T entity) =>
+            service.EventGroup.AfterCreate.AddEventListener((Context ctx, T entity) =>
 			{
 				Log.Info("htmlcache", createLine);
 				_htmlService.ClearCache();
 
-                return entity;
+                return new ValueTask<T>(entity);
             });
         }
     }

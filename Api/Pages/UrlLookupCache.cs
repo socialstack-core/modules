@@ -61,32 +61,32 @@ namespace Api.Pages
 		/// <summary>
 		/// Add a redirect to the cache.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="url"></param>
 		/// <param name="redirectTo"></param>
 		/// <returns></returns>
-		public UrlLookupNode Add(string url, Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
+		public async ValueTask<UrlLookupNode> Add(Context context, string url, Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> redirectTo)
 		{
-			var node = AddInternal(url, null, out int index);
+			var terminal = await AddInternal(context, url, null);
 
-			if (node != null && index != -1)
+			if (terminal != null)
 			{
-				node.Terminals[index].Redirection = redirectTo;
+				terminal.Redirection = redirectTo;
 			}
 
-			return node;
+			return terminal.Node;
 		}
 
 		/// <summary>
 		/// Adds the given url to the cache, returning the node that it ended at and the index as well.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="url"></param>
 		/// <param name="page"></param>
-		/// <param name="index">The index in the UrlLookupNode's page array that it was added to.</param>
-		private UrlLookupNode AddInternal(string url, Page page, out int index)
+		private async ValueTask<UrlLookupTerminal> AddInternal(Context context, string url, Page page)
 		{
 			if (string.IsNullOrEmpty(url))
 			{
-				index = -1;
 				return null;
 			}
 
@@ -210,14 +210,12 @@ namespace Api.Pages
 
 				if (skip)
 				{
-					index = -1;
 					return null;
 				}
 			}
 
 			if (pg == null)
 			{
-				index = -1;
 				return null;
 			}
 
@@ -251,6 +249,7 @@ namespace Api.Pages
 			var terminal = new UrlLookupTerminal()
 			{
 				Page = page,
+				Node = pg,
 				IsAdmin = pg.IsAdmin,
 				Generator = generator,
 				UrlTokens = tokenSet,
@@ -258,43 +257,46 @@ namespace Api.Pages
 				UrlTokenNamesJson = tokenNamesJson
 			};
 
+			terminal = await Events.Page.BeforeAddTerminal.Dispatch(context, terminal);
+
 			// If there are >1, ensure that the page at the start of the set is the one that is favoured (if any are favoured).
 			if (prepend)
 			{
-				index = 0;
 				pg.Terminals[0] = terminal;
 			}
 			else
 			{
-				index = pg.Terminals.Length - 1;
-				pg.Terminals[index] = terminal;
+				pg.Terminals[pg.Terminals.Length - 1] = terminal;
 			}
 			
-			return pg;
+			return terminal;
 		}
 
 		/// <summary>
 		/// Adds the given page to the cache.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="page"></param>
-		public UrlLookupNode Add(Page page)
+		public async ValueTask<UrlLookupNode> Add(Context context, Page page)
 		{
 			if (page == null)
 			{
 				return null;
 			}
 
-			var pg = AddInternal(page.Url, page, out int _);
+			var terminal = await AddInternal(context, page.Url, page);
+
+			if (terminal == null)
+			{
+				// skipped
+				return null;
+			}
+
+			var pg = terminal.Node;
 
 			if (page.Url == "/404")
 			{
 				NotFoundTerminal = pg.Terminals[0];
-			}
-
-			if (pg == null)
-			{
-				// skipped
-				return null;
 			}
 
 			PageUrlList.Add(new PageIdAndUrl()
@@ -309,14 +311,15 @@ namespace Api.Pages
 		/// <summary>
 		/// Loads the cache from the given list of all pages.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="allPages"></param>
-		public void Load(List<Page> allPages)
+		public async ValueTask Load(Context context, List<Page> allPages)
 		{
 			// Loop over pages and establish which scope it belongs to:
 			for (var p = 0; p < allPages.Count; p++)
 			{
 				var page = allPages[p];
-				Add(page);
+				await Add(context, page);
 			}
 
 		}
@@ -468,7 +471,7 @@ namespace Api.Pages
 			// The login URL is always permitted no matter what.
 			UrlLookupTerminal terminal = null;
 
-			if (urlInfo.Matches("login"))
+			if (srcUrlInfo.Matches("login"))
 			{
 				// Always permitted (assuming it exists!)
 				// This helps avoid any redirect cycles in the event the user is unable to see either the login or homepage.
@@ -517,7 +520,7 @@ namespace Api.Pages
 								{
 									if (ulong.TryParse(primaryTokenValue, out ulong primaryObjectId))
 									{
-										primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId);
+										primaryObject = await primaryToken.Service.GetObject(context, primaryObjectId, curTerminal.PrimaryDataOptions);
 									}
 								}
 								else
@@ -541,7 +544,7 @@ namespace Api.Pages
 										curTerminal.FilterString = filterString;
 									}
 
-									primaryObject = await primaryToken.Service.GetObjectByFilter(context, filterString, wildcardTokens);
+									primaryObject = await primaryToken.Service.GetObjectByFilter(context, filterString, wildcardTokens, curTerminal.PrimaryDataOptions);
 								}
 
 								if (!curNode.IsAdmin && primaryObject == null)
@@ -806,6 +809,10 @@ namespace Api.Pages
 	public partial class UrlLookupTerminal
 	{
 		/// <summary>
+		/// The node that this terminal is on.
+		/// </summary>
+		public UrlLookupNode Node;
+		/// <summary>
 		/// Set if this node performs a redirect.
 		/// </summary>
 		public Func<UrlInfo, UrlLookupNode, List<string>, ValueTask<string>> Redirection;
@@ -837,6 +844,10 @@ namespace Api.Pages
 		/// The filter string if it does not contain an ID based token.
 		/// </summary>
 		public string FilterString;
+		/// <summary>
+		/// The data options to use when looking up objects for this terminal.
+		/// </summary>
+		public DataOptions PrimaryDataOptions = DataOptions.Default;
 	}
 
 	/// <summary>

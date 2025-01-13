@@ -9,11 +9,22 @@ namespace Api.Pages;
 /// </summary>
 public class CachedPageData
 {
+	/// <summary>
+	/// Creates a new cached page data set with the given documents in it.
+	/// </summary>
+	/// <param name="nodes"></param>
 	public CachedPageData(List<DocumentNode> nodes)
     {
 		Nodes = nodes;
 	}
 
+	/// <summary>
+	/// Creates a new cached page data set with the given nodes in it.
+	/// </summary>
+	/// <param name="nodes"></param>
+	/// <param name="anonymousCompressedPage"></param>
+	/// <param name="hash"></param>
+	/// <param name="cacheMaxAge"></param>
 	public CachedPageData(List<DocumentNode> nodes, byte[] anonymousCompressedPage, string hash, ulong cacheMaxAge)
 	{
 		Nodes = nodes;

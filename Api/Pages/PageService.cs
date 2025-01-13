@@ -439,7 +439,7 @@ namespace Api.Pages
 
 			// Add cache to lookup:
 			ulc[context.LocaleId - 1] = cache;
-			cache.Load(allPages);
+			await cache.Load(context, allPages);
 			_urlLookupCache = ulc;
 
 			// Next, indicate that the cache has loaded. This is the event you'd use to add in things like custom redirect functions.
