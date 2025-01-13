@@ -58,9 +58,32 @@ namespace Api.Database
 		/// </summary>
 		private void LoadFromAppSettings()
 		{
-			ConnectionString = AppSettings.GetSection("ConnectionStrings")[
-				System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection"
+			var connectionStrings = AppSettings.GetSection("ConnectionStrings");
+
+			if (connectionStrings == null)
+			{
+				throw new Exception("Your appsettings file is missing the 'ConnectionStrings' block.");
+			}
+
+			string cStringName;
+
+			if (Services.BuildHost == "xunit")
+			{
+				cStringName = "TestingConnection";
+			}
+			else
+			{
+				cStringName = System.Environment.GetEnvironmentVariable("ConnectionStringName") ?? "DefaultConnection";
+			}
+			
+			ConnectionString = connectionStrings[
+				cStringName
 			];
+
+			if (ConnectionString == null)
+			{
+				throw new Exception("Your appsettings file declares a ConnectionString block but is missing a connection string with the key '" + cStringName  + "'");
+			}
 		}
 
 		/// <summary>
@@ -247,9 +270,24 @@ namespace Api.Database
 					{
 						fieldValue = dt.ToString("yyyy-MM-dd HH:mm:ss");
 					}
-					builder.Append('\"');
-					builder.Append(Escape(fieldValue.ToString()));
-					builder.Append('\"');
+
+					if(fieldValue is bool)
+					{
+						if(fieldValue is true)
+						{
+							builder.Append("b'0'");
+						}else{
+							builder.Append("b'1'");
+						}
+					}else if(fieldValue != null)
+					{
+						builder.Append('\"');
+						builder.Append(Escape(fieldValue.ToString()));
+						builder.Append('\"');
+					}else{
+						builder.Append("NULL");
+					}
+					
 				}
 			}
 
@@ -457,15 +495,23 @@ namespace Api.Database
 
 				var field = q.Fields[i];
 
-				if (field.Type == typeof(bool) || field.Type == typeof(bool?))
+				try
 				{
-					// Set the value:
-					field.TargetField.SetValue(result, Convert.ToBoolean(value));
+					if (field.Type == typeof(bool) || field.Type == typeof(bool?))
+					{
+						// Set the value:
+						field.TargetField.SetValue(result, Convert.ToBoolean(value));
+					}
+					else
+					{
+						// Set the value:
+						field.TargetField.SetValue(result, value);
+					}
 				}
-				else
+				catch (Exception e)
 				{
-					// Set the value:
-					field.TargetField.SetValue(result, value);
+					Log.Error(LogTag, e, "Failure setting field " + field.Name + " on type " + typeof(T));
+					throw;
 				}
 			}
 
@@ -542,15 +588,23 @@ namespace Api.Database
 
 						var field = q.Fields[i];
 
-						if (field.Type == typeof(bool) || field.Type == typeof(bool?))
+						try
 						{
-							// Set the value:
-							field.TargetField.SetValue(result, Convert.ToBoolean(value));
+							if (field.Type == typeof(bool) || field.Type == typeof(bool?))
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, Convert.ToBoolean(value));
+							}
+							else
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, value);
+							}
 						}
-						else
+						catch (Exception e)
 						{
-							// Set the value:
-							field.TargetField.SetValue(result, value);
+							Log.Error(LogTag, e, "Failure setting field " + field.Name + " on type " + typeof(T));
+							throw;
 						}
 					}
 
@@ -605,6 +659,8 @@ namespace Api.Database
 					// For each field..
 					for (var i = 0; i < reader.FieldCount; i++)
 					{
+						// string fieldName = reader.GetName(i);
+						// int fieldIndex = 
 						var value = reader.GetValue(i);
 
 						if (value is System.DBNull)
@@ -614,15 +670,33 @@ namespace Api.Database
 
 						var field = q.Fields[i];
 
-						if (field.Type == typeof(bool))
+						try
 						{
-							// Set the value:
-							field.TargetField.SetValue(result, Convert.ToBoolean(value));
+							if (field.Type == typeof(bool))
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, Convert.ToBoolean(value));
+							}
+							else if (field.Type == typeof(bool?))
+							{
+								if(value == null)
+								{
+									field.TargetField.SetValue(result, null);
+								}else{
+									bool? newValue = Convert.ToBoolean(value);
+									field.TargetField.SetValue(result, newValue);
+								}
+							}
+							else
+							{
+								// Set the value:
+								field.TargetField.SetValue(result, value);
+							}
 						}
-						else
+						catch (Exception e)
 						{
-							// Set the value:
-							field.TargetField.SetValue(result, value);
+							Log.Error(LogTag, e, "Failure setting field " + field.Name + " on type " + typeof(T));
+							throw;
 						}
 					}
 

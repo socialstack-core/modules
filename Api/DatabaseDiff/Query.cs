@@ -552,7 +552,7 @@ namespace Api.Database
 			}
 
 			var str = new StringBuilder();
-			int paramOffset = 0;
+			// int paramOffset = 0;
 			int fromLocation = 0;
 
 			switch (Operation)

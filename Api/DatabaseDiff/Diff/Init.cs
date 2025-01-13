@@ -77,7 +77,8 @@ namespace Api.Database
 				return locales;
 			});
 
-			Events.Service.AfterInstanceTypeUpdate.AddEventListener(async (Context context, AutoService service) => {
+			/*
+			Events.Service.AfterInstanceTypeUpdate.AddEventListener((Context context, AutoService service) => {
 
 				if (service == null || service.ServicedType == null)
 				{
@@ -86,6 +87,7 @@ namespace Api.Database
 
 				return service;
 			});
+			*/
 
 			Events.Service.AfterCreate.AddEventListener(async (Context context, AutoService service) => {
 
@@ -814,6 +816,12 @@ namespace Api.Database
 					// Update in the existing schema by performing a remove and then a re-add:
 					existingSchema.Remove(changedColumn.FromColumn);
 					existingSchema.Add(changedColumn.ToColumn);
+				}
+
+				foreach (var removedColumn in tableDiffs.Removed)
+				{
+					var colDef = (MySQLDatabaseColumnDefinition)removedColumn;
+					Log.Info("databasediff", "Obsolete or otherwise ignored column: " + colDef.TableName + "." + colDef.ColumnName + "");
 				}
 
 			}
