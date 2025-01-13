@@ -316,7 +316,7 @@ namespace Api.Contexts
         {
             get
             {
-                return Context.CookieName;
+                return _users.CookieName;
             }
         }
 
@@ -350,7 +350,7 @@ namespace Api.Contexts
 
 			if (domain == null)
 			{
-   				var cookieDomain = AppSettings.GetString("CookieDomain");
+				var cookieDomain = AppSettings.GetString("CookieDomain");
 				if (cookieDomain != null)
 				{
 					domain = cookieDomain;
