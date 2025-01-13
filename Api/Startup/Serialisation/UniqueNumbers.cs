@@ -644,10 +644,11 @@ namespace Api.Startup
 			Log.Info("", sb.ToString());
 		}
 
-        /// <summary>
-		/// 
+		/// <summary>
+		/// Output the given ID block in to the given stringbuilder.
 		/// </summary>
 		/// <param name="currentBlock"></param>
+		/// <param name="sb"></param>
 		public void PrintBlock(IDBlock<T> currentBlock, StringBuilder sb)
         {
 			sb.Append("[");

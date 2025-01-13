@@ -293,6 +293,33 @@ public partial class AutoService<T, ID>
     }
 
     /// <summary>
+    /// Serialises the given object list into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
+    /// and also may use a per-object cache which contains string segments.
+    /// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
+    /// </summary>
+    public async ValueTask ToJson(Context context, IEnumerable<T> entities, Writer writer, Stream targetStream = null, string includes = null, bool includeTotal = false)
+    {
+		await ToJson(context, null, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
+
+            var index = 0;
+
+            if (entities == null)
+            {
+                return 0;
+            }
+
+            foreach (var entity in entities)
+            {
+                await onResult(entity, index);
+				index++;
+			}
+
+            return index;
+
+		}, writer, targetStream, includes, includeTotal);
+	}
+
+    /// <summary>
     /// Serialises the given object into the given stream (usually a response stream). By using this method, it will consider the fields a user is permitted to see (based on the role in the context)
     /// and also may use a per-object cache which contains string segments.
     /// addResultWrap will wrap the object with {"result":...}. It is assumed true if includes is not null.
@@ -644,6 +671,7 @@ public partial class AutoService<T, ID>
     /// <param name="context"></param>
     /// <param name="id"></param>
     /// <param name="writer"></param>
+    /// <param name="includes">The includes to use when outputting the JSON</param>
     /// <returns></returns>
     public override async ValueTask OutputById(Context context, ulong id, Writer writer, string includes = "*")
     {

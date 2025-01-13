@@ -1,4 +1,5 @@
-﻿using Api.Eventing;
+﻿using Api.CanvasRenderer;
+using Api.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
@@ -21,6 +22,11 @@ namespace Api.Startup
 		/// Has been sanitised so will typically be "dev", "stage" and "prod".
 		/// </summary>
 		public static string Environment;
+
+		/// <summary>
+		/// This is "xunit" when running as tests.
+		/// </summary>
+		public static string BuildHost = "standard";
 		
 		/// <summary>
 		/// Environment that we're running in, exactly as it appears in the appsettings file.
@@ -121,24 +127,50 @@ namespace Api.Startup
 
 			Task.Run(async () =>
 			{
-				foreach (var serviceType in AllServiceTypes)
+				if (BuildHost == "xunit")
 				{
-					var svc = serviceProvider.GetService(serviceType);
+					foreach (var serviceType in AllServiceTypes)
+					{
+						try
+						{
+							// Todo: generic mechanism
+							// to test if a target service should not be initted by the test framework.
+							var svc = serviceProvider.GetService(serviceType);
 
-					if (svc == null)
-					{
-						continue;
+							if (svc == null)
+							{
+								continue;
+							}
+							// Trigger startup state change:
+							await StateChange(true, svc);
+						}
+						catch (Exception e)
+						{
+							Log.Error("tests/init-error", $"Error autoloading {serviceType.FullName} {e.Message}");
+						}
 					}
+				}
+				else
+				{
+					foreach (var serviceType in AllServiceTypes)
+					{
+						var svc = serviceProvider.GetService(serviceType);
 
-					try
-					{
-						// Trigger startup state change:
-						await StateChange(true, svc);
-					}
-					catch (Exception e)
-					{
-						var autoService = svc as AutoService;
-						Log.Error((autoService != null) ? autoService.LogTag : "", e);
+						if (svc == null)
+						{
+							continue;
+						}
+
+						try
+						{
+							// Trigger startup state change:
+							await StateChange(true, svc);
+						}
+						catch (Exception e)
+						{
+							var autoService = svc as AutoService;
+							Log.Error((autoService != null) ? autoService.LogTag : "", e);
+						}
 					}
 				}
 

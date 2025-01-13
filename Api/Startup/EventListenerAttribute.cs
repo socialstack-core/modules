@@ -12,7 +12,7 @@ namespace Api.Startup
 	/// you'll need to use the Services.OnStart event to grab services.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-	internal sealed class EventListenerAttribute : Attribute
+	public sealed class EventListenerAttribute : Attribute
 	{
 
 	}

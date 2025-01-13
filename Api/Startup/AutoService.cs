@@ -29,6 +29,15 @@ public partial class AutoService<T> : AutoService<T, uint>
 	/// <param name="eventGroup"></param>
 	public AutoService(EventGroup<T> eventGroup):base(eventGroup)
 	{ }
+
+	/// <summary>
+	/// Quick helper function
+	/// </summary>
+	/// <returns></returns>
+	public static bool IsTestSuite()
+	{
+		return Services.BuildHost == "xunit";
+	}
 }
 
 /// <summary>
