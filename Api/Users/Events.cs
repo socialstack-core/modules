@@ -59,6 +59,10 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<LogoutResult> Logout;
 
+		/// <summary>
+		/// An event which runs when the verify email is sent. Make it return null to block the verify email.
+		/// </summary>
+		public EventHandler<User> OnSendVerificationEmail;
 	}
 
 }

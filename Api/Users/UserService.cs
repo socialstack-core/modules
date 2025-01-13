@@ -4,8 +4,7 @@ using Api.Permissions;
 using Api.Eventing;
 using Api.Startup;
 using Org.BouncyCastle.Security;
-using Api.Translate;
-
+using System;
 
 namespace Api.Users
 {
@@ -15,14 +14,35 @@ namespace Api.Users
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public partial class UserService : AutoService<User>
-    {
+	{
+		private UserServiceConfig _config;
+
+		/// <summary>
+		/// Optional default role setting action. If you override this, you MUST
+		/// set a default role in all scenarios.
+		/// </summary>
+		public Action<Context, User, UserServiceConfig> OnSetDefaultRole;
+		
+		/// <summary>
+		/// Optional role changing action. If you override this, you MUST
+		/// role check in all scenarios.
+		/// </summary>
+		public Action<Context, User, User, UserServiceConfig> OnChangeRole;
+
+		/// <summary>
+		/// Optional account verification action. If you override this, you MUST
+		/// role check in all scenarios.
+		/// </summary>
+		public Action<Context, User, User> OnVerify;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public UserService() : base(Events.User)
 		{
 			var config = GetConfig<UserServiceConfig>();
-			
+			_config = config;
+
 			Events.User.BeforeSettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
 				
 				if (field == null)
@@ -30,12 +50,6 @@ namespace Api.Users
 					return new ValueTask<JsonField<User, uint>>(field);
 				}
 				
-				if(field.Name == "Role")
-				{
-					// Only admins can update this field.
-					// Will be permission system based in the future
-					return new ValueTask<JsonField<User, uint>>((field.ForRole == Roles.Admin || field.ForRole == Roles.Developer) ? field : null);
-				}
 				else if(field.Name == "JoinedUtc" || field.Name == "PrivateVerify")
 				{
 					// Not settable
@@ -70,7 +84,14 @@ namespace Api.Users
 				if(user.Role == 0 || (ctx.Role != Roles.Developer && ctx.Role != Roles.Admin))
 				{
 					// Default role is Member:
-					user.Role = config.VerifyEmails ? Roles.Guest.Id : Roles.Member.Id;
+					if (OnSetDefaultRole != null)
+					{
+						OnSetDefaultRole(ctx, user, config);
+					}
+					else
+					{
+						user.Role = config.VerifyEmails ? Roles.Guest.Id : Roles.Member.Id;
+					}
 				}
 
 				// Set locale ID:
@@ -111,6 +132,35 @@ namespace Api.Users
 					return user;
                 }
 
+				if (user.Role != originalUser.Role && (ctx.Role != Roles.Developer && ctx.Role != Roles.Admin))
+				{
+					if (originalUser.Role == 5 || user.Role == 1 || user.Role == 2)
+					{
+						// Unbanning requires elevation always and so does changing to either primary admin role.
+						throw new PublicException("Unable to change role", "role/elevate");
+					}
+					else if (user.Role == 3 || user.Role == 6)
+					{
+						// A non-banned user can always change to these two roles.
+					}
+					else if (user.Role == 4)
+					{
+						// Switching to member role in a non-elevated context
+						// requires ignore permissions.
+						throw new PublicException("Unable to change role", "role/not-permitted");
+					}
+					else if (OnChangeRole != null)
+					{
+						OnChangeRole(ctx, user, originalUser, config);
+					}
+					else
+					{
+						// Otherwise you must have an elevated context to make this role change.
+						// This is primarily for role changes for custom roles which can be anything.
+						throw new PublicException("Unable to change role", "role/not-permitted");
+					}
+				}
+
 				if (config.UniqueUsernames && !string.IsNullOrEmpty(user.Username) && user.Username != originalUser.Username)
 				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
@@ -125,7 +175,31 @@ namespace Api.Users
 				return user;
 			});
 			
+			config.OnChange += () => {
+				SetupCookieName();
+				return new ValueTask();
+			};
+
+			SetupCookieName();
+
 			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username", "role" });
+		}
+
+		/// <summary>
+		/// The cookie name to use.
+		/// </summary>
+		public string CookieName;
+
+		private void SetupCookieName()
+		{
+			var cookieName = _config.CookieName;
+
+			if (string.IsNullOrEmpty(cookieName))
+			{
+				cookieName = "user";
+			}
+
+			CookieName = cookieName;
 		}
 
 		private readonly SecureRandom secureRandom = new SecureRandom();
@@ -174,7 +248,7 @@ namespace Api.Users
 
 			if (result.MoreDetailRequired == null)
 			{
-				result.CookieName = Context.CookieName;
+				result.CookieName = CookieName;
 
 				// Create a new context token (basically a signed string which can identify a context with this user/ role/ locale etc):
 				context.User = result.User;

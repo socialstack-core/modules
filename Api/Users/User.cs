@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Api.AutoForms;
 using Api.Database;
 using Api.Permissions;
+using Api.Startup;
 
 namespace Api.Users
 {
@@ -10,6 +11,7 @@ namespace Api.Users
 	/// A particular user account.
 	/// </summary>
 	[Permissions(HideFieldByDefault = true)]
+	[HasVirtualField("userRole", typeof(Role), "role")]
 	public partial class User : VersionedContent<uint>
 	{
 		/// <summary>
@@ -23,6 +25,7 @@ namespace Api.Users
 		/// </summary>
 		[Module("Admin/ContentSelect")]
 		[Data("contentType", "role")]
+		[Permissions(HideFieldByDefault = false)]
 		public uint Role;
 		
 		/// <summary>

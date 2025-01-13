@@ -40,25 +40,7 @@ namespace Api.Users
 			var context = await Request.GetContext();
 			await OutputContext(context);
 		}
-
-		/// <summary>
-		/// Self-delete and logout. Returns a context which you should setSession.
-		/// </summary>
-		/// <returns></returns>
-		[HttpGet("delete-self")]
-		public async ValueTask DeleteSelf()
-		{
-			var context = await Request.GetContext();
-
-			if (context.UserId != 0)
-			{
-				await _service.Delete(context, context.UserId, DataOptions.IgnorePermissions);
-			}
-
-			context.User = null;
-			await OutputContext(context);
-		}
-
+		
 		/// <summary>
 		/// A date in the past used to set expiry on cookies.
 		/// </summary>
@@ -162,7 +144,7 @@ namespace Api.Users
 		/// Impersonate a user by their ID. This is a hard cookie switch. You will loose all admin functionality to make the impersonation as accurate as possible.
 		/// </summary>
 		[HttpGet("{id}/impersonate")]
-		public async ValueTask Imepersonate([FromRoute] uint id)
+		public async ValueTask Impersonate([FromRoute] uint id)
 		{
 			// Firstly, are they an admin?
 			var context = await Request.GetContext();

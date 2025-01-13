@@ -47,5 +47,10 @@ namespace Api.Users
         ///  If this is set to true, a verification email will not be sent to the user on creation.
         /// </summary>
         public bool NoVerificationEmail { get; set; } = false;
+
+        /// <summary>
+        /// The name of the cookie.
+        /// </summary>
+        public string CookieName { get; set; } = "user";
     }
 }
