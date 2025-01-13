@@ -33,10 +33,9 @@ namespace Api.Users
 		/// <returns></returns>
 		public async ValueTask<User> Get(Context context, string emailOrUsername)
         {
-			return await Where("Email=? or Username=? or LowerCaseEmail=?", DataOptions.IgnorePermissions)
+			return await Where("Email=? or Username=?", DataOptions.IgnorePermissions)
 				.Bind(emailOrUsername)
 				.Bind(emailOrUsername)
-				.Bind(emailOrUsername != null ? emailOrUsername.ToLower() : emailOrUsername)
 				.Last(context);
         }
 
@@ -54,7 +53,7 @@ namespace Api.Users
 		/// <summary>
 		/// Generates the email verification hash for the given user.
 		/// </summary>
-		public string EmailVerificationHash(User user)
+		public static string EmailVerificationHash(User user)
 		{
 			return CreateMD5(user.Id + "" + user.CreatedUtc.Ticks + "" + user.PrivateVerify);
 		}
@@ -86,7 +85,17 @@ namespace Api.Users
 		/// <returns>The token sent to the user</returns>
 		public async ValueTask<string> SendVerificationEmail(Context context, User user)
         {
+			if (await Events.User.OnSendVerificationEmail.Dispatch(context, user) == null)
+			{
+				return null;
+			}
+
 			var token = EmailVerificationHash(user);
+
+			if (IsTestSuite())
+			{
+				return token;
+			}
 
 			// Send email now. The key is a hash of the user ID + registration date + verify.
 			var recipient = new Recipient(user)
@@ -103,10 +112,7 @@ namespace Api.Users
 				recipient
 			};
 
-			if (_emails == null)
-			{
-				_emails = Services.Get<EmailTemplateService>();
-			}
+			_emails ??= Services.Get<EmailTemplateService>();
 
 			await _emails.SendAsync(
 				recipients,
@@ -149,15 +155,20 @@ namespace Api.Users
 					userToUpdate.Role = Roles.Member.Id;
 				}
 
+				if (OnVerify != null)
+				{
+					OnVerify(context, userToUpdate, user);
+				}
+
 				var loginResult = new LoginResult();
-				loginResult.CookieName = Context.CookieName;
+				loginResult.CookieName = CookieName;
 				loginResult.User = userToUpdate;
 				context.User = userToUpdate;
 
 				// Act like a login:
 				await Events.UserOnLogin.Dispatch(context, loginResult);
 
-				userToUpdate = await FinishUpdate(context, userToUpdate, user, DataOptions.IgnorePermissions);
+				userToUpdate = await FinishUpdate(new Context(context.LocaleId, context.User, 1), userToUpdate, user, DataOptions.IgnorePermissions);
 			}
 			
 			return userToUpdate;

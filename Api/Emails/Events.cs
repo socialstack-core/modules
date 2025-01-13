@@ -1,5 +1,6 @@
 using Api.Emails;
 using Api.Permissions;
+using Api.Users;
 using System.Collections.Generic;
 
 namespace Api.Eventing
@@ -13,6 +14,20 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for an emailTemplate.
 		/// </summary>
-		public static EventGroup<EmailTemplate> EmailTemplate;
+		public static EmailEventGroup EmailTemplate;
 	}
+
+	/// <summary>
+	/// Custom user specific events.
+	/// </summary>
+	public class EmailEventGroup : EventGroup<EmailTemplate>
+	{
+
+		/// <summary>
+		/// During email send. Handle this event to override the SMTP send behaviour.
+		/// </summary>
+		public EventHandler<EmailToSend> Send;
+
+	}
+
 }

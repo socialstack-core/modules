@@ -43,7 +43,7 @@ namespace Api.Emails
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public EmailTemplateService(CanvasRendererService canvasRendererService, UserService users) : base(Events.EmailTemplate)
+		public EmailTemplateService(CanvasRendererService canvasRendererService, UserService users, RoleService roles) : base(Events.EmailTemplate)
 		{
 			_users = users;
 			_canvasRendererService = canvasRendererService;
@@ -87,150 +87,112 @@ namespace Api.Emails
 				return new ValueTask<EmailTemplate>(template);
 			});
 
+			Events.EmailTemplate.Send.AddEventListener(async (Context context, EmailToSend toSend) => {
+
+				if (toSend.Handled)
+				{
+					return toSend;
+				}
+
+				SmtpClient client = new SmtpClient(toSend.FromAccount.Server)
+				{
+					UseDefaultCredentials = false,
+					Credentials = new NetworkCredential(toSend.FromAccount.User, toSend.FromAccount.Password),
+					Port = toSend.FromAccount.Port,
+					EnableSsl = toSend.FromAccount.Encrypted
+				};
+
+				MailMessage mailMessage = new MailMessage
+				{
+					IsBodyHtml = true
+				};
+
+				if (!string.IsNullOrEmpty(toSend.MessageId))
+				{
+					// Got a message ID:
+					mailMessage.Headers.Add("Message-Id", toSend.MessageId);
+				}
+
+				if (toSend.AdditionalHeaders != null)
+				{
+					foreach (var header in toSend.AdditionalHeaders)
+					{
+						if (header.Key == "Reply-To")
+						{
+							mailMessage.ReplyToList.Add(header.Value);
+						}
+						mailMessage.Headers.Add(header.Key, header.Value);
+					}
+				}
+
+				mailMessage.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess | DeliveryNotificationOptions.OnFailure | DeliveryNotificationOptions.Delay;
+				mailMessage.From = new MailAddress(toSend.FromAccount.FromAddress);
+				mailMessage.To.Add(toSend.ToAddress);
+				mailMessage.Body = toSend.Body;
+
+				if (toSend.Attachments != null)
+				{
+					foreach (var attachment in toSend.Attachments)
+					{
+						// Add attachment:
+						mailMessage.Attachments.Add(attachment);
+					}
+				}
+
+				if (!string.IsNullOrEmpty(toSend.FromAccount.ReplyTo))
+				{
+					mailMessage.ReplyToList.Add(toSend.FromAccount.ReplyTo);
+				}
+
+				mailMessage.Subject = toSend.Subject;
+
+				client.SendCompleted += (object sender, AsyncCompletedEventArgs e) =>
+				{
+					if (e.Cancelled)
+					{
+						Log.Info(LogTag, "Email send cancelled.");
+					}
+					if (e.Error != null)
+					{
+						Log.Error(LogTag, e.Error, "Failed sending");
+					}
+					else
+					{
+						Log.Info(LogTag, "Email sent successfully");
+					}
+				};
+
+				await client.SendMailAsync(mailMessage);
+				
+				toSend.Handled = true;
+				return toSend;
+			});
+
 			InstallEmails(
 				new EmailTemplate(){
 					Name = "Verify email address",
 					Subject = "Verify your email address",
 					Key = "verify_email",
-					BodyJson = @"
-{
-	""c"": {
-		""t"": ""Email/Default"",
-		""d"": {},
-		""r"": {
-			""children"": {
-				""t"": ""Email/Centered"",
-				""d"": {},
-				""c"": [
-					{
-						""t"": ""p"",
-						""c"": ""An account was recently created with us. If this was you, click the button below to proceed:"",
-						""d"": {},
-						""i"": 2
-					},
-					{
-						""t"": ""Email/PrimaryButton"",
-						""d"": {
-							""target"": ""/email-verify/${customData.userId}/${customData.token}""
-						},
-						""r"": {
-							""label"": {
-								""t"": ""p"",
-								""c"": ""Verify my email address"",
-								""d"": {},
-								""i"": 9
-							}
-						},
-						""i"": 10
-					}
-				],
-				""i"": 5
-			},
-			""customLogo"": {
-				""t"": ""p"",
-				""c"": {
-					""t"": ""br""
-				},
-				""d"": {},
-				""i"": 6
-			}
-		},
-		""i"": 7
-	},
-	""i"": 8
-}
-					"
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/${customData.userId}/${customData.token}\"}}]}"
 				},
 				new EmailTemplate()
                 {
 					Name = "Password reset",
 					Subject = "Password reset",
 					Key = "forgot_password",
-					BodyJson = @"
-{
-	""c"": {
-		""t"": ""Email/Default"",
-		""d"": {},
-		""r"": {
-			""children"": {
-				""t"": ""Email/Centered"",
-				""d"": {},
-				""c"": [
-					{
-						""t"": ""p"",
-						""c"": ""A password reset request was recently created with us for this email. If this was you, click the button below to proceed:"",
-						""d"": {},
-						""i"": 2
-					},
-					{
-						""t"": ""Email/PrimaryButton"",
-						""d"": {
-							""target"": ""/password/reset/${customData.token}""
-						},
-						""r"": {
-							""label"": {
-								""t"": ""p"",
-								""c"": ""Reset my password"",
-								""d"": {},
-								""i"": 9
-							}
-						},
-						""i"": 10
-					}
-				],
-				""i"": 5
-			},
-			""customLogo"": {
-				""t"": ""p"",
-				""c"": {
-					""t"": ""br""
-				},
-				""d"": {},
-				""i"": 6
-			}
-		},
-		""i"": 7
-	},
-	""i"": 8
-}
-					"
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
+					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/${customData.token}\"}}]}"
 				},
 				new EmailTemplate()
 				{
 					Name = "Welcome",
 					Subject = "Welcome aboard!",
 					Key = "welcome_member_email",
-					BodyJson = @"
-{
-	""c"": {
-		""t"": ""Email/Default"",
-		""d"": {},
-		""r"": {
-			""children"": {
-				""t"": ""Email/Centered"",
-				""d"": {},
-				""c"": {
-					""t"": ""p"",
-					""c"": ""Thanks for joining! If you have any questions please reach out."",
-					""d"": {},
-					""i"": 2
-				},
-				""i"": 5
-			},
-			""customLogo"": {
-				""t"": ""p"",
-				""c"": {
-					""t"": ""br""
-				},
-				""d"": {},
-				""i"": 6
-			}
-		},
-		""i"": 7
-	},
-	""i"": 8
-}
-					"
+					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
+					"\"content\":\"Thanks for joining! If you have any questions please reach out.\"}]}"
 				}
 			);
 			
@@ -242,7 +204,9 @@ namespace Api.Emails
 					return user;
 				}
 				
-				if(user.Role == Roles.Guest.Id && userConfig.VerifyEmails)
+				var role = await roles.Get(ctx, user.Role); // (returns instantly)
+
+				if((user.Role == Roles.Guest.Id || (role != null && role.InheritedRoleId == Roles.Guest.Id)) && userConfig.VerifyEmails)
 				{
 					var token = await _users.SendVerificationEmail(ctx, user);
 					user.EmailVerifyToken = token;
@@ -257,7 +221,7 @@ namespace Api.Emails
 				}
 				
 				return user;
-			});
+			}, 100);
 			
 			Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
 			{
@@ -275,11 +239,6 @@ namespace Api.Emails
 					{
 						throw new PublicException(userConfig.UniqueEmailMessage, "email_used");
 					}
-				}
-
-				if (!string.IsNullOrEmpty(user.Email))
-                {
-					user.LowerCaseEmail = user.Email.ToLower();
 				}
 
 				return user;
@@ -301,11 +260,6 @@ namespace Api.Emails
 					{
 						throw new PublicException(userConfig.UniqueEmailMessage, "email_used");
 					}
-				}
-
-				if (user.Email != orig.Email)
-				{
-					user.LowerCaseEmail = user.Email == null ? null : user.Email.ToLower();
 				}
 
 				return user;
@@ -567,76 +521,18 @@ namespace Api.Emails
 				fromAccount = _configuration.Accounts["default"];
 			}
 
-			SmtpClient client = new SmtpClient(fromAccount.Server)
+			var toSend = new EmailToSend()
 			{
-				UseDefaultCredentials = false,
-				Credentials = new NetworkCredential(fromAccount.User, fromAccount.Password),
-				Port = fromAccount.Port,
-				EnableSsl = fromAccount.Encrypted
+				ToAddress = toAddress,
+				Subject = subject,
+				Body = body,
+				MessageId = messageId,
+				FromAccount = fromAccount,
+				Attachments = attachments,
+				AdditionalHeaders = additionalHeaders
 			};
 
-			MailMessage mailMessage = new MailMessage
-			{
-				IsBodyHtml = true
-			};
-
-			if (!string.IsNullOrEmpty(messageId))
-			{
-				// Got a message ID:
-				mailMessage.Headers.Add("Message-Id", messageId);
-			}
-
-			if (additionalHeaders != null)
-			{
-				foreach (var header in additionalHeaders)
-				{
-					if (header.Key == "Reply-To")
-					{
-						mailMessage.ReplyToList.Add(header.Value);
-					}
-					mailMessage.Headers.Add(header.Key, header.Value);
-				}
-			}
-
-			mailMessage.DeliveryNotificationOptions = DeliveryNotificationOptions.OnSuccess | DeliveryNotificationOptions.OnFailure | DeliveryNotificationOptions.Delay;
-			mailMessage.From = new MailAddress(fromAccount.FromAddress);
-			mailMessage.To.Add(toAddress);
-			mailMessage.Body = body;
-
-			if (attachments != null)
-			{
-				foreach (var attachment in attachments)
-				{
-					// Add attachment:
-					mailMessage.Attachments.Add(attachment);
-				}
-			}
-
-			if (!string.IsNullOrEmpty(fromAccount.ReplyTo))
-			{
-				mailMessage.ReplyToList.Add(fromAccount.ReplyTo);
-			}
-
-			mailMessage.Subject = subject;
-
-			client.SendCompleted += (object sender, AsyncCompletedEventArgs e) =>
-			{
-				if (e.Cancelled)
-				{
-					Log.Info(LogTag, "Email send cancelled.");
-				}
-				if (e.Error != null)
-				{
-					Log.Error(LogTag, e.Error, "Failed sending");
-				}
-				else
-				{
-					Log.Info(LogTag, "Email sent successfully");
-				}
-			};
-
-			await client.SendMailAsync(mailMessage);
-
+			await Events.EmailTemplate.Send.Dispatch(new Context(), toSend);
 		}
 
 	}
