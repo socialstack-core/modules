@@ -33,7 +33,7 @@ $meeting_padding_top: 3rem;
 
 			&[data-sharing]:not([data-sharing=""]) {
 				$otherPeerTotal: $peerTotal - 1;
-				$otherPeerWidth: math.div(100%, $otherPeerTotal);
+				$otherPeerWidth: 100% / $otherPeerTotal;
 				grid-template-columns: repeat($otherPeerTotal, $otherPeerWidth);
 
 				> .peer-container {

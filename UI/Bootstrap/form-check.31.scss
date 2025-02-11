@@ -1,8 +1,8 @@
-$form-check-size: math.div(0rem + 24, 16);
-$form-check-margin: math.div(0rem + 10, 16);
+$form-check-size: (0rem + 24) / 16;
+$form-check-margin: (0rem + 10) / 16;
 $form-check-padding: $form-check-size + $form-check-margin;
 
-$form-switch-size: math.div(0rem + 48, 16);
+$form-switch-size: (0rem + 48) / 16;
 $form-switch-padding: $form-switch-size + $form-check-margin;
 
 .form-check {
