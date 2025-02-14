@@ -1952,24 +1952,25 @@ public partial class AutoService
 	/// Make sure you specify the fields that'll be visible from the child type in the list on the parent type.
 	/// For example, if you'd like each child entry to show its Id and Title fields, specify new string[]{"id", "title"}.
 	/// </param>
-	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage = null)
+	/// <param name="visibilityJson"></param>
+	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage = null, string visibilityJson = null)
 	{
 		if (Services.Started)
 		{
-			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage);
+			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage, visibilityJson);
 		}
 		else
 		{
 			// Must happen after services start otherwise the page service isn't necessarily available yet.
 			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
-				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage);
+				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage, visibilityJson);
 				return new ValueTask<object>(src);
 			});
 		}
 	}
 	
-	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage)
+	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage, string visibilityJson = null)
 	{
 		var pageService = Api.Startup.Services.Get("PageService");
 
@@ -1986,11 +1987,11 @@ public partial class AutoService
 			if (installPages != null)
 			{
 				// InstallAdminPages(string typeName, string[] fields)
-				await (ValueTask)installPages.Invoke(pageService, new object[] {
+				await (ValueTask)installPages.Invoke(pageService, [
 					ServicedType,
 					fields,
 					childAdminPage
-				});
+				]);
 			}
 
 			// Nav menu also?
@@ -2005,11 +2006,12 @@ public partial class AutoService
 					if (installNavMenuEntry != null)
 					{
 						// InstallAdminEntry(string targetUrl, string iconRef, string label)
-						await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
+						await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, [
 							"/en-admin/" + ServicedType.Name.ToLower(),
 							navMenuIconRef,
-							navMenuLabel
-						});
+							navMenuLabel,
+							visibilityJson
+						]);
 					}
 				}
 			}

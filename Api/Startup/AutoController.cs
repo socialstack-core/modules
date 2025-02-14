@@ -61,7 +61,7 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// <summary>
 	/// Json header
 	/// </summary>
-	private readonly static string _applicationJson = "application/json";
+	protected readonly static string _applicationJson = "application/json";
 
 	/// <summary>
 	/// Outputs the given content object set whilst considering the field visibility rules of the role in the context.
