@@ -165,7 +165,7 @@ namespace Api.Pages
 			}
 
 			// Install the admin pages.
-			InstallAdminPages("Pages", "fa:fa-paragraph", new string[] { "id", "url", "title" });
+			InstallAdminPages("Pages", "fa:fa-paragraph", ["id", "url", "title"], null, "{\"requiredPermissions\": [\"page_list\", \"page_update\"]}");
 
 			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Page page, CanvasNode canvas, Type contentType, AdminPageType pageType) =>
 			{
