@@ -27,6 +27,11 @@ namespace Api.NavMenus
 		/// </summary>
 		[DatabaseField(Length = 100)]
 		public string IconRef;
+
+		/// <summary>
+		/// Enforce visibility rules.
+		/// </summary>
+		public string VisibilityRuleJson = null;
 	}
 
 }
