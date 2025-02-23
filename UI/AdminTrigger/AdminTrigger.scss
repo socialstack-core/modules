@@ -4,6 +4,10 @@ html.admin {
         display: none;
     }
 
+    .btn {
+        font-size: 1rem!important;
+    }
+
 }
 
 html:not(.admin) {
@@ -38,12 +42,11 @@ html:not(.admin) {
             height: 2rem;
             transform-origin: 50% 50%;
             transition: all .3s ease;
-			padding: px_to_rem(4) px_to_rem(8);
+			padding: px_to_rem(4) px_to_rem(8) !important;
         }
 
         .dropdown__label i:first-child {
             margin: 0;
-			font-size: .875rem;
         }
 
         .dropdown__arrow {
@@ -60,6 +63,10 @@ html:not(.admin) {
             > li > .btn {
                 font-size: .875rem;
             }
+
+			hr {
+				margin: .5rem 0 !important;
+			}
 
         }
 
