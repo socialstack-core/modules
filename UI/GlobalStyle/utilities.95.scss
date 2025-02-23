@@ -1,3 +1,5 @@
+@use "sass:math";
+
 /*
 	global utilities
 */
@@ -37,15 +39,15 @@
 }
 
 .pad20 {
-	padding: 0em + 20 / $base_font_size;
+	padding: math.div(0em + 20, $base_font_size);
 }
 
 .space20 {
-	margin-top: 0em + 20 / $base_font_size;
+	margin-top: math.div(0em + 20, $base_font_size);
 }
 
 .margin-y-20 {
-	margin: 0em + 20 / $base_font_size 0;
+	margin: math.div(0em + 20, $base_font_size) 0;
 }
 
 .float-right {

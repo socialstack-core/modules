@@ -3,7 +3,8 @@
     NB: named global-mixins.15.scss to allow for project-specific overrides to these mixins (see UI/Source/GeneralStyle/mixins.20.scss)
 */
 
-@mixin __font_size($px) {
+// renamed to prevent clash with Bootstrap font-size mixin
+@mixin fr-font-size($px) {
     font-size: px_to_rem($px);
 }
 
@@ -99,13 +100,13 @@ $grid_breakpoints: (
 	xl: 1200px
 );
 
-@function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map-keys($breakpoints)) {
+@function breakpoint-next($name, $breakpoints: $grid_breakpoints, $breakpoint-names: map.keys($breakpoints)) {
   $n: index($breakpoint-names, $name);
-  @return if($n != null and $n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
+  @return if($n != null and $n < list.length($breakpoint-names), list.nth($breakpoint-names, $n + 1), null);
 }
 
 @function breakpoint-min($name, $breakpoints: $grid_breakpoints) {
-  $min: map-get($breakpoints, $name);
+  $min: map.get($breakpoints, $name);
   @return if($min != 0, $min, null);
 }
 
@@ -313,13 +314,13 @@ $data_clamp_max: 6;
 
     // iterate through list and update shorthand breakpoint terms
     @each $breakpoint, $value in $values {
-        $resolved: map-get($shorthandMap, $breakpoint);
+        $resolved: map.get($shorthandMap, $breakpoint);
 
         @if ($resolved) {
             $breakpoint: $resolved;
         }
 
-        $breakpointList: map-merge($breakpointList, ($breakpoint: $value));
+        $breakpointList: map.merge($breakpointList, ($breakpoint: $value));
     }
 
     // ensure list is in breakpoint order    
@@ -366,7 +367,7 @@ $data_clamp_max: 6;
 
             }
               
-            @if ($index + 1 == length($values)) {
+            @if ($index + 1 == list.length($values)) {
                   
                 // set a maximum size at the last breakpoint
                 @media only screen and (min-width: $breakpoint + 0px) {

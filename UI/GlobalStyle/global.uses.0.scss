@@ -1,3 +1,11 @@
-// ref: https://sass-lang.com/documentation/breaking-changes/slash-div
+/*
+    required SASS imports
+    ----------------------------------------------------
+    NB: do not include any code within global.* files which will result in exported CSS (as this will be included multiple times)
+*/
 @use "sass:list";
 @use "sass:math";
+@use "sass:map";
+@use "sass:meta";
+@use "sass:color";
+@use "sass:string";

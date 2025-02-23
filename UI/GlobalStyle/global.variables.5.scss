@@ -20,53 +20,53 @@ $heading_font_ratio: $ratio_perfect_fourth;
 
 // common functions defined as early as possible
 @function strip_unit($number) {
-  @if type-of($number) == 'number' and not unitless($number) {
-    @return $number / ($number * 0 + 1);
+  @if meta.type-of($number) == 'number' and not math.is-unitless($number) {
+    @return math.div($number, $number * 0 + 1);
   }
 
   @return $number;
 }
 
 @function get_unit($value) {
-  @return str-slice($value * 0 + "", 2, -1);
+  @return string.slice($value * 0 + "", 2, -1);
 }
 
 @function px_to_em($px) {
-    @return 0em + $px / $base_font_size;
+    @return math.div(0em + $px, $base_font_size);
 }
 
 @function px_to_rem($px) {
     $value: strip_unit($px);
-    @return 0rem + $value / $base_font_size;
+    @return 0rem + math.div($value, $base_font_size);
 }
 
 @function pt_to_rem($pt) {
-  $PX_PER_PT: 1 + 1 / 3;
-  @return ($pt * $PX_PER_PT) / $base_font_size;
+  $PX_PER_PT: 1 + math.div(1, 3);
+  @return math.div(0rem + ($pt * $PX_PER_PT), $base_font_size);
 }
 
 @function cm_to_rem($cm) {
-  $PX_PER_CM: 96 / 2.54;
-  @return ($cm * $PX_PER_CM) / $base_font_size;
+  $PX_PER_CM: math.div(96, 2.54);
+  @return math.div(0rem + ($cm * $PX_PER_CM), $base_font_size);
 }
 
 @function mm_to_rem($mm) {
-  $PX_PER_MM: 96 / 25.4;
-  @return ($mm * $PX_PER_MM) / $base_font_size;
+  $PX_PER_MM: math.div(96, 25.4);
+  @return math.div(0rem + ($mm * $PX_PER_MM), $base_font_size);
 }
 
 @function q_to_rem($q) {
-  $PX_PER_Q: 96 / 101.6;
-  @return ($q * $PX_PER_Q) / $base_font_size;
+  $PX_PER_Q: math.div(96, 101.6);
+  @return math.div(0rem + ($q * $PX_PER_Q), $base_font_size);
 }
 
 @function in_to_rem($in) {
-  @return ($in * 96) / $base_font_size;
+  @return math.div(0rem + ($in * 96), $base_font_size);
 }
 
 @function pc_to_rem($pc) {
-  $PX_PER_PC: 96 / 6;
-  @return ($pc * $PX_PER_PC) / $base_font_size;
+  $PX_PER_PC: math.div(96, 6);
+  @return math.div(0rem + ($pc * $PX_PER_PC), $base_font_size);
 }
 
 // convert absolute unit to rem
@@ -75,7 +75,7 @@ $heading_font_ratio: $ratio_perfect_fourth;
     $value: strip_unit($number);
     $unit: get_unit($number);
     
-    @return map-get((
+    @return map.get((
         cm: cm_to_rem($value),
         mm: mm_to_rem($value),
         q: q_to_rem($value),

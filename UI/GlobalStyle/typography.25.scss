@@ -1,3 +1,5 @@
+@use "sass:math";
+
 /*
 	global typography styles
     NB: named global-typography.25.scss to allow for project-specific overrides to these styles (see UI/Source/GeneralStyle/typography.30.scss)
@@ -6,7 +8,7 @@
 html {
     // use percentage value to account for user-defined base font size (typically 16px, but could be anywhere between 9-24px)
     //font-size: #{$base_font_size}px;
-    font-size: #{$base_font_size / 16 * 100} + "%";
+    font-size: #{math.div($base_font_size, 16) * 100} + "%";
     
     // define rules which shouldn't be applied for admin views
     //&:not(.admin),
@@ -31,7 +33,7 @@ html {
         10: 1.35    // 13.5
     );
     
-    $multiple: map-get($lookup_table, $font_size);
+    $multiple: map.get($lookup_table, $font_size);
 
     @if not ($multiple) {
         $closestDiff: 1000;

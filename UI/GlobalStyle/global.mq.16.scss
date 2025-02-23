@@ -53,12 +53,12 @@ $grid-breakpoints: (
 //    md
 //    >> breakpoint-next(sm, $breakpoint-names: (xs sm md lg xl))
 //    md
-@function breakpoint-next($name, $breakpoints: $grid-breakpoints, $breakpoint-names: map-keys($breakpoints)) {
-  $n: index($breakpoint-names, $name);
+@function breakpoint-next($name, $breakpoints: $grid-breakpoints, $breakpoint-names: map.keys($breakpoints)) {
+  $n: string.index($breakpoint-names, $name);
   @if not $n {
     @error "breakpoint `#{$name}` not found in `#{$breakpoints}`";
   }
-  @return if($n < length($breakpoint-names), nth($breakpoint-names, $n + 1), null);
+  @return if($n < list.length($breakpoint-names), list.nth($breakpoint-names, $n + 1), null);
 }
 
 // Minimum breakpoint width. Null for the smallest (first) breakpoint.
@@ -66,7 +66,7 @@ $grid-breakpoints: (
 //    >> breakpoint-min(sm, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
 //    576px
 @function breakpoint-min($name, $breakpoints: $grid-breakpoints) {
-  $min: map-get($breakpoints, $name);
+  $min: map.get($breakpoints, $name);
   @return if($min != 0, $min, null);
 }
 
@@ -80,7 +80,7 @@ $grid-breakpoints: (
 //    >> breakpoint-max(md, (xs: 0, sm: 576px, md: 768px, lg: 992px, xl: 1200px))
 //    767.98px
 @function breakpoint-max($name, $breakpoints: $grid-breakpoints) {
-  $max: map-get($breakpoints, $name);
+  $max: map.get($breakpoints, $name);
   @return if($max and $max > 0, $max - .02, null);
 }
 
@@ -205,16 +205,16 @@ $socialstack_media_queries: (
 );
 
 // mobile mixins
-$ss_mobile: map-get($socialstack_media_queries, mobile);
-$ss_mobileSmall: map-get($ss_mobile, small);
-$ss_mobileMedium: map-get($ss_mobile, medium);
-$ss_mobileLarge: map-get($ss_mobile, large);
+$ss_mobile: map.get($socialstack_media_queries, mobile);
+$ss_mobileSmall: map.get($ss_mobile, small);
+$ss_mobileMedium: map.get($ss_mobile, medium);
+$ss_mobileLarge: map.get($ss_mobile, large);
 
 // mobile MQ
 // covers all mobile sizes (small / medium / large)
 // use mq_mobile(false) for rules which should apply when mobile devices are _not_ detected
 @mixin mq_mobile($default: true) {
-  $to: map-get($ss_mobileLarge, to);
+  $to: map.get($ss_mobileLarge, to);
 
   @if not ($default) {
       @media not screen and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
@@ -235,14 +235,14 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 }
 
 @mixin mq_mobilePortrait {
-  $to: map-get($ss_mobileLarge, to);
+  $to: map.get($ss_mobileLarge, to);
   @media (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_mobileLandscape {
-  $to: map-get($ss_mobileLarge, to);
+  $to: map.get($ss_mobileLarge, to);
   @media (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
   }
@@ -250,8 +250,8 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 
 // mobile MQ (small)
 @mixin mq_mobileSmall {
-  $from: map-get($ss_mobileSmall, from);
-  $to: map-get($ss_mobileSmall, to);
+  $from: map.get($ss_mobileSmall, from);
+  $to: map.get($ss_mobileSmall, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
          (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
@@ -259,16 +259,16 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 }
 
 @mixin mq_mobileSmallPortrait {
-  $from: map-get($ss_mobileSmall, from);
-  $to: map-get($ss_mobileSmall, to);
+  $from: map.get($ss_mobileSmall, from);
+  $to: map.get($ss_mobileSmall, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_mobileSmallLandscape {
-  $from: map-get($ss_mobileSmall, from);
-  $to: map-get($ss_mobileSmall, to);
+  $from: map.get($ss_mobileSmall, from);
+  $to: map.get($ss_mobileSmall, to);
   @media (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
   }
@@ -276,8 +276,8 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 
 // mobile MQ (medium)
 @mixin mq_mobileMedium {
-  $from: map-get($ss_mobileMedium, from);
-  $to: map-get($ss_mobileMedium, to);
+  $from: map.get($ss_mobileMedium, from);
+  $to: map.get($ss_mobileMedium, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
          (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
@@ -285,23 +285,23 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 }
 
 @mixin mq_mobileMediumPortrait {
-  $from: map-get($ss_mobileMedium, from);
-  $to: map-get($ss_mobileMedium, to);
+  $from: map.get($ss_mobileMedium, from);
+  $to: map.get($ss_mobileMedium, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_mobileMediumLandscape {
-  $from: map-get($ss_mobileMedium, from);
-  $to: map-get($ss_mobileMedium, to);
+  $from: map.get($ss_mobileMedium, from);
+  $to: map.get($ss_mobileMedium, to);
   @media (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
   }
 }
 
 @mixin mq_mobileMediumUp {
-  $from: map-get($ss_mobileMedium, from);
+  $from: map.get($ss_mobileMedium, from);
   @media (min-width: #{$from}) {
     @content;
   }
@@ -309,8 +309,8 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 
 // mobile MQ (large)
 @mixin mq_mobileLarge {
-  $from: map-get($ss_mobileLarge, from);
-  $to: map-get($ss_mobileLarge, to);
+  $from: map.get($ss_mobileLarge, from);
+  $to: map.get($ss_mobileLarge, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait),
          (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
@@ -318,48 +318,48 @@ $ss_mobileLarge: map-get($ss_mobile, large);
 }
 
 @mixin mq_mobileLargePortrait {
-  $from: map-get($ss_mobileLarge, from);
-  $to: map-get($ss_mobileLarge, to);
+  $from: map.get($ss_mobileLarge, from);
+  $to: map.get($ss_mobileLarge, to);
   @media (min-width: #{$from}) and (max-width: #{$to}) and (pointer: coarse) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_mobileLargeLandscape {
-  $from: map-get($ss_mobileLarge, from);
-  $to: map-get($ss_mobileLarge, to);
+  $from: map.get($ss_mobileLarge, from);
+  $to: map.get($ss_mobileLarge, to);
   @media (min-height: #{$from}) and (max-height: #{$to}) and (pointer: coarse) and (orientation: landscape) {
     @content;
   }
 }
 
 @mixin mq_mobileLargeUp {
-  $from: map-get($ss_mobileLarge, from);
+  $from: map.get($ss_mobileLarge, from);
   @media (min-width: #{$from}) {
     @content;
   }
 }
 
 // tablet mixins
-$ss_tablet: map-get($socialstack_media_queries, tablet);
-$ss_iPadMini: map-get($ss_tablet, iPadMini);
-$ss_iPad10_2: map-get($ss_tablet, iPad10_2);
-$ss_iPad10_5: map-get($ss_tablet, iPad10_5);
-$ss_iPad11: map-get($ss_tablet, iPad11);
-$ss_iPad12_9: map-get($ss_tablet, iPad12_9);
+$ss_tablet: map.get($socialstack_media_queries, tablet);
+$ss_iPadMini: map.get($ss_tablet, iPadMini);
+$ss_iPad10_2: map.get($ss_tablet, iPad10_2);
+$ss_iPad10_5: map.get($ss_tablet, iPad10_5);
+$ss_iPad11: map.get($ss_tablet, iPad11);
+$ss_iPad12_9: map.get($ss_tablet, iPad12_9);
 
 // iPad MQ (covers all variants)
 @mixin mq_ipad {
-  $widthMini: map-get($ss_iPadMini, width);
-  $heightMini: map-get($ss_iPadMini, height);
-  $width10_2: map-get($ss_iPad10_2, width);
-  $height10_2: map-get($ss_iPad10_2, height);
-  $width10_5: map-get($ss_iPad10_5, width);
-  $height10_5: map-get($ss_iPad10_5, height);
-  $width11: map-get($ss_iPad11, width);
-  $height11: map-get($ss_iPad11, height);
-  $width12_9: map-get($ss_iPad12_9, width);
-  $height12_9: map-get($ss_iPad12_9, height);
+  $widthMini: map.get($ss_iPadMini, width);
+  $heightMini: map.get($ss_iPadMini, height);
+  $width10_2: map.get($ss_iPad10_2, width);
+  $height10_2: map.get($ss_iPad10_2, height);
+  $width10_5: map.get($ss_iPad10_5, width);
+  $height10_5: map.get($ss_iPad10_5, height);
+  $width11: map.get($ss_iPad11, width);
+  $height11: map.get($ss_iPad11, height);
+  $width12_9: map.get($ss_iPad12_9, width);
+  $height12_9: map.get($ss_iPad12_9, height);
 
   @media (device-width: #{$heightMini}) and (device-height: #{$widthMini}) and (orientation: portrait),
          (device-width: #{$widthMini}) and (device-height: #{$heightMini}) and (orientation: landscape),
@@ -380,16 +380,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPad {
-  $widthMini: map-get($ss_iPadMini, width);
-  $heightMini: map-get($ss_iPadMini, height);
-  $width10_2: map-get($ss_iPad10_2, width);
-  $height10_2: map-get($ss_iPad10_2, height);
-  $width10_5: map-get($ss_iPad10_5, width);
-  $height10_5: map-get($ss_iPad10_5, height);
-  $width11: map-get($ss_iPad11, width);
-  $height11: map-get($ss_iPad11, height);
-  $width12_9: map-get($ss_iPad12_9, width);
-  $height12_9: map-get($ss_iPad12_9, height);
+  $widthMini: map.get($ss_iPadMini, width);
+  $heightMini: map.get($ss_iPadMini, height);
+  $width10_2: map.get($ss_iPad10_2, width);
+  $height10_2: map.get($ss_iPad10_2, height);
+  $width10_5: map.get($ss_iPad10_5, width);
+  $height10_5: map.get($ss_iPad10_5, height);
+  $width11: map.get($ss_iPad11, width);
+  $height11: map.get($ss_iPad11, height);
+  $width12_9: map.get($ss_iPad12_9, width);
+  $height12_9: map.get($ss_iPad12_9, height);
 
   @media (device-width: #{$heightMini}) and (device-height: #{$widthMini}) and (orientation: portrait),
          (device-width: #{$widthMini}) and (device-height: #{$heightMini}) and (orientation: landscape),
@@ -410,16 +410,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPadPortrait {
-  $widthMini: map-get($ss_iPadMini, width);
-  $heightMini: map-get($ss_iPadMini, height);
-  $width10_2: map-get($ss_iPad10_2, width);
-  $height10_2: map-get($ss_iPad10_2, height);
-  $width10_5: map-get($ss_iPad10_5, width);
-  $height10_5: map-get($ss_iPad10_5, height);
-  $width11: map-get($ss_iPad11, width);
-  $height11: map-get($ss_iPad11, height);
-  $width12_9: map-get($ss_iPad12_9, width);
-  $height12_9: map-get($ss_iPad12_9, height);
+  $widthMini: map.get($ss_iPadMini, width);
+  $heightMini: map.get($ss_iPadMini, height);
+  $width10_2: map.get($ss_iPad10_2, width);
+  $height10_2: map.get($ss_iPad10_2, height);
+  $width10_5: map.get($ss_iPad10_5, width);
+  $height10_5: map.get($ss_iPad10_5, height);
+  $width11: map.get($ss_iPad11, width);
+  $height11: map.get($ss_iPad11, height);
+  $width12_9: map.get($ss_iPad12_9, width);
+  $height12_9: map.get($ss_iPad12_9, height);
 
   @media (device-width: #{$heightMini}) and (device-height: #{$widthMini}) and (orientation: portrait),
          (device-width: #{$height10_2}) and (device-height: #{$width10_2}) and (orientation: portrait),
@@ -431,16 +431,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPadLandscape {
-  $widthMini: map-get($ss_iPadMini, width);
-  $heightMini: map-get($ss_iPadMini, height);
-  $width10_2: map-get($ss_iPad10_2, width);
-  $height10_2: map-get($ss_iPad10_2, height);
-  $width10_5: map-get($ss_iPad10_5, width);
-  $height10_5: map-get($ss_iPad10_5, height);
-  $width11: map-get($ss_iPad11, width);
-  $height11: map-get($ss_iPad11, height);
-  $width12_9: map-get($ss_iPad12_9, width);
-  $height12_9: map-get($ss_iPad12_9, height);
+  $widthMini: map.get($ss_iPadMini, width);
+  $heightMini: map.get($ss_iPadMini, height);
+  $width10_2: map.get($ss_iPad10_2, width);
+  $height10_2: map.get($ss_iPad10_2, height);
+  $width10_5: map.get($ss_iPad10_5, width);
+  $height10_5: map.get($ss_iPad10_5, height);
+  $width11: map.get($ss_iPad11, width);
+  $height11: map.get($ss_iPad11, height);
+  $width12_9: map.get($ss_iPad12_9, width);
+  $height12_9: map.get($ss_iPad12_9, height);
 
   @media (device-width: #{$widthMini}) and (device-height: #{$heightMini}) and (orientation: landscape),
          (device-width: #{$width10_2}) and (device-height: #{$height10_2}) and (orientation: landscape),
@@ -453,8 +453,8 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (mini)
 @mixin mq_iPadMini {
-  $width: map-get($ss_iPadMini, width);
-  $height: map-get($ss_iPadMini, height);
+  $width: map.get($ss_iPadMini, width);
+  $height: map.get($ss_iPadMini, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
          (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
@@ -462,16 +462,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPadMiniPortrait {
-  $width: map-get($ss_iPadMini, width);
-  $height: map-get($ss_iPadMini, height);
+  $width: map.get($ss_iPadMini, width);
+  $height: map.get($ss_iPadMini, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_iPadMiniLandscape {
-  $width: map-get($ss_iPadMini, width);
-  $height: map-get($ss_iPadMini, height);
+  $width: map.get($ss_iPadMini, width);
+  $height: map.get($ss_iPadMini, height);
   @media (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
   }
@@ -479,8 +479,8 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (10.2")
 @mixin mq_iPad10_2 {
-  $width: map-get($ss_iPad10_2, width);
-  $height: map-get($ss_iPad10_2, height);
+  $width: map.get($ss_iPad10_2, width);
+  $height: map.get($ss_iPad10_2, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
          (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
@@ -488,16 +488,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPad10_2Portrait {
-  $width: map-get($ss_iPad10_2, width);
-  $height: map-get($ss_iPad10_2, height);
+  $width: map.get($ss_iPad10_2, width);
+  $height: map.get($ss_iPad10_2, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_iPad10_2Landscape {
-  $width: map-get($ss_iPad10_2, width);
-  $height: map-get($ss_iPad10_2, height);
+  $width: map.get($ss_iPad10_2, width);
+  $height: map.get($ss_iPad10_2, height);
   @media (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
   }
@@ -505,8 +505,8 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (10.5")
 @mixin mq_iPad10_5 {
-  $width: map-get($ss_iPad10_5, width);
-  $height: map-get($ss_iPad10_5, height);
+  $width: map.get($ss_iPad10_5, width);
+  $height: map.get($ss_iPad10_5, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
          (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
@@ -514,16 +514,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPad10_5Portrait {
-  $width: map-get($ss_iPad10_5, width);
-  $height: map-get($ss_iPad10_5, height);
+  $width: map.get($ss_iPad10_5, width);
+  $height: map.get($ss_iPad10_5, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_iPad10_5Landscape {
-  $width: map-get($ss_iPad10_5, width);
-  $height: map-get($ss_iPad10_5, height);
+  $width: map.get($ss_iPad10_5, width);
+  $height: map.get($ss_iPad10_5, height);
   @media (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
   }
@@ -531,8 +531,8 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (11")
 @mixin mq_iPad11 {
-  $width: map-get($ss_iPad11, width);
-  $height: map-get($ss_iPad11, height);
+  $width: map.get($ss_iPad11, width);
+  $height: map.get($ss_iPad11, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
          (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
@@ -540,16 +540,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPad11Portrait {
-  $width: map-get($ss_iPad11, width);
-  $height: map-get($ss_iPad11, height);
+  $width: map.get($ss_iPad11, width);
+  $height: map.get($ss_iPad11, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_iPad11Landscape {
-  $width: map-get($ss_iPad11, width);
-  $height: map-get($ss_iPad11, height);
+  $width: map.get($ss_iPad11, width);
+  $height: map.get($ss_iPad11, height);
   @media (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
   }
@@ -557,8 +557,8 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 
 // iPad MQ (12.9")
 @mixin mq_iPad12_9 {
-  $width: map-get($ss_iPad12_9, width);
-  $height: map-get($ss_iPad12_9, height);
+  $width: map.get($ss_iPad12_9, width);
+  $height: map.get($ss_iPad12_9, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait),
          (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
@@ -566,16 +566,16 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 }
 
 @mixin mq_iPad12_9Portrait {
-  $width: map-get($ss_iPad12_9, width);
-  $height: map-get($ss_iPad12_9, height);
+  $width: map.get($ss_iPad12_9, width);
+  $height: map.get($ss_iPad12_9, height);
   @media (device-width: #{$height}) and (device-height: #{$width}) and (orientation: portrait) {
     @content;
   }
 }
 
 @mixin mq_iPad12_9Landscape {
-  $width: map-get($ss_iPad12_9, width);
-  $height: map-get($ss_iPad12_9, height);
+  $width: map.get($ss_iPad12_9, width);
+  $height: map.get($ss_iPad12_9, height);
   @media (device-width: #{$width}) and (device-height: #{$height}) and (orientation: landscape) {
     @content;
   }
@@ -584,7 +584,7 @@ $ss_iPad12_9: map-get($ss_tablet, iPad12_9);
 // desktop mixin
 // (desktop is considered anything larger than the largest mobile width, coupled with an accurate pointing device)
 @mixin mq_desktop {
-  $desktopFrom: map-get($ss_mobileLarge, to) + 1;
+  $desktopFrom: map.get($ss_mobileLarge, to) + 1;
 
   // mobile / tablet should be discounted due to use of 'pointer: fine';
   // -ms-high-contrast used to include IE10 (doesn't support 'pointer')
