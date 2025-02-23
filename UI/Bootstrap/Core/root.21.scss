@@ -1,3 +1,5 @@
+@use "sass:meta";
+
 :root {
   // Note: Custom variable values only support SassScript inside `#{}`.
 
@@ -30,8 +32,8 @@
 
   // Note: Use `inspect` for lists so that quoted items keep the quotes.
   // See https://github.com/sass/sass/issues/2383#issuecomment-336349172
-  --#{$variable-prefix}font-sans-serif: #{inspect($font-family-sans-serif)};
-  --#{$variable-prefix}font-monospace: #{inspect($font-family-monospace)};
+  --#{$variable-prefix}font-sans-serif: #{meta.inspect($font-family-sans-serif)};
+  --#{$variable-prefix}font-monospace: #{meta.inspect($font-family-monospace)};
   --#{$variable-prefix}gradient: #{$gradient};
 
   // Root and body

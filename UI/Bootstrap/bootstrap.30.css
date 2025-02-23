@@ -2197,7 +2197,7 @@ progress {
 
 .form-text {
     margin-top: .25rem;
-    font-size: .875em;
+    font-size: 1rem;
     color: var(--secondary)
 }
 
@@ -3808,6 +3808,7 @@ fieldset:disabled .btn {
 .btn-link {
     font-weight: 400;
     color: var(--primary);
+    font-size: 1rem!important;
     text-decoration: underline
 }
 
@@ -6018,7 +6019,7 @@ fieldset:disabled .btn {
     }
 
     .modal-backdrop.show {
-        opacity: .5
+        opacity: .2
     }
 
 .modal-header {

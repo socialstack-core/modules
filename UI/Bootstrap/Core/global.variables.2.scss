@@ -423,7 +423,7 @@ $utilities-colors: $theme-colors-rgb !default;
 // scss-docs-end utilities-colors
 
 // scss-docs-start utilities-text-colors
-$utilities-text: map-merge(
+$utilities-text: map.merge(
   $utilities-colors,
   (
     "black": to-rgb($black),
@@ -440,7 +440,7 @@ $utilities-text-colors: map-loop(
 // scss-docs-end utilities-text-colors
 
 // scss-docs-start utilities-bg-colors
-$utilities-bg: map-merge(
+$utilities-bg: map.merge(
   $utilities-colors,
   (
     "black": to-rgb($black),
@@ -1410,7 +1410,8 @@ $popover-arrow-width: 1rem !default;
 $popover-arrow-height: 0.5rem !default;
 $popover-arrow-color: $popover-bg !default;
 
-$popover-arrow-outer-color: fade-in($popover-border-color, 0.05) !default;
+$popover-arrow-outer-color: color.adjust($popover-border-color, $alpha: 0.05) !default;
+
 // scss-docs-end popover-variables
 
 // Toasts
@@ -1578,7 +1579,7 @@ $breadcrumb-margin-bottom: 1rem !default;
 $breadcrumb-bg: null !default;
 $breadcrumb-divider-color: $gray-600 !default;
 $breadcrumb-active-color: $gray-600 !default;
-$breadcrumb-divider: quote("/") !default;
+$breadcrumb-divider: string.quote("/") !default;
 $breadcrumb-divider-flipped: $breadcrumb-divider !default;
 $breadcrumb-border-radius: null !default;
 // scss-docs-end breadcrumb-variables
