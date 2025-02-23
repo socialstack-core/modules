@@ -9,7 +9,7 @@
 		z-index: 3000;
 
 		.suggestion {
-			@include __font_size(12);
+			@include fr-font-size(12);
 			@include padding(5, 8);
 			color: #767676;
 			display: block;
@@ -23,7 +23,7 @@
 		}
 
 		.no-results {
-			@include __font_size(12);
+			@include fr-font-size(12);
 			@include padding(5, 8);
 			color: #767676;
 			font-style: italic;
