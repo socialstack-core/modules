@@ -1,4 +1,3 @@
-using Amazon.S3.Model;
 using Api.Permissions;
 using Api.SocketServerLibrary;
 using Newtonsoft.Json.Linq;
