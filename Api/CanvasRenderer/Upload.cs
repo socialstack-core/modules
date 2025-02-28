@@ -1,9 +1,7 @@
 using Api.CanvasRenderer;
 using Api.Startup;
 
-
 namespace Api.Uploader;
-
 
 public partial class Upload
 {
