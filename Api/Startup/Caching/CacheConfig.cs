@@ -26,12 +26,6 @@ namespace Api.Startup{
 	public class CacheConfig
 	{
 		/// <summary>
-		/// True if this type is created at a very low frequency and should use purely sequential IDs.
-		/// This works by adding 1 to the highest ID in the cache.
-		/// </summary>
-		public bool LowFrequencySequentialIds { get; set; } = false;
-		
-		/// <summary>
 		/// True if all content should be preloaded in the cache.
 		/// </summary>
 		public bool? Preload { get; set; } = true;
@@ -52,13 +46,6 @@ namespace Api.Startup{
 		/// An action which is triggered when the cache is loaded, if Preload is true.
 		/// </summary>
 		public Func<ValueTask> OnCacheLoaded;
-
-		/// <summary>
-		/// Very rare that this is false. If you are using the cache, you should almost always sync it across the cluster automatically.
-		/// Only turn this off if your type is otherwise handled. For example, you have an in-memory only 
-		/// type which is permitted to vary from server to server, or all servers know how to populate the cache anyway without it needing to be network synced.
-		/// </summary>
-		public bool ClusterSync = true;
 
 		/// <summary>
 		/// A new cache config with default settings.

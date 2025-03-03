@@ -1559,10 +1559,6 @@ public partial class AutoService<T, ID> : AutoService
 public partial class AutoService
 {
 	/// <summary>
-	/// True if this type is synced. This is typically set to true if the cache is active.
-	/// </summary>
-	public bool Synced;
-	/// <summary>
 	/// The type that this AutoService is servicing, if any. E.g. a User, ForumPost etc.
 	/// </summary>
 	public Type ServicedType;

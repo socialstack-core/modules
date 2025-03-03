@@ -64,10 +64,7 @@ public partial class AutoService<T, ID> {
 			cfg = new CacheConfig();
 		}
 
-		var alreadyWaiting = (_cacheConfig != null);
-
 		_cacheConfig = cfg;
-		Synced = cfg == null || cfg.ClusterSync;
 	}
 
 	/// <summary>

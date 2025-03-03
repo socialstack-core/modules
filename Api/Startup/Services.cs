@@ -404,12 +404,6 @@ namespace Api.Startup
 						IgnorePermissions = true
 					};
 
-					// If it's cache only, make sure it has IDs allocated.
-					if (!autoService.DataIsPersistent)
-					{
-						autoService.Synced = true;
-					}
-
 					await Events.Service.BeforeCreate.Dispatch(ctx, autoService);
 					
 					if (autoServiceType != null)
