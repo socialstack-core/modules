@@ -82,7 +82,6 @@ namespace Api.Permissions
 
 			Cache(new CacheConfig<Role>()
 			{
-				LowFrequencySequentialIds = true,
 				OnCacheLoaded = async () => {
 					started = true;
 
