@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.generated.json",
+  "include": [
+    "../UI/Source/**/*", 
+    "../Admin/Source/**/*", 
+    "../Email/Source/**/*"
+  ],
+  "compilerOptions": {
+    "baseUrl": "..",
+    "jsx": "react-jsx"
+  }
+}
