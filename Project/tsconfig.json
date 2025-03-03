@@ -3,7 +3,8 @@
   "include": [
     "UI/Source/**/*", 
     "Admin/Source/**/*", 
-    "Email/Source/**/*"
+    "Email/Source/**/*",
+    "TypeScript/**/*"
   ],
   "compilerOptions": {
     "baseUrl": ".",
