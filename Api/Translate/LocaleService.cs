@@ -27,7 +27,6 @@ namespace Api.Translate
 			InstallAdminPages("Locales", "fa:fa-globe-europe", new string[] { "id", "name" });
 
 			Cache(new CacheConfig<Locale>() {
-				LowFrequencySequentialIds = true,
 				OnCacheLoaded = OnCacheLoaded
 			});
 
