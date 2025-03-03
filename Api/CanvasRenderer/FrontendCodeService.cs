@@ -453,8 +453,8 @@ namespace Api.CanvasRenderer
 			}
 
 			var output = new StringBuilder();
-
-			output.Append("{\"compilerOptions\": {\"baseUrl\": \"..\",\"paths\": {");
+			
+			output.Append("{\r\n\"compilerOptions\": {\"jsx\": \"react-jsx\", \"paths\": {");
 			var first = true;
 			
 			foreach (var builder in SourceBuilders)
@@ -510,14 +510,17 @@ namespace Api.CanvasRenderer
 			Directory.CreateDirectory(tsMeta);
 			
 			// Write tsconfig file out:
-			File.WriteAllText(Path.Combine(tsMeta, "tsconfig.json"), json);
-
+			File.WriteAllText(Path.Combine(tsMeta, "tsconfig.generated.json"), json);
+			
+			
+			/*
 			var globalsPath = Path.Combine(tsMeta, "typings.d.ts");
 
 			if (!File.Exists(globalsPath))
 			{
 				File.WriteAllText(globalsPath, "import * as react from \"react\";\r\n\r\ndeclare global {\r\n\ttype React = typeof react;\r\n\tvar global: any;\r\n}");
 			}
+			*/
 		}
 
 		/// <summary>
