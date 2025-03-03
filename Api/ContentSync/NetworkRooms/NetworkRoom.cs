@@ -47,6 +47,7 @@ public partial class NetworkRoom<T, ID, ROOM_ID> : NetworkRoom
 				_contentSync = Services.Get<ContentSyncService>();
 			}
 
+			/*
 			var currentRemoteServer = remotes.First;
 			while (currentRemoteServer != null)
 			{
@@ -64,6 +65,7 @@ public partial class NetworkRoom<T, ID, ROOM_ID> : NetworkRoom
 				}
 				currentRemoteServer = currentRemoteServer.Next;
 			}
+			*/
 		}
 
 	}
