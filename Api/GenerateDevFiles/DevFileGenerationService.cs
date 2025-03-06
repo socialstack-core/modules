@@ -69,8 +69,8 @@ namespace Api.GenerateDevFiles
                 }
 
                 // Fire events now that entity and controller are both known
-                await Events.Generation.OnEntityFound.Dispatch(ctx, genericEntityType);
-                await Events.Generation.OnControllerFound.Dispatch(ctx, matchingController, genericEntityType);
+                await Events.DevFileGeneration.OnEntityFound.Dispatch(ctx, genericEntityType);
+                await Events.DevFileGeneration.OnControllerFound.Dispatch(ctx, matchingController, genericEntityType);
 
                 return service;
 
@@ -89,7 +89,7 @@ namespace Api.GenerateDevFiles
                 
                 foreach(var controller in controllersWithoutGenericArguments)
                 {
-                    await Events.Generation.OnControllerFound.Dispatch(ctx, controller, null);
+                    await Events.DevFileGeneration.OnControllerFound.Dispatch(ctx, controller, null);
                 }
 
 
