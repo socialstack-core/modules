@@ -5,7 +5,7 @@ using Api.Eventing;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Api.Generation
+namespace Api.GenerateDevFiles
 {
     /// <summary>
     /// Generation service, adds support for generated files based off reflection.
