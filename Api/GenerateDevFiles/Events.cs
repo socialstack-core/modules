@@ -15,13 +15,13 @@ namespace Api.Eventing
 		/// <summary>
 		/// Set of events for generation
 		/// </summary>
-		public static GenerationEventGroup Generation;
+		public static DevFileGenerationEventGroup DevFileGeneration;
 	}
 
 	/// <summary>
 	/// Custom user specific events.
 	/// </summary>
-	public class GenerationEventGroup : EventGroup
+	public class DevFileGenerationEventGroup : EventGroup
 	{
 
 		/// <summary>
