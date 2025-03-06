@@ -27,7 +27,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// An AutoController has been found.
 		/// </summary>
-		public EventHandler<Type> OnControllerFound;
+		public EventHandler<Type, Type> OnControllerFound;
 
 		/// <summary>
 		/// An entity has been found.

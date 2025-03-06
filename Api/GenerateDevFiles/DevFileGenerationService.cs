@@ -1,19 +1,21 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Api.Eventing;
 using Api.Startup;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Generation
 {
     /// <summary>
     /// Generation service, adds support for generated files based off reflection.
     /// </summary>
-    public partial class GenerationService : AutoService
+    public partial class DevFileGenerationService : AutoService
     {
         /// <summary>
         /// Constructor.
         /// </summary>
-        public GenerationService()
+        public DevFileGenerationService()
         {
             Events.Service.AfterCreate.AddEventListener(async (ctx, service) => {
 
@@ -68,10 +70,30 @@ namespace Api.Generation
 
                 // Fire events now that entity and controller are both known
                 await Events.Generation.OnEntityFound.Dispatch(ctx, genericEntityType);
-                await Events.Generation.OnControllerFound.Dispatch(ctx, matchingController);
+                await Events.Generation.OnControllerFound.Dispatch(ctx, matchingController, genericEntityType);
 
                 return service;
 
+            });
+
+            Events.Service.AfterStart.AddEventListener(async (ctx, svc) => {
+
+                var controllersWithoutGenericArguments = svc.GetType().Assembly.GetTypes()
+                    .Where(t =>
+                        t.IsClass &&
+                        !t.IsAbstract &&
+                        t.BaseType != null &&
+                        t.BaseType == typeof(ControllerBase) // Directly inherits from non-generic AutoController
+                    )
+                    .ToList();
+                
+                foreach(var controller in controllersWithoutGenericArguments)
+                {
+                    await Events.Generation.OnControllerFound.Dispatch(ctx, controller, null);
+                }
+
+
+                return svc;
             });
         }
     }
