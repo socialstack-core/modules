@@ -54,7 +54,6 @@
 		"UI/Functions/HasCapability",
 		"UI/Functions/IsNumeric",
 		"UI/Functions/Logout",
-		"UI/Functions/Omit",
 		"UI/Functions/QueryString",
 		"UI/Functions/Store",
 		"UI/Functions/SubmitForm",
