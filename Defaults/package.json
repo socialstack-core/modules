@@ -47,7 +47,6 @@
 		"UI/Functions/Debounce",
 		"UI/Functions/DateTools",
 		"UI/Functions/FormatTime",
-		"UI/Functions/GetContentTypeId",
 		"UI/Functions/GetContentTypes",
 		"UI/Functions/GetDateRange",
 		"UI/Functions/GetEndpointType",
