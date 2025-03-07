@@ -46,7 +46,6 @@
 		"UI/Functions/ContentChange",
 		"UI/Functions/Debounce",
 		"UI/Functions/DateTools",
-		"UI/Functions/FlexGap",
 		"UI/Functions/FormatTime",
 		"UI/Functions/GetContentTypeId",
 		"UI/Functions/GetContentTypes",
