@@ -48,7 +48,6 @@
 		"UI/Functions/DateTools",
 		"UI/Functions/FormatTime",
 		"UI/Functions/GetContentTypes",
-		"UI/Functions/GetDateRange",
 		"UI/Functions/GetEndpointType",
 		"UI/Functions/GetRef",
 		"UI/Functions/GraphRuntime",
