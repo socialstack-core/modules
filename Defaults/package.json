@@ -62,7 +62,6 @@
 		"UI/Functions/Validation/EmailAddress",
 		"UI/Functions/WebSocket",
 		"UI/Functions/WebRequest",
-		"UI/Functions/Tabbable",
 		"UI/Fonts/OpenSans",
 		"UI/Grid",
 		"UI/Token",
