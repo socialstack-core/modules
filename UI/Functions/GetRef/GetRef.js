@@ -683,3 +683,7 @@ getRef.isIcon = (ref) => {
 
     return (allIconTypes.indexOf(info.scheme) != -1);
 }
+
+getRef.isMedia = (ref) => {
+    return getRef.isImage(ref) || getRef.isVideo(ref);
+}
