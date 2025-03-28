@@ -116,13 +116,18 @@ export default class Carousel extends React.Component {
 			visibleAtOnceMd,
 			visibleAtOnceLg,
 			spacing,
-			toggleOpacity
+			toggleOpacity,
+			setReverse
 		} = this.props;
 
 		var items = this.content();
 		
 		if(!items || !items.length){
 			return null;
+		}
+
+	    	if (setReverse) {
+			items = items.reverse();
 		}
 		
         var visCount = visibleAtOnce || 1;
@@ -297,5 +302,6 @@ Carousel.propTypes = {
 	},
 	spreadImage: 'bool',
 	spacing: 'int',
-	visibleAtOnce: {type: 'int', default: 1}
+	visibleAtOnce: {type: 'int', default: 1},
+	setReverse: 'bool'
 };
