@@ -18,15 +18,16 @@ public partial class SignedRef256ValueGenerator<T, ID> : VirtualFieldValueGenera
 {
 
 	private UploadService _uploadService;
-	
+
 	/// <summary>
 	/// Generate the value.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="forObject"></param>
 	/// <param name="writer"></param>
+	/// <param name="flags"></param>
 	/// <returns></returns>
-	public override ValueTask GetValue(Context context, T forObject, Writer writer)
+	public override ValueTask GetValue(Context context, T forObject, Writer writer, ContextFlags flags)
 	{
 		if (_uploadService == null)
 		{
@@ -53,15 +54,12 @@ public partial class SignedRef256ValueGenerator<T, ID> : VirtualFieldValueGenera
 		writer.WriteEscaped(signedUrl);
 		return new ValueTask();
 	}
-	
+
 	/// <summary>
 	/// The type, if any, associated with the value being outputted.
 	/// For example, if GetValue outputs only strings, this is typeof(string).
 	/// </summary>
 	/// <returns></returns>
-	public override Type GetOutputType()
-	{
-		return typeof(string);
-	}
+	public override Type OutputType => typeof(string);
 
 }

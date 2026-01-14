@@ -1,8 +1,10 @@
 using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace Api.Eventing
@@ -58,7 +60,7 @@ namespace Api.Eventing
 		/// <param name="context"></param>
 		/// <param name="content"></param>
 		/// <returns></returns>
-		public async ValueTask<T1> TestCapability<T1>(Context context, T1 content)
+		public T1 TestCapability<T1>(Context context, T1 content)
 		{
 			if (context.IgnorePermissions)
 			{
@@ -88,7 +90,7 @@ namespace Api.Eventing
 				throw PermissionException.Create(Capability.Name, context, "No role");
 			}
 
-			if (await role.IsGranted(Capability, context, content, false))
+			if (role.IsGranted(Capability, context, content, ContextFlags.None))
 			{
 				// It's granted - return the first arg:
 				return content;
@@ -270,6 +272,41 @@ namespace Api.Eventing
 			{
 				v1 = await methods[i](context, v1);
 			}
+			return v1;
+		}
+
+		/// <summary>
+		/// Triggers this event handler to run and logs timing information.
+		/// Fires events in ascending order of the priority number.
+		/// Events with the same priority number will occur in the order they were added.
+		/// </summary>
+		/// <param name="context">
+		/// The context which can be used to identify the original user making a particular request.
+		/// Important for e.g. returning correctly localised database results automatically.</param>
+		/// <param name="v1">1st arg value to pass to the methods. This one is also the default return value.</param>
+		/// <returns></returns>
+		public async ValueTask<T1> DispatchTimed(Context context, T1 v1)
+		{
+			if (context == null)
+			{
+				throw new ArgumentNullException(nameof(context));
+			}
+
+			var sw = new Stopwatch();
+			sw.Start();
+
+			var methods = MethodSet.Methods;
+			var count = MethodSet.HandlerCount;
+			for (var i = 0; i < count; i++)
+			{
+				v1 = await methods[i](context, v1);
+				var time = sw.ElapsedMilliseconds;
+				Console.WriteLine((i+1) +"/" + count + ": " + time + "ms. " + methods[i].Method);
+				sw.Restart();
+			}
+
+			sw.Stop();
+
 			return v1;
 		}
 

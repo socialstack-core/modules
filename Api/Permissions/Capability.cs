@@ -64,8 +64,8 @@ namespace Api.Permissions
             Service = service;
             ContentType = service.ServicedType;
             Feature = feature.ToLower();
-            Name = ContentType == null ? Feature : ContentType.Name.ToLower() + "_" + Feature;
-            InternalId = _CurrentId++;
+            Name = ContentType == null ? Feature : service.EntityName.ToLower() + "_" + Feature;
+			InternalId = _CurrentId++;
         }
 
     }

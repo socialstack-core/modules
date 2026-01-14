@@ -34,6 +34,17 @@ namespace Api.Database
 		}
 
 		/// <summary>
+		/// Gets the table name to use for a given type, with an optional extension.
+		/// </summary>
+		/// <param name="type"></param>
+		/// <param name="extension"></param>
+		/// <returns></returns>
+		public virtual string GetTableName(Type type, string extension = null)
+		{
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
 		/// Gets a table by its case insensitive name. Creates it if it doesn't exist.
 		/// </summary>
 		/// <param name="name"></param>
@@ -53,6 +64,18 @@ namespace Api.Database
 			}
 
 			return result;
+		}
+
+		/// <summary>
+		/// Starts creating a specialised schema specific column object.
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="table"></param>
+		/// <returns></returns>
+		/// <exception cref="NotImplementedException"></exception>
+		public virtual DatabaseColumnDefinition StartColumn(Field field, string table)
+		{
+			throw new NotImplementedException();
 		}
 
 		/// <summary>

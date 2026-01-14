@@ -1,4 +1,5 @@
 ﻿using Api.Database;
+using Api.Permissions;
 using Newtonsoft.Json;
 using System;
 
@@ -13,7 +14,8 @@ namespace Api.PasswordResetRequests
 		/// The randomly generated token, used by the client, to prove ownership of the 2nd channel.
 		/// </summary>
 		[DatabaseField(Length =40)]
-		[JsonIgnore]
+		[Permissions(ReadRule = "IsEmail()", Roles = "*")]
+		[Permissions(WriteRule = "false", Roles = "*")]
 		public string Token;
 
 		/// <summary>

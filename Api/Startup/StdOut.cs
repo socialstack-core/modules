@@ -1,6 +1,7 @@
 using Api.Contexts;
 using Api.Permissions;
 using Api.SocketServerLibrary;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
@@ -28,7 +29,7 @@ namespace Api.Startup
 	/// </summary>
 	[Route("v1/monitoring")]
 	[ApiController]
-	public partial class StdOutController : ControllerBase
+	public partial class StdOutController : AutoController
 	{
 		
 		/// <summary>
@@ -40,10 +41,8 @@ namespace Api.Startup
 		/// Forces a GC run. Convenience for testing for memory leaks.
 		/// </summary>
 		[HttpGet("gc")]
-		public async ValueTask GC()
+		public void GC(Context context)
 		{
-			var context = await Request.GetContext();
-
 			if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 			{
 				throw PermissionException.Create("monitoring_query", context);
@@ -56,10 +55,8 @@ namespace Api.Startup
 		/// Runs something on the command line. Super admin only (naturally).
 		/// </summary>
 		[HttpPost("exec")]
-		public async ValueTask Execute([FromBody] MonitoringExecModel body)
+		public async ValueTask Execute(HttpContext httpContext, Context context, [FromBody] MonitoringExecModel body)
 		{
-			var context = await Request.GetContext();
-
 			if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 			{
 				throw PermissionException.Create("monitoring_exec", context);
@@ -71,17 +68,15 @@ namespace Api.Startup
 			}
 
 			Log.Info("core", "Executing via command line (user #" + context.UserId + "), " + body.Command);
-			await CommandLine.Execute(body.Command, Response.Body);
+			await CommandLine.Execute(body.Command, httpContext.Response.Body);
 		}
 
 		/// <summary>
 		/// Forces an application halt.
 		/// </summary>
 		[HttpGet("halt")]
-		public async ValueTask Halt()
+		public void Halt(Context context)
 		{
-			var context = await Request.GetContext();
-
 			if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 			{
 				throw PermissionException.Create("monitoring_query", context);

@@ -21,6 +21,20 @@ namespace Api.Templates
 		/// The default title for this template.
 		/// </summary>
 		public string Title;
+
+		/// <summary>
+		/// The template description
+		/// </summary>
+		public string Description;
+
+		/// <summary>
+		/// The template type, defaults to web
+		/// 1 = web
+		/// 2 = email
+		/// 3 = pdf (add as necessary)
+		/// </summary>
+		[Module("Admin/Template/TemplateTypeSelector")]
+		public uint TemplateType = 1;
 		
 		/// <summary>
 		/// The module groups that this is available for. "formatting" is the default. * is "all of them".
@@ -32,7 +46,7 @@ namespace Api.Templates
 		/// </summary>
 		[Data("groups", "*")]
 		[Data("withIds", "1")]
-		public string BodyJson;
+		public JsonString BodyJson;
 	}
 	
 }

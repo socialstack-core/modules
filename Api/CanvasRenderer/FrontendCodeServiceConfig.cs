@@ -11,6 +11,11 @@ namespace Api.CanvasRenderer
 	public class FrontendCodeServiceConfig : Config
 	{
 		/// <summary>
+		/// True if a debug instance should cache files for a faster startup time.
+		/// </summary>
+		public bool CacheBuiltFiles { get; set; } = true;
+
+		/// <summary>
 		/// True if it should load the prebuilt UI. This is implied as true if no Source directory is found (i.e. you can force a true by just not deploying your UI/Source directory).
 		/// </summary>
 		public bool Prebuilt {get; set; } = false;

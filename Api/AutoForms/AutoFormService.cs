@@ -1,5 +1,6 @@
 ﻿using Api.Contexts;
 using Api.Database;
+using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
 using Api.Translate;
@@ -15,22 +16,21 @@ using System.Threading.Tasks;
 
 namespace Api.AutoForms
 {
-	/// <summary>
-	/// This service drives AutoForm - the form which automatically displays fields in the admin area.
-	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-	/// </summary>
-	public partial class AutoFormService
+    /// <summary>
+    /// This service drives AutoForm - the form which automatically displays fields in the admin area.
+    /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+    /// </summary>
+    [HostType("web")]
+    public partial class AutoFormService : AutoService
 	{
-		// private IActionDescriptorCollectionProvider _descriptionProvider;
 		private RoleService _roleService;
 
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public AutoFormService(/**IActionDescriptorCollectionProvider descriptionProvider,**/ RoleService roleService)
+		public AutoFormService(RoleService roleService)
 		{
-			// _descriptionProvider = descriptionProvider;
 			_roleService = roleService;
 
 			contentCache = new AutoFormCache(PopulateContentCache, roleService);
@@ -107,10 +107,39 @@ namespace Api.AutoForms
 			// Get the content types and their IDs:
 			foreach (var kvp in Database.ContentTypes.TypeMap)
 			{
+				var type = kvp.Key;
+				var name = type.Name;
+
+				var backtick = name.IndexOf('`');
+
+				if (backtick != -1)
+				{
+					// Chop off the generics
+					name = name.Substring(0, backtick);
+				}
+
+				if (type.IsGenericType)
+				{
+					var genericArgs = type.GetGenericArguments();
+
+					// They aren't nested so we can assume these type .Names are fine as-is.
+					name += "<";
+					for (var g = 0; g < genericArgs.Length; g++)
+					{
+						if (g != 0)
+						{
+							name += ",";
+						}
+
+						name += genericArgs[g].Name;
+					}
+
+					name += ">";
+				}
+
 				yield return new ContentType()
 				{
-					Id = kvp.Value.Id,
-					Name = kvp.Value.Name
+					Name = name
 				};
 			}
 		}
@@ -122,30 +151,43 @@ namespace Api.AutoForms
 		/// <param name="cache"></param>
 		private async ValueTask PopulateContentCache(Context context, Dictionary<string, AutoFormInfo> cache)
 		{
-			// Try getting the revision service to see if they're supported:
-			var revisionsSupported = Services.Get("RevisionService") != null;
-
 			// For each AutoService..
-			foreach (var serviceKvp in Services.AutoServices)
+			foreach (var serviceKvp in Services.All)
 			{
-				if (serviceKvp.Value.IsMapping)
+				if (serviceKvp.Value.IsMapping || serviceKvp.Value.InstanceType == null)
 				{
 					// Omit mapping services
 					continue;
 				}
 
-				var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
+				try
+				{
+					var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
 
-				var formType = serviceKvp.Value.InstanceType;
-				var formMeta = GetFormInfo(fieldStructure);
+					var formType = serviceKvp.Value.InstanceType;
+					var formMeta = GetFormInfo(fieldStructure, formType);
 
-				// Must inherit revisionRow and 
-				// the revision module must be installed
-				formMeta.SupportsRevisions = revisionsSupported && Api.Database.ContentTypes.IsAssignableToGenericType(serviceKvp.Value.InstanceType, typeof(VersionedContent<>));
+					// Trigger generic event - this is where revisions can connect up.
+					await Events.AutoForm.BuildMeta.Dispatch(context, formMeta, serviceKvp.Value);
 
-				var name = formType.Name.ToLower();
-				formMeta.Endpoint = "v1/" + name;
-				cache[name] = formMeta;
+					var name = formMeta.ContentType.ToLower();
+
+					if (serviceKvp.Value.InstanceType.IsGenericType)
+					{
+						// unknowable here (it's e.g. v1/user/revision/.. but may not be revisions)
+						formMeta.Endpoint = null;
+					}
+					else
+					{
+						formMeta.Endpoint = "v1/" + name;
+					}
+
+					cache[formMeta.ContentType.ToLower()] = formMeta;
+				}
+				catch (Exception e)
+				{
+					Log.Error(LogTag, e);
+				}
 			}
 		}
 
@@ -162,13 +204,45 @@ namespace Api.AutoForms
 		/// Gets the AutoForm info such as fields available for the given :AutoForm type.
 		/// </summary>
 		/// <param name="jsonStructure"></param>
+		/// <param name="type"></param>
 		/// <returns></returns>
-		public AutoFormInfo GetFormInfo(JsonStructure jsonStructure)
+		public AutoFormInfo GetFormInfo(JsonStructure jsonStructure, Type type)
 		{
 			var info = new AutoFormInfo
 			{
 				Fields = new List<AutoFormField>()
 			};
+
+			var name = type.Name;
+
+			var backtick = name.IndexOf('`');
+
+			if (backtick != -1)
+			{
+				// Chop off the generic count
+				name = name.Substring(0, backtick);
+			}
+
+			if (type.IsGenericType)
+			{
+				var genericArgs = type.GetGenericArguments();
+
+				// They aren't nested so we can assume these type .Names are fine as-is.
+				name += "<";
+				for (var g = 0; g < genericArgs.Length; g++)
+				{
+					if (g != 0)
+					{
+						name += ",";
+					}
+
+					name += genericArgs[g].Name;
+				}
+
+				name += ">";
+			}
+
+			info.ContentType = name;
 
 			foreach (var field in jsonStructure.AllFields)
 			{
@@ -181,6 +255,24 @@ namespace Api.AutoForms
 				if (formField != null)
 				{
 					info.Fields.Add(formField);
+
+					/* WIP
+					if (formField.Data.ContainsKey("divider") && (bool)formField.Data["divider"])
+					{
+						var paramset = new Dictionary<string, object>();
+
+						var dividerField = new AutoFormField()
+						{
+							Includable = false,
+							ValueType = null,
+							Module = "UI/Divider",
+							Data = paramset
+						};
+
+						info.Fields.Add(dividerField);
+					}
+					*/
+					
 				}
 			}
 
@@ -200,6 +292,18 @@ namespace Api.AutoForms
 			var customAttributes = jsonField.Attributes;
 			var isIncludable = false;
 			string valueType = null;
+			var isLocalized = false;
+
+			if (fieldType.IsGenericType)
+			{
+				var def = fieldType.GetGenericTypeDefinition();
+
+				if (def == typeof(Localized<>))
+				{
+					isLocalized = true;
+					fieldType = fieldType.GetGenericArguments()[0];
+				}
+			}
 
 			if (jsonField.ContentField != null && jsonField.ContentField.VirtualInfo != null && jsonField.ContentField.VirtualInfo.IsList)
 			{
@@ -225,6 +329,7 @@ namespace Api.AutoForms
 
 			var field = new AutoFormField()
 			{
+				FieldName = jsonField.OriginalName,
 				Includable = isIncludable,
 				ValueType = valueType,
 				Module = jsonField.Module,
@@ -235,14 +340,48 @@ namespace Api.AutoForms
 			var name = jsonField.OriginalName;
 			var labelName = name;
 
-			// If the field is a string and ends with Json, it's canvas:
-			if (fieldType == typeof(string) && labelName.EndsWith("Json"))
+			// If the field is a string and ends with Json, it's going to be either canvas (default) or a json field:
+			if (fieldType == typeof(JsonString) || (fieldType == typeof(string) && labelName.EndsWith("Json")))
 			{
 				type = "canvas";
 
+				foreach (var attrib in customAttributes)
+				{
+					if (attrib is DataAttribute)
+					{
+						var dat = attrib as DataAttribute;
+
+						if (dat.Name == "contentType")
+						{
+							var valStr = dat.Value as string;
+
+							if (valStr == null)
+							{
+								continue;
+							}
+
+							if (valStr == "application/json" || valStr == "json")
+							{
+								// It's a json field
+								type = "json";
+							}
+						}
+					}
+				}
+
 				// Remove "Json" from the end of the label:
-				labelName = labelName.Substring(0, labelName.Length - 4);
+				if (labelName.EndsWith("Json"))
+				{
+					labelName = labelName.Substring(0, labelName.Length - 4);
+				}
 				field.Tokeniseable = false;
+			}
+			else if (fieldType == typeof(string) && labelName.EndsWith("Html"))
+			{
+				type = "html";
+
+				// Remove "Html" from the end of the label:
+				labelName = labelName.Substring(0, labelName.Length - 4);
 			}
 			else if (fieldType == typeof(string) && labelName.EndsWith("Ref"))
 			{
@@ -329,6 +468,11 @@ namespace Api.AutoForms
 				field.Data["readonly"] = true;
 			}
 
+			if (isLocalized)
+			{
+				field.Data["localized"] = true;
+			}
+
 			// Any of these [Module] or inheritors?
 			foreach (var attrib in customAttributes)
 			{
@@ -356,11 +500,6 @@ namespace Api.AutoForms
 					var data = attrib as DataAttribute;
 					field.Data[data.Name] = data.Value;
 				}
-				else if (attrib is LocalizedAttribute)
-				{
-					// Yep - it's translatable.
-					field.Data["localized"] = true;
-				}
 				else if (attrib is DatabaseFieldAttribute)
 				{
 					var dbField = attrib as DatabaseFieldAttribute;
@@ -375,6 +514,10 @@ namespace Api.AutoForms
 					var order = attrib as OrderAttribute;
 					field.Order = order.Order;
                 }
+				else if (attrib is DividerAttribute)
+				{
+					field.Data["divider"] = true;
+				}
 				else if (attrib.GetType().ToString().Contains("PriceAttribute"))
                 {
 					field.Data["isPrice"] = true;

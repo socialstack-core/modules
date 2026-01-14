@@ -1,0 +1,314 @@
+.ui-product-qty {
+	$ui-product-qty: &;
+	--ui-product-qty__button-size: #{px_to_rem(32)};
+	container-name: product-qty;
+	container-type: inline-size;
+
+	&--none {
+
+		#{$ui-product-qty}__down,
+		#{$ui-product-qty}__value-wrapper,
+		#{$ui-product-qty}__update {
+			display: none;
+		}
+
+		#{$ui-product-qty}__inner {
+			padding: 0;
+		}
+
+		#{$ui-product-qty}__up.btn {
+			--btn-min-height: 0;
+			//--btn-font-size: 18;
+			--btn-font-size: 16;
+			width: 100%;
+			height: 100%;
+		}
+
+	}
+
+	&--readonly {
+
+		#{$ui-product-qty}__down,
+		#{$ui-product-qty}__update, 
+		#{$ui-product-qty}__up {
+			display: none;
+		}
+
+	}
+
+	&--edit {
+
+		#{$ui-product-qty}__update.btn {
+			display: flex;
+		}
+
+		#{$ui-product-qty}__up.btn {
+			display: none;
+		}
+
+	}
+
+	&__inner {
+		// NB: this is created and assigned automatically, as we need a unique anchor name for each instance of the component
+		//     (for instance, there are multiple instances of this component on the product category page)
+		//anchor-name: --product-qty;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		background-color: var(--product-qty-bg, #ccc);
+		border-radius: px_to_rem(8);
+		padding: 0 px_to_rem(5);
+		//height: px_to_rem(55);
+		height: px_to_rem(44);
+		gap: px_to_rem(5);
+		//min-width: px_to_rem(192);
+		min-width: px_to_rem(196);
+		//max-width: 100%;
+	}
+
+	&__update.btn {
+		--btn-min-height: 0;
+		//--btn-font-size: 18;
+		--btn-font-size: 16;
+		height: var(--ui-product-qty__button-size);
+		display: none;
+	}
+
+	&__down.btn {
+		--btn-min-height: 0;
+		--btn-padding: 0;
+		background-color: var(--product-qty-btn-bg, var(--primary));
+		color: var(--product-qty-btn-fg, var(--primary-fg));
+		width: var(--ui-product-qty__button-size);
+		height: var(--ui-product-qty__button-size);
+		border: 0;
+		flex-shrink: 0;
+	}
+
+	&:not(#{$ui-product-qty}--none) {
+
+		#{$ui-product-qty}__up.btn {
+			--btn-min-height: 0;
+			--btn-padding: 0;
+			background-color: var(--product-qty-btn-bg, var(--primary));
+			color: var(--product-qty-btn-fg, var(--primary-fg));
+			width: var(--ui-product-qty__button-size);
+			height: var(--ui-product-qty__button-size);
+			border: 0;
+			flex-shrink: 0;
+
+			&:hover {
+				background-color: var(--primary-hover);
+				border-color: var(--primary-hover-border);
+				color: var(--primary-fg);
+			}
+		}
+
+	}
+
+	&__value {
+		flex: 1;
+		color: var(--product-qty-fg, #000);
+		border: 0;
+		//font-size: px_to_rem(18);
+		font-size: px_to_rem(16);
+		font-weight: 700;
+		-moz-appearance: textfield;
+		border-radius: px_to_rem(5);
+		height: var(--ui-product-qty__button-size);
+		padding: 0 px_to_rem(12);
+		min-width: 0;
+
+		&-wrapper {
+			//min-width: 0;
+			flex: 1;
+			display: flex;
+		    align-items: center;
+			gap: px_to_rem(5);
+		}
+		
+		&::-webkit-outer-spin-button,
+		&::-webkit-inner-spin-button {
+			-webkit-appearance: none;
+			margin: 0;
+		}
+
+		&:not(:focus) {
+			background: transparent;
+			text-align: center;
+		}
+
+	}
+
+	&--loading {
+
+		> * {
+			visibility: hidden;
+		}
+	}
+
+	&--compact {
+		--ui-product-qty__button-size: #{px_to_rem(24)};
+		min-width: px_to_rem(116);
+
+		#{$ui-product-qty}__inner {
+			min-width: 0;
+			height: px_to_rem(32);
+		}
+
+		#{$ui-product-qty}__down.btn,
+		#{$ui-product-qty}__up.btn {
+			min-height: 0 !important;
+			--btn-font-size: 14;
+		}
+
+		#{$ui-product-qty}__update.btn {
+			--btn-font-size: 13;
+			--btn-border-radius: 4;
+			--btn-padding: 7;
+			min-height: 0 !important;
+			height: px_to_rem(24);
+		}
+
+		#{$ui-product-qty}__down.btn,
+		#{$ui-product-qty}__up.btn {
+			width: px_to_rem(24);
+			height: px_to_rem(24);
+		}
+
+		#{$ui-product-qty}__value {
+			font-size: px_to_rem(14);
+			height: px_to_rem(24);
+			padding: 0 px_to_rem(6);
+		}
+	}
+
+	&__alert {
+		// NB: this is created and assigned automatically, as we need a unique anchor name for each instance of the component
+		//     (for instance, there are multiple instances of this component on the product category page)
+		//position-anchor: --product-qty;
+		margin: 0;
+		border: 1px solid var(--palette-green);
+		border-radius: px_to_rem(4);
+		inset: 0;
+		background-color: var(--palette-light-green);
+		color: var(--palette-green);
+		font-weight: 500;
+		font-size: px_to_rem(14);
+		padding: .5rem .75rem;
+        top: calc(anchor(bottom) - 2.75rem);
+        left: anchor(center);
+		transition-property: transform, box-shadow, overlay, display, visibility, opacity;
+		transition-duration: .3s;
+		transition-timing-function: ease-in-out;
+		transition-behavior: allow-discrete;
+		visibility: hidden;
+		opacity: 0;
+		transform: translate(-50%, 10%);
+		box-shadow: none;
+
+		// NB: for polyfill support
+		// (do not combine with following rule)
+		&.\:popover-open {
+			opacity: 1;
+			visibility: visible;
+			box-shadow: 0 0 px_to_rem(10) 0 rgba(0, 0, 0, .1);
+			transform: translate(-50%, -110%);
+		}
+
+		&:popover-open {
+			opacity: 1;
+			visibility: visible;
+			box-shadow: 0 0 px_to_rem(10) 0 rgba(0, 0, 0, .1);
+			transform: translate(-50%, -110%);
+		}
+
+	}
+}
+
+@starting-style {
+
+	.ui-product-qty__alert {
+
+		&.\:popover-open {
+			opacity: 0;
+			box-shadow: none;
+			transform: translate(-50%, 10%);
+			visibility: hidden;
+		}
+
+		&:popover-open {
+			opacity: 0;
+			box-shadow: none;
+			transform: translate(-50%, 10%);
+			visibility: hidden;
+		}
+
+	}
+
+}
+
+@container product-qty (width < #{px_to_rem(196)}) {
+
+	.ui-product-qty {
+
+		&__inner {
+			min-width: 0;
+			height: px_to_rem(36);
+		}
+
+		&__down.btn,
+		&__up.btn {
+			min-height: 0 !important;
+			--btn-font-size: 15;
+		}
+
+		&__update.btn {
+			--btn-font-size: 14;
+			--btn-border-radius: 4;
+			--btn-padding: 11;
+			min-height: 0 !important;
+			height: px_to_rem(28);
+		}
+
+		&__down.btn,
+		&__up.btn {
+			width: px_to_rem(28);
+			height: px_to_rem(28);
+		}
+
+		&__value {
+			font-size: px_to_rem(16);
+			height: px_to_rem(28);
+			padding: 0 px_to_rem(8);
+		}
+
+	}
+
+}
+
+@supports not (position-anchor: --anchor-name) {
+
+	.ui-product-qty {
+
+		&__inner {
+			position: relative;
+		}
+
+		&__alert {
+			position: absolute;
+			top: 0;
+		    left: 50%;
+			right: auto;
+			bottom: auto;
+
+			&--shown {
+				opacity: 1;
+				visibility: visible;
+				box-shadow: 0 0 px_to_rem(10) 0 rgba(0, 0, 0, .1);
+				transform: translate(-50%, -110%);
+			}
+		}
+
+	}
+}

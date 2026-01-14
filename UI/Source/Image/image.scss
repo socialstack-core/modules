@@ -1,0 +1,59 @@
+.ui-image {
+	position: relative;
+
+	// usually <img> tags don't support pseudo elements,
+	// but they _do_ when the image failed to load
+	//
+	// use this to our advantage by targetting ::before/::after to show a background colour/image for missing images
+	&::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background: var(--ui-image-background, #ccc);
+	}
+	
+	&::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		background-image: var(--ui-image-background-image, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cline x1='2' x2='22' y1='2' y2='22'/%3E%3Cpath d='M7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16'/%3E%3Cpath d='M9.5 4h5L17 7h3a2 2 0 0 1 2 2v7.5'/%3E%3Cpath d='M14.121 15.121A3 3 0 1 1 9.88 10.88'/%3E%3C/svg%3E"));
+		background-repeat: no-repeat;
+		background-size: var(--ui-image-background-size, min(50%, 10em));
+		background-position: 50%;
+		opacity: var(--ui-image-background-opacity, .35);
+	}
+
+	&__wrapper {
+		//position: relative;
+		//display: inline-block;
+	}
+
+	// full width image
+	&--wide {
+		display: block;
+		width: 100%;
+		
+		img {
+			width: 100%;
+			height: auto;
+		}
+	}
+
+	// floats
+	&--left {
+		float: left;
+		margin: .5rem .5rem .5rem 0;
+	}
+
+	&--right {
+		float: right;
+		margin: .5rem 0 .5rem .5rem ;
+	}
+
+	&--center {
+		display: block;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+}

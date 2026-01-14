@@ -5,6 +5,7 @@ using Api.CanvasRenderer;
 using Api.Startup;
 using HtmlAgilityPack;
 using System;
+using Api.SocketServerLibrary;
 
 namespace Api.OpenGraphTags
 {
@@ -16,48 +17,54 @@ namespace Api.OpenGraphTags
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public OpenGraphTagsService()
+		public OpenGraphTagsService(FrontendCodeService feService)
         {
 			var config = GetConfig<OpenGraphTagsServiceConfig>();
 
-			Events.Page.Generated.AddEventListener(async (Context ctx, Document pageDocument) =>
+			Events.Page.OnWriteHeadEnd.AddEventListener(async (Context ctx, Writer writer, PageWithTokens pageWithTokens) =>
 			{
-				var baseUrl = Services.Get<FrontendCodeService>().GetContentUrl(ctx.LocaleId);
+				var baseUrl = feService.GetContentUrl(ctx.LocaleId);
 
 				// We need to add a title, type, url and image tag required.	
 				//Title
-				DocumentNode titleNode = new DocumentNode("meta", true);
-				titleNode.With("property", "og:title");
-				titleNode.With("content", (string)await pageDocument.GetMeta(ctx, "title"));
-				pageDocument.Head.AppendChild(titleNode);
+				var titleMeta = await pageWithTokens.GetMetaString(ctx, "title");
+				var typeMeta = await pageWithTokens.GetMetaString(ctx, "type");
+				var imageMeta = await pageWithTokens.GetMetaString(ctx, "image");
+				var descriptionMeta = await pageWithTokens.GetMetaString(ctx, "description");
+				var url = baseUrl + (pageWithTokens.PageTerminal == null ? "" : pageWithTokens.PageTerminal.FullRoute);
 
-				//Type
-				DocumentNode typeNode = new DocumentNode("meta", true);
-				typeNode.With("property", "og:type");
+				// Opening og:title
+				writer.WriteASCII("<meta property=\"og:title\" content=");
 
-				var typeMeta = (string)await pageDocument.GetMeta(ctx, "type");
+				if (titleMeta == null)
+				{
+					writer.WriteASCII("\"\"");
+				}
+				else
+				{
+					writer.WriteEscaped(titleMeta);
+				}
+
+				// Closing title and opening og:type
+				writer.WriteASCII("/><meta property=\"og:type\" content=");
 
 				if (!string.IsNullOrEmpty(typeMeta))
-                {
-					typeNode.With("content", typeMeta);
-                }
-				else
-                {
-					typeNode.With("content", "website");
+				{
+					writer.WriteEscaped(typeMeta);
 				}
-				pageDocument.Head.AppendChild(typeNode);
+				else
+				{
+					writer.WriteASCII("\"website\"");
+				}
 
-				//Url
-				DocumentNode urlNode = new DocumentNode("meta", true);
-				urlNode.With("property", "og:url");
-				urlNode.With("content", baseUrl + pageDocument.Path);
-				pageDocument.Head.AppendChild(urlNode);
+				// Closing type and opening og:url
+				writer.WriteASCII("/><meta property=\"og:url\" content=");
+				writer.WriteEscaped(url); // it's never null
 
-				//Image
-				DocumentNode imageNode = new DocumentNode("meta", true);
-				imageNode.With("property", "og:image");
+				// Closing url and opening og:image
+				writer.WriteASCII("/><meta property=\"og:image\" content=");
 
-				var imageMeta = (string)await pageDocument.GetMeta(ctx, "image");
+				string imageUrl;
 
 				// We have three options - either the primary object, the page image ref, or the favicon.
 				if (!string.IsNullOrEmpty(imageMeta))
@@ -80,32 +87,32 @@ namespace Api.OpenGraphTags
                     {
 						contentDir = "/content/";
 						imageSize = "-512";
-						imageNode.With("content", baseUrl + contentDir + name + imageSize + ext);
+						imageUrl = baseUrl + contentDir + name + imageSize + ext;
 					}
 
 					else if(imageMeta.StartsWith("private"))
                     {
 						contentDir = "/content-private/";
 						imageSize = "-512";
-						imageNode.With("content", baseUrl + contentDir + name + imageSize + ext);
+						imageUrl = baseUrl + contentDir + name + imageSize + ext;
 					}
                     else
                     {
-						imageNode.With("content", baseUrl + image);
+						imageUrl = baseUrl + image;
 					}
                 }
                 else
                 {
-					imageNode.With("content", baseUrl + "/favicon-32x32.png");
+					imageUrl = baseUrl + "/favicon-32x32.png";
                 }
-				pageDocument.Head.AppendChild(imageNode);
+
+				// It's never null
+				writer.WriteEscaped(imageUrl);
+				// Closing image
+				writer.WriteASCII("/>");
 
 				// We also have some optional ones that are good to have. 
-				//Descritpion 
-				DocumentNode descriptionNode = new DocumentNode("meta", true);
-				descriptionNode.With("property", "og:description");
 
-				var descriptionMeta = (string)await pageDocument.GetMeta(ctx, "description");
 				string ogDescription = "";
 
 				if (!string.IsNullOrEmpty(descriptionMeta))
@@ -123,22 +130,25 @@ namespace Api.OpenGraphTags
 					ogDescription = config.DefaultDescription;
 				}
 
+				// Optional description - only written if one is present
 				if (!string.IsNullOrEmpty(ogDescription))
 				{
-					descriptionNode.With("content", ogDescription.Length > 200 ?
+					writer.WriteASCII("<meta property=\"og:description\" content=");
+					writer.WriteEscaped(ogDescription.Length > 200 ?
 						ogDescription.Substring(0, Math.Min(ogDescription.Length, 199)) + (char)0x2026 : ogDescription);
-
-					pageDocument.Head.AppendChild(descriptionNode);
+					writer.WriteASCII("/>");
 				}
 
-				//Site name
-				DocumentNode siteNameNode = new DocumentNode("meta", true);
-				siteNameNode.With("property", "og:site_name");
-				// Just grab it from the settings.
-				siteNameNode.With("content", config.SiteName);
-				pageDocument.Head.AppendChild(siteNameNode);
+				// Site name
+				var siteName = config.SiteName;
+				if (!string.IsNullOrEmpty(siteName))
+				{
+					writer.WriteASCII("<meta property=\"og:site_name\" content=");
+					writer.WriteEscaped(siteName);
+					writer.WriteASCII("/>");
+				}
 
-				return pageDocument;
+				return writer;
 			});
 		}
 

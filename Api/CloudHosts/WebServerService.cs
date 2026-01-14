@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using Api.Contexts;
 using Api.Configuration;
-using Api.Eventing;
 using System;
 
 namespace Api.CloudHosts
@@ -26,31 +25,9 @@ namespace Api.CloudHosts
         {
 			_certs = certs;
 			platform = new NGINX(this);
-			
-			Events.Configuration.AfterUpdate.AddEventListener(async (Context ctx, Configuration.Configuration configuration) =>
-			{
 
-				if (configuration != null && configuration.Key == "HtmlService")
-				{
-					await Regenerate(ctx);
-				}
-
-				return configuration;
-			});
-
-
-			Events.Configuration.AfterCreate.AddEventListener(async (Context ctx, Configuration.Configuration configuration) =>
-			{
-
-				if (configuration != null && configuration.Key == "HtmlService")
-				{
-					await Regenerate(ctx);
-				}
-
-				return configuration;
-			});
-			
-			// Ensure webserver is initted.
+			// future: Ensure webserver is initted with basic config (Apply has been called at least once).
+			// Note that on startup the WebSecurityService checks certs and indirectly calls apply currently.
 		}
 
 		/// <summary>
@@ -97,7 +74,7 @@ namespace Api.CloudHosts
 				var parsedUrl = new Uri(publicUrl);
 				var host = parsedUrl.Host;
 
-				if (!latestCerts.TryGetValue(host, out DomainCertificateLocales locales))
+				if (latestCerts.TryGetValue(host, out DomainCertificateLocales locales))
 				{
 					locales.Add((uint)(i + 1));
 				}
@@ -107,7 +84,6 @@ namespace Api.CloudHosts
 					locales.Add((uint)(i + 1));
 					latestCerts.Add(host, locales);
 				}
-
 			}
 
 			return latestCerts;

@@ -12,11 +12,11 @@ namespace Api.CustomContentTypes
 	public partial class CustomContentTypeController : AutoController<CustomContentType>
     {
         /// <summary>
-        /// All custom types which will include deleted ones and forms.
+        /// All custom types which will include deleted ones.
         /// </summary>
         /// <returns></returns>
         [HttpGet("alltypes")]
-        public async ValueTask<List<string>> GetAllTypes()
+        public List<string> GetAllTypes()
         {
             var types = Services
                 .AllByName
@@ -28,23 +28,21 @@ namespace Api.CustomContentTypes
         }
 
         /// <summary>
-        /// Gets all custom types excluding deleted or form ones.
+        /// Gets all custom types excluding deleted ones.
         /// </summary>
         /// <returns></returns>
         [HttpGet("allcustomtypesplus")]
-        public async ValueTask<List<TypeInfo>> GetAllTypesPlus()
+        public async ValueTask<List<CustomTypeInfo>> GetAllTypesPlus(Context context)
         {
-            var results = new List<TypeInfo>();
+            var results = new List<CustomTypeInfo>();
             
-            var context = await Request.GetContext();
-
-            var customTypes = await (_service as CustomContentTypeService).Where("Deleted=? AND IsForm=?", DataOptions.IgnorePermissions).Bind(false).Bind(false).ListAll(context);
+            var customTypes = await (_service as CustomContentTypeService).Where("Deleted=?", DataOptions.IgnorePermissions).Bind(false).ListAll(context);
 
             if (customTypes != null)
             {
                 foreach(var customType in customTypes)
                 {
-                    results.Add(new TypeInfo(customType.NickName, customType.Name));
+                    results.Add(new CustomTypeInfo(customType.NickName, customType.Name));
                 }
             }
 
@@ -56,7 +54,7 @@ namespace Api.CustomContentTypes
 
             if (types.Contains("Tag"))
             {
-                results.Add(new TypeInfo("Tag", "Tag"));
+                results.Add(new CustomTypeInfo("Tag", "Tag"));
             }
 
             return results;
@@ -65,7 +63,7 @@ namespace Api.CustomContentTypes
         /// <summary>
         /// Information about a type.
         /// </summary>
-        public class TypeInfo 
+        public class CustomTypeInfo 
         {
             /// <summary>
             /// The name of the type.
@@ -82,7 +80,7 @@ namespace Api.CustomContentTypes
             /// </summary>
             /// <param name="name"></param>
             /// <param name="value"></param>
-            public TypeInfo(string name, string value)
+            public CustomTypeInfo(string name, string value)
             {
                 Name = name;
                 Value = value; 

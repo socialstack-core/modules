@@ -11,6 +11,6 @@ public class ProductConfig : Config
 	/// True if it should error if an order for less than the min is placed.
 	/// Otherwise it will be rounded up.
 	/// </summary>
-	public bool ErrorIfBelowMinimum {get; set;}
+	public bool ErrorIfBelowMinimum { get; set; }
 	
 }

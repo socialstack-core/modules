@@ -14,7 +14,7 @@ namespace Api.Permissions
 	
 	[Route("v1/permission")]
 	[ApiController]
-	public partial class PermissionController : ControllerBase
+	public partial class PermissionController : AutoController
     {
 		/// <summary>
 		/// Instanced automatically.
@@ -34,10 +34,8 @@ namespace Api.Permissions
 		/// Returns meta about the list of available roles and their permission set.
 		/// </summary>
 		[HttpGet("list")]
-		public async ValueTask<PermissionInformation> List()
+		public async ValueTask<PermissionInformation> List(Context context)
 		{
-			var context = await Request.GetContext();
-			
 			if(context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("permission_list", context);

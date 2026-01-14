@@ -5,8 +5,10 @@ using Api.SocketServerLibrary;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer;
@@ -88,6 +90,68 @@ public class ContentList : Executor
 		// Emit state:
 		compileEngine.EmitLoadState();
 
+		// Start constructing the filter here, binding each input arg according to what the filter needs.
+		// Rather confusingly though we need to construct the filter twice - once here inside this node
+		// such that we know what the bind types are and then a 2nd time, the actual instanced used in the emitted code.
+
+		// 1st one: Call .Where on the _svc for the filter itself.
+		// A filter is required regardless of if a filter string is present or not.
+		// We have the service on "this" node, but we can get it to do the where call for us.
+		compileEngine.EmitCurrentNode();
+		var createFilterMethod = GetType().GetMethod(nameof(ContentList.CreateFilter));
+		compileEngine.CodeBody.Emit(OpCodes.Callvirt, createFilterMethod);
+
+		if (!string.IsNullOrWhiteSpace(_filterStr))
+		{
+			// This is the 2nd one!
+			var filterForDeterminingBindTypes = _svc.GetGeneralFilterFor(_filterStr);
+			var bindTypes = filterForDeterminingBindTypes.GetArgTypes();
+
+			var filterType = typeof(Filter<,>).MakeGenericType(new Type[] { svcType, _svc.IdType });
+
+			for (var i = 0; i < bindTypes.Count; i++)
+			{
+				var bindTypeRequired = bindTypes[i];
+
+				// Each time bind is called, the filter is returned and ends up back on the stack.
+				// Thus, we need to emit the value, convert it if necessary, then call the relevant Bind method.
+				// We don't need to keep loading refs to the filter object itself or keep it in some sort of local.
+
+				var inputType = compileEngine.EmitLoadInput("arg" + i, this);
+
+				if (inputType != bindTypeRequired.ArgType)
+				{
+					// A todo here would be to convert the type as needed. E.g. long -> uint etc probably.
+					// As of right now, we only need strings going to string binds.
+					throw new PublicException("Graph limitation: content list inputs must currently match the exact bind type.", "");
+				}
+
+				var specificBind = filterType.GetMethod("Bind", BindingFlags.Instance | BindingFlags.Public, new Type[] {
+					inputType
+				});
+
+				// Call the bind method
+				if (specificBind != null)
+				{
+					compileEngine.CodeBody.Emit(OpCodes.Callvirt, specificBind);
+				}
+				else
+				{
+					var objBind = filterType.GetMethod("Bind", BindingFlags.Instance | BindingFlags.Public, new Type[] {
+						typeof(object)
+					});
+
+					if (inputType.IsValueType)
+					{
+						compileEngine.CodeBody.Emit(OpCodes.Box);
+					}
+
+					compileEngine.CodeBody.Emit(OpCodes.Callvirt, objBind);
+				}
+			}
+
+		}
+
 		// Emit the LoadContent call:
 		compileEngine.CodeBody.Emit(OpCodes.Call, loadContentMethod);
 
@@ -166,10 +230,20 @@ public class ContentList : Executor
 	public SetGeneratedField _setWriter;
 	
 	/// <summary>
+	/// Creates a filter instance.
+	/// </summary>
+	/// <returns></returns>
+	public FilterBase CreateFilter()
+	{
+		return _svc.GetGeneralFilterFor(_filterStr);
+	}
+
+	/// <summary>
 	/// Loads the content in to the given graph context now. Called via generated code.
 	/// </summary>
 	/// <param name="state"></param>
-	public void LoadContent<T, ID>(GraphContext state)
+	/// <param name="filter"></param>
+	public void LoadContent<T, ID>(GraphContext state, Filter<T, ID> filter)
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
@@ -178,8 +252,6 @@ public class ContentList : Executor
 
 		_setWriter(state, writer);
 
-		Filter<T, ID> filter = ((AutoService<T, ID>)_svc).Where(_filterStr);
-		
 		// Load as a ValueTask:
 		var contentVT = ((AutoService<T, ID>)_svc).ToJson(state.Context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
 			var service = ((AutoService<T, ID>)_svc);

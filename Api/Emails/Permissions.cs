@@ -38,6 +38,9 @@ namespace Api.Emails
 				Roles.Member.Revoke("emailTemplate_load", "emailTemplate_list");
 				*/
 
+				// Email template editing is dev only
+				Roles.Admin.Revoke("emailtemplate_update", "emailtemplate_create");
+
 				return new ValueTask<object>(source);
 			}, 20);
 		}

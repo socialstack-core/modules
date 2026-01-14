@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using Microsoft.Extensions.Configuration;
 using Api.Configuration;
+using Api.Permissions;
 
 namespace Api.PasswordAuth
 {
@@ -305,6 +306,7 @@ namespace Api.Users {
 		/// Seeded password hash
 		/// </summary>
 		[DatabaseField(Length = 80)]
+		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		[JsonIgnore]
 		public string PasswordHash;
 		

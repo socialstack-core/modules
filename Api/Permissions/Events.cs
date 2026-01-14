@@ -21,8 +21,32 @@ namespace Api.Eventing
 		/// <summary>
 		/// Events on the Role type.
 		/// </summary>
-		public static EventGroup<Role> Role;
+		public static RoleEventGroup Role;
+
+		/// <summary>
+		/// Set of events for a contentFieldAccessRule.
+		/// </summary>
+		public static EventGroup<ContentFieldAccessRule> ContentFieldAccessRule;
 		
+	}
+
+	/// <summary>
+	/// Custom events for Role.
+	/// </summary>
+	public partial class RoleEventGroup : EventGroup<Role>
+	{
+
+		/// <summary>
+		/// Event used to register role objects in to Roles.X fields. 
+		/// It runs specifically after an event is either created or loaded in the cache but before its grants are loaded.
+		/// Note that it is possible for a role to pass through here more than once but it would be the same object.
+		/// </summary>
+		public EventHandler<Role> Register;
+
+		/// <summary>
+		/// Called just before the role cache starts. This is the best place to install custom roles.
+		/// </summary>
+		public EventHandler<RoleService> CollectCustomRoles;
 	}
 
 }

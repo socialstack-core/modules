@@ -1,0 +1,18 @@
+.admin {
+    .modal-header {
+        color:#000;
+    }
+}
+
+
+[data-theme-variant="dark"].admin {
+	.modal-body {
+		label {
+			color:#000;
+		}
+	}
+
+    .module-tile {
+        color:#000;
+    }
+}

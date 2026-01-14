@@ -27,7 +27,7 @@ namespace Api.Configuration
 		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
         {
 			// Example admin page install:
-			InstallAdminPages("Configuration", "fa:fa-cogs", new string[] { "id", "name" });
+			InstallAdminPages("Configuration", "fa:fa-cogs", ["id", "name"]);
 
 			Cache();
 
@@ -314,6 +314,14 @@ namespace Api.Configuration
 
 					var name = typeInfo.Name;
 
+					var backtick = name.IndexOf('`');
+
+					if (backtick != -1)
+					{
+						// Chop off the generic count
+						name = name.Substring(0, backtick);
+					}
+
 					if (name.EndsWith("Config"))
 					{
 						// Trim it:
@@ -325,9 +333,29 @@ namespace Api.Configuration
 						name = name.Substring(0, name.Length - 13);
 					}
 
+					if (typeInfo.IsGenericType)
+					{
+						var genericArgs = typeInfo.GetGenericArguments();
+
+						// They aren't nested so we can assume these type .Names are fine as-is.
+						name += "<";
+						for (var g = 0; g < genericArgs.Length; g++)
+						{
+							if (g != 0)
+							{
+								name += ",";
+							}
+
+							name += genericArgs[g].Name;
+						}
+
+						name += ">";
+					}
+
 					var fields = new List<AutoFormField>();
 
 					cache[name.ToLower()] = new AutoFormInfo(){
+						ContentType = name,
 						Fields = fields
 					};
 
@@ -391,15 +419,22 @@ namespace Api.Configuration
 		/// <returns></returns>
 		public async ValueTask InstallConfig(Config cfg, string name, string key, ConfigSet set)
 		{
-			var cfgRow = new Configuration()
+			try
 			{
-				Name = name,
-				Key = key,
-				ConfigJson = JsonConvert.SerializeObject(cfg, Formatting.Indented)
-			};
-			await Create(new Context(), cfgRow, DataOptions.IgnorePermissions);
-			cfg.Id = cfgRow.Id;
-			await set.UpdateInSet(cfg);
+				var cfgRow = new Configuration()
+				{
+					Name = name,
+					Key = key,
+					ConfigJson = JsonConvert.SerializeObject(cfg, Formatting.Indented)
+				};
+				await Create(new Context(), cfgRow, DataOptions.IgnorePermissions);
+				cfg.Id = cfgRow.Id;
+				await set.UpdateInSet(cfg);
+			}
+			catch (Exception ex)
+			{
+				Log.Error(LogTag, ex);
+			}
 		}
 
 		/// <summary>
@@ -653,13 +688,13 @@ namespace Api.Configuration
 		{
 			var set = new List<Configuration>();
 
-			var cache = GetCacheForLocale(1);
+			var cache = GetCache();
 			if (cache == null)
 			{
 				return set;
 			}
 
-			var keyIndex = cache.GetIndex<string>("Key") as NonUniqueIndex<Configuration, string>;
+			var keyIndex = cache.GetIndex("Key") as NonUniqueIndex<Configuration, string>;
 			var loop = keyIndex.GetEnumeratorFor(key);
 
 			while (loop.HasMore())

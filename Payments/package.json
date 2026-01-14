@@ -1,8 +1,0 @@
-{
-    "dependencies":[
-    	"UI/Payments",
-		"UI/Functions/Payments",
-		"Admin/Payments",
-		"Api/Payments"
-    ]
-}

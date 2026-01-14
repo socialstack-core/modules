@@ -16,11 +16,6 @@ namespace Api.Eventing
 		/// </summary>
 		public static EventGroup<ClusteredServer> ClusteredServer;
 		
-		/// <summary>
-		/// Set of events for nr types.
-		/// </summary>
-		public static EventGroup<NetworkRoomType> NetworkRoomType;
-		
 	}
 
 }

@@ -1,0 +1,255 @@
+.shopping-cart {
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(20);
+
+	&__title {
+		font-size: px_to_rem(28);
+		line-height: px_to_rem(36);
+		font-weight: 700;
+		margin: 0 0 px_to_rem(20) 0;
+		text-wrap: balance;
+
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(16);
+    }
+
+	&__internal {
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(20);
+	}
+
+/*
+	&__promo {
+
+		> legend {
+			font-size: px_to_rem(16);
+			line-height: normal;
+			font-weight: 700;
+			margin: 0 0 px_to_rem(10) 0;
+			text-wrap: balance;
+		}
+
+		&-form {
+			display: flex;
+			flex-direction: column;
+			gap: px_to_rem(8);
+
+			.form-response {
+				margin-top: px_to_rem(8);
+
+				.spacer-container {
+					display: none;
+				}
+			}
+		}
+
+	}
+
+	&__coupon {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: px_to_rem(14);
+
+		> li {
+			font-size: px_to_rem(13);
+			font-weight: 600;
+			border-radius: px_to_rem(8);
+			background-color: var(--palette-light-green, var(--success));
+			color: var(--palette-green, var(--success-fg));
+			padding: px_to_rem(6) px_to_rem(14);
+			text-transform: uppercase;
+		}
+	}
+*/
+
+}
+
+@media only screen and (max-width: 799px) {
+
+	.shopping-cart {
+
+		.ui-product-signpost {
+
+			&__outer {
+				display: grid;
+				grid-template-columns: 1fr px_to_rem(196) px_to_rem(40);
+				grid-template-rows: auto auto;
+				grid-template-areas:
+					"inner inner inner"
+					". qty remove";
+			}
+
+			&__inner {
+				grid-area: inner;
+				/*
+				display: grid;
+				grid-template-columns: px_to_rem(256) 1fr;
+				grid-template-rows: auto auto;
+				grid-template-areas:
+					"inner inner inner"
+					". qty remove";
+					*/
+			}
+
+			.ui-product-qty {
+				grid-area: qty;
+			}
+
+			&__remove {
+				grid-area: remove;
+				margin: auto auto auto 0;
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (max-width: 540px) {
+
+	.shopping-cart {
+
+		.ui-product-signpost {
+
+			&__outer {
+				display: grid;
+				grid-template-columns: px_to_rem(196) 1fr;
+				grid-template-rows: repeat(2, auto);
+				grid-template-areas:
+					"inner inner"
+					"qty remove";
+				padding-right: px_to_rem(8);
+
+				.ui-product-signpost__image {
+					//height: 100%;
+					//width: calc(100% + (2 * #{px_to_rem(8)}));
+					height: px_to_rem(128);
+					width: px_to_rem(128);
+				}
+			}
+
+			&__inner {
+				align-items: flex-start;
+				grid-template-columns: auto;
+				grid-template-rows: repeat(5, auto);
+				grid-template-areas:
+					"image"
+					"category"
+					"name"
+					"price"
+					"stock";
+			}
+
+			&__name {
+				min-height: auto;
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (min-width: 800px) {
+
+	.shopping-cart {
+
+		.ui-product-signpost {
+
+			.ui-product-price {
+				align-items: center;
+			}
+		}
+
+/*
+		&__promo {
+
+			&-form {
+				// can't do this as UI/Form injects .form-response at the same level (::grumbling noises::)
+				//flex-direction: row;
+				display: grid;
+				grid-template-columns: 1fr px_to_rem(160);
+				grid-template-rows: auto auto;
+				grid-template-areas: 
+					"code apply"
+					"response response";
+				gap: 0 px_to_rem(8);
+
+				input[type="text"] {
+					grid-area: code;
+					font-family: var(--font-mono);
+
+					&::placeholder {
+						font-family: var(--font);
+					}
+				}
+
+				button[type="submit"],
+				button[type="reset"] {
+					grid-area: apply;
+				}
+
+				.form-response {
+					grid-area: response;
+				}
+			}
+		}
+*/
+
+	}
+
+}
+
+@media only screen and (min-width: 1024px) {
+
+	.shopping-cart {
+
+		&__internal {
+			display: grid;
+			grid-template-columns: 1fr 1fr;
+			grid-template-rows: auto;
+			grid-template-areas: "promo total";
+		}
+
+		&__promo {
+			grid-area: promo;
+		}
+
+		&__total {
+			grid-area: total;
+		}
+
+	}
+
+}
+
+@media only screen and (min-width: 1360px) {
+
+	.shopping-cart {
+
+		&__title {
+			font-size: px_to_rem(32);
+			line-height: normal;
+		}
+
+		/*
+		&__promo {
+
+			> legend {
+				font-size: px_to_rem(18);
+				line-height: normal;
+			}
+
+		}
+		*/
+
+	}
+
+}

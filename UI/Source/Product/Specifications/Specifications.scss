@@ -1,0 +1,22 @@
+.ui-product-specifications {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(12);
+	padding: px_to_rem(12);
+	background: var(--secondary);
+	color: var(--secondary-fg);
+	//border-radius: px_to_rem(8);
+
+	&__title {
+		font-size: px_to_rem(21);
+		font-weight: 400;
+		margin: 0;
+	}
+
+	&__description {
+		font-size: px_to_rem(15);
+		margin: 0;
+	}
+
+}

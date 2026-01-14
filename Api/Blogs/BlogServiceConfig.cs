@@ -8,19 +8,19 @@ namespace Api.Blogs
     public class BlogServiceConfig : Config
     {
         /// <summary>
-        /// Determines is slugs need to be unique.
+        /// Determines if slugs need to be unique.
         /// </summary>
-        public bool UniqueSlugs { get; set; }
+        public bool UniqueSlugs { get; set; } = true;
 
-        /// <summary>
-        /// Determines if slugs are generated on creation/updates if none are provided.
-        /// </summary>
-        public bool GenerateSlugs { get; set; }
+		/// <summary>
+		/// Determines if slugs are generated on creation/updates if none are provided.
+		/// </summary>
+		public bool GenerateSlugs { get; set; } = true;
 
         /// <summary>
         /// Determines if synopsis are generated on creation/updates if none are provided.
         /// </summary>
-        public bool GenerateSynopsis { get; set; }
+        public bool GenerateSynopsis { get; set; } = true;
 		
         /// <summary>
         /// True if the site has multiple blogs on it.

@@ -19,8 +19,15 @@ namespace Api.Payments
 		/// The token.
 		/// </summary>
         [DatabaseField(Length = 10)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		public string Token;
-		
+
+		/// <summary>
+		/// Textual description of this coupon, displayed to users when the coupon is active.
+		/// </summary>
+		public string Description;
+
 		/// <summary>
 		/// The number of people who can use this coupon before it expires.
 		/// 0 indicates there is no limit.
@@ -53,11 +60,9 @@ namespace Api.Payments
 		/// <summary>
 		/// A price indicating a specific discount.
 		/// </summary>
-		[Localized]
-		[Data("help", "Optional fixed amount discount. For example, £5 off if you spend £20 or more.")]
-		[Data("type", "select")]
-		[Data("contentType", "Price")]
-		public uint DiscountFixedAmount;
+		[Data("help", "Optional fixed amount discount. For example, Â£5 off if you spend Â£20 or more.")]
+		[Data("type", "price")]
+		public Localized<uint> DiscountFixedAmount;
 
 		/// <summary>
 		/// True if delivery becomes free, if delivery is applicable.
@@ -67,11 +72,9 @@ namespace Api.Payments
 		/// <summary>
 		/// A price indicating minimum spend required for the coupon to be usable on the purchase.
 		/// </summary>
-		[Localized]
 		[Data("help", "Optional minimum spend required for the coupon to be usable on the purchase.")]
-		[Data("type", "select")]
-		[Data("contentType", "Price")]
-		public uint MinimumSpendAmount;
+		[Data("type", "price")]
+		public Localized<uint> MinimumSpendAmount;
 		
 	}
 

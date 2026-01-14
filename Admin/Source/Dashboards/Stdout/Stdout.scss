@@ -1,0 +1,80 @@
+.dashboards-stdout{
+    background: #000;
+    max-height: calc(100vh - 120px);
+    font-family: var(--font-mono);
+    color: #fff;
+    padding: 40px;
+    overflow-y: scroll;
+    
+    
+	p {
+		color: white;
+	}
+	
+	.tag-ok {
+		background: green;
+		color: white;
+	}
+	
+	.tag-info {
+		background: darkblue;
+		color: white;
+	}
+	
+	.tag-warn {
+		background: orange;
+		color: black;
+	}
+	
+	.tag-error {
+		background: red;
+		color: white;
+	}
+	
+	.tag-fatal {
+		background: red;
+		color: white;
+	}
+	
+	.file-highlight {
+		background:#0d6efd;
+		color:#fff;
+		border-radius: 4px;
+		display: inline;
+		padding: 2px 4px;
+		margin-left:5px;
+		cursor:pointer;
+
+		&:hover {
+			background: #0c63e4;
+		}
+
+		i {
+			margin-right:5px;
+			margin-left:5px;
+		}
+	}
+	.log-entry {
+		border-bottom:1px solid #222;
+		margin-bottom:40px;
+	}
+}
+
+.stdout-controls {
+	
+	&.scrolled {
+		position:fixed;
+		top: 50px;
+	}
+	
+	.group {
+		width:fit-content;
+		display: inline-block;
+		vertical-align:top;
+		padding-left:10px;
+		padding-right:20px;
+		margin-right:10px;
+		border-right: 1px solid #cccccc;
+		height:232px;
+	}
+}

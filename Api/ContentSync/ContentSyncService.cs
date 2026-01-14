@@ -36,11 +36,6 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
-		/// Handshake opcode
-		/// </summary>
-		public OpCode<SyncServerHandshake> HandshakeOpCode { get; set; }
-
-		/// <summary>
 		/// True if sync should be in verbose mode.
 		/// </summary>
 		public bool Verbose = true;
@@ -49,42 +44,22 @@ namespace Api.ContentSync
 		private ContentSyncServiceConfig _configuration;
 		private ClusteredServerService _clusteredServerService;
 
-		/// <summary>
-		/// The port number for contentSync to use.
-		/// </summary>
-		public int Port {
-			get {
-				return _configuration.Port;
-			}
-		}
-
-		/// <summary>
-		/// Network room type service.
-		/// </summary>
-		private readonly NetworkRoomTypeService _nrts;
-
 		private readonly WebSocketService _websocketService;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ContentSyncService(ClusteredServerService clusteredServerService, NetworkRoomTypeService nrts, WebSocketService websocketService)
+		public ContentSyncService(ClusteredServerService clusteredServerService, WebSocketService websocketService)
 		{
 			// The content sync service is used to keep content created by multiple instances in sync.
 			// (which can be a cluster of servers, or a group of developers)
 			// It does this by setting up 'stripes' of IDs which are assigned to particular users.
 			// A user is identified by the computer hostname.
-			_nrts = nrts;
 			_websocketService = websocketService;
 			_clusteredServerService = clusteredServerService;
 
 			// Load config:
 			_configuration = GetConfig<ContentSyncServiceConfig>();
-
-			if (_configuration.SyncFileMode.HasValue)
-			{
-				SyncFileMode = _configuration.SyncFileMode.Value;
-			}
 
 			Verbose = _configuration.Verbose;
 
@@ -107,17 +82,12 @@ namespace Api.ContentSync
 		}
 
 		/// <summary>
-		/// True if the sync file is active.
-		/// </summary>
-		private bool SyncFileMode = false;
-
-		/// <summary>
 		/// The name of this ContentSync host
 		/// </summary>
 		public string HostName;
 
 		/// <summary>
-		/// Sets up the config required to connect to other servers.
+		/// Sets up the config required to communicate with other servers.
 		/// </summary>
 		/// <returns></returns>
 		public async Task Startup()
@@ -134,7 +104,6 @@ namespace Api.ContentSync
 				// Dev environment always uses the same data:
 				Self = new ClusteredServer()
 				{
-					Port = Port,
 					HostName = HostName,
 					Environment = env,
 					Id = 1
@@ -208,7 +177,6 @@ namespace Api.ContentSync
 			{
 				self = new ClusteredServer()
 				{
-					Port = Port,
 					HostName = HostName,
 					Environment = env,
 					RegionId = regionId,

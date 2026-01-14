@@ -1,0 +1,96 @@
+// Pagination
+
+// scss-docs-start pagination-mixin
+@mixin pagination-size($padding-y, $padding-x, $font-size, $border-radius) {
+	.page-link {
+		padding: $padding-y $padding-x;
+		@include font-size($font-size);
+	}
+
+	.page-item {
+		@if $pagination-margin-start == (-$pagination-border-width) {
+			&:first-child {
+				.page-link {
+					@include border-start-radius($border-radius);
+				}
+			}
+
+			&:last-child {
+				.page-link {
+					@include border-end-radius($border-radius);
+				}
+			}
+		}
+		@else {
+			//Add border-radius to all pageLinks in case they have left margin
+			.page-link {
+				@include border-radius($border-radius);
+			}
+		}
+	}
+}
+// scss-docs-end pagination-mixin
+
+.pagination {
+	display: flex;
+	@include list-unstyled();
+}
+
+.page-link {
+	position: relative;
+	display: block;
+	color: var(--primary);
+	text-decoration: none;
+	background-color: #fff;
+    border: 1px solid #dee2e6;
+	@include transition($pagination-transition);
+
+	&:hover {
+		z-index: 2;
+		color: var(--primary-hover-border);
+		background-color: #e9ecef;
+		border-color: #dee2e6
+	}
+
+	&:focus {
+		z-index: 3;
+		color: var(--primary-hover-border);
+		background-color: #e9ecef;
+		outline: 0;
+		box-shadow: 0 0 0 .25rem rgba(13, 110, 253, .25)
+	}
+}
+
+.page-item {
+	&:not(:first-child) .page-link {
+		margin-left: $pagination-margin-start;
+	}
+
+	&.active .page-link {
+		z-index: 3;
+		color: #fff;
+		background-color: var(--primary);
+		border-color: var(--primary)
+	}
+
+	&.disabled .page-link {
+		color: var(--secondary);
+		pointer-events: none;
+		background-color: #fff;
+		border-color: #dee2e6
+	}
+}
+
+
+//
+// Sizing
+//
+@include pagination-size($pagination-padding-y, $pagination-padding-x, null, $pagination-border-radius);
+
+.pagination-lg {
+	@include pagination-size($pagination-padding-y-lg, $pagination-padding-x-lg, $font-size-lg, $pagination-border-radius-lg);
+}
+
+.pagination-sm {
+	@include pagination-size($pagination-padding-y-sm, $pagination-padding-x-sm, $font-size-sm, $pagination-border-radius-sm);
+}

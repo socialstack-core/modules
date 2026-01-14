@@ -1,4 +1,6 @@
+using Api.Startup;
 using Api.Users;
+using System.Threading.Tasks;
 
 
 namespace Api.Contexts
@@ -82,7 +84,57 @@ namespace Api.Contexts
 				_role = null;
 			}
 		}
-		
+
+		private static UserService _users;
+
+		/// <summary>
+		/// Underlying real user ID.
+		/// </summary>
+		private uint _realUserId = 0;
+
+		/// <summary>
+		/// The current real user ID or zero.
+		/// </summary>
+		[ContextField(OmitFromToken = true)]
+		public uint RealUserId
+		{
+			get
+			{
+				return _realUserId;
+			}
+			set
+			{
+				_realUser = null;
+				_realUserId = value;
+			}
+		}
+
+		/// <summary>
+		/// The full real user object, if it has been requested.
+		/// </summary>
+		private User _realUser;
+
+		/// <summary>
+		/// Gets the real user for this context.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<User> GetRealUser()
+		{
+			if (_realUser != null)
+			{
+				return _realUser;
+			}
+
+			if (_users == null)
+			{
+				_users = Services.Get<UserService>();
+			}
+
+			// Get the user now:
+			_realUser = await _users.Get(this, RealUserId, DataOptions.IgnorePermissions);
+
+			return _realUser;
+		}
 	}
 	
 }

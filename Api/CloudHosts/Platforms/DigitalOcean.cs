@@ -126,8 +126,9 @@ namespace Api.CloudHosts
 		/// </summary>
 		/// <param name="upload"></param>
 		/// <param name="sizeName"></param>
+		/// <param name="isDownload"></param>
 		/// <returns></returns>
-		public override string GetSignedRef(Upload upload, string sizeName = "original")
+		public override string GetSignedRef(Upload upload, string sizeName = "original", bool isDownload = false)
         {
 			if (_uploadClient == null)
 			{
@@ -145,7 +146,17 @@ namespace Api.CloudHosts
 				Expires = expiration
 			};
 
-            return _uploadClient.GetPreSignedURL(request);
+			if (isDownload)
+			{
+				var escapedName = Uri.EscapeDataString(upload.OriginalName);
+
+				request.ResponseHeaderOverrides = new ResponseHeaderOverrides
+				{
+					ContentDisposition = "attachment; filename=\"" + escapedName + "\"; filename*=utf-8''" + escapedName
+				};
+			}
+
+			return _uploadClient.GetPreSignedURL(request);
 		}
 
 		/// <summary>

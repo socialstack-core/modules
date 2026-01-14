@@ -1,20 +1,17 @@
 ﻿using System;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.HttpOverrides;
 using Api.Configuration;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Linq;
 using Microsoft.AspNetCore.Http.Features;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using Api.SocketServerLibrary;
+using Api.Startup.Routing;
+using Api.Contexts;
+using Api.Eventing;
 
 namespace Api.Startup
 {
@@ -28,11 +25,6 @@ namespace Api.Startup
 		/// An event which fires when services are being configured.
 		/// </summary>
 		public static event Action<IServiceCollection> OnConfigureServices;
-
-		/// <summary>
-		/// An event which fires when services are being configured.
-		/// </summary>
-		public static event Action<MvcOptions> OnConfigureMvc;
 
 		/// <summary>
 		/// An event which fires when Configure occurs.
@@ -74,16 +66,6 @@ namespace Api.Startup
 		/// </summary>
 		public void ConfigureServices(IServiceCollection services)
         {
-#if NETCOREAPP2_2 || NETCOREAPP2_1
-			services.AddMvc();
-#else
-			mvcBuilder = services.AddControllers(options => {
-
-				OnConfigureMvc?.Invoke(options);
-
-			}).AddNewtonsoftJson();
-#endif
-
 			// Remove .NET size limitations:
 			services.Configure<FormOptions>(x =>
 			{
@@ -93,14 +75,13 @@ namespace Api.Startup
 
 			Services.RegisterInto(services);
 
-			services.AddCors(c =>  
-			{  
+			services.AddCors(c =>
+			{
 				c.AddDefaultPolicy(options => SetupCors(options));
 			});
 
 			// Run the first event (IEventListener implementors can use).
 			OnConfigureServices?.Invoke(services);
-			
 		}
 
 		private void SetupCors(CorsPolicyBuilder options)
@@ -158,17 +139,87 @@ namespace Api.Startup
 				ILoggerFactory loggerFactory, IServiceProvider serviceProvider)
 		{
 			OnConfigure?.Invoke(app, loggerFactory, serviceProvider);
-			
-            // Set the service provider:
-            Services.Provider = serviceProvider;
 
-#if !NETCOREAPP2_1 && !NETCOREAPP2_2
+			// Set the service provider:
+			Services.Provider = serviceProvider;
 
 			// Fire off an event so services can also extend app if they want (IEventListener implementors can use).
 			OnConfigureApplication?.Invoke(app);
 
-			app.UseRouting();
-#endif
+			Events.Service.AfterStart.AddEventListener(async (Context c, object svc) => {
+
+				// All services are ready. Collect custom routes.
+				await RouterBuilder.Start();
+				Log.Info("router", "Web router started");
+
+				return svc;
+			}, 50);
+
+			// Instance all services:
+			Services.InstanceAll(serviceProvider);
+
+			var htmlService = Services.Get<Pages.HtmlService>();
+
+			app.Use(async (HttpContext httpContext, RequestDelegate next) =>
+			{
+				var router = Router.CurrentRouter;
+
+				if (router == null)
+				{
+					httpContext.Response.StatusCode = 503;
+					httpContext.Response.Headers.Append("Pragma", "no-cache");
+					httpContext.Response.Headers.Append("Cache-Control", "no-cache");
+					httpContext.Response.Headers.Append("Retry-After", "5");
+
+					var writer = Writer.GetPooled();
+					writer.Start(null);
+					writer.WriteASCII("This site is currently starting after some maintenance. Please check back in a moment.");
+					await writer.CopyToAsync(httpContext.Response.Body);
+					writer.Release();
+					return;
+				}
+
+				try
+				{
+					var context = await httpContext.Request.GetBasicContext();
+					var handled = await router.HandleRequest(httpContext, context);
+
+					if (!handled)
+					{
+						// This mainly occurs when primary content was not found.
+						// I.e. the page existed and thus so did the route, but the
+						// route could not handle the request without the content.
+						await router.Run404(httpContext, context);
+					}
+				}
+				catch (PublicException publicError)
+				{
+					httpContext.Response.ContentType = "application/json";
+
+					Log.Info("", publicError.Message);
+					httpContext.Response.StatusCode = publicError.StatusCode;
+					var writer = Writer.GetPooled();
+					writer.Start(null);
+					writer.WriteASCII("{\"message\":");
+					writer.WriteEscaped(publicError.Response.Message);
+					writer.WriteASCII(",\"code\":");
+					writer.WriteEscaped(publicError.Response.Code);
+					writer.WriteASCII("}");
+					await writer.CopyToAsync(httpContext.Response.Body);
+					writer.Release();
+
+				}
+				catch(Exception e)
+				{
+					if (e != null)
+					{
+						Log.Error("", e);
+					}
+
+					httpContext.Response.StatusCode = 500;
+					await httpContext.Response.WriteAsync("{\"message\": \"An internal error has occurred - please try again later.\", \"code\": \"server/error\"}");
+				}
+			});
 
 			app.UseCors(options => SetupCors(options));
 
@@ -176,50 +227,6 @@ namespace Api.Startup
             {
                 ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
             });
-		
-			app.UseExceptionHandler(errorApp =>
-			{
-				errorApp.Run(async context =>
-				{
-					context.Response.ContentType = "application/json";
-					var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-					var e = exceptionHandlerPathFeature?.Error;
-					var publicError = (e as PublicException);
-					
-					if(publicError != null)
-					{
-						Log.Info("", publicError.Message);
-						context.Response.StatusCode = publicError.StatusCode;
-						await context.Response.WriteAsync(publicError.ToJson());
-					}
-					else
-					{
-						if(e != null){
-							Log.Error("", e);
-						}
-						context.Response.StatusCode = 500;
-						await context.Response.WriteAsync("{\"message\": \"An internal error has occurred - please try again later.\", \"code\": \"server_error\"}");
-					}
-				});
-			});
-		
-#if NETCOREAPP2_1 || NETCOREAPP2_2
-			
-			// Fire off an event so services can also extend app if they want (IEventListener implementors can use).
-			OnConfigureApplication?.Invoke(app);
-
-            app.UseMvc();
-#else
-			app.UseEndpoints(endpoints =>
-			{
-				// Mapping of endpoints goes here:
-				endpoints.MapControllers();
-			});
-#endif
-
-			// Instance all services:
-			Services.InstanceAll(serviceProvider);
-
 		}
 		
 	}

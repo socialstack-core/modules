@@ -7,6 +7,7 @@ using Api.Contexts;
 
 namespace Api.Users;
 
+#warning obsoleted by field rules
 /// <summary>
 /// A virtual field value generator for a field called "emailAddress" which returns the email address IF the user is "myself".
 /// Only usable on User objects.
@@ -17,14 +18,15 @@ public partial class EmailAddressValueGenerator<T, ID> : VirtualFieldValueGenera
     where T : Content<ID>, new()
     where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
-    /// <summary>
-    /// Generate the value.
-    /// </summary>
-    /// <param name="context"></param>
-    /// <param name="forObject"></param>
-    /// <param name="writer"></param>
-    /// <returns></returns>
-    public override async ValueTask GetValue(Context context, T forObject, Writer writer)
+	/// <summary>
+	/// Generate the value.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="forObject"></param>
+	/// <param name="writer"></param>
+	/// <param name="flags"></param>
+	/// <returns></returns>
+	public override ValueTask GetValue(Context context, T forObject, Writer writer, ContextFlags flags)
     {
         User user = forObject as User;
 
@@ -32,7 +34,7 @@ public partial class EmailAddressValueGenerator<T, ID> : VirtualFieldValueGenera
         {
             // This include only works on user objects.
             writer.WriteASCII("null");
-            return;
+            return new ValueTask();
         }
 
         // Is it "myself"?
@@ -45,17 +47,16 @@ public partial class EmailAddressValueGenerator<T, ID> : VirtualFieldValueGenera
         {
             // Nope go away!
             writer.WriteASCII("null");
-        }
-    }
+		}
+
+		return new ValueTask();
+	}
 
     /// <summary>
-    /// The type, if any, associated with the value being outputted.
+    /// The type, if any, associated with the value being outputted. Must not vary.
     /// For example, if GetValue outputs only strings, this is typeof(string).
     /// </summary>
     /// <returns></returns>
-    public override Type GetOutputType()
-    {
-        return typeof(string);
-    }
+    public override Type OutputType => typeof(string);
 
 }

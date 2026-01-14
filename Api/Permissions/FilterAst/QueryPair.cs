@@ -2,9 +2,13 @@ using Api.Contexts;
 using Api.Database;
 using Api.SocketServerLibrary;
 using Api.Startup;
-using MySql.Data.MySqlClient;
+using Newtonsoft.Json.Linq;
+using Stripe;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.Permissions
@@ -67,27 +71,15 @@ namespace Api.Permissions
 		public AutoService<T, ID> Service;
 		private bool _allowConstants;
 		/// <summary>
-		/// The constructed filter type to use.
+		/// The constructed match delegate to use.
 		/// </summary>
-		private Type _constructedType;
+		public Func<FilterBase, Context, object, ContextFlags, bool> MatchDelegate;
 		
 		/// <summary>
 		/// The AST for this filter.
 		/// </summary>
 		public FilterAst<T, ID> Ast;
 
-		/// <summary>
-		/// Used when the filter has virtual field lists e.g. Tags=[?].
-		/// The execution plan will first collect all the IDs of content that has the given tag(s) into one of these collectors.
-		/// As this is just the metadata, this stores information about how to rent the collectors, rather than the collectors themselves.
-		/// </summary>
-		public ReverseMappingInfo[] CollectorMeta;
-
-		/// <summary>
-		/// True if the filter has a rooted On(..) statement. It can only be a child of an AND statement.
-		/// </summary>
-		public bool HasRootedOn;
-		
 		/// <summary>
 		/// Creates filter metadata for the given query pair.
 		/// </summary>
@@ -108,85 +100,6 @@ namespace Api.Permissions
 		public List<ArgBinding> ArgTypes;
 
 		/// <summary>
-		/// Underlying mapping bindings (if any).
-		/// </summary>
-		public List<MappingBinding<T, ID>> MappingBindings;
-
-		/// <summary>
-		/// True if the mapping bindings have been setup.
-		/// </summary>
-		public bool MappingBindingsLoaded;
-
-		/// <summary>
-		/// Underlying loop setting up each one
-		/// </summary>
-		/// <returns></returns>
-		private async ValueTask SetupMappingBindingsRawTask()
-		{
-			for (var i = 0; i < MappingBindings.Count; i++)
-			{
-				await MappingBindings[i].Setup();
-			}
-		}
-
-		/// <summary>
-		/// Ensures the mapping bindings are setup and ready to go. Essentially makes sure the actual mapping services are loaded and their cache is warm.
-		/// </summary>
-		/// <returns></returns>
-		public async ValueTask SetupMappingBindings()
-		{
-			if (MappingBindings != null)
-			{
-				// Set them up now:
-				await SetupMappingBindingsRawTask();
-			}
-
-			// Mark as loaded:
-			MappingBindingsLoaded = true;
-		}
-
-		/// <summary>
-		/// Sets up collectors and their mappings.
-		/// </summary>
-		public async ValueTask SetupCollectors(AutoService serviceForFiltersType)
-		{
-			if (Ast == null || Ast.Collectors == null)
-			{
-				CollectorMeta = Array.Empty<ReverseMappingInfo>();
-				return;
-			}
-
-			var set = new ReverseMappingInfo[Ast.Collectors.Count];
-			var collectorFields = new ContentField[Ast.Collectors.Count];
-
-			for (var i = 0; i < Ast.Collectors.Count; i++)
-			{
-				var mappingService = await Ast.Collectors[i].GetMappingService(serviceForFiltersType.GetContentFields());
-
-				// Get the *source* field (as we're running backwards)
-				var mappingContentFields = mappingService.GetContentFields();
-
-				if (!mappingContentFields.TryGetValue("sourceid", out ContentField sourceField))
-				{
-					throw new Exception("Couldn't find source field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
-				}
-
-				collectorFields[i] = sourceField;
-				
-				set[i] = new ReverseMappingInfo()
-				{
-					Service = mappingService,
-					SourceField = sourceField
-				};
-			}
-
-			// Ensure the actual types are constructed and ready to go:
-			TypeIOEngine.GenerateIDCollectors(collectorFields);
-
-			CollectorMeta = set;
-		}
-		
-		/// <summary>
 		/// Parses the queries and constructs the filters now.
 		/// </summary>
 		public void Construct()
@@ -197,25 +110,14 @@ namespace Api.Permissions
 			if (tree == null)
 			{
 				// No actual filter. It's effectively just a base "list everything".
+				MatchDelegate = (FilterBase b, Context ctx, object val, ContextFlags flags) => true;
 				return;
 			}
 
-			MappingBindings = tree.Mappings;
-
 			// Build the type:
-			_constructedType = tree.ConstructType();
-
-			if (tree.Root != null)
-			{
-				HasRootedOn = tree.Root.HasRootedOnStatement();
-			}
-			
+			tree.Construct();
 			ArgTypes = tree.Args;
-
-			for (var i = 0; i < ArgTypes.Count; i++)
-			{
-				ArgTypes[i].ConstructedField = _constructedType.GetField("Arg_" + i);
-			}
+			MatchDelegate = tree.MatchDelegate;
 		}
 
 		/// <summary>
@@ -224,21 +126,24 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Filter<T,ID> GetPooled()
 		{
-			Filter<T, ID> f;
+			Filter<T, ID> f = new Filter<T, ID>();
 
-			if (_constructedType == null)
+			if (Ast == null)
 			{
-				// Just a base Filter<T, ID> - it has no args etc.
-				f = new Filter<T, ID>();
 				f.Empty = true;
 			}
-			else
+			else if(ArgTypes != null && ArgTypes.Count > 0)
 			{
-				f = Activator.CreateInstance(_constructedType) as Filter<T, ID>;
-				f.Empty = false;
+				// Instance the arg set now:
+				f.Arguments = new FilterArg[ArgTypes.Count];
+
+				for (var i = 0; i < ArgTypes.Count; i++)
+				{
+					f.Arguments[i] = (FilterArg)Activator.CreateInstance(ArgTypes[i].FilterArgGenericType);
+				}
 			}
 
-			f.IsIncluded = HasRootedOn;
+			f.ContextFlags = ContextFlags.None;
 			f.Pool = this;
 			return f;
 		}
@@ -274,31 +179,6 @@ namespace Api.Permissions
 		public bool SortAscending = true;
 
 		/// <summary>
-		/// First IDcollector for filter A. Both chains are stored on filterA as it's user specific.
-		/// </summary>
-		public IDCollector FirstCollector;
-
-		/// <summary>
-		/// True if this filter requires Setup() to be called.
-		/// </summary>
-		/// <returns></returns>
-		public virtual bool RequiresSetup
-		{
-			get
-			{
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Call this to perform any async setup. Must ensure this has been done before attempting Match.
-		/// </summary>
-		public virtual ValueTask Setup()
-		{
-			return new ValueTask();
-		}
-
-		/// <summary>
 		/// Errors when a null is given for a non-nullable field.
 		/// </summary>
 		public void NullCheck(string s)
@@ -315,24 +195,6 @@ namespace Api.Permissions
 		public virtual void Release()
 		{
 			
-		}
-
-		/// <summary>
-		/// Binds the current arg using the given textual representation.
-		/// </summary>
-		/// <param name="str"></param>
-		public virtual FilterBase BindUnknown(string str)
-		{
-			return this;
-		}
-
-		/// <summary>
-		/// Binds the current arg using the given textual representation.
-		/// </summary>
-		/// <param name="enumerable"></param>
-		public virtual FilterBase BindUnknown(object enumerable)
-		{
-			return this;
 		}
 
 		/// <summary>
@@ -361,7 +223,7 @@ namespace Api.Permissions
 
 				if (SortField.Localised && localeCode != null)
 				{
-					builder.Write((byte)'_');
+					builder.WriteASCII("`.`");
 					builder.WriteS(localeCode);
 				}
 
@@ -424,12 +286,11 @@ namespace Api.Permissions
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="value"></param>
-		/// <param name="isIncluded">True if the match is taking place within an inclusion context.</param>
+		/// <param name="flags">Indicates which context the match is taking place in, such as if it is within an inclusion context.</param>
 		/// <returns></returns>
-		public virtual bool Match(Context context, object value, bool isIncluded)
+		public virtual bool Match(Context context, object value, ContextFlags flags)
 		{
-			// No filter - pass by default.
-			return true;
+			throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -444,6 +305,83 @@ namespace Api.Permissions
 	}
 
 	/// <summary>
+	/// The base class for args for a filter. You will always have the generic instance actually.
+	/// </summary>
+	public class FilterArg
+	{
+
+		/// <summary>
+		/// The value type of the arg.
+		/// </summary>
+		public virtual Type ArgType => null;
+
+		/// <summary>
+		/// The boxed value of this arg.
+		/// </summary>
+		public virtual object BoxedValue => null;
+
+		/// <summary>
+		/// Clears the value of the arg to whatever its default value is.
+		/// </summary>
+		public virtual void SetDefault()
+		{
+			throw new NotImplementedException();
+		}
+
+		/// <summary>
+		/// Set the value of the arg to the given boxed value. You must identify that 
+		/// the value is settable before doing this.
+		/// </summary>
+		public virtual void InternalSetBoxedValue(object v)
+		{
+			throw new NotImplementedException();
+		}
+
+	}
+
+	/// <summary>
+	/// A specific argument value holder. Instanced once per filter instance: typically pooled.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	public class FilterArg<T> : FilterArg
+	{
+
+		/// <summary>
+		/// The value type of the arg.
+		/// </summary>
+		public override Type ArgType => typeof(T);
+
+		/// <summary>
+		/// The value of this arg.
+		/// </summary>
+		public T Value;
+
+		/// <summary>
+		/// The boxed value of this arg.
+		/// </summary>
+		public override object BoxedValue => Value;
+
+
+		/// <summary>
+		/// Clears the value of the arg to whatever its default value is.
+		/// </summary>
+		public override void SetDefault()
+		{
+			Value = default;
+		}
+		
+		/// <summary>
+		/// Set the value of the arg to the given boxed value. You must identify that 
+		/// the value is settable before doing this.
+		/// </summary>
+		public override void InternalSetBoxedValue(object v)
+		{
+			Value = (T)v;
+		}
+
+	}
+
+	/// <summary>
 	/// Fast precompiled non-allocating filter engine.
 	/// </summary>
 	public partial class Filter<T,ID> : FilterBase
@@ -453,7 +391,7 @@ namespace Api.Permissions
 		/// <summary>
 		/// True if we're in an inclusion context.
 		/// </summary>
-		public bool IsIncluded;
+		public ContextFlags ContextFlags;
 		/// <summary>
 		/// The pool that the object came from.
 		/// </summary>
@@ -463,6 +401,456 @@ namespace Api.Permissions
 		/// Current arg offset.
 		/// </summary>
 		protected int _arg = 0;
+
+		/// <summary>
+		/// The filter arg set. The array of objects is preallocated once and then reused by the pool system.
+		/// </summary>
+		public FilterArg[] Arguments;
+
+		/// <summary>
+		/// Test if the given object passes this filter.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="value"></param>
+		/// <param name="flags"></param>
+		/// <returns></returns>
+		public override bool Match(Context context, object value, ContextFlags flags)
+		{
+			return Pool.MatchDelegate(this, context, value, flags);
+		}
+
+		/// <summary>
+		/// Bind an argument value to this filter.
+		/// </summary>
+		/// <typeparam name="VALUE_TYPE"></typeparam>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		/// <exception cref="PublicException"></exception>
+		public Filter<T, ID> Bind<VALUE_TYPE>(VALUE_TYPE value)
+		{
+			if (typeof(VALUE_TYPE) == typeof(object))
+			{
+				return BindObject(value);
+			}
+
+			if (typeof(VALUE_TYPE) == typeof(JToken))
+			{
+				return BindJToken((JToken)(object)value);
+			}
+
+			var max = Pool.ArgTypes == null ? 0 : Pool.ArgTypes.Count;
+
+			if (_arg >= max)
+			{
+				throw new PublicException("Too many args being provided. This filter has " + max, "filter_invalid");
+			}
+
+			var arg = Arguments[_arg];
+			var argType = arg.ArgType;
+
+			if (
+				argType == typeof(VALUE_TYPE)
+			)
+			{
+				var specificArg = (FilterArg<VALUE_TYPE>)arg;
+				specificArg.Value = value;
+				_arg++;
+				return this;
+			}
+			else if (argType.IsAssignableFrom(typeof(VALUE_TYPE)) ||
+				Nullable.GetUnderlyingType(argType) == typeof(VALUE_TYPE) ||
+				Nullable.GetUnderlyingType(typeof(VALUE_TYPE)) == argType)
+			{
+				// It's typically a reference type in this scenario
+				// anyway (e.g. List being set on an IEnumerable field).
+				arg.InternalSetBoxedValue(value);
+				_arg++;
+				return this;
+			}
+
+			// Attempt a coersion bind:
+			if (TryCoerseBind(value, typeof(VALUE_TYPE), arg))
+			{
+				_arg++;
+				return this;
+			}
+
+			// For now though:
+			Fail(typeof(VALUE_TYPE));
+
+			return this;
+		}
+
+		private bool TryCoerseBind(object value, Type valueType, FilterArg target)
+		{
+			if (value == null)
+			{
+				target.SetDefault();
+				return true;
+			}
+
+			// The only array coersion that happens is any sort of ulong iterator involving ones.
+			if (typeof(IEnumerable<ulong>).IsAssignableFrom(valueType) && target.ArgType == typeof(IEnumerable<uint>))
+			{
+				target.InternalSetBoxedValue(
+					((IEnumerable<ulong>)value).Select(n => (uint)n)
+				);
+				return true;
+			}
+
+			if (target.ArgType == typeof(IEnumerable<ulong>))
+			{
+				if (typeof(IEnumerable<int>).IsAssignableFrom(valueType))
+				{
+					target.InternalSetBoxedValue(
+						((IEnumerable<int>)value).Select(n => (ulong)n)
+					);
+					return true;
+				}
+
+				if (typeof(IEnumerable<uint>).IsAssignableFrom(valueType))
+				{
+					target.InternalSetBoxedValue(
+						((IEnumerable<uint>)value).Select(n => (ulong)n)
+					);
+					return true;
+				}
+
+				if (typeof(IEnumerable<short>).IsAssignableFrom(valueType))
+				{
+					target.InternalSetBoxedValue(
+						((IEnumerable<short>)value).Select(n => (ulong)n)
+					);
+					return true;
+				}
+
+				if (typeof(IEnumerable<ushort>).IsAssignableFrom(valueType))
+				{
+					target.InternalSetBoxedValue(
+						((IEnumerable<ushort>)value).Select(n => (ulong)n)
+					);
+					return true;
+				}
+
+				if (typeof(IEnumerable<long>).IsAssignableFrom(valueType))
+				{
+					target.InternalSetBoxedValue(
+						((IEnumerable<long>)value).Select(n => (ulong)n)
+					);
+					return true;
+				}
+			}
+
+			// We know the src is not null so if it is a nullable type we can 
+			// first pop it out of that nullable wrapper.
+			var baseSrcNull = Nullable.GetUnderlyingType(valueType);
+
+			if (baseSrcNull != null)
+			{
+				valueType = baseSrcNull;
+				value = Convert.ChangeType(value, baseSrcNull);
+			}
+
+			var baseTargetNull = Nullable.GetUnderlyingType(target.ArgType);
+			var argType = baseTargetNull == null ? target.ArgType : baseTargetNull;
+
+			try
+			{
+				var converted = Convert.ChangeType(value, argType);
+
+				if (converted == null)
+				{
+					return false;
+				}
+
+				target.InternalSetBoxedValue(converted);
+
+				return true;
+			}
+			catch (Exception)
+			{
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Binding from a raw textual value.
+		/// </summary>
+		/// <param name="token"></param>
+		/// <returns></returns>
+		public Filter<T, ID> BindJToken(JToken token)
+		{
+			if (token == null)
+			{
+				return BindObject(null);
+			}
+
+			var array = token as JArray;
+
+			if (array != null)
+			{
+				var argInfo = Pool.ArgTypes[_arg];
+
+				// Is it an array arg?
+				var arrOf = argInfo.ArrayOf;
+
+				if (arrOf == null)
+				{
+					throw new PublicException(
+						"You provided an array to a non-array argument. To specify an array argument in a filter, use [?]", 
+						"filter_invalid"
+					);
+				}
+
+				if (argInfo.ArrayOf == typeof(string))
+				{
+					Bind(ToStringIterator(array));
+				}
+				else if (argInfo.ArrayOf == typeof(uint))
+				{
+					Bind(ToLongIterator(array).Select(lon => (uint)lon));
+				}
+				else if (argInfo.ArrayOf == typeof(uint?))
+				{
+					Bind(ToLongIterator(array).Select(lon => (uint?)lon));
+				}
+				else if (argInfo.ArrayOf == typeof(long))
+				{
+					Bind(ToLongIterator(array));
+				}
+				else if (argInfo.ArrayOf == typeof(long?))
+				{
+					Bind(ToLongIterator(array).Select(lon => (long?)lon));
+				}
+				else if (argInfo.ArrayOf == typeof(ushort))
+				{
+					Bind(ToLongIterator(array).Select(lon => (ushort)lon));
+				}
+				else if (argInfo.ArrayOf == typeof(ushort?))
+				{
+					Bind(ToLongIterator(array).Select(lon => (ushort?)lon));
+				}
+				else
+				{
+					Fail(typeof(JArray));
+				}
+			}
+			else
+			{
+				JValue value = token as JValue;
+
+				if (value == null)
+				{
+					throw new PublicException(
+						"Arg #" + (_arg + 1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
+						"filter_invalid"
+					);
+				}
+
+				// The underlying JSON token is textual, so we'll use a general use bind from string method.
+				if (value.Type == JTokenType.Date)
+				{
+					var date = value.Value as DateTime?;
+
+					// The target value could be a nullable date, in which case we'd need to use Bind(DateTime?)
+					if (NextBindType == typeof(DateTime?))
+					{
+						Bind(date);
+					}
+					else
+					{
+						Bind(date.Value);
+					}
+				}
+				else if (value.Type == JTokenType.Boolean)
+				{
+					var boolVal = value.Value as bool?;
+
+					// The target value could be a nullable bool, in which case we'd need to use Bind(bool?)
+					if (NextBindType == typeof(bool?))
+					{
+						Bind(boolVal);
+					}
+					else
+					{
+						Bind(boolVal.Value);
+					}
+				}
+				else if (value.Type == JTokenType.Null)
+				{
+					BindObject(null);
+				}
+				else if (value.Type == JTokenType.String)
+				{
+					var str = value.Value<string>();
+
+					if (str == null)
+					{
+						BindObject(null);
+					}
+					else
+					{
+						var argType = NextBindType;
+
+						if (argType == typeof(DateTime) || argType == typeof(DateTime?))
+						{
+							// Special case for dateTime:
+							if (!FilterAst.TryParseDate(str, out DateTime date))
+							{
+								throw new PublicException("Invalid date format provided '" + str + "'", "date/invalid");
+							}
+
+							Bind(date);
+						}
+						else
+						{
+							// Other general internal coersion occurs.
+							Bind(str);
+						}
+					}
+				}
+				else if (value.Type == JTokenType.Integer)
+				{
+					// Internal coersion occurs
+					Bind(value.Value<long>());
+				}
+				else if (value.Type == JTokenType.Float)
+				{
+					// Internal coersion occurs
+					Bind(value.Value<double>());
+				}
+			}
+
+			return this;
+		}
+
+		/// <summary>
+		/// Treats a JArray like a long iterator.
+		/// </summary>
+		/// <param name="jArray"></param>
+		/// <returns></returns>
+		private IEnumerable<long> ToLongIterator(JArray jArray)
+		{
+			return jArray.Select(token => {
+
+				if (token == null)
+				{
+					return 0;
+				}
+
+				switch (token.Type)
+				{
+					case JTokenType.Null:
+						return 0;
+					case JTokenType.String:
+						if (long.TryParse(token.Value<string>(), out long ui))
+						{
+							return ui;
+						}
+
+						return 0;
+					case JTokenType.Boolean:
+						return token.Value<bool>() ? (long)1 : 0;
+					case JTokenType.Float:
+						return (long)token.Value<double>();
+					case JTokenType.Integer:
+						return token.Value<long>();
+					default:
+						return 0;
+				}
+			});
+		}
+
+		/// <summary>
+		/// Treats a JArray like a string iterator.
+		/// </summary>
+		/// <param name="jArray"></param>
+		/// <returns></returns>
+		private IEnumerable<string> ToStringIterator(JArray jArray)
+		{
+			return jArray.Select(token => {
+
+				if (token == null)
+				{
+					return (string)null;
+				}
+
+				switch (token.Type)
+				{
+					case JTokenType.Null:
+						return (string)null;
+					case JTokenType.String:
+						return token.Value<string>();
+					case JTokenType.Boolean:
+						return token.Value<bool>() ? "true" : "false";
+					case JTokenType.Float:
+						return token.Value<double>().ToString();
+					case JTokenType.Integer:
+						return token.Value<long>().ToString();
+					default:
+						return (string)null;
+				}
+			});
+		}
+
+		/// <summary>
+		/// If you don't know the type you're binding, use this. 
+		/// You can safely use the generic Bind and it will also just fall through here first.
+		/// </summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		/// <exception cref="PublicException"></exception>
+		public Filter<T, ID> BindObject(object value)
+		{
+			var jToken = value as JToken;
+			if (jToken != null)
+			{
+				return BindJToken(jToken);
+			}
+			
+			var max = Pool.ArgTypes == null ? 0 : Pool.ArgTypes.Count;
+
+			if (_arg >= max)
+			{
+				throw new PublicException("Too many args being provided. This filter has " + max, "filter_invalid");
+			}
+
+			var arg = Arguments[_arg];
+			var argType = arg.ArgType;
+
+			if (value == null)
+			{
+				arg.SetDefault();
+				_arg++;
+				return this;
+			}
+
+			var valType = value.GetType();
+
+			if (
+				argType == valType || 
+				argType.IsAssignableFrom(valType) ||
+				Nullable.GetUnderlyingType(argType) == valType ||
+				Nullable.GetUnderlyingType(valType) == argType
+			)
+			{
+				arg.InternalSetBoxedValue(value);
+				_arg++;
+				return this;
+			}
+
+			// Attempt a coersion bind:
+			if (TryCoerseBind(value, valType, arg))
+			{
+				_arg++;
+				return this;
+			}
+
+			// For now though:
+			Fail(valType);
+
+			return this;
+		}
 
 		/// <summary>
 		/// The type of the next arg to bind. Null if there are no more args.
@@ -475,37 +863,6 @@ namespace Api.Permissions
 				}
 				return Pool.ArgTypes[_arg].ArgType;
 			}
-		}
-
-		/// <summary>
-		/// True if this filter requires Setup() to be called.
-		/// </summary>
-		/// <returns></returns>
-		public override bool RequiresSetup
-		{
-			get
-			{
-				return Pool != null && !Pool.MappingBindingsLoaded;
-			}
-		}
-
-		/// <summary>
-		/// Call this to perform any async setup. Must ensure this has been done before attempting Match.
-		/// </summary>
-		public override async ValueTask Setup()
-		{
-			await Pool.SetupMappingBindings();
-		}
-	
-		/// <summary>
-		/// Gets the map at the given index. Is always a mappingservice, 
-		/// and is setup before this ever gets invoked provided GetResults is used with the filter.
-		/// </summary>
-		/// <param name="index"></param>
-		/// <returns></returns>
-		public AutoService GetMap(int index)
-		{
-			return Pool.MappingBindings[index].Map;
 		}
 
 		/// <summary>
@@ -522,65 +879,6 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Collects using the given service and the given collectorId. The ID determines which field is read.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="mappingService"></param>
-		/// <param name="collectorId"></param>
-		/// <param name="collector"></param>
-		public virtual ValueTask Collect(Context context, AutoService mappingService, int collectorId, IDCollector collector)
-		{
-			return new ValueTask();
-		}
-
-		/// <summary>
-		/// Rents the set of ID collectors needed for handling various types of map.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="src"></param>
-		/// <returns></returns>
-		public async ValueTask<IDCollector> RentAndCollect(Context context, AutoService src)
-		{
-			if (RequiresSetup)
-			{
-				await Setup();
-			}
-
-			if (Pool.CollectorMeta == null)
-			{
-				// Construct collector metadata now from the AST:
-				await Pool.SetupCollectors(src);
-			}
-
-			IDCollector first = null;
-			IDCollector last = null;
-
-			for (var i = 0; i < Pool.CollectorMeta.Length; i++)
-			{
-				var meta = Pool.CollectorMeta[i];
-
-				// Rent the collector:
-				var collector = meta.SourceField.RentCollector();
-
-				// Collect now - for each value in the set, find all sources that relate to it.
-				// Add that ID to the collector.
-				await Collect(context, meta.Service, i, collector);
-
-				if (last == null)
-				{
-					first = collector;
-				}
-				else
-				{
-					last.NextCollector = collector;
-				}
-				last = collector;
-			}
-
-			return first;
-		}
-
-		/// <summary>
 		/// Return back to pool.
 		/// </summary>
 		public override void Release()
@@ -592,27 +890,6 @@ namespace Api.Permissions
 		/// True if this filter will always be true.
 		/// </summary>
 		public bool Empty;
-
-		/// <summary>
-		/// True if the given iterator has the given value in it
-		/// </summary>
-		/// <typeparam name="IT"></typeparam>
-		/// <param name="value"></param>
-		/// <param name="vals"></param>
-		/// <returns></returns>
-		public static bool HasAny<IT>(IT value, IEnumerable<IT> vals)
-			where IT:IEquatable<IT>
-		{
-			foreach (var v in vals)
-			{
-				if (v.Equals(value))
-				{
-					return true;
-				}
-			}
-
-			return false;
-		}
 
 		/// <summary>
 		/// Gets the set of argument types for this filter. Can be null if there are none.
@@ -667,17 +944,6 @@ namespace Api.Permissions
 		}
 
 		/// <summary>
-		/// Called when no collectors were able to answer a collect request.
-		/// </summary>
-		/// <returns></returns>
-		public ValueTask CollectFail()
-		{
-			throw new Exception("Internal IDCollector alignment failure. " +
-				"This happens when there is a mismatch between the number of declared collectors, and the number that it attempts to actually use. " +
-				"This error indicates a core issue with filter resolution of virtual list fields.");
-		}
-
-		/// <summary>
 		/// Indicates a bind failure has happened.
 		/// </summary>
 		/// <param name="type"></param>
@@ -697,20 +963,41 @@ namespace Api.Permissions
 
 			var arg = Pool.ArgTypes[_arg];
 
-			var nullableBaseType = Nullable.GetUnderlyingType(arg.ArgType);
+			throw new PublicException(
+				"Argument #" + _arg + " must be a '" + NiceTypeName(arg.ArgType) + "', but you used Bind('" + NiceTypeName(type) + "') for it.",
+				"filter_invalid"
+			);
+		}
 
-			string typeName;
+		private string NiceTypeName(Type type)
+		{
 
-			if (nullableBaseType == null)
+			var nullableBaseType = Nullable.GetUnderlyingType(type);
+
+			if (nullableBaseType != null)
 			{
-				typeName = arg.ArgType.Name;
-			}
-			else
-			{
-				typeName = "nullable: " + nullableBaseType.Name + "?";
+				return NiceTypeName(nullableBaseType) + "?";
 			}
 
-			throw new PublicException("Argument #" + _arg + " must be a '" + typeName + "', but you used Bind('" + type.Name + "') for it.", "filter_invalid");
+			if (type.IsGenericType)
+			{
+				var args = type.GetGenericArguments();
+
+				var name = type.Name.Split('`')[0] + "<";
+
+				for (var i = 0; i < args.Length; i++)
+				{
+					if (i != 0)
+					{
+						name += ", ";
+					}
+					name += NiceTypeName(args[i]);
+				}
+
+				return name + ">";
+			}
+
+			return type.Name;
 		}
 
 		/// <summary>
@@ -794,69 +1081,6 @@ namespace Api.Permissions
 			}, results);
 			return results;
 		}
-		
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public Filter<T, ID> Bind(object v)
-		{
-			if (Pool.ArgTypes == null || _arg >= Pool.ArgTypes.Count)
-			{
-				Fail(v == null ? typeof(object) : v.GetType());
-				return this;
-			}
-
-			var argInfo = Pool.ArgTypes[_arg];
-
-			if (v == null)
-			{
-				// Is this field nullable?
-				if (!argInfo.IsNullable)
-				{
-					throw new PublicException("Can't use null as arg #" + (_arg+1) + " because it's not nullable", "filter_invalid");
-				}
-			}
-			else
-			{
-				var t = v.GetType();
-				if (!argInfo.ArgType.IsAssignableFrom(t))
-				{
-					Fail(t);
-				}
-			}
-
-			argInfo.ConstructedField.SetValue(this, v);
-			_arg++;
-			return this;
-		}
-
-		/// <summary>
-		/// Binds the current arg using the given textual representation.
-		/// </summary>
-		/// <param name="enumerable"></param>
-		public override FilterBase BindUnknown(object enumerable)
-		{
-			return Bind(enumerable);
-		}
-		
-		/// <summary>
-		/// Binds the current arg using the given textual representation.
-		/// </summary>
-		/// <param name="str"></param>
-		public override FilterBase BindUnknown(string str)
-		{
-			return BindFromString(str);
-		}
-
-		/// <summary>
-		/// Binds the current arg using the given textual representation.
-		/// </summary>
-		/// <param name="str"></param>
-		public virtual Filter<T, ID> BindFromString(string str)
-		{
-			Fail(typeof(string));
-			return this;
-		}
 
 		/// <summary>
 		/// A convenience variant of SetPage which returns a stronger typed filter.
@@ -867,251 +1091,6 @@ namespace Api.Permissions
 		public Filter<T, ID> Page(int offset, int size = 50)
 		{
 			SetPage(offset, size);
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(string v)
-		{
-			Fail(typeof(string));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(double v)
-		{
-			Fail(typeof(double));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(float v)
-		{
-			Fail(typeof(float));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(decimal v)
-		{
-			Fail(typeof(decimal));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(DateTime v)
-		{
-			Fail(typeof(DateTime));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(bool v)
-		{
-			Fail(typeof(bool));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(ulong v)
-		{
-			Fail(typeof(ulong));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(long v)
-		{
-			Fail(typeof(long));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(uint v)
-		{
-			Fail(typeof(uint));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(int v)
-		{
-			Fail(typeof(int));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(ushort v)
-		{
-			Fail(typeof(ushort));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(short v)
-		{
-			Fail(typeof(short));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(byte v)
-		{
-			Fail(typeof(byte));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(sbyte v)
-		{
-			Fail(typeof(sbyte));
-			return this;
-		}
-
-		// Nullables
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(double? v)
-		{
-			Fail(typeof(double?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(float? v)
-		{
-			Fail(typeof(float?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(decimal? v)
-		{
-			Fail(typeof(decimal?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(DateTime? v)
-		{
-			Fail(typeof(DateTime?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(bool? v)
-		{
-			Fail(typeof(bool?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(ulong? v)
-		{
-			Fail(typeof(ulong?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(long? v)
-		{
-			Fail(typeof(long?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(uint? v)
-		{
-			Fail(typeof(uint?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(int? v)
-		{
-			Fail(typeof(int?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(ushort? v)
-		{
-			Fail(typeof(ushort?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(short? v)
-		{
-			Fail(typeof(short?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(byte? v)
-		{
-			Fail(typeof(byte?));
-			return this;
-		}
-
-		/// <summary>
-		/// Binds given value to current argument.
-		/// </summary>
-		public virtual Filter<T, ID> Bind(sbyte? v)
-		{
-			Fail(typeof(sbyte?));
 			return this;
 		}
 

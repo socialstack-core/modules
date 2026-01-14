@@ -15,10 +15,14 @@ namespace Api.Payments
 	[ImplicitFor("ProductQuantities", typeof(ShoppingCart))]
 	[ImplicitFor("ProductQuantities", typeof(Subscription))]
 	[ImplicitFor("ProductQuantities", typeof(Purchase))]
-	[HasVirtualField("Subscription", typeof(Subscription), "SubscriptionId")]
-	[HasVirtualField("Purchase", typeof(Purchase), "PurchaseId")]
-	[HasVirtualField("ShoppingCart", typeof(ShoppingCart), "ShoppingCartId")]
+
+	// Used when an order is modified.
+	[ListAs("RequestedProductQuantities", IsPrimary = false)]
+	[ImplicitFor("RequestedProductQuantities", typeof(ShoppingCart))]
+	[ImplicitFor("RequestedProductQuantities", typeof(Purchase))]
+
 	[HasVirtualField("Product", typeof(Product), "ProductId")]
+
 	public partial class ProductQuantity : VersionedContent<uint>
 	{
 		/// <summary>
@@ -32,20 +36,19 @@ namespace Api.Payments
 		public ulong Quantity;
 
 		/// <summary>
-		/// Shopping cart ID, if in a cart.
+		/// The line item total (incl tax). Present only on Purchases.
 		/// </summary>
-		public uint ShoppingCartId;
+		public ulong OrderedTotal;
 
 		/// <summary>
-		/// Subscription ID, if in a subscription.
+		/// The line item total (excl tax). Present only on Purchases.
 		/// </summary>
-		public uint SubscriptionId;
+		public ulong OrderedTotalLessTax;
 
 		/// <summary>
-		/// Purchase ID, if has been purchased.
-		/// A purchase will always clone the rows from a subscription or cart to "lock in" the things bought.
+		/// The ordered currency code. Present only on Purchases.
 		/// </summary>
-		public uint PurchaseId;
+		public string OrderedCurrencyCode;
 	}
 
 }

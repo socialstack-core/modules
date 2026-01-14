@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Api.Startup;
 
-public partial class StdOutController : ControllerBase
+public partial class StdOutController : AutoController
 {
 
 	/// <summary>
@@ -13,10 +13,8 @@ public partial class StdOutController : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("certs/update")]
-	public async ValueTask<object> UpdateCerts()
+	public async ValueTask<PublicMessage> UpdateCerts(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin)
 		{
 			throw new PublicException("Admin only", "certs/admin_required");
@@ -25,10 +23,7 @@ public partial class StdOutController : ControllerBase
 		// Run cert check (intentionally fails on local dev systems):
 		await Services.Get<WebSecurityService>().CheckCertificate(context);
 
-		return new {
-			message = "certificates updated",
-			code = "certs/ok"
-		};
+		return new PublicMessage("certificates updated", "certs/ok");
 	}
 
 	/// <summary>
@@ -36,10 +31,8 @@ public partial class StdOutController : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("webserver/apply")]
-	public async ValueTask<object> UpdateWebserverConfig()
+	public async ValueTask<PublicMessage> UpdateWebserverConfig(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin)
 		{
 			throw new PublicException("Admin only", "webserver/admin_required");
@@ -48,11 +41,7 @@ public partial class StdOutController : ControllerBase
 		// Run regen:
 		await Services.Get<WebServerService>().Regenerate(context);
 
-		return new
-		{
-			message = "webserver config regenerated",
-			code = "webserver/ok"
-		};
+		return new PublicMessage("webserver config regenerated", "webserver/ok");
 	}
 
 }

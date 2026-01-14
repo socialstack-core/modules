@@ -1,13 +1,40 @@
 using Api.Contexts;
 using Api.Database;
 using Api.Permissions;
-using Api.SocketServerLibrary;
 using Api.Startup;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
+
+/// <summary>
+/// The base of all controllers. Don't use ASP.NET controllers as they will not run!
+/// This is because the serverside renderer and the websocket engine mount your 
+/// controller methods directly, and thus no actual request happens. This also is used to enforce  
+/// field visibility rules always as your controller methods can safely just return content objects.
+/// </summary>
+public class AutoController
+{
+
+	/// <summary>
+	/// Outputs a context update.
+	/// </summary>
+	/// <param name="httpContext"></param>
+	/// <param name="context"></param>
+	/// <returns></returns>
+	protected async ValueTask OutputContext(HttpContext httpContext, Context context)
+	{
+		var response = httpContext.Response;
+
+		// Regenerate the contextual token:
+		context.SendToken(response);
+
+		response.ContentType = "application/json";
+		await Services.Get<ContextService>().ToJson(context, response.Body);
+	}
+
+}
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -28,7 +55,7 @@ public partial class AutoController<T> : AutoController<T, uint>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="ID"></typeparam>
 [ApiController]
-public partial class AutoController<T,ID> : ControllerBase
+public partial class AutoController<T,ID> : AutoController
 	where T : Content<ID>, new()
 	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
@@ -38,13 +65,13 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// </summary>
 	protected AutoService<T, ID> _service;
 
-    /// <summary>
-    /// Instanced automatically.
-    /// </summary>
-    public AutoController()
-    {
-        // Find the service:
-        if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T, ID>), out AutoService svc))
+	/// <summary>
+	/// Instanced automatically.
+	/// </summary>
+	public AutoController()
+	{
+		// Find the service:
+		if (Api.Startup.Services.AutoServices.TryGetValue(typeof(AutoService<T, ID>), out AutoService svc))
 		{
 			_service = (AutoService<T, ID>)svc;
 		}
@@ -59,155 +86,64 @@ public partial class AutoController<T,ID> : ControllerBase
 	}
 
 	/// <summary>
-	/// Json header
-	/// </summary>
-	protected readonly static string _applicationJson = "application/json";
-
-	/// <summary>
-	/// Outputs the given content object set whilst considering the field visibility rules of the role in the context.
-	/// To avoid an IEnumerable allocation, also consider using the non-alloc mechanism inside this function directly on high traffic usage.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="content"></param>
-	/// <param name="includes"></param>
-	/// <param name="withTotal"></param>
-	/// <returns></returns>
-	protected async ValueTask OutputJson(Context context, IEnumerable<T> content, string includes, bool withTotal = false)
-	{
-		if (content == null)
-		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-			return;
-		}
-
-		Response.ContentType = _applicationJson;
-
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-		await _service.ToJson(context, content, async (Context context, IEnumerable<T> data, Func<T, int, ValueTask> onResult) => {
-			int i = 0;
-
-			foreach (var entry in data)
-			{
-				await onResult(entry, i++);
-			}
-
-			return i;
-		}, writer, Response.Body, includes, withTotal);
-		writer.Release();
-	}
-
-	/// <summary>
-	/// Outputs the given content object whilst considering the field visibility rules of the role in the context.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="content"></param>
-	/// <param name="includes"></param>
-	/// <returns></returns>
-	protected async ValueTask OutputJson(Context context, T content, string includes)
-	{
-		if (content == null)
-		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-			return;
-		}
-
-		Response.ContentType = _applicationJson;
-
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-		await _service.ToJson(context, content, writer, Response.Body, includes);
-		writer.Release();
-	}
-
-	/// <summary>
-	/// Outputs a context update.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <returns></returns>
-	protected async ValueTask OutputContext(Context context)
-	{
-		// Regenerate the contextual token:
-		context.SendToken(Response);
-
-		Response.ContentType = _applicationJson;
-		await Services.Get<ContextService>().ToJson(context, Response.Body);
-	}
-
-	/// <summary>
 	/// GET /v1/entityTypeName/2/
 	/// Returns the data for 1 entity.
 	/// </summary>
 	[HttpGet("{id}")]
-	public virtual async ValueTask Load([FromRoute] ID id, [FromQuery] string includes = null)
+	public virtual async ValueTask<T> Load(Context context, [FromRoute] ID id)
 	{
-		var context = await Request.GetContext();
-
-		id = await _service.EventGroup.EndpointStartLoad.Dispatch(context, id, Response);
-		
 		var result = await _service.Get(context, id);
-		result = await _service.EventGroup.EndpointEndLoad.Dispatch(context, result, Response);
-
-		await OutputJson(context, result, includes);
-    }
+		return result;
+	}
 
 	/// <summary>
 	/// DELETE /v1/entityTypeName/2/
 	/// Deletes an entity
 	/// </summary>
 	[HttpDelete("{id}")]
-    public virtual async ValueTask Delete([FromRoute] ID id, [FromQuery] string includes = null)
+	public virtual async ValueTask<T> Delete(Context context, [FromRoute] ID id)
 	{
-		var context = await Request.GetContext();
 		var result = await _service.Get(context, id);
-		result = await _service.EventGroup.EndpointStartDelete.Dispatch(context, result, Response);
-
-		if (result == null)
-		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-			return;
-		}
 
 		if (result == null || !await _service.Delete(context, result))
 		{
 			// The handlers have blocked this one from happening, or it failed
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-			return;
+			return null;
 		}
 
-		result = await _service.EventGroup.EndpointEndDelete.Dispatch(context, result, Response);
-		await OutputJson(context, result, includes);
+		return result;
 	}
 
 	/// <summary>
-	/// GET /v1/entityTypeName/recache
+	/// GET /v1/entityTypeName/cache/invalidate/{id}
+	/// Repopulates the referenced item for this service (if it is cached, and if you are an admin).
+	/// </summary>
+	/// <returns></returns>
+	[HttpGet("cache/invalidate/{id}")]
+	public virtual async ValueTask InvalidateCachedItem(Context context, [FromRoute] ID id)
+	{
+		if (context.Role == null || !context.Role.CanViewAdmin)
+		{
+			throw PermissionException.Create("cache/invalidate", context);
+		}
+
+		await _service.InvalidateCachedItem(id);
+	}
+	
+	/// <summary>
+	/// GET /v1/entityTypeName/cache/invalidate
 	/// Repopulates the cache for this service (if it is cached, and if you are an admin).
 	/// </summary>
 	/// <returns></returns>
-	[HttpGet("recache")]
-	public virtual async ValueTask Recache()
+	[HttpGet("cache/invalidate")]
+	public virtual async ValueTask InvalidateCache(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin)
 		{
-			throw PermissionException.Create("recache", context);
+			throw PermissionException.Create("cache/invalidate", context);
 		}
 
-
-		await _service.Recache();
+		await _service.InvalidateCache();
 	}
 
 	/// <summary>
@@ -216,9 +152,9 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpGet("list")]
-	public virtual async ValueTask List([FromQuery] string includes = null)
+	public virtual ValueTask<ContentStream<T, ID>?> ListAll(Context context)
 	{
-		await List(null, includes);
+		return List(context, null);
 	}
 
 	/// <summary>
@@ -228,51 +164,46 @@ public partial class AutoController<T,ID> : ControllerBase
 	/// </summary>
 	/// <returns></returns>
 	[HttpPost("list")]
-	public virtual async ValueTask List([FromBody] JObject filters, [FromQuery] string includes = null)
+	public virtual ValueTask<ContentStream<T, ID>?> List(Context context, [FromBody] ListFilter filters)
 	{
-		var context = await Request.GetContext();
-
 		var filter = _service.LoadFilter(filters) as Filter<T, ID>;
-		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
-
+		
 		if (filter == null)
 		{
 			// A handler rejected this request.
-			Response.StatusCode = 404;
-			return;
+			return new ValueTask<ContentStream<T, ID>?>((ContentStream<T, ID>?)null);
 		}
 
-		Response.ContentType = _applicationJson;
-		var writer = Writer.GetPooled();
-		writer.Start(null);
-		await _service.ToJson(context, filter, async (Context ctx, Filter<T, ID> filt, Func<T, int, ValueTask> onResult) => {
-
-			return await _service.GetResults(ctx, filt, async (Context ctx2, T result, int index, object src, object srcB) => {
-
-				var _onResult = src as Func<T, int, ValueTask>;
-				result = await _service.EventGroup.EndpointListEntry.Dispatch(ctx2, result, Response);
-				await _onResult(result, index);
-			}, onResult, null);
-
-		}, writer, Response.Body, includes, filter.IncludeTotal);
-		writer.Release();
-
-		filter = await _service.EventGroup.EndpointEndList.Dispatch(context, filter, Response);
-		filter.Release();
+		var streamer = _service.GetResults(filter);
+		return new ValueTask<ContentStream<T, ID>?>(streamer);
 	}
 
-    /// <summary>
-    /// POST /v1/entityTypeName/
-    /// Creates a new entity. Returns the ID. Includes everything by default.
-    /// </summary>
-    [HttpPost]
-	public virtual async ValueTask Create([FromBody] JObject body, [FromQuery] string includes = null)
+	/// <summary>
+	/// POST /v1/entityTypeName/
+	/// Creates a new entity. Returns the ID. Includes everything by default.
+	/// </summary>
+	[HttpPost]
+	[Receives(typeof(PartialContent))]
+	public virtual async ValueTask<T> Create(Context context, [FromBody] JObject body)
 	{
-		var context = await Request.GetContext();
+		return await CreateInternal(_service, context, body);
+	}
 
+	/// <summary>
+	/// Creates a new entity using the given service, such that revisions can reuse this code directly. 
+	/// Returns the ID. Includes everything by default.
+	/// </summary>
+	/// <param name="service"></param>
+	/// <param name="context"></param>
+	/// <param name="body"></param>
+	/// <param name="setFields"></param>
+	/// <returns></returns>
+	/// <exception cref="PublicException"></exception>
+	protected virtual async ValueTask<T> CreateInternal(AutoService<T, ID> service, Context context, JObject body, Action<Context, T> setFields = null)
+	{
 		// Start building up our object.
 		// Most other fields, particularly custom extensions, are handled by autoform.
-		var entity = (T)Activator.CreateInstance(_service.InstanceType);
+		var entity = (T)Activator.CreateInstance(service.InstanceType);
 
 		// If it's user created we'll set the user ID now:
 		var userCreated = (entity as Api.Users.UserCreatedContent<ID>);
@@ -282,273 +213,99 @@ public partial class AutoController<T,ID> : ControllerBase
 			userCreated.UserId = context.UserId;
 		}
 		
-		// Set the actual fields now:
-		var notes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.Default);
+		// Set the fields now:
+		await service.SetFieldsOnObject(entity, context, body);
+
+		// Set any additional fields if necessary:
+		if (setFields != null)
+		{
+			setFields(context, entity);
+		}
 
 		// Not permitted to create with a specified ID via the API. Ensure it's 0:
 		entity.SetId(default);
 
-		// Fire off a create event:
-		entity = await _service.EventGroup.EndpointStartCreate.Dispatch(context, entity, Response) as T;
-
-		if (entity == null)
-		{
-			// A handler rejected this request.
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
-		}
-
-		entity = await _service.CreatePartial(context, entity, DataOptions.Default);
+		entity = await service.CreatePartial(context, entity, DataOptions.Default);
 		
 		if(entity == null)
 		{
-			// A handler rejected this request.
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
+			return null;
 		}
 		
-		// Set post ID fields:
-		var secondaryNotes = await SetFieldsOnObject(entity, context, body, JsonFieldGroup.AfterId);
-
-		if (secondaryNotes != null)
-		{
-			if (notes == null)
-			{
-				notes = secondaryNotes;
-			}
-			else
-			{
-				notes += ", " + secondaryNotes;
-			}
-
-		}
-
-		// If it has an on object, create the mapping entry now if we have read visibility of the target:
-		var on = body["on"];
-
-		if (on != null && on.Type == JTokenType.Object)
-		{
-			// Get relevant fields:
-			var type = on["type"];
-			var id = on["id"];
-			var map = on["map"];
-
-			// If map is null, we'll use the primary map. First though, attempt to get the actual content type:
-			var contentType = ContentTypes.GetType(type.Value<string>());
-
-			if (contentType != null)
-			{
-				var svc = Services.GetByContentType(contentType);
-
-				if (svc != null)
-				{
-					var srcObject = await svc.GetObject(context, "Id", id.Value<string>());
-
-					if (srcObject != null)
-					{
-						// Mapping permitted.
-						string mapName;
-
-						if (map == null)
-						{
-							// "this" service is the one which has a ListAs:
-							mapName = _service.GetContentFields().PrimaryMapName;
-
-							if (string.IsNullOrEmpty(mapName))
-							{
-								throw new PublicException(
-									"This type '" + typeof(T).Name + "' doesn't have a primary map name so you'll need to specify a particular map: in your on:{}.",
-									"no_map"
-								);
-							}
-						}
-						else
-						{
-							mapName = map.Value<string>();
-
-							if (!ContentFields.GlobalVirtualFields.ContainsKey(mapName.ToLower()))
-							{
-								throw new PublicException(
-									"A map called '" + mapName + "' doesn't exist.",
-									"no_map"
-								);
-							}
-						}
-
-						// Create map from srcObject -> entity via the map called MapName. First though, get the mapping service:
-						var mappingService = await MappingTypeEngine.GetOrGenerate(svc, _service, mapName);
-						await mappingService.CreateMapping(context, srcObject, entity, DataOptions.IgnorePermissions);
-					}
-				}
-			}
-		}
-
 		// Complete the call (runs AfterCreate):
-		entity = await _service.CreatePartialComplete(context, entity);
+		entity = await service.CreatePartialComplete(context, entity);
 
 		if (entity == null)
 		{
-			// It was blocked or went wrong, typically because of a bad request.
-			Response.StatusCode = 400;
-
-			if (notes != null)
-			{
-				Request.Headers["Api-Notes"] = notes;
-			}
-
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
-		}
-		
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
+			return null;
 		}
 
-		// Fire off after create evt:
-		entity = await _service.EventGroup.EndpointEndCreate.Dispatch(context, entity, Response);
-
-		await OutputJson(context, entity, includes == null ? "*" : includes);
+		return entity;
 	}
 
-	/// <summary>
-	/// Sets the fields from the given JSON object on the given target object, based on the user role in the context.
-	/// Note that there's 2 sets of fields - a primary set, then also a secondary set which are set only after the ID of the object is known.
-	/// E.g. during create, the object is instanced, initial fields are set, it's then actually created, and then the after ID set is run.
-	/// </summary>
-	/// <param name="target"></param>
-	/// <param name="context"></param>
-	/// <param name="body"></param>
-	/// <param name="fieldGroup"></param>
-	protected async ValueTask<string> SetFieldsOnObject(T target, Context context, JObject body, JsonFieldGroup fieldGroup = JsonFieldGroup.Any)
-	{
-        // Get the JSON meta which will indicate exactly which fields are editable by this user (role):
-		var availableFields = await _service.GetTypedJsonStructure(context);
-
-		string notes = null;
-
-		foreach (var property in body.Properties())
-		{
-			if (property.Name == "on")
-			{
-				continue;
-			}
-
-			// Attempt to get the available field:
-			var field = availableFields.GetField(property.Name, fieldGroup);
-
-			if (field == null)
-			{
-				// Tell the callee that this field was ignored.
-				if (notes != null)
-				{
-					notes += ", " + property.Name + " was ignored (doesn't exist or no permission)";
-				}
-				else
-				{
-					notes = property.Name + " was ignored (doesn't exist or no permission)";
-				}
-
-				continue;
-			}
-
-			// Try setting the value now:
-			await field.SetFieldValue(context, target, property.Value);
-		}
-
-		return notes;
-	}
-	
 	/// <summary>
 	/// POST /v1/entityTypeName/1/
 	/// Updates an entity with the given ID. Includes everything by default.
 	/// </summary>
 	[HttpPost("{id}")]
-	public virtual async ValueTask Update([FromRoute] ID id, [FromBody] JObject body, [FromQuery] string includes = null)
+	[Receives(typeof(PartialContent))]
+	public virtual async ValueTask<T> Update(Context context, [FromRoute] ID id, [FromBody] JObject body)
 	{
-		var context = await Request.GetContext();
-		
-		var originalEntity = await _service.Get(context, id);
-		
+		return await UpdateInternal(_service, context, id, body);
+	}
+
+	/// <summary>
+	/// Updates an object using a specific service, such that e.g. 
+	/// revisions can use a different one whilst reusing the bulk of this functionality.
+	/// </summary>
+	/// <param name="service"></param>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="body"></param>
+	/// <returns></returns>
+	protected async ValueTask<T> UpdateInternal(AutoService<T, ID> service, Context context, ID id, JObject body)
+	{
+		var originalEntity = await service.Get(context, id);
+
 		if (originalEntity == null)
 		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
+			return null;
 		}
 
-		// Run the request update event (using the original object to be updated):
-		originalEntity = await _service.EventGroup.EndpointStartUpdate.Dispatch(context, originalEntity, Response) as T;
+		return await UpdateInternal(service, context, id, body, originalEntity, DataOptions.Default);
+	}
 
-		if (originalEntity == null)
-		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
-		}
-
-		var entityToUpdate = await _service.StartUpdate(context, originalEntity);
+	/// <summary>
+	/// Updates an object using a specific service, such that e.g. 
+	/// revisions can use a different one whilst reusing the bulk of this functionality.
+	/// In this overload you can pre-provide the original entity from a load call and also specify options on the update itself.
+	/// </summary>
+	/// <param name="service"></param>
+	/// <param name="context"></param>
+	/// <param name="id"></param>
+	/// <param name="body"></param>
+	/// <param name="originalEntity"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	protected async ValueTask<T> UpdateInternal(AutoService<T, ID> service, Context context, ID id, JObject body, T originalEntity, DataOptions options)
+	{
+		var entityToUpdate = service.StartUpdate(context, originalEntity, options);
 
 		if (entityToUpdate == null)
 		{
 			// Can't start update (no permission, typically - it throws in that scenario).
-			return;
+			return null;
 		}
 
-		// In this case the entity ID is definitely known, so we can run all fields at the same time:
-		var notes = await SetFieldsOnObject(entityToUpdate, context, body, JsonFieldGroup.Any);
-
-		if (notes != null)
-		{
-			Request.Headers["Api-Notes"] = notes;
-		}
+		// Set all the fields:
+		await service.SetFieldsOnObject(entityToUpdate, context, body);
 
 		// Make sure it's still the original ID:
 		entityToUpdate.SetId(id);
 
-		entityToUpdate = await _service.FinishUpdate(context, entityToUpdate, originalEntity);
+		entityToUpdate = await service.FinishUpdate(context, entityToUpdate, originalEntity, options);
 
-		if (entityToUpdate == null)
-		{
-			if (Response.StatusCode == 200)
-			{
-				Response.StatusCode = 404;
-			}
-
-			return;
-		}
-
-		// Run the request updated event:
-		entityToUpdate = await _service.EventGroup.EndpointEndUpdate.Dispatch(context, entityToUpdate, Response) as T;
-		await OutputJson(context, entityToUpdate, includes == null ? "*" : includes);
+		return entityToUpdate;
 	}
 
 }

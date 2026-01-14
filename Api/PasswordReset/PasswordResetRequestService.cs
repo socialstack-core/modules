@@ -9,6 +9,7 @@ using Api.Emails;
 using Api.Users;
 using Api.Pages;
 using Api.CanvasRenderer;
+using Api.Startup;
 
 namespace Api.PasswordResetRequests
 {
@@ -31,28 +32,55 @@ namespace Api.PasswordResetRequests
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PasswordResetRequestService(EmailTemplateService emails, UserService users) : base(Events.PasswordResetRequest)
+		public PasswordResetRequestService(EmailTemplateService emails, UserService users, PageService pages) : base(Events.PasswordResetRequest)
         {
 			
-			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Pages.Page page, CanvasRenderer.CanvasNode canvas, Type contentType, AdminPageType pageType) =>
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
 			{
-				if (contentType == typeof(User) && pageType == AdminPageType.Single)
+				if (builder.ContentType == typeof(User) && builder.PageType == CommonPageType.AdminEdit)
 				{
-					// Installing user admin page for a particular user.
-					// Add the reset box into the user admin page (as a child of the autoform):
-					var tile = new CanvasNode("Admin/Tile");
-					tile.AppendChild(new CanvasNode("Admin/PasswordResetButton").With("userId", new {
-						name = "user.id",
-						type = "urlToken"
-					}));
-					
-					canvas.AppendChild(
-						tile
-					);
+					var buttons = new CanvasNode();
+					buttons.AppendChild(new CanvasNode("Admin/ImpersonateButton")
+							.WithPrimaryLink("content"));
+					buttons.AppendChild(new CanvasNode("Admin/PasswordResetButton")
+							.WithPrimaryLink("content"));
+
+					builder.AddAdminTab(new AdminTab("Access management", "access")
+					{
+						Content = buttons
+					});
 				}
 
-				return new ValueTask<Pages.Page>(page);
+				return new ValueTask<PageBuilder>(builder);
 			});
+
+			pages.Install(
+				new PageBuilder()
+				{
+					Url = "/password/reset/${token}",
+					Key = "password_reset",
+					Title = "Reset your password",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/PasswordReset")
+								.WithLink("token", "url.token", false)
+						);
+					}
+				},
+				new PageBuilder()
+				{
+					Url = "/forgot",
+					Key = "password_forgot",
+					Title = "Account recovery",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/User/ForgotPassword")
+						);
+					}
+				}
+			);
 
 			Events.PasswordResetRequest.BeforeCreate.AddEventListener(async (Context context, PasswordResetRequest reset) => {
 				
@@ -66,8 +94,9 @@ namespace Api.PasswordResetRequests
 				
 				if(string.IsNullOrWhiteSpace(reset.Email))
 				{
-					if(reset.UserId == 0){
-						return null;
+					if(reset.UserId == 0)
+					{
+						throw new PublicException("No user ID or email was provided - unable to generate a reset request.", "reset/unknown");
 					}
 					
 					// Admins can provide a user ID.
@@ -98,19 +127,9 @@ namespace Api.PasswordResetRequests
 				}
 
 				var resetUser = await users.Get(context, reset.UserId, DataOptions.IgnorePermissions);
-				var recipient = new Recipient(resetUser);
-
-				recipient.CustomData = new PasswordResetCustomEmailData()
-				{
-					Reset = reset,
-					Token = reset.Token
-				};
-
-				var recipients = new List<Recipient>();
-				recipients.Add(recipient);
 				
 				await emails.SendAsync(
-					recipients,
+					new Recipient(resetUser, reset),
 					"forgot_password"
 				);
 				

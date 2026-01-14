@@ -139,6 +139,9 @@ namespace Api.CanvasRenderer
                     case "Count":
                         newNode = new Count(node);
                         break;
+                    case "CurrentContext":
+                        newNode = new CurrentContext(node);
+                        break;
                     case "Fields":
                         newNode = new Fields(node);
                         break;

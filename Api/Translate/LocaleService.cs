@@ -24,7 +24,7 @@ namespace Api.Translate
 		/// </summary>
 		public LocaleService() : base(Events.Locale)
 		{		
-			InstallAdminPages("Locales", "fa:fa-globe-europe", new string[] { "id", "name" });
+			InstallAdminPages("Locales", "fa:fa-globe-europe", ["id", "name"], null, "i18n");
 
 			Cache(new CacheConfig<Locale>() {
 				OnCacheLoaded = OnCacheLoaded
@@ -60,39 +60,6 @@ namespace Api.Translate
 			Events.Locale.AfterCreate.AddEventListener(async (Context context, Locale locale) => {
 				await UpdateMaps();
 				return locale;
-			});
-
-			Events.Page.BeforeParseUrl.AddEventListener(async (Context context, Pages.UrlInfo url, Microsoft.AspNetCore.Http.QueryString query) => {
-
-				// Does the locale have a page prefix?
-				// If so, apply it now.
-				var locale = await context.GetLocale();
-				if (!string.IsNullOrEmpty(locale.PagePath))
-				{
-					// Act like this pagePath is in the URL all the time.
-					var strippedUrl = url.AllocateString();
-
-					if (string.IsNullOrEmpty(strippedUrl))
-					{
-						url.Url = locale.PagePath;
-					}
-					else
-					{
-						if (strippedUrl.StartsWith("en-admin"))
-						{
-							// No changes
-							return url;
-						}
-
-						url.Url = locale.PagePath + "/" + strippedUrl;
-					}
-
-					url.Start = 0;
-					url.Length = url.Url.Length;
-				}
-
-				return url;
-
 			});
 
 			Events.ContextAfterAnonymous.AddEventListener((Context context, Context result, HttpRequest request) =>
@@ -198,8 +165,8 @@ namespace Api.Translate
 		/// <returns></returns>
 		private async ValueTask OnCacheLoaded()
 		{
-			// Get the default cache:
-			var defaultCache = GetCacheForLocale(1);
+			// Get the cache:
+			var defaultCache = GetCache();
 
 			// Does it have anything in it?
 			if (defaultCache.Count() == 0)
@@ -208,7 +175,7 @@ namespace Api.Translate
 				await Create(new Context(), new Locale()
 				{
 					Code = "en",
-					Name = "English",
+					Name = new Localized<string>("English"),
 					Id = 1
 				}, DataOptions.IgnorePermissions);
 			}

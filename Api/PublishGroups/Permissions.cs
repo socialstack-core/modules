@@ -31,13 +31,13 @@ namespace Api.PublishGroups
 				Roles.Member.Grant("publishGroup_create");
 				Roles.Public.Grant("publishGroup_create");
 				Roles.Guest.Grant("publishGroup_create");
-				
+				*/
+
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("publishGroup_load", "publishGroup_list");
 				Roles.Public.Revoke("publishGroup_load", "publishGroup_list");
 				Roles.Member.Revoke("publishGroup_load", "publishGroup_list");
-				*/
-
+				
                 return new ValueTask<object>(source);
 			}, 20);
 		}

@@ -15,8 +15,8 @@ public class SignedUrlGenerator : UploadRefGenerator
 	/// <summary>
 	/// Gets a signed ref (typically a URL) for the given upload.
 	/// </summary>
-	public override string GetSignedRef(Upload upload, string sizeName = "original")
+	public override string GetSignedRef(Upload upload, string sizeName = "original" , bool isDownload = false)
 	{
-		return Host.GetSignedRef(upload, sizeName);
+		return Host.GetSignedRef(upload, sizeName, isDownload);
 	} 
 }

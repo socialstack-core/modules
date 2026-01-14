@@ -44,9 +44,24 @@ namespace Api.Payments
 				Roles.Member.Revoke("paymentmethod_load", "paymentmethod_list", "paymentmethod_update", "paymentmethod_create");
 				
 				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("productTemplate_load", "productTemplate_list");
+				Roles.Public.Revoke("productTemplate_load", "productTemplate_list");
+				Roles.Member.Revoke("productTemplate_load", "productTemplate_list");
+				
+				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("coupon_load", "coupon_list");
 				Roles.Public.Revoke("coupon_load", "coupon_list");
 				Roles.Member.Revoke("coupon_load", "coupon_list");
+
+				// Allow public creation (as it's disabled by default):
+				Roles.Member.Grant("purchaseToken_create");
+				Roles.Public.Grant("purchaseToken_create");
+				Roles.Guest.Grant("purchaseToken_create");
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("purchaseToken_load", "purchaseToken_list");
+				Roles.Public.Revoke("purchaseToken_load", "purchaseToken_list");
+				Roles.Member.Revoke("purchaseToken_load", "purchaseToken_list");
 				
 				// Allow viewing of owned things:
 				Roles.Guest.If("IsSelf()").ThenGrant(
@@ -57,7 +72,12 @@ namespace Api.Payments
 					"subscription_load", "subscription_list",
 					"paymentmethod_load", "paymentmethod_list"
 				);
-				
+
+				// Allow anon/guest checkout to see any included content on a purchase retrieved by tokens
+				Roles.Public.If("IsIncluded()").ThenGrant(
+					"productquantity_load", "productquantity_list"
+				);
+
 				Roles.Member.If("IsSelf()").ThenGrant(
 					"productquantity_load", "productquantity_list",
 					"purchase_load", "purchase_list",
@@ -73,6 +93,16 @@ namespace Api.Payments
 
 				Roles.Admin.If("IsSelf()").ThenGrant("paymentmethod_load", "paymentmethod_list");
 				Roles.Developer.If("IsSelf()").ThenGrant("paymentmethod_load", "paymentmethod_list");
+				
+				// Remove public viewing (as it's enabled by default):
+				Roles.Guest.Revoke("address_load", "address_list");
+				Roles.Public.Revoke("address_load", "address_list");
+				Roles.Member.Revoke("address_load", "address_list");
+				Roles.Member.If("IsSelf()").ThenGrant("address_load", "address_list");
+
+				Roles.Guest.Revoke("deliveryoption_load", "deliveryoption_list", "delivery_load", "delivery_list", "subscriptionusage_load", "subscriptionusage_list");
+				Roles.Public.Revoke("deliveryoption_load", "deliveryoption_list", "delivery_load", "delivery_list", "subscriptionusage_load", "subscriptionusage_list");
+				Roles.Member.Revoke("deliveryoption_load", "deliveryoption_list", "delivery_load", "delivery_list", "subscriptionusage_load", "subscriptionusage_list");
 
 				return new ValueTask<object>(source);
 			}, 20);

@@ -251,8 +251,11 @@ namespace Api.Themes
 		/// <returns>An uppercase hex string or null if not found.</returns>
 		public static Color GetColorByName(string name, out bool success)
 		{
-			if(Map == null){
-				Map=new Dictionary<string, Color>();
+			// Internalise ref to the map for thread safety without needing locks etc
+			var map = Map;
+
+			if(map == null){
+				map = new Dictionary<string, Color>();
 				
 				int colourCount = Colors.Length;
 				
@@ -263,11 +266,13 @@ namespace Api.Themes
 					string c=Colors[i+1];
 					
 					// Add to map:
-					Map[n.ToLower()]=GetHexColor(c);
+					map[n.ToLower()] = GetHexColor(c);
 				}
+
+				Map = map;
 			}
 			
-			success=Map.TryGetValue(name,out Color colour);
+			success=map.TryGetValue(name,out Color colour);
 			return colour;
 		}
 		
@@ -423,7 +428,7 @@ namespace Api.Themes
 			return new Color(r / 255f, g / 255f, b / 255f, 1f);
 		}
 
-		private static string[] Colors=new string[]{
+		private static readonly string[] Colors=new string[]{
 			"AliceBlue","F0F8FF",
 			"AntiqueWhite","FAEBD7",
 			"Aqua","00FFFF",

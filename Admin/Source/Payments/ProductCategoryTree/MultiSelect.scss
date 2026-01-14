@@ -1,0 +1,62 @@
+
+
+.multi-select {
+    width:fit-content;
+    padding-left:15px;
+    padding-right:50px;
+    border:1px solid var(--primary);
+    height:35px;
+    line-height:35px;
+    position:relative;
+    cursor:pointer;
+    
+    &.in-use {
+        background: var(--primary);
+        .multi-select-title {
+            color: #fff;
+        }
+    }
+    
+    .multi-select-title {
+        font-size:13px;
+        text-align:center;
+        width:100%;
+        
+        i {
+            position:absolute;
+            top:0;
+            right:0;
+            width:35px;
+            height:35px;
+            line-height:35px;
+            text-align:center;
+        }
+    }
+    .multi-select-options {
+        position: absolute;
+        top:35px;
+        left:0;
+        min-width: 100%;
+        height:fit-content;
+        background:#fff;
+        z-index:10;
+        border:1px solid var(--primary);
+        line-height: 20px;
+        list-style: none;
+        
+        li {
+            margin:5px;
+            font-size:13px;
+            padding-left:10px;
+            padding-right:10px;
+            white-space: nowrap;
+            height:35px;
+            line-height:35px;
+            
+            //input[type=checkbox] {
+            //    position: relative;
+            //    top:5px;
+            //}
+        }
+    }
+}

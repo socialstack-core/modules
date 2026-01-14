@@ -1,0 +1,25 @@
+.ui-product-view__downloads {
+	background: var(--palette-light-grey);
+	padding: px_to_rem(12);
+	border-radius: px_to_rem(8);
+
+	&-title {
+		font-size: 1em;
+		font-weight: bold;
+		margin-bottom: .5em;
+	}
+
+	&-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(2);
+	}
+
+	&-file {
+		--ui-link-font-size: 14;
+		--ui-link-font-weight: normal;
+	}
+}

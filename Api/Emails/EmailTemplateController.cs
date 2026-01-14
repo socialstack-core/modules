@@ -11,18 +11,17 @@ namespace Api.Emails
     [Route("v1/emailtemplate")]
 	public partial class EmailTemplateController : AutoController<EmailTemplate>
     {
-	
+
 		/// <summary>
 		/// Sends a test email.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="mailTest"></param>
 		/// <returns></returns>
 		[HttpPost("test")]
-		public async ValueTask TestEmail([FromBody] EmailTestRequest mailTest)
+		public async ValueTask<EmailTestResponse> TestEmail(Context context, [FromBody] EmailTestRequest mailTest)
 		{
-			// Admin only:
-			var context = await Request.GetContext();
-			
+			// Admin only
 			if (context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("test_email", context);
@@ -30,27 +29,31 @@ namespace Api.Emails
 			
 			var emailService = _service as EmailTemplateService;
 
-			var recipients = new List<Recipient>();
-
-			recipients.Add(new Recipient(context)
+			var recipient = new Recipient(context)
 			{
-				CustomData = mailTest.CustomData
-			});
+				CustomData = mailTest.CustomData == null ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(mailTest.CustomData)
+			};
 
-			var state = await emailService.SendAsync(recipients, mailTest.TemplateKey);
+			var state = await emailService.SendAsync(recipient, mailTest.TemplateKey);
 
-			var writer = Writer.GetPooled();
-			writer.Start(null);
-
-			writer.WriteASCII("{\"sent\":");
-			writer.WriteASCII(state ? "true" : "false");
-			writer.Write((byte)'}');
-
-			await writer.CopyToAsync(Response.Body);
-			writer.Release();
+			return new EmailTestResponse()
+			{
+				Sent = state
+			};
 		}
 		
     }
+
+	/// <summary>
+	/// Email test endpoint response.
+	/// </summary>
+	public struct EmailTestResponse
+	{
+		/// <summary>
+		/// True if it succeeded.
+		/// </summary>
+		public bool Sent;
+	}
 	
 	/// <summary>
 	/// Used to send a test email (admin only). Sends to the person who requests the test.
@@ -65,7 +68,7 @@ namespace Api.Emails
 		/// <summary>
 		/// Custom scope.
 		/// </summary>
-		public object CustomData;
+		public string CustomData;
 		
 	}
 }

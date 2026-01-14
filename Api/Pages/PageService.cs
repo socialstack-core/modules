@@ -1,15 +1,15 @@
 ﻿using Api.Contexts;
-using Api.Database;
 using Api.Eventing;
-using Api.Permissions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using System;
 using Api.Startup;
 using Api.CanvasRenderer;
-using Api.Users;
-using Api.Emails;
+using Api.Translate;
+using Api.Database;
+using Api.NavMenus;
+using Newtonsoft.Json.Linq;
 
 namespace Api.Pages
 {
@@ -18,6 +18,7 @@ namespace Api.Pages
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	[LoadPriority(9)]
+	[HostType("web")]
 	public partial class PageService : AutoService<Page>
 	{
 		/// <summary>
@@ -32,698 +33,550 @@ namespace Api.Pages
 			{
 				// If you don't have a homepage or admin area, this'll create them:
 				Install(
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/",
+						Key = "home",
 						Title = "Homepage",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""p"",
-								""c"": {
-									""s"": ""Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation.""
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) => {
+							return builder.AddTemplate(
+								new CanvasNode("p")
+								.AppendChild(new CanvasNode()
+								{
+									StringContent = "Welcome to your new SocialStack instance. This text comes from the pages table in your database in a format called canvas JSON - you can read more about this format in the documentation."
+								})
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
-						Url = "/en-admin",
+						Url = "/en-admin/",
+						Key = "admin",
 						Title = "Welcome to the admin area",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Dashboard""
-							}
-						}"
+						BuildBody = (PageBuilder builder) => {
+							return builder.AddTemplate(
+								new CanvasNode("Admin/Layouts/Dashboard")
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/en-admin/login",
+						Key = "admin_login",
 						Title = "Login to the admin area",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Landing"",
-								""c"": {
-									""t"": ""Admin/Tile"",
-									""c"": {
-										""t"": ""Admin/LoginForm"",
-						                ""i"": 2
-									},
-									""i"": 3
-								},
-								""i"": 4
-							},
-							""i"": 5
-						}"
+						BuildBody = (PageBuilder builder) => {
+							return new CanvasNode("Admin/Layouts/Landing")
+							.AppendChild(
+								new CanvasNode("Admin/Tile")
+								.AppendChild(
+									new CanvasNode("Admin/LoginForm")
+								)
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/en-admin/stdout",
+						Key = "admin_stdout",
 						Title = "Server log monitoring",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Default"",
-								""c"": {
-									""t"": ""Admin/Dashboards/Stdout""
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return builder.AddTemplate(
+								new CanvasNode("Admin/Dashboards/Stdout")
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
-						Url = "/en-admin/stress-test",
+						Url = "/en-admin/stress",
+						Key = "admin_stress",
 						Title = "Stress testing the API",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Default"",
-								""c"": {
-									""t"": ""Admin/Dashboards/StressTest""
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return builder.AddTemplate(
+								new CanvasNode("Admin/Dashboards/StressTest")
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/en-admin/database",
+						Key = "admin_database",
 						Title = "Developer Database Access",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Default"",
-								""c"": {
-									""t"": ""Admin/Dashboards/Database""
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return builder.AddTemplate(
+								new CanvasNode("Admin/Dashboards/Database")
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/en-admin/register",
+						Key = "admin_register",
 						Title = "Create a new account",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Landing"",
-								""c"": {
-									""t"": ""Admin/Tile"",
-									""c"": {
-										""t"": ""Admin/RegisterForm"",
-						                ""i"": 2
-									},
-									""i"": 3
-								},
-								""i"": 4
-							},
-							""i"": 5
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return new CanvasNode("Admin/Layouts/Landing")
+							.AppendChild(
+								new CanvasNode("Admin/Tile")
+								.AppendChild(
+									new CanvasNode("Admin/RegisterForm")
+								)
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
 						Url = "/en-admin/permissions",
+						Key = "admin_permissions",
 						Title = "Permissions",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""Admin/Layouts/Default"",
-								""c"": {
-									""t"": ""Admin/PermissionGrid""
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return builder.AddTemplate(
+								new CanvasNode("Admin/PermissionGrid")
+							);
+						}
 					},
-					new Page()
+					new PageBuilder()
 					{
-						Url = "/404",
+						Key = "404",
 						Title = "Page not found",
-						BodyJson = @"{
-							""c"": {
-								""t"": ""p"",
-								""c"": {
-									""c"": ""The page you were looking for wasn't found here."",
-									""i"": 2
-								}
-							}
-						}"
+						BuildBody = (PageBuilder builder) =>
+						{
+							return builder.AddTemplate(
+								new CanvasNode("p").AppendChild(
+									new CanvasNode() {
+										StringContent = "The page you were looking for wasn't found here."
+									}
+								)
+							);
+						}
 					}
 				);
 			}
 
 			// Install the admin pages.
-			InstallAdminPages("Pages", "fa:fa-paragraph", ["id", "url", "title"], null, "{\"requiredPermissions\": [\"page_list\", \"page_update\"]}");
-
-			Events.Page.BeforeAdminPageInstall.AddEventListener((Context context, Page page, CanvasNode canvas, Type contentType, AdminPageType pageType) =>
+			InstallAdminPages(new AdminPageOptions()
 			{
-				// Note: Some sites are completely headless and don't have the pages module, so this can't go in upload module.
-				// We use .Name here rather than typeof(Upload) to avoid coupling with uploads. Essentially, both modules are optional this way.
-				if (contentType != null && contentType.Name == "Upload")
+				NavMenuLabel = new Localized<string>("Pages"),
+				NavMenuIcon = "fa:fa-paragraph",
+				NavMenuParentKey = "content_management",
+				ListFields = ["id", "title"],
+				Tabs = [
+					new AdminTab("Design", "design"),
+					new AdminTab("Details", "details")
+				]
+			});
+
+			Events.Page.BeforePageInstall.AddEventListener((context, builder) => {
+
+				if (builder == null || builder.ContentType != typeof(Page))
 				{
-					if (pageType == AdminPageType.List)
-					{
-						// Installing admin page for the list of uploads.
-						// The create button is actually an uploader.
-						canvas.Module = "Admin/Layouts/MediaCenter";
-						canvas.Data.Clear();
-					}
-				} else if (contentType == typeof(Page) && pageType == AdminPageType.List)
-				{
-					// Installing the list of pages.
-					// This will instead use the sitemap component.
-					canvas.Module = "Admin/Layouts/Sitemap";
+					return ValueTask.FromResult(builder);
 				}
 
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Page.BeforeCreate.AddEventListener((Context context, Page page) =>
-			{
-				if (string.IsNullOrEmpty(page.Url))
+				if (builder.PageType == CommonPageType.AdminEdit)
 				{
-					throw new PublicException("A url is required. If you're making a homepage, use /", "page_url_required");
+					builder.GetContentRoot()
+						.Empty()
+						.AppendChild(
+							new CanvasNode("Admin/Page/Single")
+							.WithPrimaryLink("content")
+							.With("tabs", builder.AdminPageOptions.Tabs)
+						);
+				}
+				else if (builder.PageType == CommonPageType.AdminAdd)
+				{
+					builder.GetContentRoot()
+						.Empty()
+						.AppendChild(new CanvasNode("Admin/Page/Single"));
+				}
+				else if (builder.PageType == CommonPageType.AdminList)
+				{
+					builder.GetContentRoot()
+						.Empty()
+						.AppendChild(new CanvasNode("Admin/Layouts/Sitemap"));
 				}
 
-				return new ValueTask<Page>(page);
-			});
+				return ValueTask.FromResult(builder);
+			}, 5);
 
-			Events.Page.BeforeUpdate.AddEventListener((Context context, Page page, Page original) =>
-			{
-				if (string.IsNullOrEmpty(page.Url))
-				{
-					throw new PublicException("A url is required. If you're making a homepage, use /", "page_url_required");
-				}
-
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
-			{
-				// Need to update the two caches. We'll just wipe them for now:
-				ClearCaches();
-
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Page.AfterDelete.AddEventListener((Context context, Page page) =>
-			{
-				// Need to update the two caches. We'll just wipe them for now:
-				ClearCaches();
-
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Page.AfterCreate.AddEventListener((Context context, Page page) =>
-			{
-				ClearCaches();
-
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Page.Received.AddEventListener((Context context, Page page, int mode) => {
-
-				// Doesn't matter what the change was - we'll wipe the caches.
-				ClearCaches();
-
-				return new ValueTask<Page>(page);
-			});
-
-			Events.Service.AfterStart.AddEventListener((Context context, object svc) => {
-
-				// Just in case anything during startup loaded the
-				// page tree before all services were ready.
-				ClearCaches();
-
-				return new ValueTask<object>(svc);
-			});
-
-			Events.Service.AfterCreate.AddEventListener((Context context, AutoService svc) => {
-
-				// A service has started up. This can mean we now have a new data type
-				// replacing one which was previously used and cached by the URL tree.
-				if (!svc.IsMapping)
-				{
-					ClearCaches();
-				}
-
-				return new ValueTask<AutoService>(svc);
-			});
-
-			// Pages must always have the cache on for any release site.
-			// That's because the HtmlService has a release only cache which depends on the sync messages for pages, as well as e.g. the url gen cache.
-#if !DEBUG
 			Cache();
-#endif
-
 		}
 
 		/// <summary>
-		/// Clears the page lookup tree and URL generation caches.
-		/// They will be regenerated when next requested.
-		/// </summary>
-		public void ClearCaches()
-		{
-			_urlGenerationCache = null;
-			_urlLookupCache = null;
-		}
-
-		/// <summary>
-		/// A cache used to identify which pages on the site are the canonical pages for each content type. Not locale sensitive.
-		/// </summary>
-		private UrlGenerationCache _urlGenerationCache;
-
-		/// <summary>
-		/// A cache used to identify which page to use for a particular URL, per locale.
-		/// </summary>
-		private UrlLookupCache[] _urlLookupCache;
-
-		/// <summary>
-		/// Get the page to use for the given URL.
-		/// </summary>
-		public async ValueTask<PageWithTokens> GetPage(Context context, string host, string url, Microsoft.AspNetCore.Http.QueryString searchQuery, bool return404IfNotFound = true)
-		{
-			var urlInfo = new UrlInfo() // Struct
-			{
-				Url = url,
-				Length = url.Length,
-				Start = 0,
-				Host = host
-			};
-
-			var srcUrlInfo = urlInfo;
-
-			var max = urlInfo.Length + urlInfo.Start;
-
-			// Trim end:
-			for (var i = max - 1; i >= urlInfo.Start; i--)
-			{
-				if (urlInfo.Url[i] == ' ')
-				{
-					urlInfo.Length--;
-					max--;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			// Trim start:
-			for (var i = urlInfo.Start; i < max; i++)
-			{
-				if (urlInfo.Url[i] == ' ')
-				{
-					urlInfo.Start++;
-					urlInfo.Length--;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			if (urlInfo.Length > 0 && urlInfo.Url[urlInfo.Start] == '/')
-			{
-				urlInfo.Start++;
-				urlInfo.Length--;
-			}
-
-			if (urlInfo.Length > 0 && urlInfo.Url[urlInfo.Start + urlInfo.Length - 1] == '/')
-			{
-				urlInfo.Length--;
-			}
-
-			// It won't contain a ? but just in case:
-			max = urlInfo.Length + urlInfo.Start;
-			for (var i = urlInfo.Start; i < max; i++)
-			{
-				if (urlInfo.Url[i] == '?')
-				{
-					urlInfo.Length = i - urlInfo.Start;
-					break;
-				}
-			}
-
-			// BeforeParseUrl is able to change the context, including the locale:
-			urlInfo = await Events.Page.BeforeParseUrl.Dispatch(context, urlInfo, searchQuery);
-
-			if (urlInfo.RedirectTo != null)
-			{
-				return new PageWithTokens() {
-					StatusCode = 302,
-					RedirectTo = urlInfo.RedirectTo
-				};
-			}
-
-			var ulc = _urlLookupCache;
-
-			if (ulc == null || ulc.Length < context.LocaleId || ulc[context.LocaleId - 1] == null)
-			{
-				var cacheSet = await LoadCaches(context);
-				ulc = cacheSet.LookupCache;
-			}
-
-			var cache = ulc[context.LocaleId - 1];
-
-			var pageInfo = await cache.GetPage(context, urlInfo, searchQuery, srcUrlInfo);
-
-			pageInfo = await Events.Page.BeforeResolveUrl.Dispatch(context, pageInfo, url, searchQuery);
-			pageInfo.UrlInfo = urlInfo;
-
-			if (pageInfo.PageTerminal == null && return404IfNotFound)
-			{
-				pageInfo.PageTerminal = cache.NotFoundTerminal;
-			}
-
-			return pageInfo;
-		}
-
-		/// <summary>
-		/// Cache must be available for this. It will be available if you previously made a call to GetPage.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <returns></returns>
-		public Page GetCachedNotFoundPage(Context context)
-		{
-			var cache = _urlLookupCache[context.LocaleId - 1];
-			return cache.NotFoundPage;
-		}
-
-		private async Task<PageCacheSet> LoadCaches(Context context)
-		{
-			// Get all pages for this locale:
-			var allPages = await Where(DataOptions.IgnorePermissions).ListAll(context);
-
-			var ugc = _urlGenerationCache;
-			var ulc = _urlLookupCache;
-
-			if (ugc == null)
-			{
-				// This cache is not locale sensitive as it exclusively uses the Url field which is not localised.
-
-				// Instance and wait for it to be created:
-				ugc = new UrlGenerationCache();
-
-				// Load now:
-				ugc.Load(allPages);
-
-				_urlGenerationCache = ugc;
-			}
-
-			// Setup url lookup cache as well:
-			var cache = new UrlLookupCache();
-
-			if (ulc == null)
-			{
-				// Create the cache:
-				ulc = new UrlLookupCache[context.LocaleId];
-			}
-			else if (ulc.Length < context.LocaleId)
-			{
-				// Resize the cache:
-				Array.Resize(ref ulc, (int)context.LocaleId);
-			}
-
-			// Add cache to lookup:
-			ulc[context.LocaleId - 1] = cache;
-			await cache.Load(context, allPages);
-			_urlLookupCache = ulc;
-
-			// Next, indicate that the cache has loaded. This is the event you'd use to add in things like custom redirect functions.
-			await Events.Page.AfterLookupReady.Dispatch(context, cache);
-
-
-			return new PageCacheSet()
-			{
-				LookupCache = ulc,
-				GenerationCache = ugc
-			};
-		}
-
-		/// <summary>
-		/// Gets the tree of raw pages for the given context. Don't modify the response.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <returns></returns>
-		public async ValueTask<UrlLookupCache> GetPageTree(Context context){
-
-			// Load the tree:
-			var ulc = _urlLookupCache;
-
-			if (ulc == null || ulc.Length < context.LocaleId || ulc[context.LocaleId - 1] == null)
-			{
-				var cacheSet = await LoadCaches(context);
-				ulc = cacheSet.LookupCache;
-			}
-
-			return ulc[context.LocaleId - 1];
-		}
-
-		/// <summary>
-		/// Gets the URL generation engine for the given piece of generic content. Pages are very often cached so this usually returns instantly.
-		/// </summary>
-		/// <param name="contentType">The contentType you want the meta for.</param>
-		/// <param name="scope">State which type of URL you want - either a frontend URL or admin panel. Default is frontend if not specified.</param>
-		/// <returns>A url which is relative to the site root.</returns>
-		public async ValueTask<UrlGenerationMeta> GetUrlGenerationMeta(Type contentType, UrlGenerationScope scope = null)
-		{
-			var ugc = await GetUrlGenerationCache();
-			var lookup = ugc.GetLookup(scope);
-			lookup.TryGetValue(contentType, out UrlGenerationMeta meta);
-			return meta;
-		}
-
-		/// <summary>
-		/// True if the given cache is stale.
-		/// </summary>
-		/// <param name="cache"></param>
-		/// <returns></returns>
-		public bool IsUrlCacheStale(UrlGenerationCache cache)
-		{
-			return cache != _urlGenerationCache;
-		}
-
-		/// <summary>
-		/// Gets the current URL generation cache. Creates one if it does not currently exist.
-		/// </summary>
-		/// <returns></returns>
-		public async ValueTask<UrlGenerationCache> GetUrlGenerationCache()
-		{
-			var c = _urlGenerationCache;
-			if (c == null)
-			{
-				var cacheSet = await LoadCaches(new Context());
-				c = cacheSet.GenerationCache;
-			}
-
-			return c;
-		}
-
-		/// <summary>
-		/// Gets the URL for the given piece of generic content. Pages are very often cached so this usually returns instantly.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="contentObject"></param>
-		/// <param name="scope">State which type of URL you want - either a frontend URL or admin panel. Default is frontend if not specified.</param>
-		/// <returns>A url which is relative to the site root.</returns>
-		public async ValueTask<string> GetUrl(Context context, object contentObject, UrlGenerationScope scope = null)
-		{
-			var ugc = await GetUrlGenerationCache();
-			var lookup = ugc.GetLookup(scope);
-
-			if (!lookup.TryGetValue(contentObject.GetType(), out UrlGenerationMeta meta))
-			{
-				// URL is unknown.
-				return "/";
-			}
-
-			return meta.Generate(contentObject);
-		}
-
-		/// <summary>
-		/// Used as a temporary piece of JSON when setting up admin pages to help avoid people setting the bodyJson field incorrectly.
-		/// </summary>
-		private readonly string TemporaryBodyJson = "{\"content\":\"Don't set this field - its about to be overwritten by the contents of the Canvas object that you've been given.\"}";
-
-		/// <summary>
-		/// Installs generic admin pages using the given fields to display on the list page.
+		/// Installs generic admin pages using the given fields to display on the list page. 
+		/// Use the base InstallAdminPages on AutoService instead of this one directly.
 		/// </summary>
 		/// <param name="type">The content type that is being installed (Page, Blog etc)</param>
-		/// <param name="fields"></param>
-		/// <param name="childAdminPage">
-		/// A shortcut for specifying that your type has some kind of sub-type.
-		/// For example, the NavMenu admin page specifies a child type of NavMenuItem, meaning each NavMenu ends up with a list of NavMenuItems.
-		/// Make sure you specify the fields that'll be visible from the child type in the list on the parent type.
-		/// For example, if you'd like each child entry to show its Id and Title fields, specify new string[]{"id", "title"}.
+		/// <param name="options">
+		/// The config options for the admin pages, such as the nav menu label and which fields appear on the list page.
 		/// </param>
-		public async ValueTask InstallAdminPages(Type type, string[] fields, ChildAdminPageOptions childAdminPage)
+		public void InstallAdminPagesInt(Type type, AdminPageOptions options)
 		{
-			var typeName = type.Name.ToLower();
+			var fields = options.ListFields;
+			var navMenuLabel = options.NavMenuLabel;
+			var navMenuIcon = options.NavMenuIcon;
+			var typeName = type.Name;
+			var typeNameLowercase = type.Name.ToLower();
 
 			// "BlogPost" -> "Blog Post".
 			var tidySingularName = Api.Startup.Pluralise.NiceName(type.Name);
 			var tidyPluralName = Api.Startup.Pluralise.Apply(tidySingularName);
-			
-			var listPageCanvas = new CanvasNode("Admin/Layouts/List")
-				.With("endpoint", typeName)
-				.With("fields", fields)
-				.With("singular", tidySingularName)
-				.With("plural", tidyPluralName);
-			
-			var listPage = new Page
-			{
-				Url = "/en-admin/" + typeName,
-				BodyJson = TemporaryBodyJson,
-				Title = "Edit or create " + tidyPluralName
-			};
-			
-			// Trigger an event to state that an admin page is being installed:
-			// - Use this event to inject additional nodes into the page, or change it however you'd like.
-			listPage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), listPage, listPageCanvas, type, AdminPageType.List);
-			listPage.BodyJson = listPageCanvas.ToJson();
 
-			var singlePageCanvas = new CanvasNode("Admin/Layouts/AutoEdit")
-					.With("endpoint", typeName)
-					.With("singular", tidySingularName)
-					.With("id", "${primary.id}")
-					.With("plural", tidyPluralName);
-
-			if (childAdminPage != null && childAdminPage.ChildType != null)
+			var adminNavMenuItemService = Services.Get<AdminNavMenuItemService>();
+			
+			var parentId = 0u;
+			
+			if (!string.IsNullOrEmpty(options.NavMenuParentKey))
 			{
-				singlePageCanvas.AppendChild(
-					new CanvasNode("Admin/AutoList")
-					.With("endpoint", childAdminPage.ChildType.ToLower())
-					.With("filterField", type.Name + "Id")
-					.With("create", childAdminPage.CreateButton)
-					.With("searchFields", childAdminPage.SearchFields)
-                    .With("filterValue", "${primary.id}")
-                    .With("fields", childAdminPage.Fields ?? (new string[] { "id" }))
-				);
+				var group = adminNavMenuItemService.GetByKey(new Context(1,1,1), options.NavMenuParentKey);
+
+				var parentGroup = group.GetAwaiter().GetResult();
+
+				if (parentGroup is not null)
+				{
+					parentId = parentGroup.Id;
+				}
 			}
 
-			var singlePage = new Page
+			// First install the list page:
+			Install(new PageBuilder
 			{
-				Url = "/en-admin/" + typeName + "/{" + typeName + ".id}",
-				BodyJson = TemporaryBodyJson,
-				Title = "Editing " + tidySingularName.ToLower()
-			};
+				ContentType = type,
+				PageType = CommonPageType.AdminList,
+				Url = "/en-admin/" + typeNameLowercase,
+				Key = "admin_list:" + typeNameLowercase,
+				Title = "Edit or create " + tidyPluralName,
+				AdminNavMenuIcon = navMenuIcon,
+				AdminPageOptions = options,
+				NavMenuParentId = parentId,
+				AdminNavMenuTitle = navMenuLabel.GetFallback(),
+				PrimaryContentIncludes = options.ListIncludes,
+				BuildBody = (PageBuilder builder) => {
+					return builder.AddTemplate(
+						new CanvasNode("Admin/Layouts/List")
+						.With("contentType", typeName)
+						.With("fields", fields)
+						.With("singular", tidySingularName)
+						.With("plural", tidyPluralName)
+					);
+				}
+			});
 
-			// Trigger an event to state that an admin page is being installed:
-			// - Use this event to inject additional nodes into the page, or change it however you'd like.
-			singlePage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), singlePage, singlePageCanvas, type, AdminPageType.Single);
-			singlePage.BodyJson = singlePageCanvas.ToJson();
+			// Install the edit page:
+			var incl = options == null || options.EditIncludes == null ? "*,primaryUrl" : options.EditIncludes;
+			InstallSingleAdminPage(type, true, incl, options);
 
-			// Future todo - If the admin page is "pure" (it's not been edited by an actual person) then compare BodyJson as well.
-			// This is why we'll always generate the bodyJson with the event.
-
-			await InstallInternal(
-				listPage,
-				singlePage
-			);
-
-			await DeleteOldInternal(typeName);
+			// And the add page (includes not relevant here):
+			InstallSingleAdminPage(type, false, null, options);
 		}
 
-		/// <summary>
-		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
-		/// </summary>
-		/// <param name="pages"></param>
-		public void Install(params Page[] pages)
+		private void InstallSingleAdminPage(Type type, bool isEdit, string includes, AdminPageOptions options)
 		{
-			if (Services.Started)
+			var typeName = type.Name;
+			var typeNameLowercase = type.Name.ToLower();
+
+			// "BlogPost" -> "Blog Post".
+			var tidySingularName = Api.Startup.Pluralise.NiceName(type.Name);
+			var tidyPluralName = Api.Startup.Pluralise.Apply(tidySingularName);
+
+			var singlePage = new PageBuilder
 			{
-				Task.Run(async () =>
+				ContentType = type,
+				PageType = isEdit ? CommonPageType.AdminEdit : CommonPageType.AdminAdd,
+				PrimaryContentIncludes = includes,
+				AdminPageOptions = options,
+				Url = "/en-admin/" + typeNameLowercase + "/" + (isEdit ? "${" + typeNameLowercase + ".id}" : "add"),
+				Key = isEdit ? ("admin_primary:" + typeNameLowercase) : "admin_" + typeNameLowercase + "_add",
+				Title = isEdit ? "Editing " + tidySingularName.ToLower() + " #${" + typeNameLowercase + ".id}" : "Creating " + tidySingularName.ToLower(),
+				BuildBody = (PageBuilder builder) =>
 				{
-					await InstallInternal(pages);
-				});
+					var singlePageCanvas = new CanvasNode("Admin/AutoForm")
+						.With("contentType", typeName)
+						.With("singular", tidySingularName)
+						.With("plural", tidyPluralName);
+
+					if (options.Tabs != null && options.Tabs.Count > 0)
+					{
+						singlePageCanvas.With("tabs", options.Tabs);
+					}
+
+					if (isEdit)
+					{
+						singlePageCanvas.WithPrimaryLink("content");
+					}
+
+					return builder.AddTemplate(
+						singlePageCanvas
+					);
+				}
+			};
+
+			Install(singlePage);
+		}
+
+		/// <summary>
+		/// The built up list of pages to install when services have started.
+		/// </summary>
+		private List<PageBuilder> _toInstall;
+		private object _installLocker = new object();
+
+		/// <summary>
+		/// Installs the given page. It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
+		/// </summary>
+		/// <param name="builders">
+		/// Constructs the base page content.
+		/// This will then be passed through the InstallPage function where other modules can manipulate it if needed.
+		/// You can ask the provided PageInstaller for a templated root node too, and it will 
+		/// generate one based on if your page is an admin one or not (established from its key starting with "admin_").
+		/// </param>
+		public void Install(params PageBuilder[] builders)
+		{
+			bool scheduleStart = false;
+
+			lock (_installLocker)
+			{
+				if (_toInstall == null)
+				{
+					_toInstall = new List<PageBuilder>();
+					scheduleStart = true;
+				}
+
+				_toInstall.AddRange(builders);
 			}
-			else
+
+			if (scheduleStart)
 			{
-				Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
+				if (Services.Started)
 				{
-					await InstallInternal(pages);
-					return src;
-				});
+					Task.Run(async () =>
+					{
+						List<PageBuilder> set;
+
+						lock (_installLocker)
+						{
+							set = _toInstall;
+							_toInstall = null;
+						}
+						await InstallInternal(new Context(), set);
+					});
+				}
+				else
+				{
+					Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
+					{
+						List<PageBuilder> set;
+
+						lock (_installLocker)
+						{
+							set = _toInstall;
+							_toInstall = null;
+						}
+						await InstallInternal(ctx, set);
+						return src;
+					});
+				}
 			}
 		}
-			
+
 		/// <summary>
-		/// Used to uninstall internal pages that were once in use such as /en-admin/typeName/:id or /en-admin/typeName/:adminId
+		/// Compares the given localized JsonString values which can vary in textual value 
+		/// (e.g. because one came from the DB and contains specific spacing patterns) but actually be structurally the same.
 		/// </summary>
-		/// <param name="typeName"></param>
+		/// <param name="a"></param>
+		/// <param name="b"></param>
 		/// <returns></returns>
-		private async ValueTask DeleteOldInternal(string typeName)
-        {
-			var context = new Context();
-
-			// We need to look for both old types.
-			var adminIdUrl = "/en-admin/" + typeName + "/:adminId";
-			var oldIdUrl = "/en-admin/" + typeName + "/:id";
-
-			// Get any pages by those URLs:
-			var pages = await Where("Url=? or Url=?", DataOptions.NoCacheIgnorePermissions).Bind(adminIdUrl).Bind(oldIdUrl).ListAll(context);
-
-			foreach (var page in pages)
-            {
-				// If we have any pages from the previous hit, time to delete them!
-				await Delete(context, page.Id, DataOptions.IgnorePermissions);
-            }
-        }
-
-		/// <summary>
-		/// Installs the given page(s). It checks if they exist by their URL (or ID, if you provide that instead), and if not, creates them.
-		/// </summary>
-		/// <param name="pages"></param>
-		private async ValueTask InstallInternal(params Page[] pages)
+		private bool DeepJsonEquals(Localized<JsonString> a, Localized<JsonString> b)
 		{
-			var context = new Context();
-
-			// Get the set of pages which we'll match by ID:
-			var idSet = pages.Where(page => page.Id != 0);
-
-			if (idSet.Any())
+			if (a.Count != b.Count)
 			{
-				IEnumerable<uint> ids = idSet.Select(Page => Page.Id);
+				return false;
+			}
 
-				// Get the pages by those IDs:
-				var existingPages = (await Where("Id=[?]", DataOptions.NoCacheIgnorePermissions)
-						.Bind(ids)
-						.ListAll(context)).ToDictionary(page => page.Id);
-
-				// For each page to consider for install..
-				foreach (var page in idSet)
+			foreach (var kvp in a.Values)
+			{
+				var strA = kvp.Value;
+				if (!b.TryGet(kvp.Key, out JsonString strB))
 				{
-					// If it doesn't already exist, create it.
-					if (!existingPages.ContainsKey(page.Id))
-					{
-						await Create(context, page, DataOptions.IgnorePermissions);
-					}
+					// Key not present in B - quit.
+					return false;
+				}
+
+				// Get the json strings:
+				var jsonA = strA.ValueOf();
+				var jsonB = strB.ValueOf();
+
+				var aEmpty = string.IsNullOrEmpty(jsonA);
+
+				if (aEmpty != string.IsNullOrEmpty(jsonB))
+				{
+					// One empty and the other is not.
+					return false;
+				}
+
+				if (aEmpty)
+				{
+					// They're both empty.
+					continue;
+				}
+
+				// Both not empty
+				var tokenA = JToken.Parse(jsonA);
+				var tokenB = JToken.Parse(jsonB);
+
+				if (!JToken.DeepEquals(tokenA, tokenB))
+				{
+					return false;
 				}
 			}
-				
-			// Get the set of pages which we'll match by URL:
-			var urlSet = pages.Where(page => page.Id == 0);
 
-			if (urlSet.Any())
+			// All keys passed the deepEquals check.
+			return true;
+		}
+
+		/// <summary>
+		/// Installs the given page(s). It checks if they exist by their InstallKey, and if not, creates them.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="builders"></param>
+		private async ValueTask InstallInternal(Context context, List<PageBuilder> builders)
+		{
+			if (builders == null)
 			{
-				IEnumerable<string> urls = urlSet.Select(Page => Page.Url);
+				return;
+			}
 
-				// Get the pages by those URLs:
-				var existingPages = (await Where("Url=[?]", DataOptions.NoCacheIgnorePermissions)
-						.Bind(urls)
-						.ListAll(context));
-
-				var existingPagesLookup = new Dictionary<string, Page>();
-
-				foreach (var pg in existingPages)
+			foreach (var builder in builders)
+			{
+				if (string.IsNullOrEmpty(builder.Key))
 				{
-					existingPagesLookup[pg.Url] = pg;
+					throw new ArgumentException("A Key is required when installing a page.");
+				}
+			}
+
+			// Get the pages by those keys:
+			var existingPages = (await Where("Key=[?]", DataOptions.NoCacheIgnorePermissions)
+					.Bind(builders.Select(page => page.Key))
+					.ListAll(context));
+
+			var existingPagesLookup = new Dictionary<string, Page>();
+
+			foreach (var pg in existingPages)
+			{
+				existingPagesLookup[pg.Key] = pg;
+			}
+
+			#if DEBUG
+			var buildTime = DateTime.UtcNow;
+			#else
+			var buildTime = new DateTime(Services.Get<FrontendCodeService>().Version);
+			#endif
+
+			// For each page to consider for install..
+			foreach (var builder in builders)
+			{
+				// If it already exists, consider updating it.
+				if (existingPagesLookup.TryGetValue(builder.Key, out Page existingPage))
+				{
+					if (existingPage.LastInstallBuildTimeUtc >= buildTime)
+					{
+						continue;
+					}
 				}
 
-				// For each page to consider for install..
-				foreach (var page in urlSet)
+				// Start building:
+				builder.Build();
+
+				await Events.Page.BeforePageInstall.Dispatch(context, builder);
+				builder.Page.BodyJson = new Localized<JsonString>(new JsonString(builder.Body.ToJson()));
+
+				if (existingPage != null)
 				{
-					// If it doesn't already exist, create it.
-					if (!existingPagesLookup.ContainsKey(page.Url))
+					// Has it changed?
+					if (
+						existingPage.PrimaryContentIncludes == builder.Page.PrimaryContentIncludes && 
+						existingPage.PrimaryContentType == builder.Page.PrimaryContentType && 
+						DeepJsonEquals(builder.Page.BodyJson, existingPage.BodyJson))
 					{
-						await Create(context, page, DataOptions.IgnorePermissions);
+						// Nope!
+						continue;
 					}
+
+					// Are there any revisions of the page since the last time it was checked?
+					var revId = existingPage.LastInstallRevisionId.HasValue ? existingPage.LastInstallRevisionId.Value : 0;
+
+					var pageRevisions = await Revisions
+						.Where("Id>=? and ContentId=?", DataOptions.IgnorePermissions)
+						.Bind(revId)
+						.Bind((ulong)existingPage.Id)
+						.ListAll(context);
+
+					// Sort by ID just to be sure:
+					pageRevisions.Sort((a, b) => a.Id.CompareTo(b.Id));
+
+					var highestRevisionId = pageRevisions.Count > 0 ? pageRevisions[pageRevisions.Count - 1].Id : 0;
+
+					// In most instances there should be 1 or 2 revisions in the set.
+					// The first = the one where Id==LastInstallRevisionId
+					// The second = the one created by calling Update or Create itself
+					int skipRevisions = 0;
+
+					if (pageRevisions.Count > 0)
+					{
+						if (pageRevisions[0].Id == revId)
+						{
+							// Skip the next revision.
+							skipRevisions = 2;
+						}
+						else
+						{
+							// Skip the first revision only.
+							skipRevisions = 1;
+						}
+					}
+
+					var hasAdditionalRevisions = (pageRevisions.Count - skipRevisions) > 0;
+
+					if (hasAdditionalRevisions)
+					{
+						// User edits identified.
+						// This effectively permanently blocks the installer from running currently.
+						continue;
+					}
+
+					// The code retains control over the page and it can now be updated.
+					Log.Info(LogTag, "Updated page '" + existingPage.Key + "'");
+
+					try
+					{
+						_ = await Update(context, existingPage, (Context ctx, Page toUpdate, Page original) =>
+						{
+
+							toUpdate.PrimaryContentIncludes = builder.Page.PrimaryContentIncludes;
+							toUpdate.BodyJson = builder.Page.BodyJson;
+							toUpdate.PrimaryContentType = builder.Page.PrimaryContentType;
+
+							// Might be just the body/ includes/ both.
+							toUpdate.LastInstallRevisionId = highestRevisionId;
+							toUpdate.LastInstallBuildTimeUtc = buildTime;
+
+						}, DataOptions.IgnorePermissions);
+					}
+					catch (AggregateException aggregate)
+					{
+						Log.Error("pages/subscriber/update-error", aggregate);
+					}
+				}
+				else
+				{
+					builder.Page.LastInstallBuildTimeUtc = buildTime;
+					builder.Page.LastInstallRevisionId = 0;
+					_ = await Create(context, builder.Page, DataOptions.IgnorePermissions);
 				}
 			}
 		}
+
 	}
-    
 }

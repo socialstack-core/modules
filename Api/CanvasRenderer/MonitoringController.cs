@@ -9,33 +9,15 @@ namespace Api.Startup;
 
 /// <summary>
 /// </summary>
-public partial class StdOutController : ControllerBase
+public partial class StdOutController : AutoController
 {
-
-	/// <summary>
-	/// V8 status.
-	/// </summary>
-	[HttpGet("v8/status")]
-	public async ValueTask V8Status()
-	{
-		var context = await Request.GetContext();
-
-		if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
-		{
-			throw PermissionException.Create("monitoring_v8status", context);
-		}
-
-		// Future if needed!
-	}
 
 	/// <summary>
 	/// Attempts to purge V8 engines from the canvas renderer service.
 	/// </summary>
 	[HttpGet("v8/clear")]
-	public async ValueTask V8Clear()
+	public void V8Clear(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 		{
 			throw PermissionException.Create("monitoring_v8clear", context);

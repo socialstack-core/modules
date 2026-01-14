@@ -3,6 +3,7 @@ using Api.Database;
 using Api.Startup;
 using Api.Translate;
 using Api.Users;
+using Newtonsoft.Json;
 
 
 namespace Api.Payments
@@ -25,9 +26,20 @@ namespace Api.Payments
 		public DateTime NextChargeUtc;
 
 		/// <summary>
+		/// Subscription tax jurisdiction.
+		/// </summary>
+		[JsonIgnore]
+		public string TaxJurisdiction;
+
+		/// <summary>
 		/// True if this subscription will cancel on the next billing cycle.
 		/// </summary>
 		public bool WillCancel;
+
+		/// <summary>
+		/// ID of a coupon to reuse on this subscription.
+		/// </summary>
+		public uint CouponId;
 
 		/// <summary>
 		/// 0 = The default, it's in months.   (currently the only supported option)
@@ -46,6 +58,21 @@ namespace Api.Payments
 		/// The payment method to use when billing this subscription.
 		/// </summary>
 		public uint PaymentMethodId;
+		
+		/// <summary>
+		/// If physical products and user chooses method, the delivery option.
+		/// </summary>
+		public uint DeliveryOptionId;
+		
+		/// <summary>
+		/// If physical products, the target address.
+		/// </summary>
+		public uint DeliveryAddressId;
+
+		/// <summary>
+		/// The billing address to use.
+		/// </summary>
+		public uint BillingAddressId;
 
 		/// <summary>
 		/// The subscription locale. Currency is selected based on this.

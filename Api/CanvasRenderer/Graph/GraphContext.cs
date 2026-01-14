@@ -1,4 +1,5 @@
 using Api.Contexts;
+using Api.Pages;
 using Api.SocketServerLibrary;
 using System;
 using System.Runtime.CompilerServices;
@@ -20,9 +21,14 @@ public class GraphContext : INotifyCompletion
 	public Context Context;
 
 	/// <summary>
-	/// The PO of the page, if there is one.
+	/// The current page and token values from the URL.
 	/// </summary>
-	public object PrimaryObject;
+	public PageWithTokens PageWithTokens;
+
+	/// <summary>
+	/// Primary object
+	/// </summary>
+	public object PrimaryObject => PageWithTokens.PrimaryObject;
 
 	/// <summary>
 	/// The writer into which the JSON is written.
@@ -41,6 +47,32 @@ public class GraphContext : INotifyCompletion
 	/// </summary>
 	public GraphContext()
 	{
+	}
+
+	/// <summary>
+	/// Gets a URL token by exact name.
+	/// </summary>
+	/// <param name="token"></param>
+	/// <returns></returns>
+	public string GetUrlToken(string token)
+	{
+		var terminal = PageWithTokens.PageTerminal;
+		var values = PageWithTokens.TokenValues;
+		var tokenNames = terminal.TokenNames;
+
+		if (terminal == null || tokenNames == null || values == null)
+		{
+			return "";
+		}
+
+		var tokenIndex = tokenNames.IndexOf(token);
+
+		if (tokenIndex == -1 || tokenIndex >= values.Count)
+		{
+			return "";
+		}
+
+		return values[tokenIndex];
 	}
 
 	/// <summary>

@@ -1,19 +1,12 @@
 using Api.Contexts;
-using Api.Database;
 using Api.Eventing;
 using Api.Permissions;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Users;
-using System.Threading;
-using System;
-using System.Net.WebSockets;
-using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Api.Startup;
-using Newtonsoft.Json.Serialization;
-using System.Reflection;
 using Api.SocketServerLibrary;
 using Api.Configuration;
 using System.Collections.Concurrent;
@@ -28,11 +21,6 @@ namespace Api.WebSockets
     {
 
 		private readonly ContextService _contextService;
-
-		/// <summary>
-		/// The set of personal rooms.
-		/// </summary>
-		public NetworkRoomSet<User, uint, uint> PersonalRooms;
 
 		/// <summary>
 		/// Instanced automatically.
@@ -177,12 +165,7 @@ namespace Api.WebSockets
 
 				var type = jToken.Value<string>();
 				var handled = false;
-				JArray jArray = null;
-				string typeName;
-				JObject filt;
-				uint customId;
-				ulong roomId;
-
+				
 				switch (type)
 				{
 					case "Auth":
@@ -198,82 +181,9 @@ namespace Api.WebSockets
 						var authToken = jToken.Value<string>();
 
 						// Load the context:
-						var ctx = await _contextService.Get(authToken);
-
-						if (ctx == null)
-						{
-							ctx = new Context();
-						}
+						var ctx = new Context();
+						await _contextService.Get(authToken, ctx);
 						await client.SetContext(ctx);
-						break;
-					case "+":
-						// Adds a single listener with an optional filter. custom id required.
-						typeName = message["n"].Value<string>();
-						customId = message["ci"].Value<uint>();
-						roomId = message["id"].Value<ulong>();
-						filt = message["f"] as JObject;
-
-						if (customId != 0)
-						{
-							await RegisterRoomClient(typeName, customId, roomId, client, filt);
-						}
-
-						break;
-					case "+*":
-						// Add a set of listeners with filters. Usually happens after the websocket disconnected. id for each required.
-
-						handled = true;
-						jToken = message["set"];
-
-						if (jToken == null || jToken.Type != JTokenType.Array)
-						{
-							// Just ignore this message.
-							return;
-						}
-
-						jArray = jToken as JArray;
-
-						foreach (var entry in jArray)
-						{
-							var jo = entry as JObject;
-							typeName = jo["n"].Value<string>();
-							filt = jo["f"] as JObject;
-
-							customId = jo["ci"].Value<uint>();
-							roomId = jo["id"].Value<ulong>();
-
-							if (customId != 0)
-							{
-								// Add the client now:
-								await RegisterRoomClient(typeName, customId, roomId, client, filt);
-							}
-						}
-
-						break;
-					case "-":
-						// Removes a listener identified by its ID.
-						handled = true;
-						jToken = message["ci"];
-
-						if (jToken == null || jToken.Type != JTokenType.Integer)
-						{
-							// Just ignore this message.
-							return;
-						}
-
-						var cId = jToken.Value<uint>();
-
-						if (cId != 0)
-						{
-							// Get the listener by ID:
-							var listener = client.GetRoomById(cId);
-
-							if (listener != null)
-							{
-								listener.Remove();
-							}
-						}
-
 						break;
 				}
 
@@ -289,89 +199,6 @@ namespace Api.WebSockets
 
 			// Start it:
 			wsServer.Start();
-		}
-
-		/// <summary>
-		/// Gets meta by the given lowercase name.
-		/// </summary>
-		/// <param name="name"></param>
-		/// <returns></returns>
-		public NetworkRoomTypeMeta GetMeta(string name)
-		{
-			RemoteTypes.TryGetValue(name, out NetworkRoomTypeMeta meta);
-			return meta;
-		}
-
-		/// <summary>
-		/// The registered remote types in this websocket service. These types are things that end users can tune into updates from.
-		/// </summary>
-		public ConcurrentDictionary<string, NetworkRoomTypeMeta> RemoteTypes = new ConcurrentDictionary<string, NetworkRoomTypeMeta>();
-
-		/// <summary>
-		/// Forcefully empties the room of the given type.
-		/// </summary>
-		/// <param name="typeName"></param>
-		/// <param name="roomId"></param>
-		public void EmptyRoomLocally(string typeName, ulong roomId)
-		{
-			// First, get the type meta:
-			if (RemoteTypes.TryGetValue(typeName, out NetworkRoomTypeMeta meta))
-			{
-				// Ok - the type exists.
-				// Which room are we going for?
-				var room = meta.GetOrCreateRoom(roomId);
-
-				if (room != null)
-				{
-					room.EmptyLocally();
-				}
-			}
-		}
-
-		/// <summary>
-		/// Adds a network room client.
-		/// </summary>
-		/// <param name="typeName"></param>
-		/// <param name="customId"></param>
-		/// <param name="roomId"></param>
-		/// <param name="client"></param>
-		/// <param name="filter"></param>
-		public async ValueTask<UserInRoom> RegisterRoomClient(string typeName, uint customId, ulong roomId, WebSocketClient client, JObject filter = null)
-		{
-			// First, get the type meta:
-			if (RemoteTypes.TryGetValue(typeName, out NetworkRoomTypeMeta meta))
-			{
-				// Ok - the type exists.
-				// Which room are we going for?
-				var room = meta.GetOrCreateRoom(roomId);
-
-				if (room != null)
-				{
-					FilterBase perm = null;
-
-					if (!meta.IsMapping)
-					{
-						// Get perm:
-						perm = client.Context.Role.GetGrantRule(meta.LoadCapability);
-
-						if (perm == null)
-						{
-							// They have no visibility of this type - do nothing.
-							return null;
-						}
-
-						// Otherwise, ensure the cap is ready:
-						if (perm.RequiresSetup)
-						{
-							await perm.Setup();
-						}
-					}
-
-					return await room.Add(client, customId, perm, filter);
-				}
-			}
-			
-			return null;
 		}
 
 	}

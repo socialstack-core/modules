@@ -19,7 +19,7 @@ namespace Api.Payments
 		/// </summary>
 		public CouponService() : base(Events.Coupon)
         {
-			InstallAdminPages("Coupons", "fa:fa-rocket", new string[] { "id", "token" });
+			InstallAdminPages("Coupons", "fa:fa-ticket", ["id", "token"], null, "ecommerce");
 			
 			Events.Coupon.BeforeCreate.AddEventListener((Context context, Coupon coupon) => {
 				
@@ -44,43 +44,74 @@ namespace Api.Payments
 				}
 
 				// If this is a status update on a purchase which used a coupon, check if we need to reduce the max # of people.
-				if (toUpdate.Status != original.Status && toUpdate.Status == 202 && toUpdate.CouponId != 0)
+				if (toUpdate.Status != original.Status && (toUpdate.Status == 202 || toUpdate.Status == 201) && toUpdate.CouponId != 0)
 				{
 					// Coupon can now be considered to have been used.
 					var coupon = await Get(context, toUpdate.CouponId, DataOptions.IgnorePermissions);
-
-					if (coupon != null && coupon.MaxNumberOfPeople > 0)
-					{
-						// Future TODO: Ask the data API to decrease by 1 for large cluster concurrency.
-						var newMax = coupon.MaxNumberOfPeople - 1;
-
-						if (newMax <= 0)
-						{
-							// Disable it:
-							await Update(context, coupon, (Context c, Coupon cToUpdate, Coupon orig) =>
-							{
-
-								cToUpdate.MaxNumberOfPeople = 0;
-								cToUpdate.Disabled = true;
-
-							}, DataOptions.IgnorePermissions);
-						}
-						else
-						{
-							// Just decrease:
-							await Update(context, coupon, (Context c, Coupon cToUpdate, Coupon orig) =>
-							{
-
-								cToUpdate.MaxNumberOfPeople = newMax;
-
-							}, DataOptions.IgnorePermissions);
-						}
-					}
+					
+					// Coupon can now be considered to have been used.
+					await CheckMaxPeople(context, coupon);
 				}
 
 				return toUpdate;
 			});
 			
+			
+			Events.Purchase.BeforeCreate.AddEventListener(async (Context context, Purchase purchase) => {
+
+				if (purchase == null)
+				{
+					return null;
+				}
+
+				// If this is a status update on a purchase which used a coupon, check if we need to reduce the max # of people.
+				if (purchase.CouponId != 0)
+				{
+					// Coupon can now be considered to have been used.
+					var coupon = await Get(context, purchase.CouponId, DataOptions.IgnorePermissions);
+
+					// - Constraint check here -
+
+					if (purchase.Status == 202 || purchase.Status == 201)
+					{
+						await CheckMaxPeople(context, coupon);
+					}
+				}
+
+				return purchase;
+			});
+
+			
+		}
+
+		private async ValueTask CheckMaxPeople(Context context, Coupon coupon)
+		{
+			if (coupon is { MaxNumberOfPeople: > 0 })
+			{
+				var newMax = coupon.MaxNumberOfPeople - 1;
+
+				if (newMax <= 0)
+				{
+					// Disable it:
+					await Update(context, coupon, (Context c, Coupon cToUpdate, Coupon orig) =>
+					{
+
+						cToUpdate.MaxNumberOfPeople = 0;
+						cToUpdate.Disabled = true;
+
+					}, DataOptions.CheckNotChanged | DataOptions.IgnorePermissions);
+				}
+				else
+				{
+					// Just decrease:
+					await Update(context, coupon, (Context c, Coupon cToUpdate, Coupon orig) =>
+					{
+
+						cToUpdate.MaxNumberOfPeople = newMax;
+
+					}, DataOptions.CheckNotChanged | DataOptions.IgnorePermissions);
+				}
+			}
 		}
 	}
     

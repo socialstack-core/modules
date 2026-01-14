@@ -107,15 +107,10 @@ namespace Api.Users
 				}
 			};
 
-			var recipients = new List<Recipient>
-			{
-				recipient
-			};
-
 			_emails ??= Services.Get<EmailTemplateService>();
 
 			await _emails.SendAsync(
-				recipients,
+				recipient,
 				"verify_email"
 			);
 
@@ -137,7 +132,7 @@ namespace Api.Users
 		/// <returns>The user</returns>
 		public async ValueTask<User> VerifyEmail(Context context, User user, string newPassword)
 		{
-			var userToUpdate = await StartUpdate(context, user, DataOptions.IgnorePermissions);
+			var userToUpdate = StartUpdate(context, user, DataOptions.IgnorePermissions);
 
 			if(userToUpdate != null)
 			{

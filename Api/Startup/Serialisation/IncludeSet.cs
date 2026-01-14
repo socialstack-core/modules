@@ -1,9 +1,9 @@
 
 using Api.Contexts;
-using Api.Database;
 using Api.SocketServerLibrary;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -37,7 +37,7 @@ namespace Api.Startup
 		/// <summary>
 		/// An allocating call which builds the tree of includes.
 		/// </summary>
-		public async ValueTask Parse()
+		public void Parse()
 		{
 			RootInclude = new InclusionNode(RelativeTo, null);
 			RootInclude.Service = RelativeTo.Service;
@@ -50,18 +50,47 @@ namespace Api.Startup
 				var fieldName = IncludeString.Substring(start, comma - start);
 
 				// Add the given field:
-				await Add(fieldName);
+				Add(fieldName);
 
 				// Next comma:
 				start = comma + 1;
 				comma = IncludeString.IndexOf(',', start);
 			}
 
-			await Add(start == 0 ? IncludeString : IncludeString.Substring(start));
+			Add(start == 0 ? IncludeString : IncludeString.Substring(start));
 
 			// Bake the root:
 			int outputIndex = -1;
 			RootInclude.Bake(ref outputIndex);
+
+			if (RootInclude.SecondaryRoot != null)
+			{
+				var secondary = RootInclude.SecondaryRoot;
+
+				foreach (var kvp in secondary.UniqueChildNodes)
+				{
+					outputIndex = -1;
+					kvp.Value.Bake(ref outputIndex);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Gets the root inclusion node for a secondary set by its lowercase name.
+		/// </summary>
+		/// <param name="lcName"></param>
+		/// <returns></returns>
+		public InclusionNode GetSecondaryNode(string lcName)
+		{
+			var secondary = RootInclude.SecondaryRoot;
+
+			if (secondary == null)
+			{
+				return null;
+			}
+
+			secondary.UniqueChildNodes.TryGetValue(lcName, out InclusionNode node);
+			return node;
 		}
 
 		/// <summary>
@@ -73,7 +102,7 @@ namespace Api.Startup
 		/// Adds a field to the set. It can contain a * (or be just "*"), but not after a mixed content type field.
 		/// </summary>
 		/// <param name="rootRelativeFieldName"></param>
-		private async ValueTask Add(string rootRelativeFieldName)
+		private void Add(string rootRelativeFieldName)
 		{
 			var pieces = rootRelativeFieldName.Split('.');
 
@@ -91,6 +120,21 @@ namespace Api.Startup
 
 				// Trim the part:
 				currentName = currentName.Trim();
+
+				if (current.IsSecondaryRoot && current.RelativeTo != null)
+				{
+					// Only one valid source for currentName.
+
+					if (
+						!current.RelativeTo.SecondaryResultNameMap.TryGetValue(currentName, out ContentField secondaryField))
+					{
+						throw new PublicException("Your request tried to use '" + currentName + "' in include '" + rootRelativeFieldName + "' but it doesn't exist", "include_no_exist");
+					}
+
+					// Add field:
+					current = current.Add(secondaryField, rootRelativeFieldName);
+					continue;
+				}
 
 				if (current.TypeSource != null)
 				{
@@ -132,7 +176,13 @@ namespace Api.Startup
 					{
 						foreach (var field in current.RelativeTo.VirtualList)
 						{
-							await current.Add(field, rootRelativeFieldName);
+							current.Add(field, rootRelativeFieldName);
+						}
+
+						if (!current.RelativeTo.IsContentType)
+						{
+							// ListAs fields are not present on non-content types (because Mappings doesn't exist).
+							break;
 						}
 					}
 
@@ -151,7 +201,7 @@ namespace Api.Startup
 							}
 						}
 
-						await current.Add(kvp.Value, rootRelativeFieldName);
+						current.Add(kvp.Value, rootRelativeFieldName);
 					}
 
 					// Can't continue (at least, not in this version) because 'current' is now a set of nodes.
@@ -159,15 +209,30 @@ namespace Api.Startup
 				}
 
 				// Is it a global field?
-				if (ContentFields.GlobalVirtualFields.TryGetValue(currentName, out ContentField globalField))
+				var globalPermitted = true;
+
+				if (current.RelativeTo != null && !current.RelativeTo.IsContentType)
+				{
+					// Non-content types do not support Mappings and thus cannot use these global list fields.
+					globalPermitted = false;
+				}
+
+				if (globalPermitted && ContentFields.GlobalVirtualFields.TryGetValue(currentName, out ContentField globalField))
 				{
 					// Yes! it's a global - these ones are available on all types. They're usually lists, like tags or categories.
 					// Service and type are required for these.
-					current = await current.Add(globalField, rootRelativeFieldName);
+					current = current.Add(globalField, rootRelativeFieldName);
 					continue;
 				}
 
-				// It must be a local field, otherwise it doesn't exist:
+				// How about the special 'secondary' sub-root node?
+				if (i == 0 && currentName == "secondary" && current.RelativeTo != null)
+				{
+					current = current.AddSecondary();
+					continue;
+				}
+
+				// It must be a local virtual field, otherwise it doesn't exist:
 				if (
 					current.RelativeTo == null || 
 					!current.RelativeTo.LocalVirtualNameMap.TryGetValue(currentName, out ContentField localField))
@@ -176,11 +241,59 @@ namespace Api.Startup
 				}
 
 				// Add local field:
-				current = await current.Add(localField, rootRelativeFieldName);
+				current = current.Add(localField, rootRelativeFieldName);
 			}
 
 		}
 		
+	}
+
+	/// <summary>
+	/// A collectible include field.
+	/// </summary>
+	public struct CollectibleIncludeField
+	{
+		/// <summary>
+		/// The ID field itself.
+		/// </summary>
+		public ContentField IdField;
+
+		/// <summary>
+		/// ,"includeFieldName":
+		/// </summary>
+		public string JsonFieldHeading;
+
+		private bool IsDynamicInclude;
+
+		/// <summary>
+		/// Creates a new collectible field.
+		/// </summary>
+		/// <param name="idField"></param>
+		/// <param name="fieldName">The original virtual field name.</param>
+		public CollectibleIncludeField(ContentField idField, string fieldName)
+		{
+			IdField = idField;
+			var lcFieldName = char.ToLower(fieldName[0]) + fieldName.Substring(1);
+			JsonFieldHeading = ",\"" + lcFieldName + "\":";
+			IsDynamicInclude = idField.VirtualInfo != null && idField.VirtualInfo.DynamicTypeField != null;
+		}
+
+		/// <summary>
+		/// Rent an ID collector for this field.
+		/// </summary>
+		/// <returns></returns>
+		public IDCollector RentCollector()
+		{
+			if (IsDynamicInclude)
+			{
+				var multiCollector = IdField.RentMultiCollector();
+				multiCollector.JsonFieldHeading = JsonFieldHeading;
+				return multiCollector;
+			}
+			var collector = IdField.RentCollector();
+			collector.JsonFieldHeading = JsonFieldHeading;
+			return collector;
+		}
 	}
 
 	/// <summary>
@@ -189,9 +302,34 @@ namespace Api.Startup
 	public class InclusionNode
 	{
 		/// <summary>
+		/// ,"includes":[ 
+		/// </summary>
+		private static readonly byte[] IncludesHeader = new byte[] {
+		(byte)',', (byte)'"', (byte)'i', (byte)'n', (byte)'c', (byte)'l', (byte)'u', (byte)'d', (byte)'e', (byte)'s', (byte)'"', (byte)':', (byte)'['
+	};
+
+		private static readonly byte[] IncludesFooter = new byte[] { (byte)']', (byte)'}' };
+
+		/// <summary>
+		/// End of include block. ]}.
+		/// </summary>
+		private static readonly byte[] IncludesValueFooter = new byte[] { (byte)']', (byte)'}' };
+
+		/// <summary>
+		/// End of dynamic include block. }}.
+		/// </summary>
+		private static readonly byte[] IncludesDynamicValueFooter = new byte[] { (byte)'}', (byte)'}' };
+
+		/// <summary>
 		/// The field that sources data for this inclusion node.
 		/// </summary>
 		public ContentField HostField;
+
+		/// <summary>
+		/// The first character lowercased field name of the inclusion. Not to be confused with the inclusion name.
+		/// The inclusion name can be nested e.g. "tags.creatorUser" whilst the field name is just "creatorUser" or "tags".
+		/// </summary>
+		public string FieldName;
 
 		/// <summary>
 		/// The service to use to resolve the actual value of this node.
@@ -248,7 +386,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Id fields to create collectors for whilst this include node is being executed.
 		/// </summary>
-		public ContentField[] IdFields;
+		public CollectibleIncludeField[] IdFields;
 
 		/// <summary>
 		/// The include header for this inclusion node.
@@ -271,6 +409,11 @@ namespace Api.Startup
 		public InclusionNode Parent;
 
 		/// <summary>
+		/// The secondary result set root if there is one.
+		/// </summary>
+		public InclusionNode SecondaryRoot;
+
+		/// <summary>
 		/// The index of this inclusion in the output inclusion array.
 		/// </summary>
 		public int InclusionOutputIndex = -1;
@@ -281,40 +424,183 @@ namespace Api.Startup
 		public ContentField MappingTargetField;
 
 		/// <summary>
-		/// Mapping target field name
+		/// True if this node is the secondary result set root. Only secondary result sets are valid includes on it.
 		/// </summary>
-		public string MappingTargetFieldName;
-
-		/// <summary>
-		/// The mapping service for this list node.
-		/// </summary>
-		public AutoService MappingService;
+		public bool IsSecondaryRoot;
 
 		/// <summary>
 		/// Create a new node
 		/// </summary>
 		/// <param name="relativeTo"></param>
 		/// <param name="parent"></param>
-		public InclusionNode(ContentFields relativeTo, InclusionNode parent)
+		/// <param name="isSecondaryRoot"></param>
+		public InclusionNode(ContentFields relativeTo, InclusionNode parent, bool isSecondaryRoot = false)
 		{
 			RelativeTo = relativeTo;
 			Parent = parent;
+			IsSecondaryRoot = isSecondaryRoot;
+		}
+
+		/// <summary>
+		/// Used to execute includes.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="targetStream"></param>
+		/// <param name="writer"></param>
+		/// <param name="firstCollector"></param>
+		/// <param name="flags"></param>
+		/// <returns></returns>
+		public async ValueTask ExecuteIncludes(Context context, Stream targetStream, Writer writer, IDCollector firstCollector, ContextFlags flags)
+		{
+			flags |= ContextFlags.IsIncluded;
+
+			// Now all IDs that are needed have been collected,
+			// go through the inclusions and perform the include.
+			var includesToExecute = ChildNodes;
+
+			for (var i = 0; i < includesToExecute.Length; i++)
+			{
+				var toExecute = includesToExecute[i];
+
+				if (toExecute.InclusionOutputIndex != 0)
+				{
+					// Comma between includes. Exists for all nodes except the very first include (output index 0).
+					writer.Write((byte)',');
+				}
+
+				// Write the inclusion node header:
+				var h = toExecute.IncludeHeader;
+				writer.Write(h, 0, h.Length);
+
+				// Get ID collector:
+				var collector = firstCollector;
+				var curIndex = 0;
+
+				// A linked list is by far the best structure here - the set is usually tiny and it avoids allocating.
+				while (curIndex < toExecute.CollectorIndex)
+				{
+					curIndex++;
+					collector = collector.NextCollector;
+				}
+
+				// Spawn child collectors now, if we need any.
+				var childCollectors = toExecute.GetCollectors();
+
+				if (toExecute.TypeSource != null)
+				{
+					// The collector in this case is a MultiIdCollector.
+					// Ask each service in it (which can be none) to output a JSON list.
+					var multiCollector = collector as MultiIDCollector;
+
+					if (multiCollector != null)
+					{
+						for (var n = 0; n < multiCollector.CollectorFill; n++)
+						{
+							var cbt = multiCollector.CollectorsByType[n];
+							if (n == 0)
+							{
+								writer.Write((byte)'\"');
+							}
+							else
+							{
+								writer.WriteASCII(",\"");
+							}
+							writer.WriteASCII(cbt.Service.EntityName);
+
+							writer.WriteASCII("\":{\"results\":[");
+
+							// Load the sub-include set:
+							if (toExecute.DynamicChildIncludes != null)
+							{
+								var childIncludeSet = cbt.Service.GetContentFields().GetIncludeSet(toExecute.DynamicChildIncludes);
+
+								if (childIncludeSet != null)
+								{
+									// We've got some includes to add.
+
+									// First we need to obtain ID collectors, and then collect the IDs.
+									var childRoot = childIncludeSet.RootInclude;
+
+									var firstChildCollector = childRoot.GetCollectors();
+
+									await cbt.Service.OutputJsonList(
+										context,
+										firstChildCollector,
+										cbt.Collector,
+										writer, flags,
+										childIncludeSet.RootInclude.FunctionalIncludes
+									);
+
+									writer.Write((byte)']');
+									// Write the includes header, then write out the data so far.
+									writer.Write(IncludesHeader, 0, 13);
+
+									if (childRoot.ChildNodes != null && childRoot.ChildNodes.Length > 0)
+									{
+										// NB: This will release the child collectors for us.
+										await childRoot.ExecuteIncludes(context, targetStream, writer, firstChildCollector, flags);
+									}
+
+									writer.Write(IncludesFooter, 0, 2);
+								}
+								else
+								{
+									await cbt.Service.OutputJsonList(context, null, cbt.Collector, writer, flags, null);
+									writer.Write(IncludesValueFooter, 0, 2);
+								}
+							}
+							else
+							{
+								await cbt.Service.OutputJsonList(context, null, cbt.Collector, writer, flags, null);
+								writer.Write(IncludesValueFooter, 0, 2);
+							}
+						}
+					}
+
+					// End of this include.
+					writer.Write(IncludesDynamicValueFooter, 0, 2);
+
+				}
+				else
+				{
+					// Directly use IDs in collector with the service.
+					await toExecute.Service.OutputJsonList(context, childCollectors, collector, writer, flags, toExecute.FunctionalIncludes);
+
+					// End of this include.
+					writer.Write(IncludesValueFooter, 0, 2);
+				}
+
+				// Did it have any child nodes? If so, execute those as well.
+				// Above we will have collected the IDs that the children need.
+				if (toExecute.ChildNodes != null && toExecute.ChildNodes.Length > 0)
+				{
+					// NB: This will release the child collectors for us.
+					await toExecute.ExecuteIncludes(context, targetStream, writer, childCollectors, flags);
+				}
+			}
+
+			// Release the collectors:
+			var current = firstCollector;
+
+			while (current != null)
+			{
+				var next = current.NextCollector;
+				current.Release();
+				current = next;
+			}
 		}
 
 		/// <summary>
 		/// Sets this include node as a ListAs with the given header info.
 		/// </summary>
 		/// <param name="includedAs">The raw text in the include string that this include node came from.</param>
-		/// <param name="listAs"></param>
-		public void SetHeader(string includedAs, string listAs)
+		/// <param name="fieldName"></param>
+		public void SetHeader(string includedAs, string fieldName)
 		{
-			if (string.IsNullOrEmpty(listAs))
+			if (string.IsNullOrEmpty(fieldName))
 			{
 				throw new Exception("Can't ListAs() a blank field name. It's required.");
 			}
-
-			// lc first:
-			var fieldName = char.ToLower(listAs[0]) + listAs.Substring(1);
 
 			var header = "{\"name\":\"" + includedAs + "\",\"field\":\"" + fieldName + "\"";
 
@@ -323,54 +609,15 @@ namespace Api.Startup
 				header += ",\"on\":" + Parent.InclusionOutputIndex;
 			}
 
-			if (MappingService == null)
+			if (TypeSource != null)
 			{
-				var mapField = char.ToLower(MappingTargetFieldName[0]) + MappingTargetFieldName.Substring(1);
-				header += ",\"map\":\"" + mapField + "\",\"values\":[";
+				// Multi include
+				header += ",\"values\":{";
 			}
 			else
 			{
-				header += ",\"map\":[";
+				header += ",\"values\":[";
 			}
-
-			_includeHeader = System.Text.Encoding.UTF8.GetBytes(header);
-		}
-
-		/// <summary>
-		/// Sets this include node as a virtual field with the given header info.
-		/// </summary>
-		/// <param name="includedAs"></param>
-		/// <param name="fieldName"></param>
-		/// <param name="srcField"></param>
-		public void SetHeader(string includedAs, string fieldName, string srcField)
-		{
-			// lc first:
-			var fieldNameLC = char.ToLower(fieldName[0]) + fieldName.Substring(1);
-			var srcFieldLC = char.ToLower(srcField[0]) + srcField.Substring(1);
-
-			var header = "{\"name\":\"" + includedAs + "\",\"field\":\"" + fieldNameLC + "\",\"src\":\"" + srcFieldLC + "\"";
-
-			if (TypeSource != null)
-			{
-				var typeSourceLC = char.ToLower(TypeSource.Name[0]) + TypeSource.Name.Substring(1);
-				header += ",\"srcType\":\"" + typeSourceLC + "\"";
-
-				if (Parent.InclusionOutputIndex != -1)
-				{
-					header += ",\"on\":" + Parent.InclusionOutputIndex;
-				}
-
-				// values is an object on this one.
-				header += ",\"values\":{";
-				_includeHeader = System.Text.Encoding.UTF8.GetBytes(header);
-				return;
-			}
-			else if (Parent.InclusionOutputIndex != -1)
-			{
-				header += ",\"on\":" + Parent.InclusionOutputIndex;
-			}
-
-			header += ",\"values\":[";
 
 			_includeHeader = System.Text.Encoding.UTF8.GetBytes(header);
 		}
@@ -403,15 +650,69 @@ namespace Api.Startup
 		}
 
 		/// <summary>
-		/// Add to tree
+		/// Adds the secondary root node set.
 		/// </summary>
-		/// <param name="field"></param>
-		/// <param name="includeName">The original name of the include (in the include string).</param>
-		public async ValueTask<InclusionNode> Add(ContentField field, string includeName)
+		/// <returns></returns>
+		public InclusionNode AddSecondary()
 		{
 			if (UniqueChildNodes == null)
 			{
 				throw new System.Exception("Can't add to an include set after it has been baked.");
+			}
+
+			if (SecondaryRoot != null)
+			{
+				return SecondaryRoot;
+			}
+
+			var result = new InclusionNode(RelativeTo, this, true);
+			result.IncludeName = "secondary";
+			SecondaryRoot = result;
+			return result;
+		}
+
+		/// <summary>
+		/// Add to tree
+		/// </summary>
+		/// <param name="field"></param>
+		/// <param name="includeName">The original name of the include (in the include string).</param>
+		public InclusionNode Add(ContentField field, string includeName)
+		{
+			if (UniqueChildNodes == null)
+			{
+				throw new System.Exception("Can't add to an include set after it has been baked.");
+			}
+
+			if (field.SecondaryInfo != null)
+			{
+				// This is a secondary result set. It is not necessarily even a content type.
+
+				var secName = field.SecondaryInfo.FieldName;
+
+				if (UniqueChildNodes.TryGetValue(secName, out InclusionNode secResult))
+				{
+					return secResult;
+				}
+
+				var camelCaseName = Char.ToLowerInvariant(secName[0]) + secName.Substring(1);
+
+				if (field.SecondaryInfo.Service != null)
+				{
+					// Regular include node from here.
+					secResult = new InclusionNode(field.SecondaryInfo.Service.GetContentFields(), this);
+					secResult.Service = field.SecondaryInfo.Service;
+				}
+				else
+				{
+					// Non-content type secondary result set. It only has local includes, nothing else.
+					var cf = new ContentFields(field.SecondaryInfo.Type, false);
+					secResult = new InclusionNode(cf, this);
+				}
+
+				secResult.HostField = field;
+				secResult.IncludeName = includeName;
+				UniqueChildNodes[secName] = secResult;
+				return secResult;
 			}
 
 			var name = field.VirtualInfo.FieldName;
@@ -433,7 +734,9 @@ namespace Api.Startup
 				var baseGenType = field.VirtualInfo.ValueGeneratorType;
 				var typeToInstance = field.VirtualInfo.ValueGeneratorType.MakeGenericType(Service.ServicedType, Service.IdType);
 				var valueGenerator = Activator.CreateInstance(typeToInstance); // as VirtualFieldValueGenerator<T, ID>;
-				functionalInclude.ValueGenerator = valueGenerator;
+				var baseValueGen = valueGenerator as VirtualFieldValueGenerator;
+				baseValueGen.SetService(Service);
+				functionalInclude.ValueGenerator = baseValueGen;
 
 				// Doesn't generate a node because nested functional includes don't make sense.
 				return null;
@@ -462,15 +765,7 @@ namespace Api.Startup
 			result.HostField = field;
 			result.IncludeName = includeName;
 			UniqueChildNodes[name] = result;
-
-			if (field.VirtualInfo.IsList)
-			{
-				var mapInfo = await field.GetOptionalMappingService(RelativeTo);
-				result.MappingService = mapInfo.Service;
-				result.MappingTargetField = mapInfo.TargetField;
-				result.MappingTargetFieldName = mapInfo.TargetFieldName;
-			}
-
+			
 			return result;
 		}
 
@@ -508,23 +803,12 @@ namespace Api.Startup
 
 			if (HostField != null)
 			{
-				if (HostField.VirtualInfo.IsList)
-				{
-					SetHeader(IncludeName, HostField.VirtualInfo.FieldName);
-				}
-				else
-				{
-					// Regular virtual field:
-					SetHeader(IncludeName, HostField.VirtualInfo.FieldName, HostField.VirtualInfo.IdSource.Name);
-				}
+				var fieldName = HostField.VirtualInfo != null ? HostField.VirtualInfo.FieldName : HostField.SecondaryInfo.FieldName;
+				FieldName = char.ToLower(fieldName[0]) + fieldName.Substring(1);
+				SetHeader(IncludeName, FieldName);
 			}
-			
-			// Next, we need to collect the unique set of fields from which IDs will be collected.
-			// This identifies how many ID collectors are required, and what type/ field they'll collect from.
-			// The ID collectors themselves form a stack style linked list to avoid 
-			// allocation of anything other than the collectors themselves (which are also pooled).
-			var idFields = new Dictionary<string, int>();
-			var idFieldList = new List<ContentField>();
+
+			var idFieldList = new List<CollectibleIncludeField>();
 
 			for (var n = 0; n < ChildNodes.Length; n++)
 			{
@@ -532,59 +816,43 @@ namespace Api.Startup
 
 				// The ID source field is:
 				var hostField = node.HostField;
-				var idSource = hostField.VirtualInfo.IdSource;
 
+				if (hostField.VirtualInfo.IsList)
+				{
+					// List fields.
+
+					// The host field itself is the thing to emit and collect.
+					node.CollectorIndex = idFieldList.Count;
+					idFieldList.Add(new CollectibleIncludeField(hostField, hostField.VirtualInfo.FieldName));
+					continue;
+				}
+				
 				if (hostField.VirtualInfo.DynamicTypeField != null)
 				{
-					// Dynamic includes. The ID source is actually a tuple - type and content ID fields.
-					// In this scenario, the host field *is* the ID source.
-					var fieldName = hostField.Name.ToLower();
-
-					if (!idFields.TryGetValue(fieldName, out int index))
-					{
-						index = idFieldList.Count;
-						idFields[fieldName] = index;
-						idFieldList.Add(hostField);
-					}
-
-					node.CollectorIndex = index;
+					// Dynamic includes.
+					// The host field itself is the thing to emit and collect.
+					node.CollectorIndex = idFieldList.Count;
+					idFieldList.Add(new CollectibleIncludeField(hostField, hostField.VirtualInfo.FieldName));
 					continue;
 				}
 
-				if (idSource == null && hostField.VirtualInfo.IdSourceField != null)
-				{
-					// This is where the host field is e.g. a global one (such as Tags). It knows the id source field (simply "Id" for tags)
-					// but not the actual field, because they're global - they're on every type (multiple fields called Id).
+				var idSource = hostField.VirtualInfo.IdSource;
 
-					// So, relativeTo ideally exists at this point such that we can pre-resolve the actual Id field to use.
-					// Note that it is null if the parent is a mixed content field.
-					if (RelativeTo == null)
-					{
-						// Not supported yet! E.g. ContentUser on the content of a story (which could be a video, or a photo, or just text - etc).
-						throw new PublicException("Unsupported include use case. If you would like it, please do ask!", "include_unsupported");
-					}
-					else
-					{
-						RelativeTo.NameMap.TryGetValue(hostField.VirtualInfo.IdSourceField.ToLower(), out idSource);
-					}
+				if (idSource == null)
+				{
+					throw new PublicException(
+						"Unable to use an include '" + node.IncludeName + "' as it appears to be configured incorrectly (missing an ID source)", 
+						"include/invalid"
+					);
 				}
 
-				if (idSource != null)
-				{
-					// Collecting an ID from this field.
-					// Multiple things might want an ID from the same field (It happens with e.g. Tags + Categories)
-					// so this one off dictionary makes sure IDs can be efficiently collected for all future requests.
-					var fieldName = idSource.Name.ToLower();
+				// Collecting an ID from this field.
+				// Multiple things might want an ID from the same field (It happens with e.g. Tags + Categories)
+				// so this one off dictionary makes sure IDs can be efficiently collected for all future requests.
+				var fieldName = idSource.Name.ToLower();
 
-					if (!idFields.TryGetValue(fieldName, out int index))
-					{
-						index = idFieldList.Count;
-						idFields[fieldName] = index;
-						idFieldList.Add(idSource);
-					}
-
-					node.CollectorIndex = index;
-				}
+				node.CollectorIndex = idFieldList.Count;
+				idFieldList.Add(new CollectibleIncludeField(idSource, hostField.VirtualInfo.FieldName));
 			}
 
 			// We've now got the unique set of fields to collect IDs from.
@@ -593,22 +861,6 @@ namespace Api.Startup
 			// Note that here we just store a _description_ of the collectors - not actually create them.
 			// That's because include nodes just describe the structure, rather than actually directly execute the inclusions.
 			IdFields = idFieldList.ToArray();
-
-			if (MappingService != null)
-			{
-				// Also need 1 ID collector on the mapping service as well (it collects the target IDs).
-
-				// Note that it won't ever already be in there as the mapping type is something different.
-				idFieldList.Add(MappingTargetField);
-
-				// Resolve to concrete IDCollector<T> types for each of the ID fields.
-				TypeIOEngine.GenerateIDCollectors(idFieldList.ToArray());
-			}
-			else
-			{
-				// Resolve to concrete IDCollector<T> types for each of the ID fields.
-				TypeIOEngine.GenerateIDCollectors(IdFields);
-			}
 		}
 	}
 
@@ -628,7 +880,7 @@ namespace Api.Startup
 		/// For example, you ask for pages and include tags.primaryUrl. The root include node service is the pageservice, and the 1st child (tags) service is the tagService.
 		/// The value generator for tags.primaryUrl is therefore a VirtualFieldValueGenerator for the tag type.
 		/// </summary>
-		public object ValueGenerator;
+		public VirtualFieldValueGenerator ValueGenerator;
 
 		/// <summary>
 		/// Sets the header for this node.

@@ -28,11 +28,8 @@ namespace Api.Translate
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("prepopulate")]
-        public async Task<object> PrePopulate()
+        public async ValueTask<object> PrePopulate(Context context)
         {
-            // Get context:
-            var context = await Request.GetContext();
-            
             // Admin and developer only:
             if (!context.Role.CanViewAdmin)
             {
@@ -56,11 +53,8 @@ namespace Api.Translate
         /// </summary>
         /// <returns></returns>
         [HttpGet("potfiles")]
-        public async Task<object> LoadPotFiles()
+        public async ValueTask<object> LoadPotFiles(Context context)
         {
-            // Get context:
-            var context = await Request.GetContext();
-
             // Admin and developer only:
             if (!context.Role.CanViewAdmin)
             {

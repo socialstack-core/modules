@@ -1,0 +1,395 @@
+import ProductTable from 'UI/Payments/ProductTable';
+import Input from 'UI/Input';
+import Button from 'UI/Button';
+import Link from 'UI/Link';
+import Form from 'UI/Form';
+import Alert from 'UI/Alert';
+import Loading from 'UI/Loading';
+import { useState, useEffect } from 'react';
+import { useSession } from 'UI/Session';
+import { useRouter } from 'UI/Router';
+import useApi from 'UI/Functions/UseApi';
+import { useCart } from 'UI/Payments/CartSession';
+import shoppingCartApi, { GuestDetails, PurchaseAndAction} from 'Api/ShoppingCart';
+import deliveryOptionApi, { CartEstimation, DeliveryOption } from 'Api/DeliveryOption';
+import addressApi, { Address } from 'Api/Address';
+import { PurchaseStatus } from 'Api/Purchase';
+import { ApiList } from 'UI/Functions/WebRequest';
+import AddressSelection from './AddressSelection';
+import CheckoutSection from './CheckoutSection';
+import ChallengeChecker from 'UI/Payments/Approval/ChallengeChecker';
+import Challenge from 'UI/Payments/Approval/Challenge';
+import Modal from 'UI/Modal';
+import DeliveryOptions from './DeliveryOptions';
+
+/**
+ * Props for the Checkout component.
+ */
+interface CheckoutProps {
+	canPayLater: (session:Session) => boolean;
+}
+
+/**
+ * The Cart React component.
+ * @param props React props.
+ */
+const Checkout: React.FC<CheckoutProps> = (props) => {
+	const { canPayLater } = props;
+	const { session } = useSession();
+	const { user ,locale} = session;
+	const { setPage, pageState } = useRouter();
+	const { query } = pageState;
+	var { shoppingCart, cartIsEmpty, emptyCart, lessTax, getCartId, cartIsDigitalOnly, addGuestDetails } = useCart();
+	
+	// Does the cart contain any physical products or not?
+	const downloadsOnly = cartIsDigitalOnly ? cartIsDigitalOnly() : false;
+
+	const deferPayment = user ? (canPayLater ? canPayLater(session) : false) : false;
+	
+	const [deliveryAddress, setDeliveryAddress] = useState<Address | undefined>();
+	const [sameAsDelivery, setSameAsDelivery] = useState<boolean>(true);
+	const [billingAddress, setBillingAddress] = useState<Address | undefined>();
+    const [savedAddresses, setSavedAddresses] = useState<Address[] | undefined>();
+	
+	const [deliveryOption, setDeliveryOption] = useState<DeliveryOption | undefined>();
+	const [estimates, setEstimates] = useState<ApiList<DeliveryOption> | undefined>();
+
+	const [challengeMetaData , setChallengeMetaData] = useState<PurchaseAndAction | undefined>();
+
+	// TODO: currently this infers acceptance as soon as the order is confirmed;
+	//       allow option to display this as a checkbox which needs to be actively selected
+	const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
+
+	enum CheckoutStep {
+		OrderContents,
+		DeliveryAddress,
+		BillingAddress,
+		DeliveryDate,
+		PaymentMethod,
+		TermsConditions,
+		TransactionApproval
+	}
+
+	let currentStep: CheckoutStep = CheckoutStep.DeliveryAddress;
+
+	if (!!deliveryAddress) {
+		currentStep = CheckoutStep.BillingAddress;
+
+		if (sameAsDelivery || !!billingAddress) {
+			currentStep = CheckoutStep.DeliveryDate;
+
+			if (!!deliveryOption || downloadsOnly) {
+				currentStep = CheckoutStep.PaymentMethod;
+
+				if (!!challengeMetaData) {
+					currentStep = CheckoutStep.TermsConditions;
+				} 
+				else 
+				{
+					currentStep = CheckoutStep.TransactionApproval;
+				}
+			}
+		}
+	}
+
+	// Gets the billing and delivery addresses for a user 
+	useApi(() => !user ? Promise.resolve(undefined) : addressApi
+		.getCartAddresses()
+		.then(addrSet => {
+			var deliveryAddr = addrSet.results.find(addr => addr.isDefaultDeliveryAddress);
+			var billingAddr = addrSet.results.find(addr => addr.isDefaultBillingAddress);
+			
+			setDeliveryAddress(deliveryAddr);
+			setBillingAddress(billingAddr);
+            setSavedAddresses(addrSet.results);
+
+			if (billingAddr) {
+				setSameAsDelivery((billingAddr.anonKey == deliveryAddr?.anonKey));
+			} else {
+				setSameAsDelivery(true);
+			}
+
+		}
+	), []);
+	
+	// Gets the billing and delivery addresses for guests
+	useEffect(() => {
+
+		if (!shoppingCart || !shoppingCart?.guestDetailsJson || shoppingCart.guestDetailsJson.length === 0 ) {
+			return;
+		}
+
+		var guestDetails = JSON.parse(shoppingCart.guestDetailsJson);
+
+		if(!guestDetails || !guestDetails.addresses || guestDetails.addresses.length === 0){
+			return;
+		}
+
+		var deliveryAddr = guestDetails.addresses.find((addr: Address) => addr.isDefaultDeliveryAddress);
+		var billingAddr = guestDetails.addresses.find((addr: Address)  => addr.isDefaultBillingAddress);
+		
+		setDeliveryAddress(deliveryAddr);
+		setBillingAddress(billingAddr);
+		setSavedAddresses(guestDetails.addresses);
+
+		if (billingAddr) {
+			setSameAsDelivery((billingAddr.anonKey == deliveryAddr?.anonKey));
+		} else {
+			setSameAsDelivery(true);
+		}		
+		
+	}, [shoppingCart]);	
+	
+		
+	// Load delivery options for this cart
+	useEffect(() => {
+		var cartRef = getCartId!();
+		
+		if (!deliveryAddress || downloadsOnly) {
+			return;
+		}
+
+		let cartEstimation:CartEstimation = {};
+
+		cartEstimation.deliveryAddressKey = deliveryAddress.anonKey; 
+
+		deliveryOptionApi.estimate(cartRef.id, cartRef.anonKey, cartEstimation).then(estimates => {
+			if (estimates.results.length > 0) {
+				// Pick the first one by default always:
+				setDeliveryOption(estimates.results[0]);
+			}
+
+			setEstimates(estimates);
+		});
+		
+	}, [deliveryAddress]);
+	
+	// Update in cart delivery address after change/edit for guests 
+	useEffect(() => {
+		if(user || !addGuestDetails || !deliveryAddress || !savedAddresses) {
+			return;
+		}
+
+		if (!shoppingCart || !shoppingCart?.guestDetailsJson || shoppingCart.guestDetailsJson.length === 0 ) {
+			return;
+		}
+
+		var guestDetails:GuestDetails = JSON.parse(shoppingCart.guestDetailsJson);
+
+		if(!guestDetails || !guestDetails.addresses || guestDetails.addresses.length === 0) {
+			return;
+		}
+
+		const areAddressesEqual = JSON.stringify(guestDetails.addresses) === JSON.stringify(savedAddresses);
+		if(areAddressesEqual) {
+			return;
+		}
+
+		console.log('updating guest addresses in cart', savedAddresses);	
+		
+		guestDetails.addresses = savedAddresses;
+		
+		// save the updated guest details into the cart
+		addGuestDetails(guestDetails).then(() => {
+			// continue to guest checkout
+			console.log('updated cart with guest details');
+		}).catch(e => {
+			console.log('failed to add guest details to cart', e);
+		});
+
+	}, [savedAddresses]);
+
+	if (user && !savedAddresses) {
+		// Addresses or delivery options currently loading
+		return <div className="payment-checkout">
+			<Loading />
+		</div>;
+	}
+
+	if (!cartIsEmpty || cartIsEmpty()) {
+		return <div className="payment-checkout">
+			<Alert type='info'>
+				{`Your cart is currently empty`}
+			</Alert>
+		</div>;
+	}
+
+	return <>
+		<div className="payment-checkout">
+			<h1 className="payment-checkout__title">
+				{`Checkout`}
+			</h1>
+			<ol className="payment-checkout__steps">
+				<li>
+					{/* order contents */}
+					<CheckoutSection title={`Order contents`} enabled={true}>
+						<ProductTable shoppingCart={shoppingCart} readOnly lessTax={lessTax} />
+					</CheckoutSection>
+				</li>
+
+				<li>
+					{/* delivery address */}
+					<AddressSelection selectedTitle={`Delivering to`} unselectedTitle={`Select a delivery address`}
+						name='delivery' canAdd={user} savedAddresses={savedAddresses} 
+						value={deliveryAddress} setValue={setDeliveryAddress} setSavedAddresses={setSavedAddresses}addressType='delivery'
+						enabled={true}
+					/>
+				</li>
+
+				<li className={currentStep < CheckoutStep.BillingAddress ? "payment-checkout__step--disabled" : ""}>
+					{/* billing currentStep */}
+					<AddressSelection selectedTitle={`Billing Address`} unselectedTitle={`Select a billing address`}
+						name='billing' canAdd={user} savedAddresses={savedAddresses}
+						value={billingAddress} setValue={setBillingAddress} setSavedAddresses={setSavedAddresses}	
+						hasSame={true} isSame={sameAsDelivery} setSameAs={setSameAsDelivery} addressType='billing'
+						enabled={currentStep >= CheckoutStep.BillingAddress}
+					/>
+				</li>
+
+				<li className={currentStep < CheckoutStep.DeliveryDate ? "payment-checkout__step--disabled" : ""}>
+					{/* delivery date */}
+					<CheckoutSection title={`Delivery`} enabled={currentStep >= CheckoutStep.DeliveryDate}>
+						{estimates ? <DeliveryOptions estimates={estimates} shoppingCart={shoppingCart} locale={locale} deliveryOption={deliveryOption} setDeliveryOption={setDeliveryOption}/> : <Loading />}
+					</CheckoutSection>
+				</li>
+			</ol>
+			<Form
+				action={user ? shoppingCartApi.checkout : shoppingCartApi.checkoutGuestCart}
+				failedMessage={`Unable to purchase`}
+				loadingMessage={`Purchasing..`}
+				onValues={vals => {
+					var cartRef = getCartId!();
+					vals.shoppingCartId = cartRef.id;
+					vals.anonymousCartKey = cartRef.anonKey;
+					vals.deliveryOptionId = (deliveryOption?.id || 0) as int;
+					vals.deliveryAddressKey = deliveryAddress?.anonKey;
+					vals.billingAddressKey = sameAsDelivery ? deliveryAddress?.anonKey : billingAddress?.anonKey ;
+
+					return vals;
+				}}
+				onSuccess={(info : PurchaseAndAction) => {
+					if (info?.action) {
+						// Go to it now:
+						window.location.href = info.action;
+					} else {
+						var status = info?.purchase?.status || 0;
+
+						if (status >= 200 && status < 300) {
+							if (status == 250) {
+								setChallengeMetaData(info);
+							} else {
+								// Clear cart:
+								emptyCart!();
+								if (info?.metaData.token && info?.metaData.token.length > 0) {
+									setPage(`/cart/purchases/token/${info?.metaData.token}?status=success`);
+								} else {
+									setPage(`/cart/purchases/${info?.purchase?.id}?status=success`);
+								}
+							}
+						} else if (status < 300) {
+							setPage(`/cart/complete?status=pending&ref=${info?.purchase?.reference}`);
+						} else {
+							setPage(`/cart/complete?status=failed&ref=${info?.purchase?.reference}`);
+						}
+					}
+				}}
+			>
+				<ol className="payment-checkout__steps payment-checkout__steps--continued">
+					<li className={currentStep < CheckoutStep.PaymentMethod && currentStep != CheckoutStep.TransactionApproval ? "payment-checkout__step--disabled" : ""}>
+						{/* payment method */}
+						<CheckoutSection title={`Payment method`} enabled={currentStep >= CheckoutStep.PaymentMethod} >
+							{(user && deferPayment) ? <>
+								{`Buy now pay later: This order will be billed to your account.`}
+							</> :
+								<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
+							}
+						</CheckoutSection>
+					</li>
+
+					{/* terms and conditions / privacy policy */}
+					{/*
+					<li className={currentStep < CheckoutStep.TermsConditions ? "payment-checkout__step--disabled" : ""}>
+						<CheckoutSection title={`Review terms`} enabled={currentStep >= CheckoutStep.TermsConditions}>*/}
+							{/*
+							<Input type="checkbox" className="payment-checkout__terms"
+								checked={acceptedTerms ? true : undefined}
+								onChange={e => setAcceptedTerms(e.target.checked)} label={<>
+								{`By placing your order you agree to both the `}
+								<Link href="/terms-and-conditions" external>
+									{`terms and conditions`}
+								</Link>
+								{` and `}
+								<Link href="/privacy-policy" external>
+									{`privacy policy`}
+								</Link>.
+							</>} />
+							*/}
+							{/*
+							<p>
+								{`Please note, by placing your order you agree to both the `}
+								<Link href="/terms-and-conditions" external>
+									{`terms and conditions`}
+								</Link>
+								{` and `}
+								<Link href="/privacy-policy" external>
+									{`privacy policy`}
+								</Link>.
+							</p>
+						</CheckoutSection>
+					</li>
+					*/}
+				</ol>
+
+				{challengeMetaData && challengeMetaData.metaData && challengeMetaData.metaData.challengeRequest && 
+					<Modal noHeader noFooter isExtraLarge visible>
+						{/* approval currentStep */}
+						<Challenge width={`100%`} height={`100%`} metaData={challengeMetaData.metaData} />
+						<ChallengeChecker metaData={challengeMetaData.metaData} 
+							onChange={(result:PurchaseStatus) => {
+								if (result.status >= 200 && result.status < 300) {
+									if (result.status != 250) {
+										// Clear cart:
+										emptyCart!();
+
+										if (challengeMetaData?.metaData?.token && challengeMetaData?.metaData?.token.length > 0) {
+											setPage(`/cart/purchases/token/${challengeMetaData?.metaData.token}?status=success`);
+										} else {
+											setPage(`/cart/purchases/${challengeMetaData?.purchase?.id}?status=success`);
+										}
+									}
+								} else if (result.status < 300) {
+									setPage(`/cart/complete?status=pending&ref=${challengeMetaData?.purchase?.reference}`);
+								} else {
+									setPage(`/cart/complete?status=failed&ref=${challengeMetaData?.purchase?.reference}`);
+								}
+							}}							
+						/> 
+					</Modal>
+				}
+
+				<div className="payment-checkout__footer">
+					<Button type="submit" disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms ? true : undefined}>
+						<i className="fal fa-fw fa-credit-card" />
+						<span>
+							{`Confirm Purchase`}
+						</span>
+					</Button>
+					{currentStep >= CheckoutStep.TermsConditions && <>
+						<small>
+							{`Please note, by placing your order you agree to both the `}
+							<Link href="/terms-and-conditions" external>
+								{`terms and conditions`}
+							</Link>
+							{` and `}
+							<Link href="/privacy-policy" external>
+								{`privacy policy`}
+							</Link>.
+						</small>
+					</>}
+				</div>
+			</Form>
+		</div>
+	</>;
+}
+
+export default Checkout;

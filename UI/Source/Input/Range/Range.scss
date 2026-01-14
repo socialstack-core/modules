@@ -1,0 +1,77 @@
+:root {
+	--range-track-height: #{px_to_rem(12)};
+	--range-track-background: #fff;
+	--range-track-fill: var(--primary);
+	--range-track-border: 1px solid #ced4da;
+	--range-track-border-radius: #{px_to_rem(4)};
+	--range-thumb-size: #{px_to_rem(24)};
+	--range-thumb-background: var(--primary);
+	//--range-thumb-border: 2px solid var(--primary);
+	--percentage: 0%;
+}
+
+input[type="range"] {
+	-webkit-appearance: none;
+	appearance: none;
+	background: transparent;
+	cursor: pointer;
+	background-image: linear-gradient(90deg, var(--range-track-fill) var(--percentage), transparent var(--percentage));
+
+	// focus handling
+	&:focus-visible {
+		outline: none;
+		
+		&::-webkit-slider-thumb {
+			//border: 1px solid #053a5f;
+			//outline: 3px solid #053a5f;
+			//outline-offset: 0.125rem;
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
+
+		&::-moz-range-thumb {
+			//border: 1px solid #053a5f;
+			//outline: 3px solid #053a5f;
+			//outline-offset: 0.125rem;     
+			box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+		}
+
+	}
+
+	// track
+	&::-webkit-slider-runnable-track {
+		border-radius: var(--range-track-border-radius);
+		background: var(--range-track-background);
+		border: var(--range-track-border);
+		height: var(--range-track-height);
+	}
+
+	&::-moz-range-track {
+		border-radius: var(--range-track-border-radius);
+		background: var(--range-track-background);
+		border: var(--range-track-border);
+		height: var(--range-track-height);
+	}
+
+	// thumb
+	&::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		margin-top: calc((var(--range-track-height) / 2) - (var(--range-thumb-size) / 2));
+		background: var(--range-thumb-background);
+		//border: var(--range-thumb-border);
+		border: 0;
+		width: var(--range-thumb-size);
+		height: var(--range-thumb-size);
+		border-radius: 50%;
+	}
+
+	&::-moz-range-thumb {
+		background: var(--range-thumb-background);
+		//border: var(--range-thumb-border);
+		border: 0;
+		border-radius: 50%;
+		width: var(--range-thumb-size);
+		height: var(--range-thumb-size);
+	}
+
+}

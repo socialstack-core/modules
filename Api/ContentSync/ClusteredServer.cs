@@ -10,11 +10,6 @@ namespace Api.ContentSync
 	public class ClusteredServer : Content<uint>
 	{
 		/// <summary>
-		/// The port number used for contentsync on this server.
-		/// </summary>
-		public int Port;
-
-		/// <summary>
 		/// The environment this server is in.
 		/// </summary>
 		[DatabaseField(Length = 20)]

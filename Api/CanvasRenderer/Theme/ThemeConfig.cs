@@ -1,5 +1,4 @@
 using Api.Configuration;
-using System;
 using System.Collections.Generic;
 
 namespace Api.Themes
@@ -17,6 +16,11 @@ namespace Api.Themes
 		public string LogoRef { get; set; }
 
 		/// <summary>
+		/// Site logo ref (small version).
+		/// </summary>
+		public string SmallLogoRef { get; set; }
+
+		/// <summary>
 		/// Site logo ref (admin area). Typically a white version of the logo.
 		/// </summary>
 		public string AdminLogoRef { get; set; }
@@ -30,6 +34,97 @@ namespace Api.Themes
 		/// Default theme ID. This is applied to the body if it is non-zero.
 		/// </summary>
 		public string DefaultAdminThemeId { get; set; } = "admin";
+
+		/// <summary>
+		/// Site contact number.
+		/// </summary>
+		public string ContactNumber { get; set; } = "0808 189 2044";
+
+		/// <summary>
+		/// Site contact email address.
+		/// </summary>
+		public string ContactEmail { get; set; } = "info@4-roads.com";
+
+		/// <summary>
+		/// Site postal address.
+		/// </summary>
+		public string Address { get; set; } = "48 Priory Road<br />Kenilworth<br />Warwickshire<br />CV8 1LQ";
+
+		/// <summary>
+		/// Full site name.
+		/// </summary>
+		public string SiteName { get; set; } = "4 Roads (UK) Limited";
+
+		/// <summary>
+		/// Shortened site name.
+		/// </summary>
+		public string SiteNameShort { get; set; } = "4 Roads";
+
+		/// <summary>
+		/// Copyright statement. Supports 'year' and 'company' as templating variables.
+		/// </summary>
+		public string Copyright { get; set; } = "&copy; ${year} ${company}";
+
+		/// <summary>
+		/// Placeholder text for main site search field.
+		/// </summary>
+		public string SearchPlaceholder { get; set; } = "Search site";
+
+		/// <summary>
+		/// Localised theme config options.
+		/// </summary>
+		public GlobalLocalisedThemeConfig Localised { get; set; }
+	}
+
+	/// <summary>
+	/// Global localised theme configuration values, such as the contact information.
+	/// </summary>
+	public partial class GlobalLocalisedThemeConfig : Config
+	{
+		/// <summary>
+		/// Site logo ref.
+		/// </summary>
+		public Dictionary<string, string> LogoRef { get; set; }
+
+		/// <summary>
+		/// Site logo ref (small version).
+		/// </summary>
+		public Dictionary<string, string> SmallLogoRef { get; set; }
+
+		/// <summary>
+		/// Site logo ref (admin area). Typically a white version of the logo.
+		/// </summary>
+		public Dictionary<string, string> AdminLogoRef { get; set; }
+
+		/// <summary>
+		/// Site contact number.
+		/// </summary>
+		public Dictionary<string, string> ContactNumber { get; set; }
+
+		/// <summary>
+		/// Site postal address.
+		/// </summary>
+		public Dictionary<string, string> Address { get; set; }
+
+		/// <summary>
+		/// Full site name.
+		/// </summary>
+		public Dictionary<string, string> SiteName { get; set; }
+
+		/// <summary>
+		/// Shortened site name.
+		/// </summary>
+		public Dictionary<string, string> SiteNameShort { get; set; }
+
+		/// <summary>
+		/// Copyright statement. Supports 'year' and 'company' as templating variables.
+		/// </summary>
+		public Dictionary<string, string> Copyright { get; set; }
+
+		/// <summary>
+		/// Placeholder text for main site search field.
+		/// </summary>
+		public Dictionary<string, string> SearchPlaceholder { get; set; }
 	}
 
 	/// <summary>

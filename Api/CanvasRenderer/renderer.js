@@ -1,5 +1,107 @@
 var preact = window.Preact || window.preact || window.React;
 
+class URLSearchParams {
+	constructor(init = "") {
+		this._params = {};
+
+		if (typeof init === "string") {
+			if (init.startsWith("?")) init = init.slice(1);
+			if (init) {
+				for (const pair of init.split("&")) {
+					if (!pair) continue;
+					const [key, value = ""] = pair.split("=");
+					this.append(
+						decodeURIComponent(key.replace(/\+/g, " ")),
+						decodeURIComponent(value.replace(/\+/g, " "))
+					);
+				}
+			}
+		} else if (typeof init === "object") {
+			for (const key in init) {
+				if (Object.prototype.hasOwnProperty.call(init, key)) {
+					this.append(key, init[key]);
+				}
+			}
+		}
+	}
+
+	append(name, value) {
+		name = String(name);
+		value = String(value);
+		if (!this._params[name]) this._params[name] = [];
+		this._params[name].push(value);
+	}
+
+	set(name, value) {
+		this._params[String(name)] = [String(value)];
+	}
+
+	get(name) {
+		const values = this._params[String(name)];
+		return values ? values[0] : null;
+	}
+
+	getAll(name) {
+		return this._params[String(name)] ? [...this._params[String(name)]] : [];
+	}
+
+	has(name) {
+		return Object.prototype.hasOwnProperty.call(this._params, String(name));
+	}
+
+	delete(name) {
+		delete this._params[String(name)];
+	}
+
+	toString() {
+		const pairs = [];
+		for (const key in this._params) {
+			for (const value of this._params[key]) {
+				pairs.push(
+					encodeURIComponent(key) + "=" + encodeURIComponent(value)
+				);
+			}
+		}
+		return pairs.join("&");
+	}
+
+	forEach(callback, thisArg) {
+		for (const key in this._params) {
+			for (const value of this._params[key]) {
+				callback.call(thisArg, value, key, this);
+			}
+		}
+	}
+
+	*entries() {
+		for (const key in this._params) {
+			for (const value of this._params[key]) {
+				yield [key, value];
+			}
+		}
+	}
+
+	*keys() {
+		for (const key in this._params) {
+			yield key;
+		}
+	}
+
+	*values() {
+		for (const key in this._params) {
+			for (const value of this._params[key]) {
+				yield value;
+			}
+		}
+	}
+
+	[Symbol.iterator]() {
+		return this.entries();
+	}
+}
+
+window.URLSearchParams = URLSearchParams;
+
 function _getContentTypeIdFactory() {
 	const _hash1 = ((5381 << 16) + 5381) | 0;
 	const floor = Math.floor;
@@ -521,7 +623,7 @@ exports = undefined;
 // Get canvas and UI/Content:
 var _Canvas = require('UI/Canvas').default;
 var _Session = require("UI/Session");
-var _Graph = require("UI/Functions/GraphRuntime/Graph");
+var _Router = require('UI/Router');
 var _webRequestModule = require("UI/Functions/WebRequest");
 
 // Stub:
@@ -545,23 +647,45 @@ function renderCanvas(bodyJson, publicApiContextJson, pageState, mode, absoluteU
 
 	// Page state:
 	pageState = JSON.parse(pageState);
+	
+	// if the URL is a string, and is not empty
+	if (pageState?.url && typeof pageState?.url === 'string')
+	{
+		let url = pageState.url.split('?');
+		pageState.query = new URLSearchParams(url.length === 1 ? '' : url[1]);
+	}
+
+	if (!bodyJson && pageState.page) {
+		bodyJson = pageState.page.bodyJson;
+	}
+
+	// Expand includes on the primary object
+	if (pageState?.po) {
+		pageState.po = _webRequestModule.expandIncludes(pageState.po);
+	}
 
 	// Expand includes on the session.
 	for (var k in session) {
 		session[k] = _webRequestModule.expandIncludes(session[k]);
 	}
 
-	var canvas = preact.createElement(_Canvas, { children: bodyJson });
-
+	var canvas = preact.createElement(_Canvas, typeof bodyJson === "string" ? { children: bodyJson } : { bodyJson });
+	
 	// Pass in the 2 main pieces of global state via context providers - the session and the pageRouter state:
-	var pageProvider = preact.createElement(_Session.Router.Provider, {
+	var pageProvider = preact.createElement(_Router.routerCtx.Provider, {
 		value: {
 			pageState,
-			setPage: _noOp
+			setPage: _noOp,
+			changeQuery: _noOp,
+			updateQuery: _noOp,
+			removeQueryItems: _noOp,
+			getPageIncludes: () => {
+				return pageState?.page?.primaryContentIncludes;
+			},
 		}, children: canvas
 	});
 
-	var sessionProvider = preact.createElement(_Session.Session.Provider, {
+	var sessionProvider = preact.createElement(_Session.sessionCtx.Provider, {
 		value: {
 			session,
 			setSession: _noOp
@@ -573,10 +697,8 @@ function renderCanvas(bodyJson, publicApiContextJson, pageState, mode, absoluteU
 	
 	var opts = { mode, absoluteUrls, ctx, result: null };
 
-	var graphCacheProvider = preact.createElement(_Graph.Provider, { ctx: opts, children: sessionProvider });
-
 	// Returns the string.
-	var result = renderToString(graphCacheProvider, {}, opts);
+	var result = renderToString(sessionProvider, {}, opts);
 
 	if (mode == 3) {
 		// Both
@@ -2849,3 +2971,4 @@ var htmlToText = (function () {
 	// End of scope.
 	return htmlToText;
 })();
+

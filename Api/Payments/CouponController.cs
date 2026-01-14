@@ -12,13 +12,12 @@ namespace Api.Payments
 		/// <summary>
 		/// Checks a coupon code and if it's not disabled, returns its info.
 		/// </summary>
+		/// <param name="context"></param>
 		/// <param name="couponCode"></param>
 		/// <exception cref="PublicException"></exception>
 		[HttpGet("check/{couponCode}")]
-		public virtual async ValueTask CheckCoupon([FromRoute] string couponCode)
+		public virtual async ValueTask<Coupon> CheckCoupon(Context context, [FromRoute] string couponCode)
 		{
-			var context = await Request.GetContext();
-
 			// Get a coupon code:
 			var coupon = await _service.Where("Token=?", DataOptions.IgnorePermissions).Bind(couponCode).First(context);
 
@@ -32,7 +31,7 @@ namespace Api.Payments
 				throw new PublicException("Unfortunately that coupon code is no longer valid", "not_valid");
 			}
 
-			await OutputJson(context, coupon, "minSpendPrice,discountAmount");
+			return coupon;
 		}
 
 	}

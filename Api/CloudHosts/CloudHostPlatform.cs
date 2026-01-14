@@ -39,8 +39,9 @@ namespace Api.CloudHosts
 		/// </summary>
 		/// <param name="upload"></param>
 		/// <param name="sizeName"></param>
+		/// <param name="isDownload"></param>
 		/// <returns></returns>
-		public virtual string GetSignedRef(Upload upload, string sizeName = "original")
+		public virtual string GetSignedRef(Upload upload, string sizeName = "original", bool isDownload = false)
         {
             return null;
         }

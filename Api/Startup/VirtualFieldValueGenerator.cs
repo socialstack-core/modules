@@ -8,6 +8,21 @@ namespace Api.Startup;
 
 
 /// <summary>
+/// Weakly typed VirtualFieldValueGenerator.
+/// </summary>
+public partial class VirtualFieldValueGenerator {
+
+	/// <summary>
+	/// Sets the AutoService object which will be of type AutoService{T,ID}.
+	/// </summary>
+	/// <param name="svc"></param>
+	public virtual void SetService(AutoService svc)
+	{
+	}
+
+}
+
+/// <summary>
 /// Inherit this to define a virtual field value generator.
 /// Value generators let you define custom code for an includable name.
 /// primaryUrl is an example of a value generator (it's in the Pages module).
@@ -18,9 +33,24 @@ namespace Api.Startup;
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="ID"></typeparam>
 public partial class VirtualFieldValueGenerator<T, ID>
+	: VirtualFieldValueGenerator
 	where T : Content<ID>, new()
 	where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
+
+	/// <summary>
+	/// The service for the content object.
+	/// </summary>
+	public AutoService<T, ID> Service;
+
+	/// <summary>
+	/// Sets the AutoService object which will be of type AutoService{T,ID}.
+	/// </summary>
+	/// <param name="svc"></param>
+	public override void SetService(AutoService svc)
+	{
+		Service = svc as AutoService<T, ID>;
+	}
 
 	/// <summary>
 	/// Generate the value.
@@ -28,8 +58,9 @@ public partial class VirtualFieldValueGenerator<T, ID>
 	/// <param name="context"></param>
 	/// <param name="forObject"></param>
 	/// <param name="writer">Must write the value into the given JSON writer. If you aren't outputting anything, you must use writer.WriteASCII("null");</param>
+	/// <param name="flags">Flags provided by the serialiser which can be used for additional permission state checking.</param>
 	/// <returns></returns>
-	public virtual ValueTask GetValue(Context context, T forObject, Writer writer)
+	public virtual ValueTask GetValue(Context context, T forObject, Writer writer, ContextFlags flags)
 	{
 		writer.WriteASCII("null");
 		return new ValueTask();
@@ -40,10 +71,7 @@ public partial class VirtualFieldValueGenerator<T, ID>
 	/// For example, if GetValue outputs only strings, this is typeof(string).
 	/// </summary>
 	/// <returns></returns>
-	public virtual Type GetOutputType()
-	{
-		return typeof(object);
-	}
+	public virtual Type OutputType => typeof(object);
 
 }
 

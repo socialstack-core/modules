@@ -17,6 +17,8 @@ using System.Text.RegularExpressions;
 using Api.Automations;
 using Api.Translate;
 using ImageMagick.Formats;
+using Api.CanvasRenderer;
+using Api.Pages;
 
 namespace Api.Uploader
 {
@@ -322,8 +324,8 @@ namespace Api.Uploader
                             while (bytesToRead > 0)
                             {
                                 var readSize = bytesToRead > chunkSize ? chunkSize : bytesToRead;
-                                await fs.ReadAsync(result, size - bytesToRead, readSize);
-                                bytesToRead -= readSize;
+                                var readCount = await fs.ReadAsync(result, size - bytesToRead, readSize);
+                                bytesToRead -= readCount;
                             }
                         }
                     }
@@ -375,7 +377,21 @@ namespace Api.Uploader
 				return new ValueTask<Stream>(result);
             }, 15);
 
-            InstallAdminPages("Media", "fa:fa-film", new string[] { "id", "name" });
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
+			{
+				if (builder.PageType == CommonPageType.AdminList && builder.ContentType == typeof(Upload))
+				{
+                    // Installing admin page for the list of uploads.
+                    builder.GetContentRoot()
+                        .Empty()
+                        .AppendChild(new CanvasNode("Admin/Layouts/MediaCenter"));
+				}
+
+				return new ValueTask<PageBuilder>(builder);
+			}, 5);
+
+
+			InstallAdminPages("Uploads", "fa:fa-film", ["id", "name"], null, "content_management");
         }
 
         /// <summary>
@@ -1456,13 +1472,14 @@ namespace Api.Uploader
             return delReq.Succeeded;
 		}
 
-        /// <summary>
-        /// Gets a signed ref (usually going to be a URL) for the given size name.
-        /// </summary>
-        /// <param name="upload"></param>
-        /// <param name="sizeName"></param>
-        /// <returns></returns>
-        public string GetSignedRef(Upload upload, string sizeName = "original")
+		/// <summary>
+		/// Gets a signed ref (usually going to be a URL) for the given size name.
+		/// </summary>
+		/// <param name="upload"></param>
+		/// <param name="sizeName"></param>
+		/// <param name="isDownload"></param>
+		/// <returns></returns>
+		public string GetSignedRef(Upload upload, string sizeName = "original", bool isDownload = false)
         {
             if (RefGenerator == null)
             {
@@ -1470,7 +1487,7 @@ namespace Api.Uploader
                 return BuildRef(upload);
             }
 
-            return RefGenerator.GetSignedRef(upload, sizeName);
+            return RefGenerator.GetSignedRef(upload, sizeName, isDownload);
         }
 
 		private static byte[] TimestampStart = new byte[] { (byte)'?', (byte)'t', (byte)'=' };
@@ -1575,6 +1592,22 @@ namespace Api.Uploader
 			return result;
 		}
 
+        private async ValueTask ReadExact(Stream stream, byte[] buffer, int count)
+        {
+            var read = 0;
+            while (read < count)
+            {
+                var bytesRead = await stream.ReadAsync(buffer, read, count - read);
+
+                if (bytesRead == 0)
+                {
+                    throw new EndOfStreamException("End of tar stream encountered unexpectedly");
+                }
+
+                read += bytesRead;
+            }
+        }
+
 		private async ValueTask ExtractTar(Stream stream, Action<string, string> onFile)
         {
             var buffer = new byte[512];
@@ -1583,10 +1616,10 @@ namespace Api.Uploader
 
             while (true)
             {
-                await stream.ReadAsync(buffer, 0, 100);
+                var readBytes = await stream.ReadAsync(buffer, 0, 100);
 
                 var stringEnd = 0;
-                for (var i = 0; i < 100; i++)
+                for (var i = 0; i < readBytes; i++)
                 {
                     if (buffer[i] < 10)
                     {
@@ -1601,16 +1634,16 @@ namespace Api.Uploader
                 if (String.IsNullOrWhiteSpace(name))
                     break;
 
-                // Skip 24 bytes
-                await stream.ReadAsync(buffer, 0, 24);
+				// Skip 24 bytes
+				await ReadExact(stream, buffer, 24);
 
-                // read the size, a 12 byte string:
-                await stream.ReadAsync(buffer, 0, 12);
+				// read the size, a 12 byte string:
+				await ReadExact(stream, buffer, 12);
                 var sizeString = Encoding.ASCII.GetString(buffer, 0, 12).Trim('\0').Trim();
                 var size = Convert.ToInt64(sizeString, 8);
 
-                // 512 byte alignment:
-                await stream.ReadAsync(buffer, 0, 376);
+				// 512 byte alignment:
+				await ReadExact(stream, buffer, 376);
                 streamBytesRead += 512;
 
                 // Directories have size=0.
@@ -1643,7 +1676,7 @@ namespace Api.Uploader
                 if (offset == 512)
                     offset = 0;
 
-                await stream.ReadAsync(buffer, 0, offset);
+				await ReadExact(stream, buffer, offset);
                 streamBytesRead += offset;
             }
         }

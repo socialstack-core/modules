@@ -47,13 +47,4 @@ namespace Api.Eventing
 
 	}
 
-    public partial class EventGroup<T, ID>
-    {
-		/// <summary>
-		/// Called when a list.pot is being generated
-		/// </summary>
-        public EndpointEventHandler<Filter<T, ID>> EndpointStartPotList;
-
-    }
-
 }

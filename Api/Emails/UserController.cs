@@ -21,10 +21,8 @@ namespace Api.Users
 		/// Sends the user a new token to verify their email.
 		/// </summary>
 		[HttpPost("sendverifyemail")]
-		public async ValueTask ResendVerificationEmail([FromBody] UserPasswordForgot body)
+		public async ValueTask<Context> ResendVerificationEmail(Context context, [FromBody] UserPasswordForgot body)
 		{
-			var context = await Request.GetContext();
-
 			var user = context.User;
 
 			if (!string.IsNullOrEmpty(body.Email))
@@ -45,7 +43,7 @@ namespace Api.Users
 			}
 
 			// output the context:
-			await OutputContext(context);
+			return context;
         }
 
 		/// <summary>
@@ -53,10 +51,8 @@ namespace Api.Users
 		/// Attempts to verify the users email. If a password is supplied, the users password is also set.
 		/// </summary>
 		[HttpPost("verify/{userid}/{token}")]
-		public async ValueTask VerifyUser(uint userid, string token, [FromBody] OptionalPassword newPassword)
+		public async ValueTask<Context> VerifyUser(Context context, [FromRoute] uint userid, [FromRoute] string token, [FromBody] OptionalPassword newPassword)
 		{
-			var context = await Request.GetContext();
-
 			var user = await (_service as UserService).Where("Id=?", DataOptions.IgnorePermissions).Bind(userid).Last(context);
 
 			if (user == null)
@@ -76,7 +72,7 @@ namespace Api.Users
 			context.User = result;
 
 			// output the context:
-			await OutputContext(context);
+			return context;
 		}
 	}
 

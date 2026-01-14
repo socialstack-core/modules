@@ -78,7 +78,7 @@ namespace Api.GenerateDevFiles
 
             Events.Service.AfterStart.AddEventListener(async (ctx, svc) => {
 
-                var controllersWithoutGenericArguments = svc.GetType().Assembly.GetTypes()
+                var controllersWithoutGenericArguments = GetType().Assembly.GetTypes()
                     .Where(t =>
                         t.IsClass &&
                         !t.IsAbstract &&

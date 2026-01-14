@@ -1,0 +1,30 @@
+.ui-filter-list {
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(16);
+
+	&:not(.ui-filter-list--no-border) {
+		padding: px_to_rem(12) px_to_rem(16);
+		border: 1px solid #ddd;
+		border-radius: px_to_rem(8);
+	}
+
+	.form-check.ui-check:hover:not(:disabled) .form-check-label {
+		font-weight: bold !important;
+	}
+
+	&__toggle {
+		justify-content: space-between;
+
+		i {
+			transition: transform .3s ease;
+		}
+
+		&--expanded {
+
+			i {
+				transform: rotate(180deg);
+			}
+		}
+	}
+}

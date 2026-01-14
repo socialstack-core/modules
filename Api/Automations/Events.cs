@@ -23,23 +23,17 @@ namespace Api.Eventing
 			return _cronScheduler;
 		}
 
-		/// <summary>
-		/// All available automation events.
-		/// </summary>
-		public static EventGroup<AutomationStructure> AvailableAutomations;
-
-		/// <summary>
-		/// Takes a cron string and returns an event handler which you can add a listener to. Generally used during startup.
-		/// The event will trigger at the rate specified by your cron expression.
-		/// Provide a name (typically lowercase with underscores instead of spaces) such that you can also explicitly request the automation to run from its name too.
-		/// Note that if you provide a name but not the cron expression, you can add additional event handlers to an existing job.
-		/// </summary>
-		/// <param name="name">A lowercase key for this automation. Used to trigger it and also add additional handlers to a particular event.</param>
-		/// <param name="cronExpression">The 7 part cron expression from e.g. https://www.freeformatter.com/cron-expression-generator-quartz.html</param>
-		/// <param name="runOnAllServersInCluster">
-		/// Set this to true if you want all servers in a cluster to run this automation.
-		/// </param>
-		public static EventHandler<AutomationRunInfo> Automation(string name, string cronExpression = null, bool runOnAllServersInCluster = false)
+        /// <summary>
+        /// Takes a cron string and returns an event handler which you can add a listener to. Generally used during startup.
+        /// The event will trigger at the rate specified by your cron expression.
+        /// Provide a name (typically lowercase with underscores instead of spaces) such that you can also explicitly request the automation to run from its name too.
+        /// Note that if you provide a name but not the cron expression, you can add additional event handlers to an existing job.
+        /// </summary>
+        /// <param name="name">A lowercase key for this automation. Used to trigger it and also add additional handlers to a particular event.</param>
+        /// <param name="description">A simple description of the automation</param>
+        /// <param name="cronExpression">The 7 part cron expression from e.g. https://www.freeformatter.com/cron-expression-generator-quartz.html</param>
+        /// <param name="runOnAllServersInCluster">Set this to true if you want all servers in a cluster to run this automation.</param>
+        public static EventHandler<AutomationRunInfo> Automation(string name, string cronExpression = null, bool runOnAllServersInCluster = false, string description = null)
 		{
 			if (string.IsNullOrEmpty(name))
 			{
@@ -59,6 +53,7 @@ namespace Api.Eventing
 				runInfo = new AutomationRunInfo()
 				{
 					Name = name,
+					Description = description,
 					Events = new EventHandler<AutomationRunInfo>()
 				};
 				_cronScheduler.AddToLookup(runInfo);

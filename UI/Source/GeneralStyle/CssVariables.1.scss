@@ -1,0 +1,28 @@
+:root {
+    // used to limit maximum width of page content
+	--max-width: #{px_to_rem(1360)};
+	
+	// add project-specific palette colours here, e.g.
+	// --palette-main: #ff0000;
+
+	//--notification-badge-bg: var(--danger);
+    //--notification-badge-fg: var(--danger-fg);
+
+	//--breadcrumb-bg: ...;
+	//--breadcrumb-fg: ...;
+	//--breadcrumb-icon: ...;
+	//--product-qty-bg: #fbf3f8;
+	//--product-qty-fg: var(--palette-dark-pink);
+	//--product-qty-btn-bg: #fff;
+	//--product-qty-btn-fg: var(--palette-pink);
+
+	//--featured-bg: var(--palette-light-blue);
+	//--featured-fg: var(--palette-blue);
+	//--featured-font-weight: 800;
+	//--featured-text-transform: uppercase;
+
+	//--approved-bg: var(--palette-light-green);
+	//--approved-fg: var(--palette-green);
+
+	//--divider: var(--palette-light-pink);
+}

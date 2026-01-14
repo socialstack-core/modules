@@ -10,7 +10,8 @@ namespace Api.Users
 	/// <summary>
 	/// A particular user account.
 	/// </summary>
-	[Permissions(HideFieldByDefault = true)]
+	[Permissions(Hide = true)] /* Fields hidden by default, except for admins */
+	[Permissions(Hide = false, Roles = "admins")]
 	[HasVirtualField("userRole", typeof(Role), "role")]
 	public partial class User : VersionedContent<uint>
 	{
@@ -24,8 +25,8 @@ namespace Api.Users
 		/// The user's main role.
 		/// </summary>
 		[Module("Admin/ContentSelect")]
-		[Data("contentType", "role")]
-		[Permissions(HideFieldByDefault = false)]
+		[Data("contentType", "Role")]
+		[Permissions(Hide = false)]
 		public uint Role;
 		
 		/// <summary>
@@ -38,39 +39,27 @@ namespace Api.Users
 		/// The feature image ref (optionally used on their profile page). See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
 		[DatabaseField(Length = 300)]
-		[Permissions(HideFieldByDefault = false)]
+		[Permissions(Hide = false)]
 		public string FeatureRef;
 
 		/// <summary>
 		/// The avatar upload ref. See also: "Upload.Ref" in the Uploads module.
 		/// </summary>
 		[DatabaseField(Length = 300)]
-		[Permissions(HideFieldByDefault = false)]
+		[Permissions(Hide = false)]
 		public string AvatarRef;
 
 		/// <summary>
 		/// The username of the user. 
 		/// </summary>
 		[DatabaseField(Length = 40)]
-		[Permissions(HideFieldByDefault = false)]
+		[Permissions(Hide = false)]
 		public string Username;
 
 		/// <summary>
 		/// The latest locale this user used. Primarily, this is used for emails being sent to them. If it's null or 0, the site default, 1, is assumed.
 		/// </summary>
 		public uint? LocaleId;
-
-		/// <summary>
-		/// The UTC date this user was created.
-		/// </summary>
-		[Obsolete("Use CreatedUtc instead")]
-		public DateTime JoinedUtc
-		{
-			get {
-				return CreatedUtc;
-			}
-		}
-
 	}
 
 }

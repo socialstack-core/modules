@@ -16,7 +16,7 @@ namespace Api.Users
         /// <summary>
         /// Determines if user emails need to be unique.
         /// </summary>
-        public bool UniqueEmails { get; set; } = false;
+        public bool UniqueEmails { get; set; } = true;
 
         /// <summary>
         /// True if a welcome email should be sent. Note that if verify emails is turned on, this is ignored.
@@ -26,7 +26,7 @@ namespace Api.Users
         /// <summary>
         /// Determines if user usernames need to be unique.
         /// </summary>
-        public bool UniqueUsernames { get; set; } = false;
+        public bool UniqueUsernames { get; set; } = true;
 		
         /// <summary>
         /// Email validation required yes/no.

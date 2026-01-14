@@ -42,24 +42,19 @@ namespace Api.WebSockets
 		public Api.Eventing.EventHandler<Server<WebSocketClient>> BeforeStart;
 		
 		/// <summary>
-		/// Called when a network room is being loaded. The RoomTypeId must be set on it.
-		/// </summary>
-		public Api.Eventing.EventHandler<NetworkRoomSet> SetUniqueTypeId;
-
-		/// <summary>
 		/// A WS connected. This is before their identity is known. The context is always an anonymous one here.
 		/// </summary>
 		public Api.Eventing.EventHandler<WebSocketClient> Connected;
 
-		/// <summary>
-		/// WebSocket user login.
-		/// </summary>
-		public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogin;
+		// <summary>
+		// WebSocket user login.
+		// </summary>
+		// public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogin;
 
-		/// <summary>
-		/// WebSocket user logout.
-		/// </summary>
-		public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogout;
+		// <summary>
+		// WebSocket user logout.
+		// </summary>
+		// public Api.Eventing.EventHandler<WebSocketClient, NetworkRoom<User, uint, uint>> AfterLogout;
 
 		/// <summary>
 		/// A WS disconnected.

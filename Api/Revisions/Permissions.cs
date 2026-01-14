@@ -20,9 +20,20 @@ namespace Api.Revisions
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
 			{
 				// Block all revision EPs:
-				Roles.Member.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
-				Roles.Guest.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
-				Roles.Public.RevokeFeature("RevisionList", "RevisionCreate", "RevisionLoad", "RevisionDelete");
+				Roles.Member.RevokeFeature((Capability cap) => {
+					var pattern = "_revisions_" + cap.Feature;
+					return cap.Name.EndsWith(pattern);
+				}, "list", "create", "load", "delete");
+
+				Roles.Guest.RevokeFeature((Capability cap) => {
+					var pattern = "_revisions_" + cap.Feature;
+					return cap.Name.EndsWith(pattern);
+				}, "list", "create", "load", "delete");
+
+				Roles.Public.RevokeFeature((Capability cap) => {
+					var pattern = "_revisions_" + cap.Feature;
+					return cap.Name.EndsWith(pattern);
+				}, "list", "create", "load", "delete");
 
 				return new ValueTask<object>(source);
 			});

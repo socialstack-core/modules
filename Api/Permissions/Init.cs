@@ -1,17 +1,18 @@
-﻿using System;
-using Api.Startup;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Api.Eventing;
-using Api.Contexts;
-using System.Threading.Tasks;
-using Api.Permissions;
+﻿using Api.Contexts;
 using Api.Database;
-using Microsoft.AspNetCore.Http;
-using System.Collections.Generic;
+using Api.Eventing;
+using Api.Pages;
+using Api.Permissions;
+using Api.Startup;
 using Api.Users;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Api.Permissions
 {
@@ -63,7 +64,8 @@ namespace Api.Permissions
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) => {
 
 				// Public - the role used by anonymous users.
-				Roles.Public.GrantFeature("load").GrantFeature("list")
+				Roles.Public
+					.GrantFeature("load", "list")
 					.Grant("user_create");
 				
 				// Super admin - can do everything.
@@ -84,6 +86,18 @@ namespace Api.Permissions
 
 				return new ValueTask<object>(source);
 			}, 9);
+
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
+			{
+				if (builder.PageType == CommonPageType.AdminEdit)
+				{
+					// Add access tab which will display at least role/user permits:
+					builder.AddAdminTab(new AdminTab("Access management", "access"));
+				}
+
+				return new ValueTask<PageBuilder>(builder);
+			}, 20); // Such that this fallback happens after custom ones like password reset which modifies this tab a bit.
+
 		}
 
 		/// <summary>
@@ -96,13 +110,6 @@ namespace Api.Permissions
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			// If it's a mapping type, no-op.
-			if (ContentTypes.IsAssignableToGenericType(typeof(T), typeof(Mapping<,>)))
-			{
-				// Mapping types don't get mounted by the permission system.
-				return;
-			}
-
 			var group = service.EventGroup;
 
 			var fields = group.GetType().GetFields();
@@ -197,7 +204,44 @@ namespace Api.Permissions
 
 					SetupForListEvent(eventHandler, eventHandler.Capability);
 				}
+				else if (field.Name.StartsWith("Before") && field.FieldType.IsGenericType && field.FieldType.GetGenericTypeDefinition() == typeof(Eventing.EventHandler<>))
+				{
+					// This field is only registered if it states to do so with an attribute.
+					var permsAttribute = field.GetCustomAttribute<PermissionsAttribute>();
 
+					if (permsAttribute != null && permsAttribute.Check)
+					{
+						var eventHandler = field.GetValue(group) as Eventing.EventHandler;
+
+						if (eventHandler.Capability == null)
+						{
+							var capability = new Capability(service, field.Name[6..]);
+							eventHandler.Capability = capability;
+						}
+
+						if (group.AllWithCapabilities == null)
+						{
+							group.AllWithCapabilities = new List<Api.Eventing.EventHandler>();
+						}
+
+						group.AllWithCapabilities.Add(eventHandler);
+
+						// Now need to invoke SetupForStandardEvent except with the custom T from whatever type is present in the evt handler.
+						var eventObjectType = field.FieldType.GetGenericArguments()[0];
+
+						var setupForStdMethodHandle = GetType().GetMethod(nameof(SetupForStandardEvent));
+
+						var concreteSetupForStd = setupForStdMethodHandle.MakeGenericMethod(new Type[] {
+							eventObjectType
+						});
+
+						concreteSetupForStd.Invoke(this, new object[] {
+							eventHandler,
+							eventHandler.Capability,
+							field
+						});
+					}
+				}
 			}
 
 		}
@@ -269,13 +313,13 @@ namespace Api.Permissions
 			}
 
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener(async (Context context, T content) =>
+			handler.AddEventListener((Context context, T content) =>
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
 				if (context.IgnorePermissions || content == null)
 				{
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				// Check if the capability is granted.
@@ -290,10 +334,10 @@ namespace Api.Permissions
 					throw PermissionException.Create(capability.Name, context, "No role");
 				}
 
-				if (await role.IsGranted(capability, context, content, false))
+				if (role.IsGranted(capability, context, content, ContextFlags.None))
 				{
 					// It's granted - return the first arg:
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				throw PermissionException.Create(capability.Name, context);
@@ -318,13 +362,13 @@ namespace Api.Permissions
 			}
 
 			// Add an event handler at priority 1 (runs before others).
-			handler.AddEventListener(async (Context context, T content, T orig) =>
+			handler.AddEventListener((Context context, T content, T orig) =>
 			{
 				// Note: The following code is very similar to handler.TestCapability(context, content) which is used for manual mode.
 
 				if (context.IgnorePermissions || content == null)
 				{
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				// Check if the capability is granted.
@@ -339,10 +383,10 @@ namespace Api.Permissions
 					throw PermissionException.Create(capability.Name, context, "No role");
 				}
 
-				if (await role.IsGranted(capability, context, content, false))
+				if (role.IsGranted(capability, context, content, ContextFlags.None))
 				{
 					// It's granted - return the first arg:
-					return content;
+					return new ValueTask<T>(content);
 				}
 
 				throw PermissionException.Create(capability.Name, context);

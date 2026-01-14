@@ -1,0 +1,147 @@
+:root {
+	// set defaults to regular (md)
+	--ui-link-font-size: var(--ui-link-md-font-size, #{$default-link-md-font-size});
+	--ui-link-font-weight: var(--ui-link-md-font-weight, #{$default-link-md-font-weight});
+	--ui-link-icon: var(--ui-link-md-icon, #{$default-link-md-icon});
+	--ui-link-gap: var(--ui-link-md-gap, #{$default-link-md-gap});
+}
+
+.ui-link {
+
+	&--nowrap {
+		white-space: nowrap;
+	}
+
+	// override	vars based on size
+	&-xs,
+	&--xs {
+		--ui-link-font-size: var(--ui-link-xs-font-size, #{$default-link-xs-font-size});
+		--ui-link-font-weight: var(--ui-link-xs-font-weight, #{$default-link-xs-font-weight});
+		--ui-link-icon: var(--ui-link-xs-icon, #{$default-link-xs-icon});
+		--ui-link-gap: var(--ui-link-xs-gap, #{$default-link-xs-gap});
+	}
+	
+	&-sm,
+	&--sm {
+		--ui-link-font-size: var(--ui-link-sm-font-size, #{$default-link-sm-font-size});
+		--ui-link-font-weight: var(--ui-link-sm-font-weight, #{$default-link-sm-font-weight});
+		--ui-link-icon: var(--ui-link-sm-icon, #{$default-link-sm-icon});
+		--ui-link-gap: var(--ui-link-sm-gap, #{$default-link-sm-gap});
+	}
+
+	&-md,
+	&--md {
+		--ui-link-font-size: var(--ui-link-md-font-size, #{$default-link-md-font-size});
+		--ui-link-font-weight: var(--ui-link-md-font-weight, #{$default-link-md-font-weight});
+		--ui-link-icon: var(--ui-link-md-icon, #{$default-link-md-icon});
+		--ui-link-gap: var(--ui-link-md-gap, #{$default-link-md-gap});
+	}
+	
+	&-lg,
+	&--lg {
+		--ui-link-font-size: var(--ui-link-lg-font-size, #{$default-link-lg-font-size});
+		--ui-link-font-weight: var(--ui-link-lg-font-weight, #{$default-link-lg-font-weight});
+		--ui-link-icon: var(--ui-link-lg-icon, #{$default-link-lg-icon});
+		--ui-link-gap: var(--ui-link-lg-gap, #{$default-link-lg-gap});
+	}
+
+	&-xl,
+	&--xl {
+		--ui-link-font-size: var(--ui-link-xl-font-size, #{$default-link-xl-font-size});
+		--ui-link-font-weight: var(--ui-link-xl-font-weight, #{$default-link-xl-font-weight});
+		--ui-link-icon: var(--ui-link-xl-icon, #{$default-link-xl-icon});
+		--ui-link-gap: var(--ui-link-xl-gap, #{$default-link-xl-gap});
+	}
+
+}
+
+a, 
+button, 
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+
+	&:where(.ui-link) {
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		//justify-content: center;  
+		color: var(--ui-link-color, #{$default-link-color});
+		white-space: normal;
+		font-size: var_to_rem(--ui-link-font-size);
+		font-weight: var(--ui-link-font-weight);
+		gap: var_to_rem(--ui-link-gap);
+
+		// NB: links with both text and icon should wrap the text with <span>,
+		//     otherwise the icon will also have the underline applied on hover
+
+		// no children / only one child - assume this is purely text
+		&:not(:has(*)),
+		&:has(> :last-child:nth-child(1)) {
+			text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+
+			&:hover {
+				text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+			}
+
+		}
+
+		// two or more children - assume prefixed / suffixed with icons
+		// (this requires the label text be wrapped with a <span>)
+		&:has(:nth-child(2)) {
+		
+			&:not(:has(span)) {
+				text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+			
+				&:hover {
+					text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+				}
+
+			}
+		
+			&:has(span) {
+				text-decoration: none;
+			
+				> span {
+					text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+				}
+			
+				&:hover {
+				
+					> span {
+						text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+					}
+
+				}
+
+			}
+
+		}
+	
+		> svg {
+			max-width: var_to_rem(--ui-link-icon);
+			height: var_to_rem(--ui-link-icon);
+			flex-shrink: 0;
+			text-decoration: none !important;
+		}
+	
+		> i {
+			flex-shrink: 0;
+			text-decoration: none !important;
+		}
+
+	
+		&:hover {
+			color: var(--ui-link-hover, #{$default-link-hover});
+		}
+
+		&:focus-visible {
+			outline: 1px dotted currentColor;
+		}
+
+		&[inert] {
+			opacity: .5;
+		}
+	}
+
+}

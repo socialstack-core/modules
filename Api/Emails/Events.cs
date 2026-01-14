@@ -28,6 +28,11 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<EmailToSend> Send;
 
+		/// <summary>
+		/// During default template installation.
+		/// </summary>
+		public EventHandler<EmailBuilder> BeforeInstall;
+
 	}
 
 }

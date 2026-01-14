@@ -7,29 +7,34 @@ using Api.Startup;
 using Api.Translate;
 using Microsoft.ClearScript;
 using Microsoft.ClearScript.V8;
+using Newtonsoft.Json.Serialization;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Api.Themes;
 
 namespace Api.CanvasRenderer
 {
-	
-	/// <summary>
-	/// This service manages and generates (for devs) the frontend code.
-	/// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
-	/// </summary>
-	public class FrontendCodeService : AutoService
+
+    /// <summary>
+    /// This service manages and generates (for devs) the frontend code.
+    /// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
+    /// </summary>
+    [HostType("web")]
+    public class FrontendCodeService : AutoService
 	{
+		private TaskCompletionSource uiLoadTask = new TaskCompletionSource();
 		private UIBundle UIBuilder;
 		private UIBundle EmailBuilder;
 		private UIBundle AdminBuilder;
-		private Task initialBuildTask;
+
 		/// <summary>
 		/// The inline header. This should be served inline in the html. It includes preact, preact hooks and the ss module require function, totalling 13kb.
 		/// </summary>
-		public string InlineJavascriptHeader;
+		public byte[] InlineJavascriptHeader;
 
 		/// <summary>
 		/// True if we're in prebuilt mode.
@@ -38,6 +43,7 @@ namespace Api.CanvasRenderer
 
 		private FrontendCodeServiceConfig _config;
 		private ContentSyncService _contentSync;
+		private FrontendFile? _cachedTypeMetadata;
 
 		/// <summary>
 		/// The site public URL. Never ends with a path - always just the origin and scheme, e.g. https://www.example.com
@@ -87,8 +93,153 @@ namespace Api.CanvasRenderer
 			serviceUrlByLocale = null;
 
 		}
+		
+		/// <summary>
+		/// Reads a file from the CanvasRenderer bundled file set.
+		/// </summary>
+		public string ReadModuleFileText(string filename)
+		{
+            var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+			
+			// Try firstparty first:
+			var firstpartyFile = dllPath + "/Api/CanvasRenderer/" + filename;
+			
+			if(File.Exists(firstpartyFile))
+			{
+				return File.ReadAllText(firstpartyFile);
+			}
+			
+			return File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/" + filename);
+		}
+
+		/// <summary>
+		/// Reads a file from the CanvasRenderer bundled file set.
+		/// </summary>
+		public byte[] ReadModuleFileBytes(string filename)
+		{
+			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+
+			// Try firstparty first:
+			var firstpartyFile = dllPath + "/Api/CanvasRenderer/" + filename;
+
+			if (File.Exists(firstpartyFile))
+			{
+				return File.ReadAllBytes(firstpartyFile);
+			}
+
+			return File.ReadAllBytes(dllPath + "/Api/ThirdParty/CanvasRenderer/" + filename);
+		}
 
 		private string[] serviceUrlByLocale;
+
+		private void InitialBuild()
+		{
+			var themeConfig = _themes.GetAllConfig();
+			var cssVariables = _themes.OutputCss(themeConfig);
+
+			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
+
+			// The html inline header. It includes preact, preact hooks and the socialstack module require function.
+
+			var headerFile = _config.React ? "inline_header_react" : "inline_header";
+
+			InlineJavascriptHeader = ReadModuleFileBytes(headerFile + ".js");
+			serviceUrlByLocale = null;
+
+			var prebuilt = _config.Prebuilt;
+
+			// If UI/Source doesn't exist, prebuilt = true.
+			if (!Directory.Exists(Path.GetFullPath("UI/Source")))
+			{
+				prebuilt = true;
+			}
+
+			Prebuilt = prebuilt;
+			
+			if (prebuilt)
+			{
+				Log.Info(LogTag, "Running in prebuilt mode. *Not* watching your files for changes.");
+				try
+				{
+					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", _translations, _locales, this) { CssPrepend = cssVariables });
+					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", _translations, _locales, this) { FilePathOverride = "/pack/" });
+					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", _translations, _locales, this));
+					CodeLoaded();
+				}
+				catch (Exception e)
+				{
+					Log.Fatal(LogTag, e, "Unable to load the UI.");
+				}
+			}
+			else
+			{
+				// Must wait until all services are ready before the UI can be compiled.
+				// This is because it has a dependency on knowing what services are available.
+				Events.Service.AfterStart.AddEventListener(async (Context context, object src) => {
+					await RunBuild();
+					CodeLoaded();
+					return src;
+				}, 5); // Must be before other services, such as the page service
+			}
+		}
+
+		private void CodeLoaded()
+		{
+			Log.Info(LogTag, "Done handling UI load.");
+			uiLoadTask.SetResult();
+			uiLoadTask = null;
+		}
+
+		private async ValueTask RunBuild()
+		{
+			var themeConfig = _themes.GetAllConfig();
+			var cssVariables = _themes.OutputCss(themeConfig);
+			
+			var globalMap = new GlobalSourceFileMap(this);
+
+			// Todo: make this into a config variable. If true, the build from the watcher will be minified.
+			var minify = _config.Minified;
+
+			var ctx = new Context(1, 1, 1);
+
+			var bundleCache = _config.CacheBuiltFiles ? new UIBuildCache("bin") : null;
+
+			// Load the cache:
+			if (bundleCache != null)
+			{
+				await bundleCache.StartAsync();
+				globalMap.Cache = bundleCache;
+			}
+
+			// Create a group of build/watchers for each bundle of files (all in parallel):
+			AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", _translations, _locales, this, globalMap, minify) { CssPrepend = cssVariables });
+			AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", _translations, _locales, this, globalMap, minify));
+			AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", _translations, _locales, this, globalMap, minify));
+
+			var container = new SourceFileContainerSet();
+			container.Bundles = SourceBuilders;
+
+			await Events.Compiler.BeforeCompile.Dispatch(ctx, container);
+
+			// Sort global map and build globals:
+			globalMap.ConstructScssHeader();
+
+			// Happens in a separate loop to ensure all the global SCSS has loaded first.
+			foreach (var sb in SourceBuilders)
+			{
+				// Compile everything:
+				await sb.BuildEverything();
+			}
+
+			await Events.Compiler.AfterCompile.Dispatch(ctx, container);
+
+			if (bundleCache != null)
+			{
+				// Only updating the cache on startups for now
+				Log.Info(LogTag, "UI build cache file hits: " + bundleCache.Hit + "/" + (bundleCache.Hit + bundleCache.Miss));
+				await bundleCache.SaveAsync(globalMap, SourceBuilders);
+			}
+		}
 
 		/// <summary>
 		/// Gets service URLs, such as the content source and websocket one, as a javascript variable set.
@@ -137,7 +288,7 @@ namespace Api.CanvasRenderer
 			{
 				// Generate the ws host now, based on the public URL.
 				// A dev site will always assume localhost:WSPORT.
-				if (Configuration.Environment.IsDevelopment())
+				if (Services.IsDevelopment())
 				{
 					var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
 
@@ -191,7 +342,7 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Reloads a prebuilt UI from the filesystem. Use this for zero downtime UI only deployments.
 		/// </summary>
-		public void ReloadFromFilesystem()
+		public long ReloadFromFilesystem()
 		{
 			if (SourceBuilders != null && Prebuilt)
 			{
@@ -200,26 +351,34 @@ namespace Api.CanvasRenderer
 					bundle.ReloadPrebuilt();
 				}
 			}
+
+			return Version;
 		}
 		
 		#if DEBUG
 		private readonly string reloadMessage = "{\"host\":1,\"reload\":1}";
-		#endif
-		
+#endif
+
+		private readonly LocaleService _locales;
+		private readonly TranslationService _translations;
+		private readonly ThemeService _themes;
+
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
 		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService, ContentSyncService contentSync)
 		{
 			_contentSync = contentSync;
+			_locales = locales;
+			_translations = translations;
+			_themes = themeService;
 			var themeConfig = themeService.GetAllConfig();
-			var cssVariables = themeService.OutputCss(themeConfig);
 
 			themeConfig.OnChange += async () => {
 
 				// A theme was reconfigured (this also includes when the message came via contentsync as well).
 				// Reconstruct the CSS now.
-				cssVariables = themeService.OutputCss(themeConfig);
+				var cssVariables = themeService.OutputCss(themeConfig);
 				
 				if(UIBuilder != null)
 				{
@@ -268,72 +427,9 @@ namespace Api.CanvasRenderer
 
 				return new ValueTask<long>(buildNumber);
 			});
-			#endif
+#endif
 
-			initialBuildTask = Task.Run(async () =>
-			{
-				var dllPath = AppDomain.CurrentDomain.BaseDirectory;
-
-				// The html inline header. It includes preact, preact hooks and the socialstack module require function.
-				
-				var headerFile = _config.React ? "inline_header_react" : "inline_header";
-
-				InlineJavascriptHeader = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/"+ headerFile + ".js");
-				serviceUrlByLocale = null;
-
-				var prebuilt = _config.Prebuilt;
-
-				// If UI/Source doesn't exist, prebuilt = true.
-				if (!Directory.Exists(Path.GetFullPath("UI/Source")))
-				{
-					prebuilt = true;
-				}
-
-				Prebuilt = prebuilt;
-
-				if (prebuilt)
-				{
-					Log.Info(LogTag, "Running in prebuilt mode. *Not* watching your files for changes.");
-					try{
-						AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, this) { CssPrepend = cssVariables });
-						AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this) { FilePathOverride = "/pack/" });
-						AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this));
-					}catch(Exception e){
-						Log.Fatal(LogTag, e, "Unable to load the UI.");
-					}
-				}
-				else
-				{
-					// Get a build engine:
-					var engine = GetBuildEngine();
-
-					var globalMap = new GlobalSourceFileMap();
-
-					// Todo: make this into a config variable. If true, the build from the watcher will be minified.
-					var minify = _config.Minified;
-
-					// Create a group of build/watchers for each bundle of files (all in parallel):
-					AddBuilder(UIBuilder = new UIBundle("UI", "/pack/", translations, locales, this, engine, globalMap, minify) { CssPrepend = cssVariables });
-					AddBuilder(EmailBuilder = new UIBundle("Email", "/pack/email-static/", translations, locales, this, engine, globalMap, minify));
-					AddBuilder(AdminBuilder = new UIBundle("Admin", "/en-admin/pack/", translations, locales, this, engine, globalMap, minify));
-
-					// Sort global map:
-					globalMap.Sort();
-
-					// Make ts aliases:
-					BuildTypescriptAliases();
-
-					// Happens in a separate loop to ensure all the global SCSS has loaded first.
-					foreach (var sb in SourceBuilders)
-					{
-						// Compile everything:
-						await sb.BuildEverything();
-					}
-				}
-
-                Log.Ok(LogTag, "Done handling UI load.");
-                initialBuildTask = null;
-			});
+			InitialBuild();
 
 			_config.OnChange += () => {
 
@@ -363,6 +459,15 @@ namespace Api.CanvasRenderer
 				ClearCaches();
 				return new ValueTask<Translation>(translation);
 			});
+
+			Events.FrontendjsAfterUpdate.AddEventListener((Context context, long buildtimestampMs) =>
+			{
+
+				// A build has occurred - clear meta cache.
+				_cachedTypeMetadata = null;
+
+				return new ValueTask<long>(buildtimestampMs);
+			});
 		}
 
 		/// <summary>
@@ -374,6 +479,16 @@ namespace Api.CanvasRenderer
 				return UIBuilder.BuildTimestamp;
 			}
 		}
+		
+		/// <summary>
+		/// Frontend version as a string. This is the same as the version of the main frontend css/js build.
+		/// </summary>
+		public string VersionString
+		{
+			get {
+				return UIBuilder.BuildTimestampString;
+			}
+		}
 
 		/// <summary>
 		/// Gets the set of static files. Only used during an app build process as it needs to collect all static files.
@@ -383,10 +498,12 @@ namespace Api.CanvasRenderer
 		public async ValueTask<List<StaticFileInfo>> GetStaticFiles()
 		{
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #else
 		public ValueTask<List<StaticFileInfo>> GetStaticFiles()
 		{
@@ -403,7 +520,7 @@ namespace Api.CanvasRenderer
 				// What sort of file are we looking at?
 				// We're only interested in static files.
 				
-				var type = UIBuilder.GetTypeMeta(filePath, out string fileName, out string _, out string _, out string relativePath);
+				var type = SourceFile.GetTypeMeta(UIBuilder.SourcePath, filePath, out string fileName, out string _, out string _, out string relativePath);
 
 				if (type != SourceFileType.None || filePath.EndsWith(".d.ts"))
 				{
@@ -432,98 +549,6 @@ namespace Api.CanvasRenderer
 		}
 
 		/// <summary>
-		/// Dev watcher mode only. Outputs a tsconfig.json file which lists all available JS/ JSX/ TS/ TSX files.
-		/// </summary>
-		private void BuildTypescriptAliases()
-		{
-			// Do any builders have typescript files in them?
-			var ts = false;
-			foreach (var builder in SourceBuilders)
-			{
-				if (builder.HasTypeScript)
-				{
-					ts = true;
-					break;
-				}
-			}
-
-			if (!ts)
-			{
-				return;
-			}
-
-			var output = new StringBuilder();
-			
-			output.Append("{\r\n\"compilerOptions\": {\"jsx\": \"react-jsx\", \"paths\": {");
-			var first = true;
-			
-			foreach (var builder in SourceBuilders)
-			{
-				var rootSegment = "\":[\"" + "./" + builder.RootName + "/Source/";
-
-				foreach (var kvp in builder.FileMap)
-				{
-					var file = kvp.Value;
-
-					if (file.FileType != SourceFileType.Javascript)
-					{
-						continue;
-					}
-
-					if (first)
-					{
-						first = false;
-					}
-					else
-					{
-						output.Append(',');
-					}
-
-					var firstDot = file.FileName.IndexOf('.');
-					var nameNoType = firstDot == -1 ? file.FileName : file.FileName.Substring(0, firstDot);
-					
-					var modPath = file.ModulePath;
-					var modPathDot = file.ModulePath.LastIndexOf('.');
-					
-					
-					if(modPathDot != -1){
-						// It has a filetype - strip it:
-						modPath = modPath.Substring(0, modPathDot);
-					}
-					
-					output.Append('"');
-					output.Append(modPath);
-					output.Append(rootSegment);
-					output.Append(file.RelativePath.Replace('\\', '/') + '/' + nameNoType);
-					output.Append("\"]");
-				}
-			}
-
-			output.Append("}}}");
-
-			// tsconfig.json:
-			var json = output.ToString();
-
-			var tsMeta = Path.GetFullPath("TypeScript");
-
-			// Create if doesn't exist:
-			Directory.CreateDirectory(tsMeta);
-			
-			// Write tsconfig file out:
-			File.WriteAllText(Path.Combine(tsMeta, "tsconfig.generated.json"), json);
-			
-			
-			/*
-			var globalsPath = Path.Combine(tsMeta, "typings.d.ts");
-
-			if (!File.Exists(globalsPath))
-			{
-				File.WriteAllText(globalsPath, "import * as react from \"react\";\r\n\r\ndeclare global {\r\n\ttype React = typeof react;\r\n\tvar global: any;\r\n}");
-			}
-			*/
-		}
-
-		/// <summary>
 		/// Gets the build errors from the last build of the CSS/ JS that happened. If the initial build run is happening, this waits for it to complete.
 		/// </summary>
 		/// <returns></returns>
@@ -531,9 +556,10 @@ namespace Api.CanvasRenderer
 		public async ValueTask<List<UIBuildError>> GetLastBuildErrors()
 		{
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
 
 			var uiErrors = UIBuilder.GetBuildErrors();
@@ -585,33 +611,26 @@ namespace Api.CanvasRenderer
 #endif
 
 		/// <summary>
-		/// Gets the global scss for a named bundle.
+		/// Gets the global scss header.
 		/// </summary>
-		/// <param name="bundle"></param>
 		/// <returns></returns>
-		public string GetGlobalScss(string bundle)
+		public string GetScssGlobals()
 		{
-			if (SourceBuilders == null || string.IsNullOrEmpty(bundle))
+			var builders = SourceBuilders;
+
+			if (builders == null || builders.Count == 0)
 			{
 				return null;
 			}
 
-			bundle = bundle.ToLower();
+			var first = builders[0];
 
-			foreach(var bundler in  SourceBuilders)
+			if (first == null || first.GlobalFileMap == null)
 			{
-				if (bundler == null)
-				{
-					continue;
-				}
-
-				if (bundler.RootName.ToLower() == bundle)
-				{
-					return bundler.GetScssGlobals();
-				}
+				return null;
 			}
 
-			return null;
+			return first.GlobalFileMap.GetScssGlobals();
 		}
 
 		/// <summary>
@@ -633,7 +652,9 @@ namespace Api.CanvasRenderer
 			builder.OnMapChange = () => {
 
 				// Rebuild aliases:
-				BuildTypescriptAliases();
+				Task.Run(async () => {
+					await Events.Compiler.OnMapChange.Dispatch(new Context(1, 1, 1), SourceBuilders);
+				});
 
 			};
 
@@ -642,6 +663,98 @@ namespace Api.CanvasRenderer
 			// Start it now:
 			builder.Start();
 		}
+
+		/// <summary>
+		/// Gets the meta.json representing all components present. It does not have a locale associated with it.
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<FrontendFile> GetTypeMeta()
+		{
+#if DEBUG
+			// Special case for devs - may need to wait for first build if it hasn't happened yet.
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
+			{
+				await loadTask.Task;
+			}
+#endif
+			if (_cachedTypeMetadata != null)
+			{
+				return _cachedTypeMetadata.Value;
+			}
+
+			var metaFile = new {
+				BuildTime = Version,
+				CodeModules = new Dictionary<string, MetaCodeModule>()
+			};
+
+			if (Prebuilt)
+			{
+				// Merge the meta.json files together from each sourceBuilder.
+				foreach (var builder in SourceBuilders)
+				{
+					var meta = builder.PrebuiltMeta;
+
+					if (meta == null || meta.CodeModules == null)
+					{
+						continue;
+					}
+
+					foreach (var kvp in meta.CodeModules)
+					{
+						if (kvp.Value == null || kvp.Value.Types == null)
+						{
+							continue;
+						}
+
+						metaFile.CodeModules[kvp.Key] = kvp.Value;
+					}
+				}
+			}
+			else
+			{
+				// Must construct the same structure as the main compiler does for type-meta.json.
+				foreach (var builder in SourceBuilders)
+				{
+					foreach (var kvp in builder.FileMap)
+					{
+						var file = kvp.Value;
+
+						if (file.FileType != SourceFileType.Javascript)
+						{
+							continue;
+						}
+
+						var customTypes = file.CustomTypeData;
+
+						metaFile.CodeModules[file.ModulePath] = new MetaCodeModule
+						()
+						{
+							Types = customTypes
+						};
+
+					}
+				}
+			}
+
+			var jsonMeta = Newtonsoft.Json.JsonConvert.SerializeObject(metaFile, jsonSettings);
+			var result = new FrontendFile();
+			result.FileContent = System.Text.Encoding.UTF8.GetBytes(jsonMeta);
+			_cachedTypeMetadata = result;
+			return result;
+		}
+
+		/// <summary>
+		/// Json serialization settings for canvases
+		/// </summary>
+		private static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		{
+			ContractResolver = new DefaultContractResolver
+			{
+				NamingStrategy = new CamelCaseNamingStrategy()
+			},
+			Formatting = Formatting.None
+		};
 
 		/// <summary>
 		/// Gets the main JS file as a raw, always from memory file. Note that although the initial generation of the response is dynamic, 
@@ -653,10 +766,12 @@ namespace Api.CanvasRenderer
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #endif
 			return await UIBuilder.GetJs(localeId);
 		}
@@ -671,10 +786,12 @@ namespace Api.CanvasRenderer
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #endif
 			return await UIBuilder.GetCss(localeId);
 		}
@@ -689,10 +806,12 @@ namespace Api.CanvasRenderer
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #endif
 			return await AdminBuilder.GetCss(localeId);
 		}
@@ -707,10 +826,12 @@ namespace Api.CanvasRenderer
 		{
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #endif
 			return await AdminBuilder.GetJs(localeId);
 		}
@@ -725,10 +846,12 @@ namespace Api.CanvasRenderer
         {
 #if DEBUG
 			// Special case for devs - may need to wait for first build if it hasn't happened yet.
-			if (initialBuildTask != null)
+			var loadTask = uiLoadTask;
+			if (loadTask != null)
 			{
-				await initialBuildTask;
+				await loadTask.Task;
 			}
+
 #endif
 			return await EmailBuilder.GetJs(localeId);
 		}
@@ -737,7 +860,7 @@ namespace Api.CanvasRenderer
 		/// Gets a V8 engine used to host Babel, node-sass and other parts of the build chain. This is used for primarily development instances.
 		/// </summary>
 		/// <returns></returns>
-		private V8ScriptEngine GetBuildEngine()
+		internal V8ScriptEngine GetBuildEngine()
 		{
 			var engine = new V8ScriptEngine("Socialstack API Builder", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
 			engine.Execute("window=this;");
@@ -748,7 +871,7 @@ namespace Api.CanvasRenderer
 
 			var dllPath = AppDomain.CurrentDomain.BaseDirectory;
 
-			var buildHelpers = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/compiler.generated.js");
+			var buildHelpers = ReadModuleFileText("compiler.generated.js");
 			engine.Execute(new DocumentInfo(new Uri("file://compiler.generated.js")), buildHelpers);
 
 			return engine;
@@ -777,14 +900,33 @@ namespace Api.CanvasRenderer
 		public byte[] Precompressed;
 
 		/// <summary>
-		/// The file's E-Tag.
+		/// The file's E-Tag. It is "hash" (the hash in quotes).
 		/// </summary>
-		public Microsoft.Net.Http.Headers.EntityTagHeaderValue Etag;
+		public string Etag;
+
+		private string _lastModdedUtcString;
+		private DateTime _lastModified;
 
 		/// <summary>
 		/// The last modified date.
 		/// </summary>
-		public DateTime LastModifiedUtc;
+		public DateTime LastModifiedUtc
+		{
+			get
+			{
+				return _lastModified;
+			}
+			set 
+			{
+				_lastModified = value;
+				_lastModdedUtcString = value.ToString("R");
+			}
+		}
+		
+		/// <summary>
+		/// The last modified date as an RFC1123 string.
+		/// </summary>
+		public string LastModifiedUtcString => _lastModdedUtcString;
 
 		/// <summary>
 		/// The hash of the file.

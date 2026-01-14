@@ -12,6 +12,11 @@ namespace Api.AnonymousUsers
 		/// Set this to true to disable the module without needing to uninstall it.
 		/// </summary>
 		public bool Disabled { get; set; }
+
+		/// <summary>
+		/// Set this to true to always create an user for anonymous requests, otherwise triggered by an endpoint request 
+		/// </summary>
+		public bool AutoGenerate { get; set; }
 		
 		/// <summary>
 		/// Account role to use. Default is the guest role (3).

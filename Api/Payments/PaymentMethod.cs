@@ -1,12 +1,10 @@
 using System;
-using Api.Database;
-using Api.Translate;
 using Api.Users;
 using Newtonsoft.Json;
 
 namespace Api.Payments
 {
-	
+
 	/// <summary>
 	/// A Payment method - this is generally a saved tokenised card.
 	/// </summary>
@@ -16,7 +14,7 @@ namespace Api.Payments
 		/// The gateway that this payment method is on. Stripe=1 etc.
 		/// </summary>
 		public uint PaymentGatewayId;
-		
+
 		/// <summary>
 		/// The token for this payment method on the gateway.
 		/// </summary>
@@ -42,7 +40,7 @@ namespace Api.Payments
 		/// 1=Tokenised card.
 		/// </summary>
 		public uint PaymentMethodTypeId = 1;
-		
+
 		/// <summary>
 		/// A name of this payment method. This defaults to the last 4 digits of the card number but can be renamed.
 		/// </summary>
@@ -52,6 +50,18 @@ namespace Api.Payments
 		/// A flag that shows that the one month expiry notice has been sent to the customer
 		/// </summary>
 		public bool OneMonthExpiryNotice;
+
+		/// <summary>
+		/// Browser details for 3ds 
+		/// </summary>
+		public BrowserInfo BrowserInfo { get; set; }
+
+		/// <summary>
+		/// The session id for this payment method on the gateway.
+		/// </summary>
+		[JsonIgnore]
+		public string SessionId { get; set; }
+
 	}
 
 }

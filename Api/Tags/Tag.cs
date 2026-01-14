@@ -1,4 +1,5 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
 using Api.Startup;
 using Api.Translate;
@@ -10,21 +11,21 @@ namespace Api.Tags
 	/// A tag.
 	/// These are the primary taxonomy mechanism; any site content can be grouped up in multiple tags.
 	/// </summary>
-	[ListAs("Tags")]
+	[ListAs("Tags", Tab = "tags_categories")]
 	public partial class Tag : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The name of the tag in the site default language.
 		/// </summary>
 		[DatabaseField(Length = 200)]
-		[Localized]
-		public string Name;
+		[Data("required", true)]
+		[Data("validate", "Required")]
+		public Localized<string> Name;
 		
 		/// <summary>
 		/// Description of this tag.
 		/// </summary>
-		[Localized]
-		public string Description;
+		public Localized<string> Description;
 
 		/// <summary>
 		/// The feature image ref. See also: "Upload.Ref" in the Uploads module.

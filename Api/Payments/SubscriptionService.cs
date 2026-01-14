@@ -8,6 +8,9 @@ using Api.Startup;
 using System;
 using Api.Emails;
 using Api.Users;
+using Api.CanvasRenderer;
+using System.Linq;
+using Api.Addresses;
 
 namespace Api.Payments
 {
@@ -22,12 +25,13 @@ namespace Api.Payments
         private readonly PurchaseService _purchases;
         private readonly PaymentMethodService _paymentMethods;
         private readonly EmailTemplateService _emails;
+        private readonly AddressService _addresses;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
         public SubscriptionService(UserService users, ProductQuantityService productQuantities,
-            PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails) : base(
+            PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails, AddressService addresses) : base(
             Events.Subscription)
         {
             _users = users;
@@ -35,6 +39,7 @@ namespace Api.Payments
             _purchases = purchases;
             _paymentMethods = paymentMethods;
             _emails = emails;
+            _addresses = addresses;
 
             Events.Subscription.BeforeSettable.AddEventListener((Context ctx, JsonField<Subscription, uint> field) =>
             {
@@ -73,66 +78,104 @@ namespace Api.Payments
             config = GetConfig<SubscriptionConfig>();
 
             InstallEmails(
-                new EmailTemplate
+                new EmailBuilder
                 {
                     Name = "Cancelled subscription",
                     Subject = "We're sorry to see you go",
                     Key = "subscription_cancelled",
-                    BodyJson =
-                        "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-                        "\"content\":[\"Your subscription with us has now been fully cancelled. Thank you for subscribing and we hope to see you again in the future.\"]}]}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"Your subscription with us has now been fully cancelled. Thank you for subscribing and we hope to see you again in the future."
+							)
+						);
+					}
                 },
-                new EmailTemplate
+                new EmailBuilder
                 {
                     Name = "Payment method expires soon",
                     Subject = "Your payment card expires soon",
                     Key = "card_expires_soon",
-                    BodyJson =
-                        "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"s\":\"Your payment card ending \",\"i\":2},{\"t\":\"b\",\"c\":{\"t\":\"UI/Token\",\"d\":{\"mode\":\"customdata\",\"fields\":[\"cardLastFour\"]},\"i\":4},\"i\":6},{\"s\":\" expires soon.\",\"i\":2},{\"t\":\"p\",\"c\":{\"s\":\"In order to avoid disruptions, please log into your customer dashboard to update your payment details.\",\"i\":7},\"i\":8},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Update Billing Information\",\"target\":\"/subscription/${customData.subscriptionId}/update-card\"},\"r\":{\"label\":{\"s\":\"Update Billing Information\",\"i\":6}},\"i\":4},{\"t\":\"p\",\"c\":{\"s\":\"If you have received this in error, please get in touch as soon as possible. \",\"i\":7},\"i\":8}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
-                },
-                new EmailTemplate // Not sent by default. Activated by Subscription config/ SendRenewalEmails
-                {
-                    Name = "Your subscription is renewing soon",
-                    Subject = "Your subscription is renewing soon",
-                    Key = "subscription_renews_soon",
-                    BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":" +
-                               "{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\"," +
-                               "\"c\":{\"s\":\"Thank you for being a customer.\",\"i\":6},\"i\":6}," +
-                               "{\"t\":\"p\",\"c\":{\"s\":\"We hope you're enjoying the service.\",\"i\":7},\"i\":6},{\"t\":\"p\",\"c\":{\"s\":\"We’re letting you " +
-                               "know your subscription will automatically renew soon.\",\"i\":8},\"i\":6}," +
-                               "{\"t\":\"p\",\"c\":{\"s\":\"You do not need to do anything, but if you wish to " +
-                               "cancel or update your payment details, you can do so from your customer dashboard.\"," +
-                               "\"i\":11},\"i\":12},{\"t\":\"p\",\"c\":{\"s\":\"Thank you again!\",\"i\":6},\"i\":7}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
-                },
-                new
-                    EmailTemplate // Not sent by default. Activated by Subscription config/ SendSubscriptionReminderAfterDays
-                    {
-                        Name = "Not subscribed - Reminder to subscribe",
-                        Subject = "Looks like you haven't subscribed yet",
-                        Key = "not_subscribed_reminder",
-                        BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":" +
-                                   "\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\",\"c\":{\"s\":\"It\u2019s been " +
-                                   "some time since you created an account with us, but haven\u2019t yet started a " +
-                                   "subscription.\",\"i\":6},\"i\":6},{\"t\":\"p\"" +
-                                   ",\"c\":{\"s\":\"We\u2019re here to help you " +
-                                   "so don\u2019t hesitate to reach out with questions.\",\"i\":6},\"i\":7}],\"i\":3}," +
-                                   "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Get Started\"," +
-                                   "\"target\":\"/subscribe\"},\"r\":{\"label\":{\"s\":\"Get Started\",\"i\":6}}," +
-                                   "\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
-                    },
-                new EmailTemplate // Not sent by default. Activated by Subscription config/ SendThankYouEmail
-                {
-                    Name = "Thank you for subscribing",
-                    Subject = "Thank you for subscribing",
-                    Key = "thank_you_for_subscribing",
-                    BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"" +
-                               "Email/Centered\",\"d\":{},\"c\":{\"t\":\"p\",\"c\":[{\"s\":\"Your subscription is now confirmed and will next renew on \",\"i\":6}," +
-                               "{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"nextChargeUtc\"]},\"c\":{\"s\":\"customData.nextChargeUtc\",\"i\":6},\"i\":7}," +
-                               "{\"s\":\". If you have any questions please get in touch. Thank you!\",\"i\":8}],\"i\":6},\"i\":3}," +
-                               "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\",\"target\":\"/my-subscriptions\"}," +
-                               "\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}},\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+                        return builder.AddTemplate(
+                            new CanvasNode("Email/Centered")
+                            .AppendChild(
+                                "Your payment card ending "
+                            )
+                            .AppendChild(
+                                new CanvasNode("UI/Token")
+                                .With("mode", "customdata")
+                                .With("fields", new string[] {
+									"cardLastFour"
+								})
+                            )
+                            .AppendChild(
+                                " expires soon."
+                            )
+                            .AppendChild(
+                                new CanvasNode("p")
+                                    .AppendChild("In order to avoid disruptions, please log into your customer dashboard to update your payment details.")
+							)
+							.AppendChild(
+							   new CanvasNode("Email/PrimaryButton")
+                               .With("label", "Update billing information")
+                               .With("target", "/subscription/${customData.subscriptionId}/update-card")
+							)
+							.AppendChild(
+                                new CanvasNode("p")
+                                    .AppendChild("If you have received this in error, please get in touch as soon as possible.")
+                            )
+						);
+					}
                 }
-            );
+			/*
+			new EmailBuilder // Not sent by default. Activated by Subscription config/ SendRenewalEmails
+			{
+				Name = "Your subscription is renewing soon",
+				Subject = "Your subscription is renewing soon",
+				Key = "subscription_renews_soon",
+				BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":" +
+						   "{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\"," +
+						   "\"c\":{\"s\":\"Thank you for being a customer.\",\"i\":6},\"i\":6}," +
+						   "{\"t\":\"p\",\"c\":{\"s\":\"We hope you're enjoying the service.\",\"i\":7},\"i\":6},{\"t\":\"p\",\"c\":{\"s\":\"We're letting you " +
+						   "know your subscription will automatically renew soon.\",\"i\":8},\"i\":6}," +
+						   "{\"t\":\"p\",\"c\":{\"s\":\"You do not need to do anything, but if you wish to " +
+						   "cancel or update your payment details, you can do so from your customer dashboard.\"," +
+						   "\"i\":11},\"i\":12},{\"t\":\"p\",\"c\":{\"s\":\"Thank you again!\",\"i\":6},\"i\":7}],\"i\":3},\"customLogo\":null},\"i\":4},\"i\":5}"
+			},
+			new
+			EmailBuilder // Not sent by default. Activated by Subscription config/ SendSubscriptionReminderAfterDays
+			{
+				Name = "Not subscribed - Reminder to subscribe",
+				Subject = "Looks like you haven't subscribed yet",
+				Key = "not_subscribed_reminder",
+				BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":" +
+							"\"Email/Centered\",\"d\":{},\"c\":[{\"t\":\"p\",\"c\":{\"s\":\"It\u2019s been " +
+							"some time since you created an account with us, but haven\u2019t yet started a " +
+							"subscription.\",\"i\":6},\"i\":6},{\"t\":\"p\"" +
+							",\"c\":{\"s\":\"We\u2019re here to help you " +
+							"so don\u2019t hesitate to reach out with questions.\",\"i\":6},\"i\":7}],\"i\":3}," +
+							"{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"Get Started\"," +
+							"\"target\":\"/subscribe\"},\"r\":{\"label\":{\"s\":\"Get Started\",\"i\":6}}," +
+							"\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+			},
+			new EmailBuilder // Not sent by default. Activated by Subscription config/ SendThankYouEmail
+			{
+				Name = "Thank you for subscribing",
+				Subject = "Thank you for subscribing",
+				Key = "thank_you_for_subscribing",
+				BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"" +
+						   "Email/Centered\",\"d\":{},\"c\":{\"t\":\"p\",\"c\":[{\"s\":\"Your subscription is now confirmed and will next renew on \",\"i\":6}," +
+						   "{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"nextChargeUtc\"]},\"c\":{\"s\":\"customData.nextChargeUtc\",\"i\":6},\"i\":7}," +
+						   "{\"s\":\". If you have any questions please get in touch. Thank you!\",\"i\":8}],\"i\":6},\"i\":3}," +
+						   "{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"My subscriptions\",\"target\":\"/my-subscriptions\"}," +
+						   "\"r\":{\"label\":{\"s\":\"My Subscriptions\",\"i\":6}},\"i\":7}],\"customLogo\":null},\"i\":4},\"i\":5}"
+			}
+			*/
+			);
 
             // If a subscription payment changes to state 202, fulfil it immediately.
             Events.Purchase.BeforeUpdate.AddEventListener(
@@ -146,7 +189,7 @@ namespace Api.Payments
                     }
 
                     // State change - is it now a successful payment?
-                    if (purchase.Status == 202)
+                    if (purchase.Status == 202 || purchase.Status == 201)
                     {
                         // Success! Mark subscription(s) as renewed for the current month.
 
@@ -182,8 +225,7 @@ namespace Api.Payments
                         if (purchase.MultiExecute)
                         {
                             // Get the list of subscriptions on the purchase and mark each as active. A multi-execute only occurs on initial purchase.
-                            var mappedSubscriptions = await ListBySource(context, _purchases, purchase.Id,
-                                "subscriptions", DataOptions.IgnorePermissions);
+                            var mappedSubscriptions = await ListBySource(context, purchase, "subscriptions", DataOptions.IgnorePermissions);
 
                             foreach (var subscription in mappedSubscriptions)
                             {
@@ -207,8 +249,7 @@ namespace Api.Payments
                         if (purchase.MultiExecute)
                         {
                             // Get the list of subscriptions on the purchase and mark each as active. A multi-execute only occurs on initial purchase.
-                            var mappedSubscriptions = await ListBySource(context, _purchases, purchase.Id,
-                                "subscriptions", DataOptions.IgnorePermissions);
+                            var mappedSubscriptions = await ListBySource(context, purchase, "subscriptions", DataOptions.IgnorePermissions);
 
                             foreach (var subscription in mappedSubscriptions)
                             {
@@ -241,11 +282,7 @@ namespace Api.Payments
                     var sub = await Where("UserId=?", DataOptions.IgnorePermissions).Bind(user.Id).First(context);
                     if (sub == null)
                     {
-                        _emails.Send(new List<Recipient>()
-                            {
-                                new(user)
-                            },
-                            "not_subscribed_reminder");
+                        _emails.Send(user, "not_subscribed_reminder");
                     }
                 }
 
@@ -300,10 +337,7 @@ namespace Api.Payments
                 .ListAll(context);
             foreach (var subscription in subsToNotify)
             {
-                _emails.Send(new List<Recipient>
-                {
-                    new(subscription.UserId, subscription.LocaleId)
-                }, "subscription_renews_soon");
+                _emails.Send(new Recipient(subscription.UserId, subscription.LocaleId), "subscription_renews_soon");
             }
         }
 
@@ -335,10 +369,7 @@ namespace Api.Payments
                     }
                 };
 
-                _emails.Send(new List<Recipient>
-                {
-                    recipient
-                }, "card_expires_soon");
+                _emails.Send(recipient, "card_expires_soon");
 
                 await _paymentMethods.Update(context, paymentMethod,
                     (ctx, paymentMethodToUpdate, original) => { paymentMethodToUpdate.OneMonthExpiryNotice = true; },
@@ -373,16 +404,14 @@ namespace Api.Payments
                         }, DataOptions.IgnorePermissions);
 
                         // Send email:
-                        var recipients = new List<Recipient>();
                         var userRecipient = new Recipient(subscription.UserId, subscription.LocaleId);
-                        recipients.Add(userRecipient);
-                        _emails.Send(recipients, "subscription_cancelled");
+                        _emails.Send(userRecipient, "subscription_cancelled");
 
 #warning TODO: charge overages if there are any. Must discount any pre-paid amounts.
                     }
                     else
                     {
-                        await ChargeSubscription(context, subscription, null, true);
+                        await ChargeSubscription(context, subscription);
                     }
                 }
                 catch (Exception e)
@@ -422,14 +451,13 @@ namespace Api.Payments
 
                 if (config.SendThankYouEmail)
                 {
-                    _emails.Send(new List<Recipient>()
-                        {
-                            new(subscription.UserId, subscription.LocaleId)
-                            {
-                                CustomData = updatedSub
-                            }
-                        },
-                        "thank_you_for_subscribing");
+                    _emails.Send(
+                        new Recipient(subscription.UserId, subscription.LocaleId)
+					    {
+						    CustomData = updatedSub
+					    },
+                        "thank_you_for_subscribing"
+                    );
                 }
             }
 
@@ -538,10 +566,7 @@ namespace Api.Payments
         /// </summary>
         /// <param name="context"></param>
         /// <param name="subscription"></param>
-        /// <param name="coupon"></param>
-        /// <param name="offline">True if the payment is being made offline (without the user present. Most subscription purchases are offline).</param>
-        public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription,
-            Coupon coupon = null, bool offline = false)
+        public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription)
         {
             // First, has a purchase been raised for the subscription already?
             ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
@@ -574,8 +599,10 @@ namespace Api.Payments
                 if (purchase.Status >= 100 && purchase.Status < 200)
                 {
                     // It's in the waiting for gateway state.
-                    System.Console.WriteLine(
-                        "[WARN] Manual intervention required. Subscription has waited unusually long for payment response. Gateway webhook likely misfired.");
+                    Log.Warn(LogTag,
+                        "Manual intervention required. " +
+                        "Subscription has waited unusually long for payment response. Gateway webhook likely misfired."
+                    );
 
                     return new PurchaseAndAction()
                     {
@@ -583,55 +610,63 @@ namespace Api.Payments
                     };
                 }
 
-                // All other status codes indicate permanent failure or not yet submitted to gateway.
-                // It is therefore safe to effectively recreate the products on the subscription and go again by first resetting the code.
-                purchase = await _purchases.Update(context, purchase,
-                    (Context context, Purchase toUpdate, Purchase orig) =>
-                    {
-                        // Clear status code:
-                        toUpdate.Status = 0;
+				// All other status codes indicate permanent failure or not yet submitted to gateway.
+			}
 
-                        // Ensure purchase locale matches that of the sub:
-                        toUpdate.LocaleId = subscription.LocaleId;
-                    }, DataOptions.IgnorePermissions);
+			// Copy the items from the subscription to the purchase.
+			// This prevents any risk of someone manipulating their cart during the fulfilment.
+			var inSub = await GetProducts(context, subscription);
 
-                // Remove all items from the purchase. We'll recreate them.
-                var currentProducts = await _purchases.GetProducts(context, purchase);
+			// Get the payment method from the subscription. Subscription charges can safely use IgnorePermissions.
+			PaymentMethod method = await _paymentMethods.Get(context, subscription.PaymentMethodId, DataOptions.IgnorePermissions);
 
-                foreach (var qp in currentProducts)
+            if (method == null)
+            {
+                throw new Exception("No payment method on subscription #" + subscription.Id + ".");
+            }
+
+            var userContext = new Context(subscription.LocaleId, subscription.UserId, 1);
+
+			// Calculate the total:
+			var pricingInfo = await _productQuantities.GetPricing(context, inSub, subscription.TaxJurisdiction, subscription.CouponId);
+
+            //Get addresses
+            Address billingAddress = null;
+            if(subscription.BillingAddressId != 0)
+            {
+                billingAddress = await _addresses.Get(context, subscription.BillingAddressId);
+            }
+
+            Address deliveryAddress = null;
+            if(subscription.DeliveryAddressId != 0)
+            {
+                if(billingAddress != null && subscription.DeliveryAddressId == billingAddress.Id)
                 {
-                    await _productQuantities.Delete(context, qp, DataOptions.IgnorePermissions);
+                    deliveryAddress = billingAddress;
+                }
+                else
+                {
+                    deliveryAddress = await _addresses.Get(context, subscription.DeliveryAddressId);
                 }
             }
-            else
-            {
-                // Create a purchase:
-                purchase = await _purchases.Create(context, new Purchase()
-                {
-                    ContentType = "Subscription",
-                    ContentId = subscription.Id,
-                    PaymentMethodId = subscription.PaymentMethodId,
-                    ContentAntiDuplication = timePeriodKey,
-                    LocaleId = subscription.LocaleId,
-                    UserId = subscription.UserId,
-                }, DataOptions.IgnorePermissions);
-            }
 
-            // Copy the items from the subscription to the purchase.
-            // This prevents any risk of someone manipulating their cart during the fulfilment.
-            var inSub = await GetProducts(context, subscription);
-            await _purchases.AddProducts(context, purchase, inSub);
+			return await _purchases.CreateAndExecute(
+                userContext, pricingInfo, "Subscription", 
+                subscription.Id, method, 
+                
+                // **don't change this false unless you know what you're doing and the site has been set up accordingly!
+                // Tax and legal liability ahead.
+                // B2B VAT registered corps in the UK for example still charge VAT to each other.
+                false, 
+                
+                new CheckoutInfo {
+					DeliveryAddress = deliveryAddress,
+					BillingAddress = billingAddress,
+					DeliveryOptionId = subscription.DeliveryOptionId
+				},
 
-            // Get the payment method from the subscription. Offline subscription charges can safely use IgnorePermissions.
-            PaymentMethod method = null;
-
-            if (offline)
-            {
-                method = await _paymentMethods.Get(context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
-            }
-
-            // Attempt to fulfil the purchase now:
-            return await _purchases.Execute(context, purchase, method, coupon);
+                timePeriodKey
+            );
         }
 
         /// <summary>
@@ -669,34 +704,55 @@ namespace Api.Payments
         public async ValueTask<ProductQuantity> AddToSubscription(Context context, Subscription subscription,
             Product product, uint quantity = 1)
         {
-            // Check if this product is already in this cart:
-            var pQuantity = await _productQuantities
-                .Where("ProductId=? and SubscriptionId=?", DataOptions.IgnorePermissions)
-                .Bind(product.Id)
-                .Bind(subscription.Id)
-                .First(context);
+            // Check if this product is already in this sub:
+            ProductQuantity toRemove = null;
+			var inSub = await _productQuantities.ListBySource(context, subscription, "ProductQuantities");
+            var pQuantity = inSub.FirstOrDefault(entry => entry.ProductId == product.Id);
 
-            if (pQuantity == null)
+			if (pQuantity == null)
             {
                 // Create a new one:
                 pQuantity = await _productQuantities.Create(context, new ProductQuantity()
                 {
                     ProductId = product.Id,
-                    SubscriptionId = subscription.Id,
                     Quantity = quantity
                 }, DataOptions.IgnorePermissions);
             }
             else
             {
                 // Add to the existing one:
-                await _productQuantities.Update(context, pQuantity,
-                    (Context ctx, ProductQuantity toUpdate, ProductQuantity orig) =>
-                    {
-                        toUpdate.Quantity += quantity;
-                    });
+                var newQty = pQuantity.Quantity + quantity;
+
+                if (newQty <= 0)
+                {
+                    toRemove = pQuantity;
+					await _productQuantities.Delete(context, pQuantity);
+				}
+                else
+                {
+                    await _productQuantities.Update(context, pQuantity,
+                        (Context ctx, ProductQuantity toUpdate, ProductQuantity orig) =>
+                        {
+                            toUpdate.Quantity = newQty;
+                        });
+                }
             }
 
-            return pQuantity;
+			await Update(context, subscription, (Context ctx, Subscription toUpdate, Subscription orig) => {
+
+				// Ensure the qty entry itself is updated:
+				if (toRemove != null)
+				{
+					toUpdate.Mappings.Remove("ProductQuantities", toRemove);
+				}
+				else
+				{
+					toUpdate.Mappings.Add("ProductQuantities", pQuantity);
+				}
+
+			}, DataOptions.IgnorePermissions);
+
+			return pQuantity;
         }
     }
 }

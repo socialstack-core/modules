@@ -1,0 +1,44 @@
+.payment-checkout__address {
+	aspect-ratio: 2 / 1;
+	border-radius: px_to_rem(4);
+	background: #e3dbd2;
+	color: #000;
+	padding: 2rem 4.5rem 2rem 4rem;
+	font-size: px_to_rem(14);
+	font-weight: 500;
+	width: px_to_rem(275);
+	max-width: 100%;
+	position: relative;
+	font-size: px_to_rem(15);
+	margin: 0;
+
+    &__readonly {
+        background: var(--primary);
+        color: var(--primary-fg);
+    }
+
+	> span {
+		display: block;
+	}
+
+	&::after {
+		content: "";
+		display: block;
+		width: px_to_rem(46);
+		height: px_to_rem(55);
+		position: absolute;
+		right: px_to_rem(12);
+		top: px_to_rem(12);
+		background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 95.3 111.1' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M5 0a5 5 0 01-5 5v5.9a5 5 0 015 5 5 5 0 01-5 5v5.9a5 5 0 015 5 5 5 0 01-5 5v5.8a5 5 0 015 5 5 5 0 01-5 5v5.9a5 5 0 015 5 5 5 0 01-5 5v5.9a5 5 0 015 5 5 5 0 01-5 5v5.9a5 5 0 015 5 5 5 0 01-5 5v5.8a5 5 0 015 5h5.9a5 5 0 015-5 5 5 0 015 5h5.9a5 5 0 015-5 5 5 0 015 5h5.8a5 5 0 015-5 5 5 0 015 5h5.9a5 5 0 015-5 5 5 0 015 5h5.9a5 5 0 015-5 5 5 0 015 5h5.9a5 5 0 015-5v-5.8a5 5 0 01-5-5 5 5 0 015-5v-6a5 5 0 01-5-5 5 5 0 015-5v-5.8a5 5 0 01-5-5 5 5 0 015-5v-5.9a5 5 0 01-5-5 5 5 0 015-5v-5.8a5 5 0 01-5-5 5 5 0 015-5v-6a5 5 0 01-5-5 5 5 0 015-5V5a5 5 0 01-5-5h-6a5 5 0 01-5 5 5 5 0 01-5-5h-5.8a5 5 0 01-5 5 5 5 0 01-5-5h-5.9a5 5 0 01-5 5 5 5 0 01-5-5h-5.9a5 5 0 01-5 5 5 5 0 01-5-5H21a5 5 0 01-5 5 5 5 0 01-5-5zm10.9 15.9h63.5v79.3H15.9z' fill='%23000'/%3E%3C/svg%3E");
+		background-repeat: no-repeat;
+		opacity: .2;
+	}
+}
+
+@media only screen and (min-width: 600px) {
+
+	.payment-checkout__address {
+		width: px_to_rem(370);
+	}
+
+}

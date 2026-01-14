@@ -1,0 +1,22 @@
+﻿
+
+.attribute-value-editor-row {
+    cursor: pointer;
+    
+    .hover-msg {
+        display: none;
+    }
+    
+    &:hover .hover-msg {
+        display: inline;
+        color:#aaa;
+        font-size:13px;
+        margin-left:20px;
+    }
+}
+.attribute-value-value > td:nth-last-child(1) {
+    text-align: right;
+}
+.attribute-value-value img, .attribute-value-value .video {
+    max-width: 50%;
+}

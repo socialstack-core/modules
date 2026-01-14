@@ -1,12 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using Api.Contexts;
 using System.Collections.Generic;
-using System.Reflection;
-using Newtonsoft.Json.Linq;
 using System.Threading.Tasks;
 using Api.Eventing;
 using Api.Pages;
@@ -14,42 +8,29 @@ using Api.CanvasRenderer;
 using Api.NavMenus;
 namespace Api.Automations
 {
-
-	/// <summary>
-	/// Indicates the set of available automations.
-	/// </summary>
-
-	public partial class AutomationService : AutoService<AutomationStructure, uint>
+    /// <summary>
+    /// Indicates the set of available automations.
+    /// </summary>
+    public partial class AutomationService : AutoService
 	{
-
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public AutomationService(PageService pages, AdminNavMenuItemService adminNav) : base(Events.AvailableAutomations)
+		public AutomationService(PageService pages, AdminNavMenuItemService adminNav)
 		{
 
-			// Install custom admin page which lists automations. This install mechanism allows it to be modified if needed.
-			Task.Run(async () => {
-
-				var automationsPageCanvas = new CanvasNode("Admin/Layouts/Automations");
-
-				var listPage = new Page
-				{
-					Url = "/en-admin/automations",
-					BodyJson = "",
-					Title = "Automations"
-				};
-
-				// Trigger an event to state that an admin page is being installed:
-				// - Use this event to inject additional nodes into the page, or change it however you'd like.
-				listPage = await Events.Page.BeforeAdminPageInstall.Dispatch(new Context(), listPage, automationsPageCanvas, typeof(AutomationStructure), AdminPageType.List);
-				listPage.BodyJson = automationsPageCanvas.ToJson();
-
-				pages.Install(listPage);
-
-				// Add nav menu item too.
-				await adminNav.InstallAdminEntry("/en-admin/automations", "fa:fa-clock", "Automations");
-
+			// Install custom admin page which lists automations.
+			// This install mechanism allows it to be modified if needed.
+			pages.Install(new PageBuilder()
+			{
+				Title = "Automations",
+				AdminRelativeUrl = "automations",
+				AdminNavMenuIcon = "fa:fa-clock",
+				BuildBody = (PageBuilder builder) => {
+					return builder.AddTemplate(
+						new CanvasNode("Admin/Layouts/Automations")
+					);
+				}
 			});
 		}
 
@@ -98,6 +79,7 @@ namespace Api.Automations
 				structure.Results.Add(
 					new Automation(automation) {
 						Name = automation.Name,
+						Description = automation.Description,
 						CronDescription = ExpressionDescriptor.GetDescription(automation.Cron),
 						Cron = automation.Cron,
 					}

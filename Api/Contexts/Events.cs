@@ -22,6 +22,12 @@ namespace Api.Eventing
 	public partial class ContextEventGroup : EventGroup
 	{
 		/// <summary>
+		/// Called when a context is being created initially. 
+		/// The user has not been authenticated yet: do things like the initial locale and domain here.
+		/// </summary>
+		public EventHandler<HttpRequest> OnInitiate;
+		
+		/// <summary>
 		/// Called during GetContext.
 		/// </summary>
 		public EventHandler<HttpRequest> OnLoad;

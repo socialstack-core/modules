@@ -6,6 +6,9 @@ using System.Linq;
 using Api.Eventing;
 using Api.Contexts;
 using Api.Startup;
+using Api.CanvasRenderer;
+using System;
+using Api.Pages;
 
 namespace Api.NavMenus
 {
@@ -20,15 +23,31 @@ namespace Api.NavMenus
 		/// </summary>
 		public NavMenuService() : base(Events.NavMenu)
         {
-			InstallAdminPages(
-				"Nav Menus", "fa:fa-map-signs", new string[] { "id", "name", "key" },
+			InstallAdminPages("Nav menus", "fa:fa-map-signs", ["id", "name", "key"]);
 
-				// Each navmenu page also has a list of navmenuitem's on it:
-				new ChildAdminPageOptions(){
-					ChildType = "NavMenuItem",
-					Fields = new string[] { "bodyJson" }
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) => {
+
+				if (builder == null)
+				{
+					return new ValueTask<PageBuilder>(builder);
 				}
-			);
+
+				if (builder.ContentType == typeof(NavMenu) && builder.PageType == CommonPageType.AdminEdit)
+				{
+					// This is likely obsoleted: favour more customised pages instead.
+					builder.GetContentRoot().AppendChild(
+						new CanvasNode("Admin/AutoList")
+						.With("contentType", "NavMenuItem")
+						.With("filterField", "NavMenuId")
+						.With("create", true)
+						.With("searchFields", null)
+						.With("filterValue", "${primary.id}")
+						.With("fields", new string[] { "bodyJson" })
+					);
+				}
+
+				return new ValueTask<PageBuilder>(builder);
+			});
 		}
 	}
     

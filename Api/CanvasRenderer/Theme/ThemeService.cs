@@ -16,6 +16,7 @@ namespace Api.Themes
     /// This service manages and generates (for devs) the frontend code.
     /// It does it by using either precompiled (as much as possible) bundles with metadata, or by compiling in-memory for devs using V8.
     /// </summary>
+    [HostType("web")]
     public class ThemeService : AutoService
     {
         /// <summary>
@@ -39,7 +40,7 @@ namespace Api.Themes
         public ThemeService(ConfigurationService configService)
         {
             _globalCfg = GetConfig<GlobalThemeConfig>();
-            _current = GetAllConfig<ThemeConfig>();
+            _current = GetAllConfig<ThemeConfig>(null, false);
 
             // If the theme list doesn't contain anything, two are created - admin and main.
             if (_current.Configurations == null || _current.Configurations.Count == 0)
@@ -117,8 +118,10 @@ namespace Api.Themes
                     Variables = defaultVars
                 };
 
-                _ = configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
-                _ = configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
+                Task.Run(async () => {
+					await configService.InstallConfig(admin, "Admin Theme", "Theme", _current);
+					await configService.InstallConfig(main, "Main Site Theme", "Theme", _current);
+				});
             }
         }
 

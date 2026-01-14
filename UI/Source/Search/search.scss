@@ -1,0 +1,38 @@
+.search {
+	position: relative;
+
+	.suggestions {
+		position: absolute;
+		width: 100%;
+		background: #fff;
+		border: 1px solid #ccc;
+		z-index: 3000;
+		max-height: px_to_rem(250);
+		overflow-y: auto;
+
+		.suggestion {
+			//@include fr-font-size(12);
+			//@include padding(5, 8);
+			font-size: .75rem;
+			padding: .3125rem .5rem;
+			color: #767676;
+			display: block;
+			width: 100%;
+			text-align: left;
+
+			&:hover,
+			&:focus {
+				background-color: #fcf2bd;
+			}
+		}
+
+		.no-results {
+			//@include fr-font-size(12);
+			//@include padding(5, 8);
+			font-size: .75rem;
+			padding: .3125rem .5rem;
+			color: #767676;
+			font-style: italic;
+		}
+	}
+}

@@ -23,6 +23,7 @@ namespace Api.CanvasRenderer
     /// Handles rendering canvases server side. Particularly useful for e.g. sending emails.
     /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
     /// </summary>
+    [HostType("web")]
     public partial class CanvasRendererService : AutoService
     {
         private readonly FrontendCodeService _frontendService;
@@ -173,18 +174,27 @@ namespace Api.CanvasRenderer
                 return null;
             }
 
-            var rootNode = JsonConvert.DeserializeObject(canvas) as JToken;
-
-            if (rootNode == null)
+            try
             {
-                return "";
+	            var rootNode = JsonConvert.DeserializeObject(canvas) as JToken;
+
+	            if (rootNode == null)
+	            {
+		            return "";
+	            }
+
+	            var sb = new StringBuilder();
+
+	            CanvasNodeToXml(rootNode, sb);
+
+	            return sb.ToString();
             }
-
-            var sb = new StringBuilder();
-
-            CanvasNodeToXml(rootNode, sb);
-
-            return sb.ToString();
+            catch (JsonReaderException jsonReaderException)
+            {
+	            Log.Error("canvas-renderer/canvas-to-component", jsonReaderException);
+	            Log.Info("canvas-renderer/canvas-to-component", "Canvas JSON: " + canvas);
+	            return "";
+            }
         }
 
         private void CanvasNodeToXml(JToken node, StringBuilder sb)
@@ -396,13 +406,13 @@ namespace Api.CanvasRenderer
         private Uri _bundleUri = new Uri("file://bundle.js");
         private Uri _rendererUri = new Uri("file://renderer.js");
 
-        /// <summary>
-        /// Gets the script engine for the given locale by its locale.
-        /// Also see GetEngineSearch
-        /// </summary>
-        /// <param name="localeId">The locale in use.</param>
-        /// <returns></returns>
-        private async ValueTask<V8ScriptEngine> GetEngine(uint localeId)
+		/// <summary>
+		/// Gets the script engine for the given locale by its locale.
+		/// Also see GetEngineSearch
+		/// </summary>
+		/// <param name="localeId">The locale in use.</param>
+		/// <returns></returns>
+		private async ValueTask<V8ScriptEngine> GetEngine(uint localeId)
         {
             if (_engines != null && _engines.Length >= localeId && _engines[localeId - 1] != null)
             {
@@ -466,7 +476,7 @@ namespace Api.CanvasRenderer
             ");
 
             // ignore setTimeout when running serverside
-            engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
+            engine.Execute("window.setTimeout=(fn, delay)=>{Promise.resolve().then(fn);return 0;};window.clearTimeout=(id)=>{};window.setInterval=(a,b,c)=>{throw new Error('Dont call setInterval serverside');};");
 
             // Need to get the location of /content
             var contentUrl = _frontendService.GetContentUrl(localeId);
@@ -489,7 +499,7 @@ namespace Api.CanvasRenderer
 
             string sourceContent;
 
-            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
+            sourceContent = _frontendService.ReadModuleFileText("inline_header.js");
             engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
 
             // If instancing a new engine, always read the file.
@@ -505,7 +515,7 @@ namespace Api.CanvasRenderer
             sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
             engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
 
-            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
+            sourceContent = _frontendService.ReadModuleFileText("renderer.js");
             engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
 
             // Add engine to locale lookup. This happens last to avoid 2 simultaneous 
@@ -528,116 +538,6 @@ namespace Api.CanvasRenderer
 
             return engine;
         }
-
-        /*
-		/// <summary>
-		/// Gets the search script engine for the given locale by its locale.
-		/// Also see GetEngine
-		/// </summary>
-		/// <param name="localeId">The locale in use.</param>
-		/// <returns></returns>
-		private async ValueTask<V8ScriptEngine> GetEngineSearch(uint localeId)
-        {
-            if (_enginesSearch != null && _enginesSearch.Length >= localeId && _enginesSearch[localeId - 1] != null)
-            {
-                // Use search render engine for this locale:
-                var cachedEngine = _enginesSearch[localeId - 1];
-                return cachedEngine.V8Engine;
-            }
-
-            var engine = new V8ScriptEngine("Socialstack API Search Renderer", V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion);
-
-            //set flag to identify we are being indexed for search
-            engine.Execute("SERVER=true;SEARCHINDEXING=true;window=this;");
-
-            engine.AddHostObject("serviceHelper", new V8.ServiceHelper());
-            engine.Execute(@"
-                document = {
-                    location: {
-                        href: null,
-                        origin: '" + _frontendService.GetPublicUrl(localeId) + @"'
-                    },
-                    dispatchEvent: evt => {return null;},
-                    addEventListener: (a, b) => {return null;},
-                    removeEventListener: a => {return null;},
-                    getElementById: id => {return null;}
-                };
-            ");
-            engine.Execute(@"
-                location = document.location;
-            ");
-            engine.AddHostObject("__console", new V8.Console(_config.DebugToConsole));
-            engine.Execute("window.addEventListener=document.addEventListener;console={};console.info=console.log=console.warn=console.error=(...args)=>__console.log(...args);");
-            engine.Execute(@"
-                navigator = {
-                   userAgent: 'API'
-                };
-            ");
-
-            // ignore setTimeout when running serverside
-            engine.Execute("window.setTimeout=(a,b,c)=>{console.log('Ignoring SetTimeout',a,b,c)}");
-
-            // Need to get the location of /content 
-            var contentUrl = _frontendService.GetContentUrl(localeId);
-			if (!string.IsNullOrWhiteSpace(contentUrl))
-            {
-                engine.Execute($"global=this;global.contentSource='{contentUrl}';");
-            }
-
-            // Need to load config into its scope as well:
-            engine.Execute(_configService.GetLatestFrontendConfigJs());
-
-            /* engine.AddHostObject("host", new ExtendedHostFunctions());
-				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
-				new HostTypeCollection("mscorlib", "System", "System.Core", "System.Numerics", "ClearScript.Core", "ClearScript.V8"));
-			*
-            engine.SuppressExtensionMethodEnumeration = true;
-            engine.AllowReflection = true;
-
-            var dllPath = AppDomain.CurrentDomain.BaseDirectory;
-
-            string sourceContent;
-
-            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
-            engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
-
-            // If instancing a new engine, always read the file.
-            var jsFileData = await _frontendService.GetAdminMainJs(localeId);
-            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
-            engine.Execute(new DocumentInfo(new Uri("file://admin/main.js")), sourceContent);
-
-            jsFileData = await _frontendService.GetMainJs(localeId);
-            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
-            engine.Execute(new DocumentInfo(new Uri("file://ui/main.js")), sourceContent);
-
-            jsFileData = await _frontendService.GetEmailMainJs(localeId);
-            sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
-            engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
-
-            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
-            engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
-
-            // Add engine to locale lookup. This happens last to avoid 2 simultaneous 
-            // requests trying to use a potentially not initted engine.
-            if (_enginesSearch == null)
-            {
-                _enginesSearch = new V8.CanvasRendererEngine[localeId];
-            }
-            else if (_enginesSearch.Length < localeId)
-            {
-                Array.Resize(ref _enginesSearch, (int)localeId);
-            }
-
-            var cre = new V8.CanvasRendererEngine()
-            {
-                V8Engine = engine
-            };
-
-            _enginesSearch[localeId - 1] = cre;
-
-            return engine;
-        }
-        */
     }
 
     /// <summary>

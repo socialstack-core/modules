@@ -1,0 +1,413 @@
+:root {
+	// set defaults to regular (md)
+	--btn-min-height: var(--btn-md-min-height, #{$default-btn-md-min-height});
+	--btn-padding: var(--btn-md-padding, #{$default-btn-md-padding});
+	--btn-font-size: var(--btn-md-font-size, #{$default-btn-md-font-size});
+	--btn-font-weight: var(--btn-md-font-weight, #{$default-btn-md-font-weight});
+	--btn-border-radius: var(--btn-md-border-radius, #{$default-btn-md-border-radius});
+	--btn-icon: var(--btn-md-icon, #{$default-btn-md-icon});
+	--btn-gap: var(--btn-md-gap, #{$default-btn-md-gap});
+}
+
+$btn-variants: (
+    primary,
+    secondary,
+    success,
+    danger,
+    warning,
+    info,
+    light,
+    dark//,
+    //link // treated separately
+);
+
+// generates overriding styles for the given button variant (e.g. btn-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-variant($variant) {
+    $var: --#{$variant};
+    $var-border: #{$var};
+    $var-color: #{$var}-fg;
+    $var-focus: #{$var}-focus;
+    $var-hover: #{$var}-hover;
+    $var-active: #{$var}-active;
+
+    // default state
+    background-color: var($var);
+    border-color: var($var-border);
+    color: var($var-color);
+
+    // hover state
+    $var-background: #{$var}-hover;
+    $var-border: #{$var}-hover-border;
+    //$var-color: #{$var}-hover-fg;
+
+    &:hover {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+    }
+
+    // focus state
+    //$var-background: #{$var}-focus-background;
+    //$var-border: #{$var}-focus-border;
+    //$var-color: #{$var}-focus-fg;
+    $var-shadow: #{$var}-shadow;
+
+    .btn-check:focus + &,
+    &:focus {
+        box-shadow: none;
+    }
+            
+    .btn-check:focus-visible + &,
+    &:focus-visible {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+        box-shadow: 0 0 0 .25rem var($var-shadow);
+    }
+            
+    // active state
+    $var-background: #{$var}-active;
+    $var-border: #{$var}-active-border;
+    //$var-color: #{$var}-active-fg;
+    //$var-shadow: #{$var}-active-shadow;
+    
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    .show > &.dropdown-toggle {
+        background-color: var($var-background);
+        border-color: var($var-border);
+        color: var($var-color);
+
+        &:focus {
+            box-shadow: none;
+        }
+                
+        &:focus-visible {
+            box-shadow: 0 0 0 .25rem var($var-shadow);
+        }
+
+    }
+           
+    // disabled state
+    //$var-background: #{$var}-disabled-background;
+    //$var-border: #{$var}-disabled-border;
+    //$var-color: #{$var}-disabled-color;
+
+    &:disabled,
+    &.disabled {
+        //background-color: var($var-background);
+        //border-color: var($var-border);
+        //color: var($var-color);
+        opacity: .5;
+    }
+
+}
+
+// generates overriding styles for the given outline button variant (e.g. btn-outline-primary)
+// updated styles will use pre-existing CSS theme vars injected into the page
+@mixin themed-button-outline-variant($variant) {
+    $var: --#{$variant};
+    $var-border: #{$var};
+    $var-color: #{$var}-fg;
+
+    // default state
+    border-color: var($var-border);
+    color: var($var); // NB: uses background colour for text as the background is transparent
+
+    // hover state
+    // defaults to looking like non-outlined version on hover
+    &:hover {
+        background-color: var($var);
+        color: var($var-color);
+    }
+
+    // focus state
+    //$var-background: #{$var}-focus-background;
+    //$var-border: #{$var}-focus-border;
+    //$var-color: #{$var}-focus-color;
+    $var-shadow: #{$var}-shadow;
+
+    .btn-check:focus + &,
+    &:focus {
+        box-shadow: none;
+    }
+
+    .btn-check:focus-visible + &,
+    &:focus-visible {
+        box-shadow: 0 0 0 .25rem var($var-shadow);
+    }
+    
+    // active state
+    // NB: by default, Bootstrap doesn't appear to render anything different on the active state for outlined buttons
+    .btn-check:checked + &,
+    .btn-check:active + &,
+    &:active,
+    &.active,
+    &.dropdown-toggle.show {
+        background-color: var($var);
+        color: var($var-color);
+        border-color: var($var);
+        //background-color: var($activeBackgroundColor);
+        //border-color: var($activeBorderColor);
+        //color: var($activeColor);
+
+        &:focus {
+            box-shadow: none;
+        }
+
+        &:focus-visible {
+            box-shadow: 0 0 0 .25rem var($var-shadow);
+            //box-shadow: 0 0 0 .25rem $focusBoxShadowColor;
+        }
+
+    }
+
+    // disabled state
+    // handled by Bootstrap applying reduced opacity
+    &:disabled,
+    &.disabled {
+        //background-color: transparent;
+        //color: var($disabledColor);
+    }
+
+}
+
+.btn {
+    cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;  
+
+	// defaults to no-wrapping
+    white-space: nowrap;
+
+	&.btn--wrapped {
+		white-space: normal;
+    }
+
+	&.btn--inline {
+		display: inline-flex;
+	}
+
+	&:disabled,
+	&.disabled,
+	&[inert] {
+		opacity: .5;
+		cursor: not-allowed;
+	}
+
+	// override	vars based on size
+	&-xs,
+	&--xs {
+		--btn-min-height: var(--btn-xs-min-height, #{$default-btn-xs-min-height});
+		--btn-padding: var(--btn-xs-padding, #{$default-btn-xs-padding});
+		--btn-font-size: var(--btn-xs-font-size, #{$default-btn-xs-font-size});
+		--btn-font-weight: var(--btn-xs-font-weight, #{$default-btn-xs-font-weight});
+		--btn-border-radius: var(--btn-xs-border-radius, #{$default-btn-xs-border-radius});
+		--btn-icon: var(--btn-xs-icon, #{$default-btn-xs-icon});
+		--btn-gap: var(--btn-xs-gap, #{$default-btn-xs-gap});
+	}
+	
+	&-sm,
+	&--sm {
+		--btn-min-height: var(--btn-sm-min-height, #{$default-btn-sm-min-height});
+		--btn-padding: var(--btn-sm-padding, #{$default-btn-sm-padding});
+		--btn-font-size: var(--btn-sm-font-size, #{$default-btn-sm-font-size});
+		--btn-font-weight: var(--btn-sm-font-weight, #{$default-btn-sm-font-weight});
+		--btn-border-radius: var(--btn-sm-border-radius, #{$default-btn-sm-border-radius});
+		--btn-icon: var(--btn-sm-icon, #{$default-btn-sm-icon});
+		--btn-gap: var(--btn-sm-gap, #{$default-btn-sm-gap});
+	}
+
+	&-md,
+	&--md {
+		--btn-min-height: var(--btn-md-min-height, #{$default-btn-md-min-height});
+		--btn-padding: var(--btn-md-padding, #{$default-btn-md-padding});
+		--btn-font-size: var(--btn-md-font-size, #{$default-btn-md-font-size});
+		--btn-font-weight: var(--btn-md-font-weight, #{$default-btn-md-font-weight});
+		--btn-border-radius: var(--btn-md-border-radius, #{$default-btn-md-border-radius});
+		--btn-icon: var(--btn-md-icon, #{$default-btn-md-icon});
+		--btn-gap: var(--btn-md-gap, #{$default-btn-md-gap});
+
+		&.btn--close {
+			width: var(--btn-md-min-height, #{$default-btn-md-min-height});
+			height: var(--btn-md-min-height, #{$default-btn-md-min-height});
+		}
+
+	}
+
+	&-lg,
+	&--lg {
+		--btn-min-height: var(--btn-lg-min-height, #{$default-btn-lg-min-height});
+		--btn-padding: var(--btn-lg-padding, #{$default-btn-lg-padding});
+		--btn-font-size: var(--btn-lg-font-size, #{$default-btn-lg-font-size});
+		--btn-font-weight: var(--btn-lg-font-weight, #{$default-btn-lg-font-weight});
+		--btn-border-radius: var(--btn-lg-border-radius, #{$default-btn-lg-border-radius});
+		--btn-icon: var(--btn-lg-icon, #{$default-btn-lg-icon});
+		--btn-gap: var(--btn-lg-gap, #{$default-btn-lg-gap});
+	}
+	
+	&-xl,
+	&--xl {
+		--btn-min-height: var(--btn-xl-min-height, #{$default-btn-xl-min-height});
+		--btn-padding: var(--btn-xl-padding, #{$default-btn-xl-padding});
+		--btn-font-size: var(--btn-xl-font-size, #{$default-btn-xl-font-size});
+		--btn-font-weight: var(--btn-xl-font-weight, #{$default-btn-xl-font-weight});
+		--btn-border-radius: var(--btn-xl-border-radius, #{$default-btn-xl-border-radius});
+		--btn-icon: var(--btn-xl-icon, #{$default-btn-xl-icon});
+		--btn-gap: var(--btn-xl-gap, #{$default-btn-xl-gap});
+	}
+
+}
+
+a.btn {
+	display: inline-flex;
+}
+
+fieldset:disabled .btn {
+	opacity: .5;
+}
+
+.btn:where(.ui-btn) {
+	min-height: var_to_rem(--btn-min-height);
+	padding: 0 var_to_rem(--btn-padding);
+	font-size: var_to_rem(--btn-font-size);
+	font-weight: var(--btn-font-weight);
+	border-radius: var_to_rem(--btn-border-radius);
+	gap: var_to_rem(--btn-gap);
+
+	&.btn--close {
+		width: var_to_rem(--btn-min-height);
+		height: var_to_rem(--btn-min-height);
+		padding: 0;
+	}
+	
+	> svg {
+		max-width: var_to_rem(--btn-icon);
+		height: var_to_rem(--btn-icon);
+		flex-shrink: 0;
+	}
+	
+	> i {
+		flex-shrink: 0;
+    }
+
+    // alternate buttons
+    // (primary, secondary, etc.)
+    @each $variant in $btn-variants {
+
+        // solid button variants
+        &.btn-#{$variant} {
+            @include themed-button-variant($variant);
+        }
+
+        // outlined button variants
+        &.btn-outline-#{$variant} {
+            @include themed-button-outline-variant($variant);
+        }
+    }
+
+    // link buttons
+    &.btn-link {
+		--btn-min-height: 0;
+		--btn-padding: 0;
+		--btn-font-weight: normal;
+		--btn-border-radius: 0;
+		text-decoration: none;
+		color: var(--ui-link-color, #{$default-link-color});
+		// override Bootstrap default
+		font-size: var_to_rem(--btn-font-size) !important;
+
+		&:focus {
+			box-shadow: none;
+		}
+
+		&:focus-visible {
+			outline: 1px dotted currentColor;
+		}
+
+		// no children / only one child - assume this is purely text
+		&:not(:has(*)),
+		&:has(> :last-child:nth-child(1)) {
+			text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+        
+			&:hover {
+				text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+				color: var(--ui-link-hover, #{$default-link-hover})
+			}
+        
+        }
+        
+		// two or more children - assume prefixed / suffixed with icons
+		// (this requires the label text be wrapped with a <span>)
+		&:has(:nth-child(2)) {
+		
+			&:not(:has(span)) {
+				text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+			
+				&:hover {
+					text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+					color: var(--ui-link-hover, #{$default-link-hover})
+				}
+
+			}
+		
+			&:has(span) {
+				text-decoration: none;
+			
+				> span {
+					text-decoration: var(--ui-link-text-decoration, #{$default-link-text-decoration});
+				}
+			
+				&:hover {
+				
+					> span {
+						text-decoration: var(--ui-link-text-decoration-hover, #{$default-link-text-decoration-hover});
+						color: var(--ui-link-hover, #{$default-link-hover})
+					}
+
+				}
+
+			}
+
+		}
+
+    }
+
+}
+ 
+// grouped buttons
+.btn-group {
+
+	&.ui-btn-group {
+
+		.btn.ui-btn {
+			--btn-padding: 0;
+			min-width: var_to_rem(--btn-min-height);
+		}
+
+		.btn-check:checked + .btn:where(.ui-btn).btn-outline-primary {
+			background-color: var(--secondary);
+			border-color: var(--secondary);
+		}
+
+	}
+
+	&-sm {
+
+		.btn.ui-btn {
+			--btn-min-height: var(--btn-sm-min-height, #{$default-btn-sm-min-height});
+			--btn-padding: var(--btn-sm-padding, #{$default-btn-sm-padding});
+			--btn-font-size: var(--btn-sm-font-size, #{$default-btn-sm-font-size});
+			--btn-font-weight: var(--btn-sm-font-weight, #{$default-btn-sm-font-weight});
+			--btn-border-radius: var(--btn-sm-border-radius, #{$default-btn-sm-border-radius});
+			--btn-icon: var(--btn-sm-icon, #{$default-btn-sm-icon});
+			--btn-gap: var(--btn-sm-gap, #{$default-btn-sm-gap});
+		}
+
+	}
+
+}

@@ -54,10 +54,12 @@ namespace Api.Emails{
 		/// Emails the given user. Uses their last seen locale.
 		/// </summary>
 		/// <param name="user"></param>
-		public Recipient(User user)
+		/// <param name="customData">Optional custom data which appears as the primary content type.</param>
+		public Recipient(User user, object customData = null)
 		{
 			User = user;
 			UserId = user.Id;
+			CustomData = customData;
 			Context = new Context(user.LocaleId.HasValue ? user.LocaleId.Value : 0, user, user.Role);
 		}
 

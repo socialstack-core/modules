@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 
 
 namespace Api.Contexts
@@ -14,12 +15,13 @@ namespace Api.Contexts
 		public PropertyInfo Property;
 
 		/// <summary>
-		/// True if this field should be skipped. RoleId is always obtained through the user row so it is skipped for example.
+		/// True if this field should be omitted from the token. 
+		/// RoleId is always obtained through the user row so it is skipped for example.
 		/// </summary>
-		public bool SkipOutput;
+		public bool OmitFromToken;
 		
 		/// <summary>
-		/// Private backing field. Name must be of the form _propertyName.
+		/// Private backing field. Name must be of the form _propertyName e.g. _userId.
 		/// </summary>
 		public FieldInfo PrivateFieldInfo;
 
@@ -27,6 +29,17 @@ namespace Api.Contexts
 		/// Full name.
 		/// </summary>
 		public string Name;
+		
+		/// <summary>
+		/// The field name with 'Id' truncated from the end, e.g. "User". Not the same as ContentType.Name.
+		/// This is the uppercased name of the field as it appears in the JSON.
+		/// </summary>
+		public string ContentFieldName;
+
+		/// <summary>
+		/// The name as it appears in the JSON. It is the ContentFieldName but lowercased.
+		/// </summary>
+		public string JsonFieldName => ContentFieldName.ToLower();
 
 		/// <summary>
 		/// Shortcode of this field.
@@ -39,9 +52,9 @@ namespace Api.Contexts
 		public uint DefaultValue;
 
 		/// <summary>
-		/// The content type ID of the content of this field.
+		/// The content type of the content of this field.
 		/// </summary>
-		public int ContentTypeId;
+		public Type ContentType;
 
 		/// <summary>
 		/// The service for this field. Set on demand internally inside ContextService.

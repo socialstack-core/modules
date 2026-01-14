@@ -1,0 +1,56 @@
+@layer components.expander {
+
+	:root {
+		// NB: additional settings can be found within GlobalStyle/laters/palette.1.scss
+		//     (not defined here so that they can react to light / dark mode overrides)
+		--ui-expander-animation-duration: .6s;
+		--ui-expander-animation-timing-function: ease;
+	}
+
+	.ui-expander {
+		$expander: &;
+		color: var(--ui-expander-fg);
+		margin-block-end: 1rem;
+
+		&:last-child {
+			margin-block-end: 0;
+		}
+
+		&__content {
+			border: 2px solid var(--ui-summary-bg);
+			border-block-start-width: 0;
+			margin-block-start: 0;
+			padding: 1rem;
+		}
+
+		&:not([open]) {
+
+			#{$expander}__content {
+				// uncomment to prevent content from being discovered via CTRL+F
+				//visibility: hidden;
+			}
+
+		}
+
+		// CSS-only animation support
+		// NB: as of March 2025, only supported by Chrome/Edge
+		@supports (interpolate-size: allow-keywords) {
+
+			&::details-content {
+				block-size: 0;
+				overflow: hidden;
+				transition: 
+					block-size var(--ui-expander-animation-duration) var(--ui-expander-animation-timing-function),
+					content-visibility var(--ui-expander-animation-duration) var(--ui-expander-animation-timing-function);
+				transition-behavior: allow-discrete;
+			}
+
+			&[open]::details-content {
+				block-size: auto;
+			}
+
+		}
+
+	}
+
+}

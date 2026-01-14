@@ -1,0 +1,99 @@
+// styles used by UI/Input can be overridden by updating the relevant CSS prop below
+// defaults will be used for any undefined values
+:root {
+/*
+	// shared styles (non size-specific)
+	--form-check-border: 1px solid var(--primary);
+	--form-check-border-color--focus: var(--primary);
+	--form-check-box-shadow--focus: 0 0 0 0.25rem var(--primary-shadow);
+	--form-check-font-weight: 400;
+	--form-check-font-weight--checked: 700;
+	--form-check-color: var(--primary);
+	--form-check-color--checked: var(--secondary);
+	--form-check-background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2.49 2.49'%3E%3Cpath d='M.88 2.14a.23.23 0 01-.1-.03 10.69 10.69 0 01-.74-.75.2.2 0 01-.03-.12v-.08a.2.2 0 01.1-.1.19.19 0 01.1-.03.2.2 0 01.13.04l.3.28.27.28.61-.62.64-.63a.26.26 0 01.07-.04h.1a.2.2 0 01.15.14V.6l-.04.07A201.5 201.5 0 01.97 2.13a.24.24 0 01-.1.01z' fill='%23fff'/%3E%3C/svg%3E");
+
+	--form-switch-border: 1px solid transparent;
+	--form-switch-border--focus: var(--form-switch-border);
+	--form-switch-background-color: #d3d3d3;
+	--form-switch-background-color--checked: var(--primary);
+	--form-switch-box-shadow--focus: 0 0 0 0.25rem var(--primary-shadow);
+	--form-switch-font-weight: 400;
+	--form-switch-font-weight--checked: var(--form-switch-font-weight);
+	--form-switch-dot-color: #fff;
+	--form-switch-dot-color--checked: var(--primary-fg);
+	--form-switch-color: var(--primary);
+	--form-switch-color--checked: var(--form-switch-color);
+
+	--form-radio-background-image: var(--form-check-background-image);
+
+	// extra small (xs)
+	--form-xs-check-size: 16;
+	--form-xs-check-gap: 6;
+	--form-xs-check-border-radius: 2;
+	--form-xs-check-background-size: 8;
+
+	--form-xs-switch-width: 32;
+	--form-xs-switch-height: 20;
+	--form-xs-switch-dot: 14;
+	--form-xs-switch-gap: 6;
+	--form-xs-switch-border-radius: 10;
+
+	--form-xs-radio-background-size: 8;
+
+	// small (sm)
+	--form-sm-check-size: 20;
+	--form-sm-check-gap: 8;
+	--form-sm-check-border-radius: 3;
+	--form-sm-check-background-size: 10;
+
+	--form-sm-switch-width: 40;
+	--form-sm-switch-height: 20;
+	--form-sm-switch-dot: 16;
+	--form-sm-switch-gap: 8;
+	--form-sm-switch-border-radius: 10;
+
+	--form-sm-radio-background-size: 10;
+
+	// regular (md)
+	--form-md-check-size: 24;
+	--form-md-check-gap: 10;
+	--form-md-check-border-radius: 3;
+	--form-md-check-background-size: 10;
+
+	--form-md-switch-width: 48;
+	--form-md-switch-height: 24;
+	--form-md-switch-dot: 18;
+	--form-md-switch-gap: 10;
+	--form-md-switch-border-radius: 12;
+
+	--form-md-radio-background-size: 10;
+	
+	// large (lg)
+	--form-lg-check-size: 28;
+	--form-lg-check-gap: 12;
+	--form-lg-check-border-radius: 4;
+	--form-lg-check-background-size: 12;
+
+	--form-lg-switch-width: 56;
+	--form-lg-switch-height: 28;
+	--form-lg-switch-dot: 22;
+	--form-lg-switch-gap: 12;
+	--form-lg-switch-border-radius: 14;
+
+	--form-lg-radio-background-size: 12;
+
+	// extra large (xl)
+	--form-xl-check-size: 32;
+	--form-xl-check-gap: 12;
+	--form-xl-check-border-radius: 6;
+	--form-xl-check-background-size: 14;
+
+	--form-xl-switch-width: 64;
+	--form-xl-switch-height: 32;
+	--form-xl-switch-dot: 24;
+	--form-xl-switch-gap: 12;
+	--form-xl-switch-border-radius: 16;
+
+	--form-xl-radio-background-size: 14;
+*/
+}

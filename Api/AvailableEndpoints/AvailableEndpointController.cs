@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 
@@ -13,8 +15,7 @@ namespace Api.AvailableEndpoints
 	/// </summary>
 
 	[Route("v1")]
-	[ApiController]
-	public partial class AvailableEndpointController : ControllerBase
+	public partial class AvailableEndpointController : AutoController
     {
         private AvailableEndpointService _availableEndpoints;
 
@@ -41,16 +42,18 @@ namespace Api.AvailableEndpoints
 		/// Gets the time (in both ticks and as a timestamp) that the service last started at.
 		/// </summary>
 		[HttpGet("uptime")]
-		public async ValueTask Uptime()
+		[Returns(typeof(UptimeResult))]
+		public async ValueTask Uptime(HttpContext httpContext)
 		{
 			if (_upTime == null)
 			{
 				_upTime = System.Text.Encoding.UTF8.GetBytes("{\"since\": {\"utcTicks\": " + _startTime.Ticks + ", \"utc\": \"" + _startTime.ToString("o") + "\"}}");
 			}
 
-			Response.ContentType = _applicationJson;
-			await Response.Body.WriteAsync(_upTime);
-			await Response.Body.FlushAsync();
+			var response = httpContext.Response;
+			response.ContentType = _applicationJson;
+			await response.Body.WriteAsync(_upTime);
+			await response.Body.FlushAsync();
 		}
 		
 		/// <summary>
@@ -58,18 +61,41 @@ namespace Api.AvailableEndpoints
 		/// Returns meta about what's available from this API. Includes endpoints and content types.
 		/// </summary>
 		[HttpGet]
-		public async ValueTask<ApiStructure> Get()
+		public ApiStructure Get(Context context)
         {
-			var context = await Request.GetContext();
-			
 			if(context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("api_home", context);
 			}
 			
-			return await _availableEndpoints.GetStructure(context);
+			return _availableEndpoints.GetStructure(context);
         }
 		
     }
+
+	/// <summary>
+	/// Result from the uptime endpoint.
+	/// </summary>
+	public struct UptimeResult {
+		/// <summary>
+		/// System has been up since the given date.
+		/// </summary>
+		public UptimeSince Since;
+	}
+
+	/// <summary>
+	/// System uptime since.
+	/// </summary>
+	public struct UptimeSince {
+		/// <summary>
+		/// Utc ticks (C#).
+		/// </summary>
+		public long UtcTicks;
+
+		/// <summary>
+		/// Utc timestamp text.
+		/// </summary>
+		public string Utc;
+	}
 
 }

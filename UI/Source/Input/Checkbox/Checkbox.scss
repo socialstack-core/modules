@@ -1,0 +1,224 @@
+:root {
+	// set defaults to regular (md)
+	--form-check-font-size: var(--form-md-font-size, #{$default-form-md-font-size});
+	--form-check-size: var(--form-md-check-size, #{$default-form-md-check-size});
+	--form-check-gap: var(--form-md-check-gap, #{$default-form-md-check-gap});
+	--form-check-border-radius: var(--form-md-check-border-radius, #{$default-form-md-check-border-radius});
+	--form-check-background-size: var(--form-md-check-background-size, #{$default-form-md-check-background-size});
+
+	--form-switch-width: var(--form-md-switch-width, #{$default-form-md-switch-width});
+	--form-switch-height: var(--form-md-switch-height, #{$default-form-md-switch-height});
+	--form-switch-dot: var(--form-md-switch-dot, #{$default-form-md-switch-dot});
+	--form-switch-gap: var(--form-md-switch-gap, #{$default-form-md-switch-gap});
+	--form-switch-border-radius: var(--form-md-switch-border-radius, #{$default-form-md-switch-border-radius});
+
+	--form-check-color: var(--secondary);
+	--form-check-color--checked: var(--secondary);
+	--form-check-color--hover: var(--primary);
+}
+
+// checkbox / switch styling
+.form-check.ui-check {
+	display: flex;
+	align-items: center;
+	margin-bottom: 0;
+	padding-left: 0;
+
+	&:not(.form-switch) {
+		gap: var_to_rem(--form-check-gap);
+		min-height: var_to_rem(--form-check-size);
+	}
+
+	&.form-check--flipped {
+		flex-direction: row-reverse;
+	}
+
+	&:where(.form-check--xs) {
+		--form-check-font-size: var(--form-xs-font-size, #{$default-form-xs-font-size});
+		--form-check-size: var(--form-xs-check-size, #{$default-form-xs-check-size});
+		--form-check-gap: var(--form-xs-check-gap, #{$default-form-xs-check-gap});
+		--form-check-border-radius: var(--form-xs-check-border-radius, #{$default-form-xs-check-border-radius});
+		--form-check-background-size: var(--form-xs-check-background-size, #{$default-form-xs-check-background-size});
+
+		--form-switch-width: var(--form-xs-switch-width, #{$default-form-xs-switch-width});
+		--form-switch-height: var(--form-xs-switch-height, #{$default-form-xs-switch-height});
+		--form-switch-dot: var(--form-xs-switch-dot, #{$default-form-xs-switch-dot});
+		--form-switch-gap: var(--form-xs-switch-gap, #{$default-form-xs-switch-gap});
+		--form-switch-border-radius: var(--form-xs-switch-border-radius, #{$default-form-xs-switch-border-radius});
+	}
+
+	&:where(.form-check--sm) {
+		--form-check-font-size: var(--form-sm-font-size, #{$default-form-sm-font-size});
+		--form-check-size: var(--form-sm-check-size, #{$default-form-sm-check-size});
+		--form-check-gap: var(--form-sm-check-gap, #{$default-form-sm-check-gap});
+		--form-check-border-radius: var(--form-sm-check-border-radius, #{$default-form-sm-check-border-radius});
+		--form-check-background-size: var(--form-sm-check-background-size, #{$default-form-sm-check-background-size});
+
+		--form-switch-width: var(--form-sm-switch-width, #{$default-form-sm-switch-width});
+		--form-switch-height: var(--form-sm-switch-height, #{$default-form-sm-switch-height});
+		--form-switch-dot: var(--form-sm-switch-dot, #{$default-form-sm-switch-dot});
+		--form-switch-gap: var(--form-sm-switch-gap, #{$default-form-sm-switch-gap});
+		--form-switch-border-radius: var(--form-sm-switch-border-radius, #{$default-form-sm-switch-border-radius});
+	}
+
+	&:where(.form-check--md) {
+		--form-check-font-size: var(--form-md-font-size, #{$default-form-md-font-size});
+		--form-check-size: var(--form-md-check-size, #{$default-form-md-check-size});
+		--form-check-gap: var(--form-md-check-gap, #{$default-form-md-check-gap});
+		--form-check-border-radius: var(--form-md-check-border-radius, #{$default-form-md-check-border-radius});
+		--form-check-background-size: var(--form-md-check-background-size, #{$default-form-md-check-background-size});
+
+		--form-switch-width: var(--form-md-switch-width, #{$default-form-md-switch-width});
+		--form-switch-height: var(--form-md-switch-height, #{$default-form-md-switch-height});
+		--form-switch-dot: var(--form-md-switch-dot, #{$default-form-md-switch-dot});
+		--form-switch-gap: var(--form-md-switch-gap, #{$default-form-md-switch-gap});
+		--form-switch-border-radius: var(--form-md-switch-border-radius, #{$default-form-md-switch-border-radius});
+	}
+
+	&:where(.form-check--lg) {
+		--form-check-font-size: var(--form-lg-font-size, #{$default-form-lg-font-size});
+		--form-check-size: var(--form-lg-check-size, #{$default-form-lg-check-size});
+		--form-check-gap: var(--form-lg-check-gap, #{$default-form-lg-check-gap});
+		--form-check-border-radius: var(--form-lg-check-border-radius, #{$default-form-lg-check-border-radius});
+		--form-check-background-size: var(--form-lg-check-background-size, #{$default-form-lg-check-background-size});
+
+		--form-switch-width: var(--form-lg-switch-width, #{$default-form-lg-switch-width});
+		--form-switch-height: var(--form-lg-switch-height, #{$default-form-lg-switch-height});
+		--form-switch-dot: var(--form-lg-switch-dot, #{$default-form-lg-switch-dot});
+		--form-switch-gap: var(--form-lg-switch-gap, #{$default-form-lg-switch-gap});
+		--form-switch-border-radius: var(--form-lg-switch-border-radius, #{$default-form-lg-switch-border-radius});
+	}
+
+	&:where(.form-check--xl) {
+		--form-check-font-size: var(--form-xl-font-size, #{$default-form-xl-font-size});
+		--form-check-size: var(--form-xl-check-size, #{$default-form-xl-check-size});
+		--form-check-gap: var(--form-xl-check-gap, #{$default-form-xl-check-gap});
+		--form-check-border-radius: var(--form-xl-check-border-radius, #{$default-form-xl-check-border-radius});
+		--form-check-background-size: var(--form-xl-check-background-size, #{$default-form-xl-check-background-size});
+
+		--form-switch-width: var(--form-xl-switch-width, #{$default-form-xl-switch-width});
+		--form-switch-height: var(--form-xl-switch-height, #{$default-form-xl-switch-height});
+		--form-switch-dot: var(--form-xl-switch-dot, #{$default-form-xl-switch-dot});
+		--form-switch-gap: var(--form-xl-switch-gap, #{$default-form-xl-switch-gap});
+		--form-switch-border-radius: var(--form-xl-switch-border-radius, #{$default-form-xl-switch-border-radius});
+	}
+
+	.form-check-input {
+		margin-left: 0;
+	}
+
+	.form-check-label {
+		user-select: none;
+		font-size: var_to_rem(--form-check-font-size);
+	}
+
+	.form-check-input[type="checkbox"] {
+		flex-shrink: 0;
+		width: var_to_rem(--form-check-size);
+		height: var_to_rem(--form-check-size);
+		border: var(--form-check-border, #{$default-form-check-border});
+		border-radius: var_to_rem(--form-check-border-radius);
+		float: none;
+
+		&:checked {
+			background-image: var(--form-check-background-image, #{$default-form-check-background-image});
+			background-size: var_to_rem(--form-check-background-size);
+
+			~ .form-check-label {
+				font-weight: var(--form-check-font-weight--checked, #{$default-form-check-font-weight--checked});
+				color: var(--form-check-color--checked, #{$default-form-check-color--checked});
+			}
+
+		}
+
+		&:focus-visible {
+			border-color: var(--form-check-border-color--focus, #{$default-form-check-border-color--focus});
+			box-shadow: var(--form-check-box-shadow--focus, #{$default-form-check-box-shadow--focus});
+		}
+
+		~ .form-check-label {
+			font-weight: var(--form-check-font-weight, #{$default-form-check-font-weight});
+			color: var(--form-check-color, #{$default-form-check-color});
+		}
+	}
+
+	&:hover:not(:disabled) {
+
+		.form-check-label {
+			color: var(--form-check-color--hover, #{$default-form-check-color--hover}) !important;
+		}
+
+	}
+
+	&.form-switch {
+		gap: var_to_rem(--form-switch-gap);
+		min-height: var_to_rem(--form-switch-height);
+		margin-bottom: 0;
+
+		.form-check-input {
+			width: var_to_rem(--form-switch-width);
+			height: var_to_rem(--form-switch-height);
+			background-image: none;
+			border: var(--form-switch-border, #{$default-form-switch-border});
+			background-color: var(--form-switch-background-color, #{$default-form-switch-background-color});
+			border-radius: var_to_rem(--form-switch-border-radius);
+			float: none;
+			position: relative;
+			flex-shrink: 0;
+
+			&:focus-visible {
+				border: var(--form-switch-border--focus, #{$default-form-switch-border--focus});
+				box-shadow: var(--form-switch-box-shadow--focus, #{$default-form-switch-box-shadow--focus});
+			}
+
+			~ .form-check-label {
+				font-weight: var(--form-switch-font-weight, #{$default-form-switch-font-weight});
+				color: var(--form-switch-color, #{$default-form-switch-color});
+			}
+
+			// switch dot
+			&::before {
+				content:"";
+				position: absolute;
+				// starting X position
+				// (24px o/a height - 18px dot diameter) / 2
+				inset-inline-start: calc((#{var_to_rem(--form-switch-height)} - #{var_to_rem(--form-switch-dot)}) / 2);
+				// starting Y position
+				// (24px o/a height - 2px - 18px dot diameter) / 2
+				inset-block-start: calc((#{var_to_rem(--form-switch-height)} - #{px_to_rem(2)} - #{var_to_rem(--form-switch-dot)}) / 2);
+				display: block;
+				width: var_to_rem(--form-switch-dot);
+				height: var_to_rem(--form-switch-dot);
+				background: var(--form-switch-dot-color, #{$default-form-switch-dot-color});
+				border-radius: 50%;
+				transition-property: transform, background;
+				transition-duration: .15s;
+				transition-timing-function: ease-in-out;
+			}
+
+			&:checked {
+				background: var(--form-switch-background-color--checked, #{$default-form-switch-background-color--checked});
+
+				~ .form-check-label {
+					font-weight: var(--form-switch-font-weight--checked, #{$default-form-switch-font-weight--checked});
+					color: var(--form-switch-color--checked, #{$default-form-switch-color--checked});
+				}
+
+				&::before {
+					// transform distance
+					// 48px o/a width - 2px border - 24px height
+					transform: translateX(calc(#{var_to_rem(--form-switch-width)} - #{px_to_rem(2)} - #{var_to_rem(--form-switch-height)}));
+					background: var(--form-switch-dot-color--checked, #{$default-form-switch-dot-color--checked});
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
+input[type="checkbox"].form-control {
+	width: initial;
+}

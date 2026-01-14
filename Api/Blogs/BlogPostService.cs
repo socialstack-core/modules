@@ -1,36 +1,77 @@
-﻿using Api.Contexts;
+﻿using Api.CanvasRenderer;
+using Api.Contexts;
 using Api.Eventing;
-using System.Threading.Tasks;
+using Api.Pages;
+using Api.Startup;
+using Api.Translate;
+using Api.Users;
+using HtmlAgilityPack;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
-using Api.Startup;
-using System.Collections.Generic;
-using Api.CanvasRenderer;
-using Api.Users;
+using System.Threading.Tasks;
+using System.Web;
 
 namespace Api.Blogs
 {
-	/// <summary>
-	/// Handles blogs posts.
-	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-	/// </summary>
-	public partial class BlogPostService : AutoService<BlogPost>
+    /// <summary>
+    /// Handles blogs posts.
+    /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+    /// </summary>
+
+    // Ensure that this loads after the search service
+    [LoadPriority(200)]
+    public partial class BlogPostService : AutoService<BlogPost>
     {
         private readonly BlogService _blogs;
-		private CanvasRendererService _csr;
-		private UserService _users;
-		
+		private PermalinkService _permalinks;
+		// private BlogServiceConfig _blogConfig;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
+		/// <param name="permalinks"></param>
 		/// <param name="blogs"></param>
-		public BlogPostService(BlogService blogs) : base(Events.BlogPost)
+		/// <param name="pages"></param>
+		public BlogPostService(PermalinkService permalinks, BlogService blogs, PageService pages) : base(Events.BlogPost)
         {
 			_blogs = blogs;
-			
-			InstallAdminPages(null, null, new string[] { "id", "slug", "title" });
-			
+			_permalinks = permalinks;
+
+			InstallAdminPages(
+				new AdminPageOptions()
+				{
+					NavMenuLabel = new Localized<string>("Blog posts"),
+					NavMenuIcon = "fa:fa-blog",
+					NavMenuParentKey = "blogs",
+					ListFields = ["id", "slug", "title"],
+					Tabs = [
+						new AdminTab("Content", "content"),
+						new AdminTab("Details", "details")
+					]
+				}
+			);
+
+			pages.Install(
+				// Install a default primary blog page.
+				new PageBuilder()
+				{
+					Key = "primary:blogpost",
+					PrimaryContentIncludes = "creatorUser",
+					Title = "${blogpost.title}",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/BlogPost/View").WithPrimaryLink("blogpost")
+						);
+					}
+				}
+			);
+
 			var config = _blogs.GetConfig<BlogServiceConfig>();
+			// _blogConfig = config;
 
 			//Before create to set the author of the blog to the author if the value passed in is not valid, or not set.
 			Events.BlogPost.BeforeCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
@@ -58,77 +99,20 @@ namespace Api.Blogs
 					blogPost.BlogId = 1;
 				}
 
-				// Was a slug passed in? if so, just pass the blogPost on.
-				if (blogPost.Slug != null && blogPost.Slug != "")
-				{
-					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug);
-				}
-				else if (config.GenerateSlugs)
-				{
-					blogPost.Slug = await GetSlug(context, blogPost.Title);
-				}
+				await UpdateSlug(context, blogPost);
 				
 				if (config.GenerateSynopsis)
 				{
 					// Was a synopsis passed in? if so, just pass the blogPost on.
-					if (string.IsNullOrEmpty(blogPost.Synopsis))
-					{
-						var synopsis = "";
-
-						// Was a synopsis passed in? if so, just pass the blogPost on.
-						if (string.IsNullOrEmpty(blogPost.Synopsis))
-						{
-							if (_csr == null)
-							{
-								_csr = Services.Get<CanvasRendererService>();
-							}
-
-							// No synopsis was added, let's get one based on the body json. 
-							var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, RenderMode.Text, false);
-
-							synopsis = renderedPage.Text;
-
-							if (synopsis.Length > 500)
-							{
-								synopsis = synopsis.Substring(0, 497) + "...";
-							}
-
-							blogPost.Synopsis = synopsis;
-						}
-					}
+					UpdateSynopsis(context, blogPost);
 				}
 				
-				// was an authorid passed in?
-				if (blogPost.AuthorId > 0)
-                {
-					if(_users == null)
-                    {
-						_users = Services.Get<UserService>();
-                    }
-
-					// Yes, is it for a valid user?
-					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
-
-					if(author == null)
-                    {
-						// The author is not valid, let's set the author to the creatoruser
-						blogPost.AuthorId = context.UserId;
-                    }
-                }
-				else
-                {
-					// An author wasn't passed - set to creator user.
-					blogPost.AuthorId = context.UserId;
-				}
-
 				return blogPost;
 			});
 
 			// Before update to make sure the slug is unique.
 			Events.BlogPost.BeforeUpdate.AddEventListener(async (Context context, BlogPost blogPost, BlogPost original) =>
 			{
-				var slug = "";
-
 				if (context == null || blogPost == null)
 				{
 					return null;
@@ -136,147 +120,197 @@ namespace Api.Blogs
 
 				if (config.GenerateSynopsis)
 				{
-					var synopsis = "";
-
-					// Was a synopsis passed in? if so, just pass the blogPost on.
-					if (string.IsNullOrEmpty(blogPost.Synopsis))
-					{
-						if (_csr == null)
-						{
-							_csr = Services.Get<CanvasRendererService>();
-						}
-
-						// No synopsis was added, let's get one based on the body json. 
-						var renderedPage = await _csr.Render(context, blogPost.BodyJson, null, RenderMode.Text, false);
-
-						synopsis = renderedPage.Text;
-
-						if (synopsis.Length > 500)
-						{
-							synopsis = synopsis.Substring(0, 497) + "...";
-						}
-
-						blogPost.Synopsis = synopsis;
-					}
+					UpdateSynopsis(context, blogPost);
 				}
 
-				// Was an authorId passed in?
-				if (blogPost.AuthorId > 0)
+				await UpdateSlug(context, blogPost);
+
+				if (blogPost.Slug != original.Slug && !string.IsNullOrEmpty(blogPost.Slug))
 				{
-					if (_users == null)
-					{
-						_users = Services.Get<UserService>();
-					}
-
-					// Yes, is it for a valid user?
-					var author = await _users.Get(context, blogPost.AuthorId, DataOptions.IgnorePermissions);
-
-					if (author == null)
-					{
-						// The author is not valid, let's set the author to the creatorUser
-						blogPost.AuthorId = blogPost.UserId;
-					}
-				}
-				else
-				{
-					// no authorId, let's return it to being the creatorUser.
-					blogPost.AuthorId = blogPost.UserId;
-				}
-
-				// Was a slug passed in? if so, just pass the blogPost on.
-				if (blogPost.Slug != null && blogPost.Slug != "")
-				{
-					// Let's make sure the provided slug is unique.
-					blogPost.Slug = await GetSlug(context, blogPost.Title, blogPost.Slug, blogPost.Id);
-				}
-				else if(config.GenerateSlugs)
-                {
-					// No slug was added, let's get one if we are generating slugs. 
-					slug = await GetSlug(context, blogPost.Title, null, blogPost.Id);
-					blogPost.Slug = slug;
+					// Create new permalink.
+					await CreatePermalink(context, blogPost);
 				}
 
 				return blogPost;
 			});
 
+			Events.BlogPost.AfterCreate.AddEventListener(async (Context context, BlogPost blogPost) =>
+			{
+				if (blogPost == null)
+				{
+					return blogPost;
+				}
+
+				await CreatePermalink(context, blogPost);
+
+				return blogPost;
+			});
+		}
+
+		private async ValueTask CreatePermalink(Context context, BlogPost blogPost)
+		{
+			if (blogPost == null || string.IsNullOrEmpty(blogPost.Slug))
+			{
+				return;
+			}
+
+			// Permalink target which will be for whichever page wants to handle a blogpost as its primary content.
+			// If a specific page for this blogpost exists, it will ultimately pick that.
+			var linkTarget = _permalinks.CreatePrimaryTargetLocator(this, blogPost);
+
+			await _permalinks.Create(
+				context,
+				new Permalink()
+				{
+					Url = "/news/" + blogPost.Slug,
+					Target = linkTarget
+				},
+				DataOptions.IgnorePermissions
+			);
+		}
+
+		private async ValueTask UpdateSlug(Context context, BlogPost blogPost)
+		{
+			// Was a slug passed in? if so, just pass the blogPost on.
+			if (!string.IsNullOrEmpty(blogPost.Slug))
+			{
+				// Let's make sure the provided slug is unique.
+				blogPost.Slug = await EnsureUniqueSlug(context, blogPost.Slug, blogPost.Id);
+			}
+			else
+			{
+				// No slug present, generate one. 
+				var slug = GenerateNormalizedSlug(blogPost.Title);
+				blogPost.Slug = await EnsureUniqueSlug(context, slug, blogPost.Id);
+			}
+		}
+
+		private void UpdateSynopsis(Context context, BlogPost blogPost)
+		{
+			// Was a synopsis passed in? if so, just pass the blogPost on.
+			if (blogPost == null || !string.IsNullOrEmpty(blogPost.Synopsis))
+			{
+				return;
+			}
+			
+			// No synopsis was added, let's get one based on the body html. 
+			var synopsis = GenerateSynopsis(blogPost.BodyHtml);
+			blogPost.Synopsis = synopsis;
 		}
 
 		/// <summary>
-		/// Used to get a slug
+		/// Generates a basic synopsis from a HTML string.
+		/// </summary>
+		/// <param name="html"></param>
+		/// <param name="maxLength"></param>
+		/// <returns></returns>
+		private static string GenerateSynopsis(string html, int maxLength = 500)
+		{
+			if (string.IsNullOrWhiteSpace(html))
+				return string.Empty;
+
+			// 1. Load HTML into HtmlAgilityPack
+			var doc = new HtmlDocument();
+			doc.LoadHtml(html);
+
+			// 2. Extract inner text (strips tags safely)
+			string text = doc.DocumentNode.InnerText;
+
+			// 3. Decode HTML entities (&amp;, &nbsp;, etc.)
+			text = HttpUtility.HtmlDecode(text);
+
+			// 4. Normalize whitespace
+			text = string.Join(" ", text.Split(new[] { ' ', '\r', '\n', '\t' },
+											   StringSplitOptions.RemoveEmptyEntries));
+
+			// 5. Cut to max length
+			if (text.Length <= maxLength)
+				return text;
+
+			// 6. Try to cut at the last space before limit
+			int lastSpace = text.LastIndexOf(' ', maxLength);
+			if (lastSpace > 0)
+				return text.Substring(0, lastSpace) + "...";
+
+			return text.Substring(0, maxLength) + "...";
+		}
+
+		private static string GenerateNormalizedSlug(string phrase)
+		{
+			if (string.IsNullOrWhiteSpace(phrase))
+				return string.Empty;
+
+			// remove accents
+			string str = RemoveDiacritics(phrase);
+
+			// custom replacements (ß, ø, æ, etc.)
+			str = str.Replace("ß", "ss")
+					 .Replace("ø", "o")
+					 .Replace("Ø", "O")
+					 .Replace("æ", "ae")
+					 .Replace("Æ", "Ae");
+
+			// lowercase
+			str = str.ToLowerInvariant();
+
+			// replace anything not alphanumeric with hyphens
+			str = Regex.Replace(str, @"[^a-z0-9]+", "-");
+
+			// trim extra hyphens
+			str = str.Trim('-');
+
+			// Replace double occurences of - or _
+			str = Regex.Replace(str, @"([-_]){2,}", "$1", RegexOptions.Compiled);
+
+			return str;
+		}
+
+		private static string RemoveDiacritics(string text)
+		{
+			var normalizedString = text.Normalize(NormalizationForm.FormD);
+			var stringBuilder = new StringBuilder();
+
+			foreach (var c in normalizedString)
+			{
+				var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+				{
+					stringBuilder.Append(c);
+				}
+			}
+
+			return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+		}
+
+		/// <summary>
+		/// Ensures the given slug string is unique.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="title"></param>
-		/// <param name="slugCheck"></param>
+		/// <param name="slug"></param>
 		/// <param name="exclusionId"></param>
 		/// <returns></returns>
-		public async ValueTask<string> GetSlug(Context context, string title, string slugCheck = null, uint? exclusionId = null)
-        {
-			var config = _blogs.GetConfig<BlogServiceConfig>();
-			string slug;
-
-			if (slugCheck == null)
-			{
-				//First to lower case
-				slug = title.ToLowerInvariant();
-			}
-			else
-            {
-				slug = slugCheck.ToLowerInvariant();
-            }
-
-			//Remove all accents
-			var bytes = Encoding.GetEncoding("Cyrillic").GetBytes(slug);
-			slug = Encoding.ASCII.GetString(bytes);
-
-			//Replace spaces
-			slug = Regex.Replace(slug, @"\s", "-", RegexOptions.Compiled);
-
-			//Remove invalid chars
-			slug = Regex.Replace(slug, @"[^a-z0-9\s-_]", "", RegexOptions.Compiled);
-
-			//Trim dashes from end
-			slug = slug.Trim('-', '_');
-
-			//Replace double occurences of - or _
-			slug = Regex.Replace(slug, @"([-_]){2,}", "$1", RegexOptions.Compiled);		
-
-			// Do we need a unique slug?
-			if(config.UniqueSlugs)
-            {
-				List<BlogPost> postsWithSlug;
-
-				// Now let's see if the slug is in use.
-				if (exclusionId == null)
-				{
-					postsWithSlug = await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug).ListAll(context);
-				}
-				else
-				{
-					postsWithSlug = await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug).Bind(exclusionId.Value).ListAll(context);
-				}
-
-				var increment = 0;
-
-				// Is the slug in use
-				while (postsWithSlug.Count > 0)
-				{
-					increment++;
-					if (exclusionId == null)
-					{
-						postsWithSlug = await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).ListAll(context);
-					}
-					else
-					{
-						postsWithSlug = await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).Bind(exclusionId.Value).ListAll(context);
-					}
-				}
-
-				if (increment > 0)
-				{
-					slug = slug + "-" + increment;
-				}
-			}
+		public async ValueTask<string> EnsureUniqueSlug(Context context, string slug, uint exclusionId)
+		{
+			// Now let's see if the slug is in use.
+			var postWithSlug = await Where("Slug=? and Id!=?", DataOptions.IgnorePermissions)
+				.Bind(slug)
+				.Bind(exclusionId)
+				.First(context);
 			
+			var increment = 0;
+
+			// Is the slug in use
+			while (postWithSlug != null)
+			{
+				increment++;
+				postWithSlug = await Where("Slug=?", DataOptions.IgnorePermissions).Bind(slug + "-" + increment).First(context);
+			}
+
+			if (increment > 0)
+			{
+				slug = slug + "-" + increment;
+			}
+
 			return slug;
 		}
 

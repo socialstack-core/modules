@@ -1,4 +1,6 @@
 using Api.Contexts;
+using Api.Eventing;
+using Api.Pages;
 using Api.SocketServerLibrary;
 using Newtonsoft.Json.Linq;
 using System;
@@ -92,32 +94,6 @@ public class CanvasGenerator
 	}
 
 	/// <summary>
-	/// Get or create a datamap entry for a field in a graph node.
-	/// </summary>
-	/// <param name="node"></param>
-	/// <param name="outputField"></param>
-	/// <returns></returns>
-	public CanvasGeneratorMapEntry GetDataMapEntry(Executor node, string outputField)
-	{
-		for (var i = 0; i < DataMap.Count; i++)
-		{
-			var existing = DataMap[i];
-			if (existing.GraphNode == node && existing.Field == outputField)
-			{
-				return existing;
-			}
-		}
-
-		var cgm = new CanvasGeneratorMapEntry();
-		cgm.GraphNode = node;
-		cgm.Field = outputField;
-		DataMap.Add(cgm);
-		cgm.Id = (uint)DataMap.Count; // ID must be non-zero so we use index+1.
-		node.AddDataMapOutput(cgm);
-		return cgm;
-	}
-
-	/// <summary>
 	/// Establishes an "execution plan" of sorts - this is where it figures out e.g. which content it can load in parallel, plus their dependent content bundles.
 	/// If multiple nodes in a graph are for the same thing then they will be loaded once by the plan.
 	/// </summary>
@@ -137,7 +113,7 @@ public class CanvasGenerator
 					// Task.Run used here to get _planCreate set to an awaitable as quickly as possible
 					// without blocking up this thread specifically.
 					_planCreate = Task.Run(async () => {
-						await CreatePlanInternal();
+						await CreatePlanInternal(new Context(1, 0, 1));
 					});
 				}
 			}
@@ -150,10 +126,24 @@ public class CanvasGenerator
 		}
 	}
 
+	/// <summary>
+	/// Loads a canvas node from the given newtonsoft token.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="node"></param>
+	/// <returns></returns>
+	public async ValueTask<CanvasNode> LoadCanvasNode(Context context, JToken node)
+	{
+		return await CanvasNode.LoadCanvasNode(context, node, new CanvasDetails() {
+			DataMap = DataMap,
+			GraphNodeLoader = _graphNodeLoader
+		});
+	}
+
 	private object genLocker = new object();
 	private Task _planCreate;
 
-	private async Task CreatePlanInternal()
+	private async Task CreatePlanInternal(Context context)
 	{
 		// In a nutshell then, the technique will be:
 		// - Discover all graphs
@@ -177,7 +167,7 @@ public class CanvasGenerator
 
 			// Load the canvas nodes and simultaneously locate and consolidate all graph nodes in this json.
 			// This process combines identical nodes from anywhere in the canvas.
-			_rootCanvasNode = LoadCanvasNode(json);
+			_rootCanvasNode = await LoadCanvasNode(context, json);
 
 			// Next, organise the graph nodes in to tranches:
 			var tranches = _graphNodeLoader.CreateTranches();
@@ -231,218 +221,6 @@ public class CanvasGenerator
 		}
 	}
 
-	private CanvasNode LoadCanvasNode(JToken node)
-	{
-		if (node == null)
-		{
-			return null;
-		}
-
-		var result = new CanvasNode();
-
-		if (node.Type == JTokenType.String)
-		{
-			result.StringContent = node.Value<string>();
-			return result;
-		}
-
-		if (node.Type == JTokenType.Array)
-		{
-			throw new NotSupportedException("Canvas with arrays are now only supported if the array is set as a content (c) value.");
-		}
-
-		// Here we only care about:
-		// - t(ype)
-		// - d(ata)
-		// - s(trings)
-		// - g(raphs)
-		// - r(oots)
-		// - c(ontent)
-
-		// Type
-		var type = node["t"];
-
-		if (type != null)
-		{
-			result.Module = type.Value<string>();
-		}
-
-		// Data
-		var data = node["d"] as JObject;
-
-		if (data != null)
-		{
-			foreach (var kvp in data)
-			{
-				if (result.Data == null)
-				{
-					result.Data = new Dictionary<string, string>();
-				}
-
-				string val;
-
-				if (kvp.Value.Type == JTokenType.Null)
-				{
-					val = null;
-				}
-				else if (kvp.Value.Type == JTokenType.Boolean)
-				{
-					val = kvp.Value.Value<bool>() ? "true" : "false";
-				}
-				else if (kvp.Value.Type == JTokenType.String)
-				{
-					val = kvp.Value.Value<string>();
-
-					// Awkwardly convert back to a json token which is not easily available via JToken (fortunately this only happens once!):
-					if (val != null)
-					{
-						val = Newtonsoft.Json.JsonConvert.SerializeObject(val);
-					}
-				}
-				else
-				{
-					val = kvp.Value.ToString();
-				}
-
-				result.Data[kvp.Key] = val;
-			}
-		}
-
-		// Strings
-		var str = node["s"];
-
-		if (str != null)
-		{
-			result.StringContent = str.Value<string>();
-		}
-
-		// Graphs
-		var graphData = node["g"];
-
-		if (graphData != null)
-		{
-			// Found a graph. Load it using the canvas-wide graph node loader.
-			var graph = new Graph(graphData, _graphNodeLoader);
-
-			// If the root node is a component then this canvas node morphs in to that component.
-			var comp = graph.Root as Component;
-			if (comp != null)
-			{
-				// Inline it now.
-				foreach (var kvp in comp.ConstantData)
-				{
-					if (kvp.Key == "componentType")
-					{
-						result.Module = kvp.Value.ToString();
-					}
-					else
-					{
-						if (result.Data == null)
-						{
-							result.Data = new Dictionary<string, string>();
-						}
-
-						string val;
-
-						if (kvp.Value.Type == JTokenType.Null)
-						{
-							val = null;
-						}
-						else if (kvp.Value.Type == JTokenType.Boolean)
-						{
-							val = kvp.Value.Value<bool>() ? "true" : "false";
-						}
-						else if (kvp.Value.Type == JTokenType.String)
-						{
-							val = kvp.Value.Value<string>();
-
-							// Awkwardly convert back to a json token which is not easily available via JToken (fortunately this only happens once!):
-							if (val != null)
-							{
-								val = Newtonsoft.Json.JsonConvert.SerializeObject(val);
-							}
-						}
-						else
-						{
-							val = kvp.Value.ToString();
-						}
-
-						result.Data[kvp.Key] = val;
-					}
-				}
-
-				// Each link (non-constant data) becomes a datamap pointer.
-				foreach (var kvp in comp.Links)
-				{
-					if (result.Pointers == null)
-					{
-						result.Pointers = new Dictionary<string, uint>();
-					}
-
-					var cdm = GetDataMapEntry(kvp.Value.SourceNode.AddedAs, kvp.Value.Field);
-					result.Pointers[kvp.Key] = cdm.Id;
-				}
-			}
-			else
-			{
-				result.Graph = graph;
-			}
-		}
-
-		// Roots
-		var roots = node["r"] as JObject;
-
-		if (roots != null)
-		{
-			foreach (var kvp in roots)
-			{
-				if (result.Roots == null)
-				{
-					result.Roots = new Dictionary<string, CanvasNode>();
-				}
-
-				result.Roots[kvp.Key] = LoadCanvasNode(kvp.Value);
-			}
-		}
-
-		// Content
-		var content = node["c"];
-
-		if (content != null)
-		{
-			// Content can be: an array an object or a string.
-			var array = content as JArray;
-
-			if (array != null)
-			{
-				for (var i = 0; i < array.Count; i++)
-				{
-					if (result.Content == null)
-					{
-						result.Content = new List<CanvasNode>();
-					}
-
-					var child = LoadCanvasNode(array[i]);
-					result.Content.Add(child);
-				}
-			}
-			else
-			{
-				// Either a string or object.
-				var child = LoadCanvasNode(content);
-
-				if (result.Content == null)
-				{
-					result.Content = new List<CanvasNode>();
-				}
-
-				result.Content.Add(child);
-			}
-		}
-
-		return result;
-	}
-
 	private void Fallback()
 	{
 		var bytes = Encoding.UTF8.GetBytes(_canvas);
@@ -454,7 +232,7 @@ public class CanvasGenerator
 	/// <summary>
 	/// Generate the target canvas. Puts the result in to the given writer.
 	/// </summary>
-	public async ValueTask Generate(Context context, Writer writer, object po)
+	public async ValueTask Generate(Context context, Writer writer, PageWithTokens pageWithTokens)
 	{
 		if(_plan == null)
 		{
@@ -463,7 +241,7 @@ public class CanvasGenerator
 
 		// Get canvas state object:
 		var state = GetState();
-		state.PrimaryObject = po;
+		state.PageWithTokens = pageWithTokens;
 		state.Context = context;
 		state.Writer = writer;
 

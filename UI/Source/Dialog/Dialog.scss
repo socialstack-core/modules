@@ -1,0 +1,120 @@
+// TODO: support closing animation
+:root {
+    --ui-dialog-open-speed: .5s;
+    --ui-dialog-close-speed: .2s;
+}
+
+.ui-dialog {
+    border: 0;
+    padding: 0;
+    opacity: 0;
+    margin: auto;
+    border-radius: .3rem;
+    min-width: px_to_rem(375);
+    max-width: px_to_rem(1140);
+    min-height: px_to_rem(300);
+    overflow: hidden;
+    flex-direction: column;
+    background-color: var(--ui-site-bg, #fff);
+    color: var(--ui-site-fg, #000);
+}
+
+.ui-dialog[data-show="true"],
+.ui-dialog:modal {
+    display: flex;
+	flex-direction: column;
+    opacity: 1;
+}
+
+.ui-dialog[data-show="false"] {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.ui-dialog[data-show="true"]::backdrop,
+.ui-dialog:modal::backdrop {
+    opacity: .4;
+}
+
+.ui-dialog::backdrop {
+    background-color: #000;
+    opacity: 0;
+}
+
+.ui-dialog__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: px_to_rem(20);
+    padding: px_to_rem(16);
+    flex-shrink: 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.ui-dialog__title {
+    font-size: px_to_rem(20);
+    font-weight: 500;
+    margin: 0;
+}
+
+.ui-dialog__close {
+    border-color: transparent;
+    padding: 0;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    > svg {
+        width: px_to_rem(24);
+        height: px_to_rem(24);
+    }
+
+}
+
+.ui-dialog__content {
+    padding: px_to_rem(16);
+    overflow-y: auto;
+    flex-grow: 1;
+    text-align: left;
+}
+
+.ui-dialog__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: px_to_rem(10);
+    padding: px_to_rem(16);
+    flex-shrink: 0;
+    border-top: 1px solid #dee2e6;
+}
+
+@starting-style {
+	.ui-dialog[open] {
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .ui-dialog {
+		transition: 
+			opacity var(--ui-dialog-open-speed) ease, 
+			display var(--ui-dialog-open-speed) ease allow-discrete, 
+			overlay var(--ui-dialog-open-speed) ease allow-discrete;
+
+		&::backdrop {
+			transition: 
+				opacity var(--ui-dialog-open-speed) ease, 
+				display var(--ui-dialog-open-speed) ease allow-discrete, 
+				overlay var(--ui-dialog-open-speed) ease allow-discrete;
+		}
+
+		&[data-show="false"] {
+			transition-duration: var(--ui-dialog-close-speed);
+
+			&::backdrop {
+				transition-duration: var(--ui-dialog-close-speed);
+			}
+		}
+    }
+}

@@ -31,9 +31,7 @@ namespace Api.NavMenus
 		/// The visual content of this menu item. Can contain imagery etc.
 		/// </summary>
 		[DatabaseField(Length = 400)]
-		[Localized]
-        [Data("main", "false")] 
-		public string BodyJson;
+		public Localized<string> BodyJson;
 
 		/// <summary>
 		/// Often a URL but is be whatever the item wants to emit when it's clicked.

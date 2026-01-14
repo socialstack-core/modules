@@ -374,13 +374,8 @@ namespace Api.SocketServerLibrary
 										ContextService = Startup.Services.Get<ContextService>();
 									}
 
-									var context = await ContextService.Get(userCookie);
-
-									if (context == null)
-									{
-										// Use an anon one instead:
-										context = new Context();
-									}
+									var context = new Context();
+									await ContextService.Get(userCookie, context);
 
 									await client.SetContext(context);
 

@@ -4,6 +4,7 @@ using Api.PasswordAuth;
 using Api.Permissions;
 using Api.Startup;
 using Api.Users;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
@@ -29,22 +30,14 @@ namespace Api.PasswordResetRequests
 		/// Check if token exists and has not expired yet.
 		/// </summary>
 		[HttpGet("token/{token}")]
-		public async ValueTask<object> CheckTokenExists(string token)
+		public async ValueTask<object> CheckTokenExists(Context context, [FromRoute] string token)
 		{
-			var context = await Request.GetContext();
-
-			if (context == null)
-			{
-				return null;
-			}
-
 			var svc = (_service as PasswordResetRequestService);
 
 			var request = await svc.Get(context, token);
 
 			if (request == null)
 			{
-				Response.StatusCode = 404;
 				return null;
 			}
 
@@ -57,7 +50,6 @@ namespace Api.PasswordResetRequests
 			// Has it expired?
 			if (svc.HasExpired(request))
 			{
-				Response.StatusCode = 400;
 				return null;
 			}
 
@@ -71,34 +63,26 @@ namespace Api.PasswordResetRequests
 		/// Attempts to login with a submitted new password.
 		/// </summary>
 		[HttpPost("login/{token}")]
-		public async ValueTask LoginWithToken(string token, [FromBody] NewPassword newPassword)
+		public async ValueTask<Context> LoginWithToken(HttpContext httpContext, Context context, [FromRoute] string token, [FromBody] NewPassword newPassword)
 		{
 			var svc = (_service as PasswordResetRequestService);
 
-			var context = await Request.GetContext();
-
 			if (context == null || newPassword == null || string.IsNullOrWhiteSpace(newPassword.Password))
 			{
-				if (Response.StatusCode == 200)
-				{
-					Response.StatusCode = 404;
-				}
-				return;
+				return null;
 			}
 
 			var request = await svc.Get(context, token);
 
 			if (request == null)
 			{
-				Response.StatusCode = 404;
-				return;
+				return null;
 			}
 
 			// Has it expired?
 			if (svc.HasExpired(request))
 			{
-				Response.StatusCode = 400;
-				return;
+				return null;
 			}
 
 			// Get the target user account:
@@ -107,8 +91,7 @@ namespace Api.PasswordResetRequests
 			if (targetUser == null)
 			{
 				// User doesn't exist.
-				Response.StatusCode = 403;
-				return;
+				return null;
 			}
 
 			// Set the password on the user account:
@@ -125,14 +108,13 @@ namespace Api.PasswordResetRequests
 				if (targetUser == null)
 				{
 					// API forced a halt:
-					Response.StatusCode = 403;
-					return;
+					return null;
 				}
 			}
 			
 			if (!updatedPassword)
 			{
-				var userToUpdate = await _users.StartUpdate(context, targetUser, DataOptions.IgnorePermissions);
+				var userToUpdate = _users.StartUpdate(context, targetUser, DataOptions.IgnorePermissions);
 
 				if (userToUpdate != null)
 				{
@@ -155,13 +137,12 @@ namespace Api.PasswordResetRequests
 				if (targetUser == null)
 				{
 					// API forced a halt:
-					Response.StatusCode = 403;
-					return;
+					return null;
 				}
 			}
 			
 			// Burn the token:
-			var reqToUpdate = await _service.StartUpdate(context, request, DataOptions.IgnorePermissions);
+			var reqToUpdate = _service.StartUpdate(context, request, DataOptions.IgnorePermissions);
 
 			if (reqToUpdate != null)
 			{
@@ -172,27 +153,19 @@ namespace Api.PasswordResetRequests
 			// Set user:
 			context.User = targetUser;
 			
-			await Events.Context.OnLoad.Dispatch(context, Request);
+			await Events.Context.OnLoad.Dispatch(context, httpContext.Request);
 
 			await Events.PasswordResetRequestAfterSuccess.Dispatch(context, request);
 
-			// Output context:
-			await OutputContext(context);
+			return context;
 		}
 
 		/// <summary>
 		/// Admin link generation.
 		/// </summary>
 		[HttpGet("{id}/generate")]
-		public async ValueTask<object> Generate(uint id)
+		public async ValueTask<ResetToken?> Generate(Context context, [FromRoute] uint id)
 		{
-			var context = await Request.GetContext();
-
-			if (context == null)
-			{
-				return null;
-			}
-
 			// must be admin/ super admin. Nobody else can do this for very clear security reasons.
 			if (context.Role != Roles.Developer && context.Role != Roles.Admin)
 			{
@@ -210,10 +183,10 @@ namespace Api.PasswordResetRequests
 				return null;
 			}
 
-			return new
+			return new ResetToken()
 			{
-				token = prr.Token,
-				url = "/password/reset/" + prr.Token
+				Token = prr.Token,
+				Url = "/password/reset/" + prr.Token
 			};
 		}
 
@@ -228,5 +201,21 @@ namespace Api.PasswordResetRequests
 		/// The new password.
 		/// </summary>
 		public string Password;
+	}
+
+	/// <summary>
+	/// A password reset token.
+	/// </summary>
+	public struct ResetToken
+	{
+		/// <summary>
+		/// The token itself.
+		/// </summary>
+		public string Token;
+
+		/// <summary>
+		/// A url containing the token.
+		/// </summary>
+		public string Url;
 	}
 }

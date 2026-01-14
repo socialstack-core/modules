@@ -37,7 +37,10 @@ namespace Api.Translate
 				Roles.Public.Revoke("translation_load", "translation_list");
 				Roles.Member.Revoke("translation_load", "translation_list");
 				*/
-				
+
+				// Locale editing is dev only
+				Roles.Admin.Revoke("locale_update", "locale_create");
+
 				return new ValueTask<object>(source);
 			}, 20);
 		}

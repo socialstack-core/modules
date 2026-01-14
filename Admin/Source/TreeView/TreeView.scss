@@ -1,0 +1,189 @@
+.admin-treeview {
+	$admin-treeview: &;
+	margin: 0;
+
+	&__select {
+		width: px_to_rem(54);
+	}
+
+	&__name {
+
+		&-wrapper {
+			display: flex;
+			align-items: center;
+			gap: px_to_rem(4);
+
+			svg {
+				width: px_to_rem(20);
+				height: px_to_rem(20);
+			}
+
+			&::after {
+				content: "";
+				position: absolute;
+				inset: 0;
+			}
+
+		}
+
+	}
+
+	&__id {
+		width: px_to_rem(120);
+	}
+
+	&__actions {
+		width: px_to_rem(160);
+
+		> a, > button {
+			margin-right: 0.5rem;
+			isolation: isolate;
+		}
+
+	}
+
+	&__sort {
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(4);
+		//padding: px_to_rem(6) px_to_rem(3);
+		font-weight: 700;
+		// offset padding
+		transform: translateX(px_to_rem(-12));
+
+		svg {
+			width: px_to_rem(16);
+			height: px_to_rem(16);
+			display: none;
+		}
+
+		&--active {
+
+			&#{$admin-treeview}__sort--desc {
+
+				#{$admin-treeview}__sort-down {
+					display: block;
+					//opacity: 1;
+					//color: var(--success);
+					//stroke-width: 4;
+				}
+
+			}
+
+			&#{$admin-treeview}__sort--asc {
+
+				#{$admin-treeview}__sort-up {
+					display: block;
+					//opacity: 1;
+					//color: var(--success);
+					//stroke-width: 4;
+				}
+
+			}
+
+		}
+	}
+
+	&__sort-down {
+	}
+
+	&__sort-up {
+	}
+
+	thead {
+
+		#{$admin-treeview}__select {
+			vertical-align: middle;
+		}
+
+		#{$admin-treeview}__actions {
+
+			> span {
+				display: block;
+				padding: px_to_rem(6) 0;
+			}
+
+		}
+
+		.form-check-label {
+			border: 0;
+			clip: rect(0, 0, 0, 0);
+			height: 1px;
+			margin: -1px;
+			overflow: hidden;
+			padding: 0;  
+			position: absolute;
+			width: 1px;
+		}
+
+	}
+
+	/*
+	thead {
+
+		.form-check {
+			margin-left: px_to_rem(20);
+
+			&-input {
+				margin-left: px_to_rem(-47) !important;
+			}
+
+			&-label {
+				font-weight: 700;
+			}
+		}
+
+	}
+	*/
+
+	thead, tbody {
+
+		.form-check {
+			margin: 0;
+		    padding: 0;
+			display: flex;
+			flex-direction: column;
+		    align-items: center;
+			gap: px_to_rem(4);
+
+			&-input {
+				margin-left: 0 !important;
+			}
+
+			&-label {
+				font-size: px_to_rem(12);
+				opacity: 0;
+				transition: opacity .3s ease;
+			}
+
+			&:hover {
+
+				.form-check-label {
+					opacity: 1;
+				}
+			}
+		}
+
+	}
+
+	tbody {
+
+		tr {
+			position: relative;
+			// NB: the following rules are necessary to work around a Safari bug where position: relative is ignored on table rows
+			transform: translate(0);
+			clip-path: inset(0);
+		}
+
+	}
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.admin-treeview {
+	}
+}
+*/

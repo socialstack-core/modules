@@ -1,10 +1,12 @@
-using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
+using Api.Permissions;
 using Api.Startup;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.Payments
 {
@@ -16,15 +18,20 @@ namespace Api.Payments
     {
 		private ProductService _products;
 		private PriceService _prices;
+		private CouponService _coupons;
+		private ProductConfig _config;
+		private CouponConfig _couponConfig;
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public ProductQuantityService(ProductService products, PriceService prices) : base(Events.ProductQuantity)
+		public ProductQuantityService(ProductService products, PriceService prices, CouponService coupons) : base(Events.ProductQuantity)
         {
 			_products = products;
 			_prices = prices;
-
+			_coupons = coupons;
+			_config = GetConfig<ProductConfig>();
+			_couponConfig = GetConfig<CouponConfig>();
 
 			/*
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
@@ -131,7 +138,7 @@ namespace Api.Payments
 					baseProduct = await _products.Create(context, new Product()
 					{
 						Id = 500010,
-						Name = "Mobile data, £10 for 1000GB",
+						Name = "Mobile data, ï¿½10 for 1000GB",
 						PriceId = 500010,
 						PriceStrategy = 1,
 						MinQuantity = 1000
@@ -206,7 +213,7 @@ namespace Api.Payments
 					baseProduct = await _products.Create(context, new Product()
 					{
 						Id = 500020,
-						Name = "Mobile data, £10 for 1000GB (Step always)",
+						Name = "Mobile data, ï¿½10 for 1000GB (Step always)",
 						PriceId = 500010,
 						PriceStrategy = 2,
 						MinQuantity = 1000
@@ -241,320 +248,652 @@ namespace Api.Payments
 		}
 
 		/// <summary>
-		/// Gets the cost of a ProductQuantity in the given locale.
+		/// If the given collection has any errors in it, this throws.
 		/// </summary>
-		/// <param name="productQuantity"></param>
-		/// <param name="localeId"></param>
-		/// <returns></returns>
-		public async ValueTask<ProductCost> GetCostOf(ProductQuantity productQuantity, uint localeId)
+		/// <param name="collection"></param>
+		public void RequireNoErrors(ProductQuantityPricing collection)
 		{
-			return await GetCostOf(new Context(localeId, 0, 0), productQuantity);
+			if (collection == null)
+			{
+				return;
+			}
+
+
+			if (collection.ErrorCode != null)
+			{
+				throw new PublicException(collection.ErrorMessage, collection.ErrorCode);
+			}
+
+			if (collection.Contents == null)
+			{
+				return;
+			}
+
+			// Does any line item have an error code either?
+			foreach (var lineItem in collection.Contents)
+			{
+				if (lineItem.ErrorCode != null)
+				{
+					throw new PublicException(lineItem.ErrorMessage, lineItem.ErrorCode);
+				}
+			}
+		}
+
+		/// <summary>
+		/// Adds or removes N of the given product from the given set of product quantity IDs.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="productQuantityMapping"></param>
+		/// <param name="product"></param>
+		/// <param name="quantity"></param>
+		/// <param name="blockCreate"></param>
+		/// <returns></returns>
+		public async ValueTask<ProductQuantity> ChangeItems(Context context, List<ulong> productQuantityMapping, Product product, CartQuantity quantity, bool blockCreate = false)
+		{
+			if (!quantity.Delta.HasValue && !quantity.Total.HasValue)
+			{
+				throw new PublicException("Please specify a quantity. It can either be a specific total quantity or a change in the quantity.", "quantity/missing");
+			}
+
+			// Check if this product is already in this set of items:
+			var inSet = await Where("Id=[?]", DataOptions.IgnorePermissions)
+				.Bind(productQuantityMapping.Select(id => (uint)id))
+				.ListAll(context);
+			var pQuantity = inSet.FirstOrDefault(item => item.ProductId == product.Id);
+
+			ProductQuantity toRemove = null;
+
+			if (pQuantity == null)
+			{
+				if (blockCreate)
+				{
+					// Not permitted to create.
+					return null;
+				}
+
+				// New object.
+				int currentQuantity = quantity.Delta.HasValue ? quantity.Delta.Value : (int)quantity.Total.Value;
+
+				if (currentQuantity <= 0)
+				{
+					// No change.
+					return null;
+				}
+
+				// Initial stock check. Note that a product can run out of stock whilst being in the cart.
+				if (product.Stock != null)
+				{
+					if (!product.ContinueSellingWithNoStock && currentQuantity > product.Stock.Value)
+					{
+						throw new PublicException("Unfortunately there's not enough in stock to place your order.", "stock/insufficient");
+					}
+				}
+
+				// Create a new one:
+				pQuantity = await Create(context, new ProductQuantity()
+				{
+					ProductId = product.Id,
+					Quantity = (uint)currentQuantity
+				}, DataOptions.IgnorePermissions);
+
+				productQuantityMapping.Add(pQuantity.Id);
+			}
+			else
+			{
+				// Add or subtract from the existing one.
+				int newQty = quantity.Delta.HasValue ? (quantity.Delta.Value + (int)pQuantity.Quantity) : (int)quantity.Total.Value;
+
+				if (newQty <= 0)
+				{
+					toRemove = pQuantity;
+					await Delete(context, pQuantity, DataOptions.IgnorePermissions);
+
+					// Remove from the mapping set:
+					productQuantityMapping.Remove(pQuantity.Id);
+				}
+				else
+				{
+					// Initial stock check. Note that a product can run out of stock whilst being in the cart.
+					if (product.Stock != null)
+					{
+						if (!product.ContinueSellingWithNoStock && newQty > product.Stock.Value)
+						{
+							throw new PublicException("Unfortunately there's not enough in stock to place your order.", "stock_insufficient");
+						}
+					}
+
+					await Update(context, pQuantity, (Context ctx, ProductQuantity toUpdate, ProductQuantity orig) =>
+					{
+						toUpdate.Quantity = (uint)newQty;
+					}, DataOptions.IgnorePermissions);
+
+					// Ensure it's in the mapping set:
+					if (productQuantityMapping.IndexOf(pQuantity.Id) == -1)
+					{
+						productQuantityMapping.Add(pQuantity.Id);
+					}
+				}
+			}
+
+			return pQuantity;
+		}
+
+		/// <summary>
+		/// Gets pricing info for the given collection of product quantities, with an optional 
+		/// coupon and in the given tax jurisdiction (if tax calc is active).
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="productQuants"></param>
+		/// <param name="couponId"></param>
+		/// <param name="taxJurisdiction"></param>
+		/// <returns></returns>
+		public async ValueTask<ProductQuantityPricing> GetPricing(Context context, IEnumerable<ProductQuantity> productQuants, string taxJurisdiction, uint couponId)
+		{
+			// Comes from cache - resolves instantly:
+			var locale = await context.GetLocale();
+
+			var collection = new ProductQuantityPricing()
+			{
+				CouponId = couponId,
+				TaxJurisdiction = taxJurisdiction,
+				CurrencyCode = locale.CurrencyCode,
+				Contents = new List<LineItem>()
+			};
+
+			ulong totalLessTax = 0;
+
+			// Get tax calc if active (comes from lookup, resolves instantly):
+			var taxCalc = await _prices.GetTaxCalculator(context, taxJurisdiction);
+
+			if (productQuants != null)
+			{
+				foreach (var item in productQuants)
+				{
+					var quantity = item.Quantity;
+
+					// Get the product:
+					var product = await _products.Get(context, item.ProductId, DataOptions.IgnorePermissions);
+
+					if (product == null)
+					{
+						// Product doesn't exist
+						continue;
+					}
+
+					var cost = await GetCostOf(context, product, quantity, taxCalc);
+
+					if (cost.SubscriptionProducts)
+					{
+						collection.HasSubscriptionProducts = true;
+					}
+
+					collection.Contents.Add(new LineItem()
+					{
+						ProductId = item.ProductId,
+						Quantity = quantity,
+						ProductQuantity = item,
+						ProductQuantityId = item.Id,
+						Product = product,
+						Total = cost.Amount,
+						ErrorCode = cost.ErrorCode,
+						ErrorMessage = cost.ErrorMessage,
+						TotalLessTax = cost.AmountLessTax
+					});
+
+					totalLessTax += cost.AmountLessTax;
+				}
+			}
+
+			collection.TotalLessTax = totalLessTax;
+
+			if (taxCalc != null)
+			{
+				collection.Total = taxCalc.Apply(totalLessTax);
+			}
+			else
+			{
+				collection.Total = totalLessTax;
+			}
+
+			collection.TotalPDLessTax = totalLessTax;
+			collection.TotalPD = collection.Total;
+
+			// Valid coupon?
+			if (couponId != 0)
+			{
+				var coupon = await _coupons.Get(context, couponId, DataOptions.IgnorePermissions);
+
+				if (coupon != null && (coupon.Disabled || (coupon.ExpiryDateUtc.HasValue && coupon.ExpiryDateUtc.Value < System.DateTime.UtcNow)))
+				{
+					// NB: If max number of people is reached, it is marked as disabled.
+					// Non-fatal error: the coupon just won't do anything.
+					collection.ErrorMessage = "The provided coupon has expired.";
+					collection.ErrorCode = "coupon_expired";
+
+					// Clear the coupon.
+					coupon = null;
+				}
+
+				// Next, factor in the coupon.
+				if (coupon != null)
+				{
+					var priceContext = context;
+
+					if (coupon.MinimumSpendAmount.TryGet(context, out uint minSpendAmount) && minSpendAmount > 0)
+					{	
+						// Are we above it?
+						if (collection.Total < minSpendAmount)
+						{
+							// No!
+							collection.ErrorMessage = "Can't use this coupon yet as the total is below the minimum spend.";
+							collection.ErrorCode = "min_spend";
+						}
+					}
+
+					if (coupon.DiscountPercent != 0)
+					{
+						var discountedTotal = collection.Total * (1d - ((double)coupon.DiscountPercent / 100d));
+
+						if (discountedTotal <= 0)
+						{
+							// Becoming free!
+							collection.Total = 0;
+						}
+						else
+						{
+							if(_couponConfig.DiscountRounding == RoundingMode.Up)
+                            {
+                                // Round the total down
+								collection.Total = (ulong)Math.Floor(discountedTotal);
+                            }
+							else if(_couponConfig.DiscountRounding == RoundingMode.Nearest)
+                            {
+                                // Round to nearest pence/ cent
+								collection.Total = (ulong)Math.Round(discountedTotal);
+                            }
+							else
+                            {
+                                // Round the total up by default
+								collection.Total = (ulong)Math.Ceiling(discountedTotal);
+                            }
+							
+						}
+
+						discountedTotal = collection.TotalLessTax * (1d - ((double)coupon.DiscountPercent / 100d));
+
+						if (discountedTotal <= 0)
+						{
+							// Becoming free!
+							collection.TotalLessTax = 0;
+						}
+						else
+						{
+							if(_couponConfig.DiscountRounding == RoundingMode.Up)
+                            {
+								// Round the total down
+								collection.TotalLessTax = (ulong)Math.Floor(discountedTotal);
+							}
+							else if(_couponConfig.DiscountRounding == RoundingMode.Nearest)
+                            {
+								// Round to nearest pence/ cent
+								collection.TotalLessTax = (ulong)Math.Round(discountedTotal);
+							}
+							else
+                            {
+								// Round the total up by default
+								collection.TotalLessTax = (ulong)Math.Ceiling(discountedTotal);
+							}
+						}
+					}
+
+					if (coupon.DiscountFixedAmount.TryGet(context, out uint discountFixedAmount) && discountFixedAmount > 0)
+					{
+						if (collection.Total < discountFixedAmount)
+						{
+							// Becoming free!
+							collection.Total = 0;
+						}
+						else
+						{
+							// Discount a fixed number of units:
+							collection.Total -= (ulong)discountFixedAmount;
+						}
+
+						if (collection.TotalLessTax < discountFixedAmount)
+						{
+							// Becoming free!
+							collection.TotalLessTax = 0;
+						}
+						else
+						{
+							// Discount a fixed number of units:
+							collection.TotalLessTax -= (ulong) discountFixedAmount;
+						}
+					}
+				}
+
+			}
+
+			return collection;
+		}
+
+		/// <summary>
+		/// Tax related delivery info for the given product set. It's null if no physical delivery is necessary.
+		/// </summary>
+		/// <param name="collection"></param>
+		/// <returns></returns>
+		public DeliveryPricingInfo? GetDeliveryDetail(ProductQuantityPricing collection)
+		{
+			if (collection.Contents == null)
+			{
+				return null;
+			}
+
+			bool requiresDelivery = false;
+
+			// It's common (such as in the UK) to use a value rating
+			// mechanism for mixed tax status physical deliveries.
+			// It's based on value because it aligns with the fundamental principles of VAT, however,
+			// that adds a suprising amount of complexity to how it actually is calculated on delivery fees.
+			// For example, the tax code has special cases for free samples and so on.
+			// A 100% discount is not a free sample so they work differently too!
+			// 
+			// This code operates on the price *before* discounts are applied as it treats coupons as global only
+			// thus somewhat cancelling out the discount case (for now, audit required).
+			ulong valueTaxed = 0;
+			ulong valueUntaxed = 0;
+
+			foreach (var lineItem in collection.Contents)
+			{
+				var product = lineItem.Product;
+
+				if (product == null || product.ProductType != 0)
+				{
+					continue;
+				}
+
+				requiresDelivery = true;
+				var tax = lineItem.Total - lineItem.TotalLessTax;
+
+				if (tax > 0)
+				{
+					// This item is taxed.
+					valueTaxed += lineItem.TotalLessTax;
+				}
+				else
+				{
+					// Zero rated. The delivery is zero rated for these too.
+					valueUntaxed += lineItem.TotalLessTax;
+				}
+
+				if (lineItem.TotalLessTax == 0)
+				{
+					// Free sample special case. Must use their nominal value.
+					if (!product.FreeSampleNominalValue.HasValue || product.FreeSampleNominalValue.Value <= 0)
+					{
+						throw new PublicException("A free sample in this order can't be checked out due to missing tax information", "product/nominal_missing");
+					}
+
+					if (product.TaxExempt == 1)
+					{
+						// Zero rated.
+						valueUntaxed += product.FreeSampleNominalValue.Value;
+					}
+					else
+					{
+						valueTaxed += product.FreeSampleNominalValue.Value;
+					}
+				}
+
+			}
+
+			if (!requiresDelivery)
+			{
+				// Digital delivery only.
+				return null;
+			}
+
+			var totalValue = valueTaxed + valueUntaxed;
+
+			if (totalValue <= 0)
+			{
+				// This should never happen.
+				throw new PublicException("Unexpected delivery value total", "delivery/fault");
+			}
+
+			var apportion = (double)valueTaxed / (double)totalValue;
+
+			return new DeliveryPricingInfo()
+			{
+				TaxApportion  = apportion,
+				ValueTaxed = valueTaxed,
+				ValueUntaxed = valueUntaxed
+			};
 		}
 
 		/// <summary>
 		/// Gets the cost of a ProductQuantity using the locale in the given context.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="productQuantity"></param>
+		/// <param name="product"></param>
+		/// <param name="quantity"></param>
+		/// <param name="taxCalculator"></param>
 		/// <returns></returns>
-		public async ValueTask<ProductCost> GetCostOf(Context context, ProductQuantity productQuantity)
+		private async ValueTask<ProductCost> GetCostOf(Context context, Product product, ulong quantity, TaxCalculator taxCalculator)
 		{
-			if (productQuantity == null)
-			{
-				return ProductCost.None;
-			}
-
-			var quantity = productQuantity.Quantity;
-			
-			// Get the product:
-			var product = await _products.Get(context, productQuantity.ProductId, DataOptions.IgnorePermissions);
-
-			if (product == null)
+			if (quantity == 0 || product == null)
 			{
 				return ProductCost.None;
 			}
 
 			var isSubscriptionProduct = product.BillingFrequency != 0;
 
-			// First if the quantity is below the products base min, check with site config.
-			if (quantity < product.MinQuantity)
+			// Get the product price tiers:
+			var priceComparison = await _products.GetPriceTiers(context, product);
+			var tiers = priceComparison.TiersToUse;
+
+			if (tiers == null || tiers.Count == 0)
 			{
-				if (_products.ErrorIfBelowMinimum)
+				// No configured prices.
+				return ProductCost.None;
+			}
+
+			// Which tier is the quantity going to target?
+			int targetTier = -1;
+
+			for (var i = tiers.Count - 1; i >= 0; i--)
+			{
+				if (quantity >= tiers[i].MinimumQuantity)
 				{
-					throw new PublicException("Selected quantity is below the minimum.", "below_min");
-				}
-				else
-				{ 
-					// Round:
-					quantity = product.MinQuantity;
+					// Using this tiered product.
+					targetTier = i;
+					break;
 				}
 			}
 
-			// Get the product tiers (null if there are none):
-			var tiers = await _products.GetTiers(context, product);
+			var result = new ProductCost
+			{
+			};
 
-			Product prodToUse = product;
-			Price price;
+			var belowMin = false;
+
+			if (targetTier == -1)
+			{
+				// Below minimum.
+				belowMin = true;
+				targetTier = 0;
+			}
+
 			ulong totalCost;
+			uint baseAmount;
 
-			if (prodToUse.PriceId == 0)
+			if (belowMin)
 			{
-				throw new PublicException(
-					"Product is not currently available in your currency. If you believe this is a mistake, please get in touch.",
-					"not_available"
-				);
+				result.ErrorCode = "product/below_min";
+				result.ErrorMessage = "Selected quantity is below the minimum.";
 			}
 
-			// Get the base price:
-			price = await _prices.Get(context, prodToUse.PriceId, DataOptions.IgnorePermissions);
+			// See the wiki for details on pricing strategies.
 
-			if (price == null)
+			if (!tiers[0].Amount.TryGet(context, out baseAmount))
 			{
-				throw new PublicException(
-					"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-					"not_available"
-				);
+				// Overrides min error.
+				result.ErrorMessage = "Product is not currently available in your currency. If you believe this is a mistake, please get in touch.";
+				result.ErrorCode = "product/not_available";
+				return result;
 			}
-			
-			if (tiers != null && tiers.Count > 0)
+
+			if (product.PriceStrategy == 1 && tiers.Count > 1 && quantity >= tiers[1].MinimumQuantity)
 			{
-				// Which tier is the quantity going to target?
-				int targetTier = -1;
+				// Step once strategy.
 
-				for (var i = tiers.Count - 1; i >= 0; i--)
+				// You pay the base product rate unless quantity passes any of the thresholds in the tiers.
+
+				// The step - we know we're above at least the threshold of the first tier.
+				var excessThreshold = tiers[1].MinimumQuantity;
+
+				// Add base number of products.
+
+				totalCost = (excessThreshold - 1) * baseAmount;
+
+				// Get the excess:
+				var excess = quantity - (excessThreshold - 1);
+
+				if (!tiers[1].Amount.TryGet(context, out uint excessAmount))
 				{
-					if (quantity >= tiers[i].MinQuantity)
-					{
-						// Using this tiered product.
-						targetTier = i;
-						break;
-					}
+					// Overrides min error.
+					result.ErrorMessage = "Product is not currently available in your currency. If you believe this is a mistake, please get in touch.";
+					result.ErrorCode = "product/not_available";
+					return result;
 				}
 
-				if (targetTier == -1)
+				// Add excess number of items to the total, ensuring that we don't overflow.
+				var excessCost = excess * excessAmount;
+				if (excessAmount != 0 && excessCost / excessAmount != excess)
 				{
-					// Within the base price. Doesn't matter what the price strategy is - this is always the same.
-
-					// Total cost is:
-					totalCost = quantity * price.Amount;
-
-					// Watch out for overflows, just in case someone uses an
-					// incredibly large quantity to try to get a lot for nothing:
-					if (price.Amount != 0 && totalCost / price.Amount != quantity)
-					{
-						throw new PublicException(
-							"The requested quantity is too large.",
-							"substantial_quantity"
-						);
-					}
+					result.ErrorMessage = "The requested quantity is too large.";
+					result.ErrorCode = "substantial_quantity";
+					return result;
 				}
-				else
+
+				var origTotal = totalCost;
+				totalCost += excessCost;
+
+				if (totalCost < origTotal)
 				{
-					// See the wiki for details on pricing strategies.
-					switch (product.PriceStrategy)
+					result.ErrorMessage = "The requested quantity is too large.";
+					result.ErrorCode = "substantial_quantity";
+					return result;
+				}
+			}
+			else if (product.PriceStrategy == 2 && tiers.Count > 1 && quantity >= tiers[1].MinimumQuantity)
+			{
+				// Step always strategy.
+
+				// Base price first:
+				var excessThreshold = tiers[1].MinimumQuantity;
+
+				// Add base number of products.
+				totalCost = (excessThreshold - 1) * baseAmount;
+
+				// Handle each fully passed tier next.
+				for (var i = 1; i < targetTier; i++)
+				{
+					// The max amt for this tier is the following tiers min minus this tiers min.
+					var tier = tiers[i];
+					var max = tiers[i + 1].MinimumQuantity - tier.MinimumQuantity;
+
+					if (!tier.Amount.TryGet(context, out uint tierAmount))
 					{
-						case 0:
-							// Standard pricing strategy.
-
-							// You pay the base product rate unless quantity passes any of the thresholds in the tiers.
-							prodToUse = tiers[targetTier];
-
-							// Get the price:
-							price = await _prices.Get(context, prodToUse.PriceId, DataOptions.IgnorePermissions);
-
-							if (price == null)
-							{
-								throw new PublicException(
-									"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-									"not_available"
-								);
-							}
-
-							// Total cost is:
-							totalCost = quantity * price.Amount;
-
-							// Watch out for overflows, just in case someone uses an
-							// incredibly large quantity to try to get a lot for nothing:
-							if (price.Amount != 0 && totalCost / price.Amount != quantity)
-							{
-								throw new PublicException(
-									"The requested quantity is too large.",
-									"substantial_quantity"
-								);
-							}
-
-							break;
-						case 1:
-							// Step once.
-
-							// You pay the base product rate unless quantity passes any of the thresholds in the tiers.
-
-							// The step - we know we're above at least the threshold of the first tier.
-							var excessThreshold = tiers[0].MinQuantity;
-
-							// Add base number of products.
-							totalCost = (excessThreshold - 1) * price.Amount;
-
-							// Get the excess:
-							var excess = quantity - (excessThreshold - 1);
-
-							// Next establish which tier the price is in:
-							prodToUse = tiers[targetTier];
-
-							// Get the price:
-							price = await _prices.Get(context, prodToUse.PriceId, DataOptions.IgnorePermissions);
-
-							if (price == null)
-							{
-								throw new PublicException(
-									"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-									"not_available"
-								);
-							}
-
-							// Add excess number of items to the total, ensuring that we don't overflow.
-							var excessCost = excess * price.Amount;
-
-							if (price.Amount != 0 && excessCost / price.Amount != excess)
-							{
-								throw new PublicException(
-									"The requested quantity is too large.",
-									"substantial_quantity"
-								);
-							}
-
-							var origTotal = totalCost;
-							totalCost += excessCost;
-
-							if (totalCost < origTotal)
-							{
-								throw new PublicException(
-									"The requested quantity is too large.",
-									"substantial_quantity"
-								);
-							}
-
-							break;
-						case 2:
-							// Step always.
-
-							// Base price first:
-							excessThreshold = tiers[0].MinQuantity;
-
-							// Add base number of products.
-							totalCost = (excessThreshold - 1) * price.Amount;
-
-							// Handle each fully passed tier next.
-							for (var i = 0; i < targetTier; i++)
-							{
-								// The max amt for this tier is the following tiers min minus this tiers min.
-								var tier = tiers[i];
-								var max = tiers[i + 1].MinQuantity - tier.MinQuantity;
-
-								price = await _prices.Get(context, tier.PriceId, DataOptions.IgnorePermissions);
-
-								if (price == null)
-								{
-									throw new PublicException(
-										"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-										"not_available"
-									);
-								}
-
-								var tierTotal = max * price.Amount;
-								// A singular tier is expected to never be so large that it always overflows.
-								// Adding it on however might do so.
-								var prevTotal = totalCost;
-								totalCost += tierTotal;
-
-								// Overflow check:
-								if (totalCost < prevTotal)
-								{
-									throw new PublicException(
-										"The requested quantity is too large.",
-										"substantial_quantity"
-									);
-								}
-
-							}
-
-							// Handle any final excess.
-							prodToUse = tiers[targetTier];
-							excess = quantity - (prodToUse.MinQuantity - 1);
-
-							price = await _prices.Get(context, prodToUse.PriceId, DataOptions.IgnorePermissions);
-
-							if (price == null)
-							{
-								throw new PublicException(
-									"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-									"not_available"
-								);
-							}
-
-							excessCost = excess * price.Amount;
-
-							if (price.Amount != 0 && excessCost / price.Amount != excess)
-							{
-								throw new PublicException(
-									"The requested quantity is too large.",
-									"substantial_quantity"
-								);
-							}
-
-							origTotal = totalCost;
-							totalCost += excessCost;
-
-							if (totalCost < origTotal)
-							{
-								throw new PublicException(
-									"The requested quantity is too large.",
-									"substantial_quantity"
-								);
-							}
-
-							break;
-						default:
-							throw new PublicException("Unknown pricing strategy", "pricing_strategy_notset");
+						// Overrides min error.
+						result.ErrorMessage = "Product is not currently available in your currency. If you believe this is a mistake, please get in touch.";
+						result.ErrorCode = "product/not_available";
+						return result;
 					}
+
+					var tierTotal = max * tierAmount;
+					// A singular tier is expected to never be so large that it always overflows.
+					// Adding it on however might do so.
+					var prevTotal = totalCost;
+					totalCost += tierTotal;
+
+					// Overflow check:
+					if (totalCost < prevTotal)
+					{
+						result.ErrorMessage = "The requested quantity is too large.";
+						result.ErrorCode = "substantial_quantity";
+						return result;
+					}
+
+				}
+
+				// Handle any final excess.
+				var finalTier = tiers[targetTier];
+				var excess = quantity - (finalTier.MinimumQuantity - 1);
+
+				if (!finalTier.Amount.TryGet(context, out uint finalTierAmount))
+				{
+					// Overrides min error.
+					result.ErrorMessage = "Product is not currently available in your currency. If you believe this is a mistake, please get in touch.";
+					result.ErrorCode = "product/not_available";
+					return result;
+				}
+
+				var excessCost = excess * finalTierAmount;
+
+				if (finalTierAmount != 0 && excessCost / finalTierAmount != excess)
+				{
+					result.ErrorMessage = "The requested quantity is too large.";
+					result.ErrorCode = "substantial_quantity";
+					return result;
+				}
+
+				var origTotal = totalCost;
+				totalCost += excessCost;
+
+				if (totalCost < origTotal)
+				{
+					result.ErrorMessage = "The requested quantity is too large.";
+					result.ErrorCode = "substantial_quantity";
+					return result;
 				}
 			}
 			else
 			{
-				// Just a simple price * qty.
+				// Standard pricing strategy: use the price of the matched tier.
+				var tier = tiers[targetTier];
 
-				// Get the price:
-				price = await _prices.Get(context, prodToUse.PriceId, DataOptions.IgnorePermissions);
-
-				if (price == null)
+				if (!tier.Amount.TryGet(context, out uint tierAmount))
 				{
-					throw new PublicException(
-						"Product is not currently available in your currency as the price is unavailable. If you believe this is a mistake, please get in touch.",
-						"not_available"
-					);
+					result.ErrorMessage = "Product is not currently available in your currency.";
+					result.ErrorCode = "product/not_available";
+					return result;
 				}
 
-				// Total cost is:
-				totalCost = quantity * price.Amount;
+				totalCost = quantity * tierAmount;
 
-				// Watch out for overflows, just in case someone uses an
-				// incredibly large quantity to try to get a lot for nothing:
-				if (price.Amount != 0 && totalCost / price.Amount != quantity)
+				// Overflow check
+				if (tierAmount != 0 && totalCost / tierAmount != quantity)
 				{
-					throw new PublicException(
-						"The requested quantity is too large.",
-						"substantial_quantity"
-					);
+					result.ErrorMessage = "The requested quantity is too large.";
+					result.ErrorCode = "substantial_quantity";
+					return result;
 				}
-
 			}
 
-			return new ProductCost()
+			var totalWithTax = totalCost;
+			var totalWithoutTax = totalCost;
+
+			if (taxCalculator != null && product.TaxExempt != 1)
 			{
-				CurrencyCode = price.CurrencyCode,
-				Amount = totalCost,
-				SubscriptionProducts = isSubscriptionProduct
-			};
+				totalWithTax = taxCalculator.Apply(totalCost);
+			}
+
+			result.Amount = totalWithTax;
+			result.AmountLessTax = totalWithoutTax;
+			result.SubscriptionProducts = isSubscriptionProduct;
+
+			return result;
 		}
 
 	}

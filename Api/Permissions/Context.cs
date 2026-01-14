@@ -30,6 +30,7 @@ namespace Api.Contexts
 		/// <summary>
 		/// The role ID from the token.
 		/// </summary>
+		[ContextField(OmitFromToken = true)]
 		public uint RoleId {
 			get
 			{
@@ -60,7 +61,7 @@ namespace Api.Contexts
 				}
 
 				// RoleService is always cached:
-				var cache = _roles.GetCacheForLocale(1);
+				var cache = _roles.GetCache();
 				_role = cache.Get(RoleId);
 				return _role;
 			}

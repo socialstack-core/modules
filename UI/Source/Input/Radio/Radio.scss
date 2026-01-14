@@ -1,0 +1,72 @@
+:root {
+	// set defaults to regular (md)
+	--form-radio-background-size: var(--form-md-radio-background-size, #{$default-form-md-radio-background-size});
+}
+
+// radio styling
+// NB: also inherits a subset of styles from UI/Input/Checkbox/Checkbox.scss
+.form-check.ui-check {
+
+	&:has(input[type="radio"]) {
+
+		&.form-check--xs {
+			--form-radio-background-size: var(--form-xs-radio-background-size, #{$default-form-xs-radio-background-size});
+		}
+
+		&.form-check--sm {
+			--form-radio-background-size: var(--form-sm-radio-background-size, #{$default-form-sm-radio-background-size});
+		}
+
+		&.form-check--md {
+			--form-radio-background-size: var(--form-md-radio-background-size, #{$default-form-md-radio-background-size});
+		}
+
+		&.form-check--lg {
+			--form-radio-background-size: var(--form-lg-radio-background-size, #{$default-form-lg-radio-background-size});
+		}
+
+		&.form-check--xl {
+			--form-radio-background-size: var(--form-xl-radio-background-size, #{$default-form-xl-radio-background-size});
+		}
+
+	}
+
+	.form-check-input[type="radio"] {
+		flex-shrink: 0;
+		width: var_to_rem(--form-check-size);
+		height: var_to_rem(--form-check-size);
+		border: var(--form-check-border, #{$default-form-check-border});
+		float: none;
+
+		&:checked {
+			background-image: var(--form-radio-background-image, #{$default-form-radio-background-image});
+			background-size: var_to_rem(--form-radio-background-size);
+
+			~ .form-check-label {
+				font-weight: var(--form-check-font-weight--checked, #{$default-form-check-font-weight--checked});
+				color: var(--form-check-color--checked, #{$default-form-check-color--checked});
+			}
+
+		}
+
+		&:focus-visible {
+			border-color: var(--form-check-border-color--focus, #{$default-form-check-border-color--focus});
+			box-shadow: var(--form-check-box-shadow--focus, #{$default-form-check-box-shadow--focus});
+		}
+
+		~ .form-check-label {
+			font-weight: var(--form-check-font-weight, #{$default-form-check-font-weight});
+			color: var(--form-check-color, #{$default-form-check-color});
+		}
+
+	}
+
+	&:hover:not(:disabled) {
+
+		.form-check-label {
+			color: var(--form-check-color--hover, #{$default-form-check-color--hover}) !important;
+		}
+
+	}
+
+}

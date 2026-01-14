@@ -20,7 +20,7 @@ namespace Api.Permissions
 		public static IEnumerable<Capability> GetAllCurrent()
 		{
 			// For each service that is loaded, go through each capability in the event group.
-			foreach (var kvp in Api.Startup.Services.AutoServices)
+			foreach (var kvp in Api.Startup.Services.All)
 			{
 				var evtGroup = kvp.Value.GetEventGroup();
 

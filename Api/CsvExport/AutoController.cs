@@ -1,13 +1,17 @@
 using Api.Contexts;
-using Api.Database;
-using Api.Eventing;
-using Api.Permissions;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
-using System;
-using System.Threading.Tasks;
-using System.IO;
 using Api.CsvExport;
+using Api.Database;
+using Api.Permissions;
+using Api.Startup;
+using Api.Startup.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 
 /// <summary>
@@ -19,46 +23,93 @@ public partial class AutoController<T,ID>
 {
 	/// <summary>
 	/// GET /v1/entityTypeName/list.csv
-	/// Lists all entities of this type available to this user, and outputs as a CSV.
-	/// </summary>
-	/// <returns></returns>
-	[HttpGet("list.csv")]
-	public virtual async Task<FileResult> ListCSV([FromQuery] string includes = null)
-	{
-		return await ListCSV(null, includes);
-	}
-
-	/// <summary>
-	/// POST /v1/entityTypeName/list.csv
 	/// Lists filtered entities available to this user.
 	/// See the filter documentation for more details on what you can request here.
 	/// </summary>
 	/// <returns></returns>
-	[HttpPost("list.csv")]
-	public virtual async Task<FileResult> ListCSV([FromBody] JObject filters, [FromQuery] string includes = null)
+	[HttpGet("list.csv")]
+	public virtual async ValueTask ListCSV(
+		Context context, HttpResponse response, 
+		[FromQuery] string query = null,
+		[FromQuery] string args = null,
+		[FromQuery] string includes = null, 
+		[FromQuery] string fileName = null)
 	{
-		var context = await Request.GetContext();
+		ListFilter filters = null;
+
+		if (!string.IsNullOrEmpty(query))
+		{
+			filters = new ListFilter()
+			{
+				Query = query,
+				Args = JsonConvert.DeserializeObject<List<object>>(args)
+			};
+		}
 
 		var filter = _service.LoadFilter(filters) as Filter<T, ID>;
-		filter = await _service.EventGroup.EndpointStartList.Dispatch(context, filter, Response);
-
+		
 		if (filter == null)
 		{
-			// A handler rejected this request.
-			Response.StatusCode = 404;
-			return null;
+			response.StatusCode = 404;
+			return;
 		}
 
 		var results = await filter.ListAll(context);
 
 		var csvMapping = await _service.GetCsvMapping(context);
 
-		// Not expecting huge CSV's here.
-		var ms = await csvMapping.OutputStream(results);
-		ms.Seek(0, SeekOrigin.Begin);
-		return File(ms, "text/csv", typeof(T).Name + ".csv");
+		string name;
+
+		if (!string.IsNullOrEmpty(fileName))
+		{
+			fileName = fileName.Trim();
+
+			if (!IsValidCsvFileNameRegex(fileName))
+			{
+				throw new PublicException("Invalid file name", "filename/requires_csv");
+			}
+
+			// Ok:
+			name = fileName;
+		}
+		else
+		{
+			name = typeof(T).Name + ".csv";
+		}
+
+		response.ContentType = "text/csv";
+		response.Headers.ContentDisposition = "attachment; filename=" + name;
+		await csvMapping.OutputStream(results, response.Body);
 	}
 
+	// Regex pattern: 
+	// ^                   - Start of the string
+	// [a-zA-Z0-9_-]+      - One or more allowed characters (letters, numbers, hyphen, underscore)
+	// (\.csv)             - Exactly one dot followed by 'csv'
+	// $                   - End of the string
+	// RegexOptions.IgnoreCase - Makes the check case-insensitive (e.g., works for .CSV)
+	private static readonly Regex CsvNameRegex = new Regex(
+		@"^[a-zA-Z0-9_-]+(\.csv)$",
+		RegexOptions.IgnoreCase | RegexOptions.Compiled
+	);
+
+	/// <summary>
+	/// Validates if a string is a safe and correctly formatted CSV file name 
+	/// using a whitelist Regular Expression.
+	/// </summary>
+	/// <param name="fileName">The file name provided by the user.</param>
+	/// <returns>True if the name is valid; otherwise, false.</returns>
+	private static bool IsValidCsvFileNameRegex(string fileName)
+	{
+		if (string.IsNullOrWhiteSpace(fileName))
+		{
+			return false;
+		}
+
+		// We use Trim() here to allow users to accidentally include leading/trailing spaces
+		// but the core Regex must match the content *after* trimming.
+		return CsvNameRegex.IsMatch(fileName.Trim());
+	}
 }
 
 public partial class AutoService<T, ID> {

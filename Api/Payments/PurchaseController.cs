@@ -1,9 +1,10 @@
 using Api.Contexts;
+using Api.Eventing;
 using Api.Startup;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
+using System.Text;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -14,7 +15,122 @@ namespace Api.Payments
 	{
 
 		/// <summary>
-		/// POST /v1/purchase/submit
+		/// Process the approval challenge response
+		/// </summary>
+		/// <param name="httpContext"></param>
+		/// <param name="context"></param>
+		/// <returns></returns>
+
+		[HttpPost("opayo/challenge/callback")]
+		public virtual async ValueTask<PurchaseStatus> ValidateChallenge(HttpContext httpContext, Context context)
+		{
+			var request = httpContext.Request;
+
+			request.Form.TryGetValue("cres", out var response);
+			request.Form.TryGetValue("threeDSSessionData", out var token);
+
+			// token is url encoded base64 as it is also passed to the provider
+			string unescaped = Uri.UnescapeDataString(token);
+			var decodedToken = Encoding.UTF8.GetString(Convert.FromBase64String(unescaped));
+
+			var challengeResponse = new ChallengeResponse()
+			{
+				CRes = response,
+				Token = decodedToken
+			};
+
+			if (string.IsNullOrWhiteSpace(challengeResponse.Token))
+			{
+				return new PurchaseStatus()
+				{
+					Status = 500
+				};
+			}
+
+			// save ip address against the token for auditing
+			var ipAddress = RequestHelper.GetClientIp(httpContext);
+			var purchase = await (_service as PurchaseService).GetByToken(context, challengeResponse.Token, ipAddress);
+
+			if (purchase == null)
+			{
+				throw new PublicException("Could not process validation response.", "purchase_validation_notfound");
+			}
+
+			var purchaseAndAction = await (_service as PurchaseService).ValidateChallenge(context, purchase, challengeResponse);
+
+			// only pass back the status
+			return new PurchaseStatus()
+			{
+				Status = purchase != null ? purchase.Status : 500
+			};
+		}
+
+		/// <summary>
+		/// Check the purchase status via a token 
+		/// Used during additional auth processes such as 3ds
+		/// </summary>
+		[HttpGet("approval/status/{token}")]
+		public async ValueTask<PurchaseStatus> ApprovalStatus(HttpContext httpContext, Context context, [FromRoute] string token)
+		{
+			// save ip address against the token for auditing
+			var ipAddress = RequestHelper.GetClientIp(httpContext);
+			var purchase = await (_service as PurchaseService).GetByToken(context, token, ipAddress);
+
+			// only pass back the status
+			return new PurchaseStatus()
+			{
+				Status = purchase != null ? purchase.Status : 500
+			};
+		}
+
+		/// <summary>
+		/// Retrieve a guest purchase via the token (if still valid)
+		/// </summary>
+		[HttpGet("get/token/{token}")]
+		public async ValueTask<Purchase> GetByToken(HttpContext httpContext, Context context, [FromRoute] string token)
+		{
+			// save ip address against the token for auditing
+			var ipAddress = RequestHelper.GetClientIp(httpContext);
+			var purchase = await (_service as PurchaseService).GetByToken(context, token, ipAddress);
+
+			return purchase;
+		}
+
+		/// <summary>
+		/// Resend an email for a purchase (admin only)
+		/// </summary>
+		[HttpGet("resend/email/{id}")]
+		public async ValueTask<bool> ResendEmail(HttpContext httpContext, Context context, [FromRoute] uint id, [FromQuery] string key)
+		{
+			if (context.Role == null || !context.Role.CanViewAdmin)
+			{
+				throw new PublicException("Admin only", "Web Category/admin_required");
+			}
+
+			if (string.IsNullOrWhiteSpace(key))
+			{
+				key = "payment_order_details";
+			}
+
+			var purchase = await (_service as PurchaseService).Get(context, id, DataOptions.IgnorePermissions);
+
+
+			if (purchase == null)
+			{
+				return false;
+			}
+
+			// resend email
+			var processed = false;
+			await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, key, purchase);
+
+			return true;
+		}
+
+
+		/*
+		/// <summary>
+		/// POST /v1/purchase/submit (Obsolete)
 		/// Creates a purchase from a list of submitted items and a payment method.
 		/// The items may also specify they are for a subscription by declaring isSubscribing: true instead of quantity.
 		/// 
@@ -23,21 +139,19 @@ namespace Api.Payments
 		///		items: [
 		///			{product: uintId, quantity: ulong, isSubscribing: bool}
 		///		],
-		///		couponCode: x,
 		///		future - delivery address etc
 		/// }
 		/// 
 		/// </summary>
 		/// <returns></returns>
 		[HttpPost("submit")]
-		public virtual async ValueTask<PurchaseStatus> Submit([FromBody] JObject purchaseOrder)
+		public virtual async ValueTask<PurchaseStatus> Submit(Context context, [FromBody] JObject purchaseOrder)
 		{
 			if (purchaseOrder == null || purchaseOrder.Type != JTokenType.Object)
 			{
 				throw new PublicException("Order details required", "order_details_not_provided");
 			}
 
-			var context = await Request.GetContext();
 			var anySubscription = false;
 
 			// Parse the items.
@@ -177,22 +291,6 @@ namespace Api.Payments
 				throw new PublicException("Payment method missing", "payment_method_required");
 			}
 
-			var couponCodeJson = purchaseOrder["couponCode"];
-			Coupon coupon = null;
-
-			if (couponCodeJson != null)
-			{
-				if (couponCodeJson.Type != JTokenType.String)
-				{
-					throw new PublicException("Coupon code provided but it was an invalid type", "coupon_invalid");
-				}
-
-				var couponCode = couponCodeJson.ToString();
-
-				// Attempt to get the coupon:
-				coupon = await Services.Get<CouponService>().Where("Token=?", DataOptions.IgnorePermissions).Bind(couponCode).First(context);
-			}
-
 			var productQuantities = Services.Get<ProductQuantityService>();
 
 			// Next, for each requested product, establish if it needs to create a subscription as well.
@@ -237,6 +335,8 @@ namespace Api.Payments
 					UserId = context.UserId
 				};
 
+				prodQuant = await productQuantities.Create(context, prodQuant, DataOptions.IgnorePermissions);
+
 				// Which bucket does this go into?
 				if (product.BillingFrequency == 0)
 				{
@@ -244,16 +344,16 @@ namespace Api.Payments
 					if (oneOff == null)
 					{
 						// Create it:
-						oneOff = await _service.Create(context, new Purchase()
+						oneOff = new Purchase()
 						{
 							LocaleId = context.LocaleId,
 							PaymentGatewayId = paymentMethod.PaymentGatewayId,
 							PaymentMethodId = paymentMethod.Id,
 							UserId = context.UserId
-						}, DataOptions.IgnorePermissions);
+						};
 					}
 
-					prodQuant.PurchaseId = oneOff.Id;
+					oneOff.Mappings.Add("PurchaseQuantities", prodQuant);
 				}
 				else
 				{
@@ -265,13 +365,13 @@ namespace Api.Payments
 							// Weekly
 							if (week == null)
 							{
-								week = await subscriptions.Create(context, new Subscription()
+								week = new Subscription()
 								{
 									PaymentMethodId = paymentMethod.Id,
 									TimeslotFrequency = 3, // Weeks
 									LocaleId = context.LocaleId,
 									UserId = context.UserId
-								}, DataOptions.IgnorePermissions);
+								};
 							}
 
 							subToUse = week;
@@ -279,16 +379,16 @@ namespace Api.Payments
 							break;
 						case 2:
 							// Monthly
-							
+
 							if (month == null)
 							{
-								month = await subscriptions.Create(context, new Subscription()
+								month = new Subscription()
 								{
 									PaymentMethodId = paymentMethod.Id,
 									TimeslotFrequency = 0, // Months
 									LocaleId = context.LocaleId,
 									UserId = context.UserId
-								}, DataOptions.IgnorePermissions);
+								};
 							}
 
 							subToUse = month;
@@ -299,13 +399,13 @@ namespace Api.Payments
 
 							if (quarter == null)
 							{
-								quarter = await subscriptions.Create(context, new Subscription()
+								quarter = new Subscription()
 								{
 									PaymentMethodId = paymentMethod.Id,
 									TimeslotFrequency = 1, // Quarters
 									LocaleId = context.LocaleId,
 									UserId = context.UserId
-								}, DataOptions.IgnorePermissions);
+								};
 							}
 
 							subToUse = quarter;
@@ -315,23 +415,22 @@ namespace Api.Payments
 
 							if (year == null)
 							{
-								year = await subscriptions.Create(context, new Subscription()
+								year = new Subscription()
 								{
 									PaymentMethodId = paymentMethod.Id,
 									TimeslotFrequency = 2, // Years
 									LocaleId = context.LocaleId,
 									UserId = context.UserId
-								}, DataOptions.IgnorePermissions);
+								};
 							}
 
 							subToUse = year;
 							break;
 					}
 
-					prodQuant.SubscriptionId = subToUse.Id;
+					subToUse.Mappings.Add("ProductQuantities", prodQuant);
 				}
 
-				await productQuantities.Create(context, prodQuant, DataOptions.IgnorePermissions);
 			}
 
 			// Next check if we need to do a singular execution or a multi execution.
@@ -339,26 +438,31 @@ namespace Api.Payments
 
 			if (oneOff != null)
 			{
+				oneOff = await _service.Create(context, oneOff, DataOptions.IgnorePermissions);
 				executeCount++;
 			}
 
 			if (week != null)
 			{
+				week = await subscriptions.Create(context, week, DataOptions.IgnorePermissions);
 				executeCount++;
 			}
 
 			if (month != null)
 			{
+				month = await subscriptions.Create(context, month, DataOptions.IgnorePermissions);
 				executeCount++;
 			}
-			
+
 			if (quarter != null)
 			{
+				quarter = await subscriptions.Create(context, quarter, DataOptions.IgnorePermissions);
 				executeCount++;
 			}
-			
+
 			if (year != null)
 			{
+				year = await subscriptions.Create(context, year, DataOptions.IgnorePermissions);
 				executeCount++;
 			}
 
@@ -414,7 +518,7 @@ namespace Api.Payments
 					}
 					subscriptionSet.Add(week);
 				}
-				
+
 				if (month != null)
 				{
 					if (subscriptionSet == null)
@@ -423,7 +527,7 @@ namespace Api.Payments
 					}
 					subscriptionSet.Add(month);
 				}
-				
+
 				if (quarter != null)
 				{
 					if (subscriptionSet == null)
@@ -432,7 +536,7 @@ namespace Api.Payments
 					}
 					subscriptionSet.Add(quarter);
 				}
-				
+
 				if (year != null)
 				{
 					if (subscriptionSet == null)
@@ -451,5 +555,6 @@ namespace Api.Payments
 			};
 
 		}
+		*/
 	}
 }

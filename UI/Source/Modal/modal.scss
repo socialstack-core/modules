@@ -1,0 +1,38 @@
+.modal.show{
+	display: block;
+}
+
+.modal-body{
+	max-height: 80vh;
+	overflow-y: auto;
+	overflow-x: hidden;
+}
+
+.hidden-by-modal {
+	display: none !important;
+}
+
+.modal-backdrop {
+    z-index: 1000;
+}
+
+.modal.show {
+    z-index: 1001;
+}
+
+.modal .modal-header .close {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: px_to_rem(16);
+
+	.custom-icon-content {
+		width: 100%;
+	}
+
+	.custom-icon {
+		width: 100%;
+		height: auto;
+	}
+
+}

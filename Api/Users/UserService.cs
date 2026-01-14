@@ -1,10 +1,13 @@
-﻿using System.Threading.Tasks;
-using Api.Contexts;
-using Api.Permissions;
+﻿using Api.Contexts;
 using Api.Eventing;
+using Api.Pages;
+using Api.Permissions;
 using Api.Startup;
 using Org.BouncyCastle.Security;
 using System;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Api.Users
 {
@@ -38,7 +41,7 @@ namespace Api.Users
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public UserService() : base(Events.User)
+		public UserService(PageService pages) : base(Events.User)
 		{
 			var config = GetConfig<UserServiceConfig>();
 			_config = config;
@@ -54,22 +57,6 @@ namespace Api.Users
 				{
 					// Not settable
 					field = null;
-				}
-
-				return new ValueTask<JsonField<User, uint>>(field);
-			});
-
-			Events.User.BeforeGettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
-
-				if (field == null)
-				{
-					return new ValueTask<JsonField<User, uint>>(field);
-				}
-
-				if (field.ForRole == Roles.Admin || field.ForRole == Roles.Developer)
-				{
-					// This is readable by default:
-					field.Readable = true;
 				}
 
 				return new ValueTask<JsonField<User, uint>>(field);
@@ -174,7 +161,22 @@ namespace Api.Users
 				
 				return user;
 			});
-			
+
+			pages.Install(
+				new PageBuilder()
+				{
+					Url = "login",
+					Key = "login",
+					Title = "Login to your account",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasRenderer.CanvasNode("UI/LoginForm")
+						);
+					}
+				}
+			);
+
 			config.OnChange += () => {
 				SetupCookieName();
 				return new ValueTask();
@@ -182,7 +184,7 @@ namespace Api.Users
 
 			SetupCookieName();
 
-			InstallAdminPages("Users", "fa:fa-user", new string[] { "id", "email", "username", "role" });
+			InstallAdminPages("Users", "fa:fa-user", ["id", "email", "username", "role"], null, "security");
 		}
 
 		/// <summary>

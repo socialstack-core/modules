@@ -22,7 +22,7 @@ public partial class AutoService
 	/// Schedules the install to happen either immediately if services have not yet started (async) or after services have started.
 	/// </summary>
 	/// <param name="templates"></param>
-	public void InstallEmails(params Api.Emails.EmailTemplate[] templates)
+	public void InstallEmails(params Api.Emails.EmailBuilder[] templates)
 	{
 		if (Services.Started)
 		{
@@ -39,7 +39,7 @@ public partial class AutoService
 		}
 	}
 
-	private static void InstallEmailsInternal(Api.Emails.EmailTemplate[] templates)
+	private static void InstallEmailsInternal(Api.Emails.EmailBuilder[] templates)
 	{
 		var emailService = Services.Get<Api.Emails.EmailTemplateService>();
 

@@ -1,0 +1,40 @@
+#!/bin/bash
+# === pre-commit hook (Bash version) ===
+
+# Exit on any error
+set -e
+
+# Navigate to the project root from .git/hooks
+cd "$(dirname "$0")/../.."
+
+# Path to the pre-commit hook scripts
+HOOK_DIR="scripts/pre-commit"
+
+# Check if the directory exists
+if [ -d "$HOOK_DIR" ]; then
+  cd "$HOOK_DIR"
+
+  # Loop over all .js files and run them
+  for file in *.js; do
+    # Ensure that the file exists and is a regular file
+    if [ -f "$file" ]; then
+      echo "Running Node script: $file"
+      node "$file" || {
+        echo "Script $file failed. Aborting commit."
+        exit 1
+      }
+    fi
+  done
+else
+  echo "No pre-commit scripts found in $HOOK_DIR."
+fi
+
+
+cd ../../
+
+dotnet run git pre-commit || {
+  echo "Dotnet script failed. Aborting commit."
+  exit 1
+}
+
+exit 0

@@ -5,158 +5,215 @@ using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
 
-namespace Api.Database
+namespace Api.Database;
+
+
+/// <summary>
+/// Information about a particular index.
+/// </summary>
+public partial class DatabaseIndexInfo
 {
+	private static int counter = 1;
+
+	/// <summary>
+	/// The ID for this dbi.
+	/// </summary>
+	public int Id;
+
+	/// <summary>
+	/// The underlying columns in the index. Almost always just one.
+	/// </summary>
+	public ContentField[] Columns;
 	
 	/// <summary>
-	/// Information about a particular index.
+	/// A generated index name.
 	/// </summary>
-	public partial class DatabaseIndexInfo
+	public string IndexName;
+
+	/// <summary>
+	/// The scope of the index, initially cache or database, if blank all are assumed.
+	/// </summary>
+	public string Scope;
+
+	/// <summary>
+	/// True if it's a unique index. True is the default.
+	/// </summary>
+	public bool Unique;
+	
+	/// <summary>
+	/// either "ASC" or "DESC" declaring the sort direction of the index. ASC is the default.
+	/// </summary>
+	public string Direction;
+	
+	
+	/// <summary>
+	/// Creates index info based on the given class attribute.
+	/// It's expected to define the column names.
+	/// </summary>
+	public DatabaseIndexInfo(DatabaseIndexAttribute attr, ContentField[] fields)
 	{
-		private static int counter = 1;
+		Columns = fields;
+		var sb = new StringBuilder();
 
-		/// <summary>
-		/// The ID for this dbi.
-		/// </summary>
-		public int Id;
-
-		/// <summary>
-		/// The underlying columns in the index. Almost always just one.
-		/// </summary>
-		public ContentField[] Columns;
-		
-		/// <summary>
-		/// A generated index name.
-		/// </summary>
-		public string IndexName;
-		
-		/// <summary>
-		/// True if it's a unique index. True is the default.
-		/// </summary>
-		public bool Unique;
-		
-		/// <summary>
-		/// either "ASC" or "DESC" declaring the sort direction of the index. ASC is the default.
-		/// </summary>
-		public string Direction;
-		
-		
-		/// <summary>
-		/// Creates index info based on the given class attribute.
-		/// It's expected to define the column names.
-		/// </summary>
-		public DatabaseIndexInfo(DatabaseIndexAttribute attr, ContentField[] fields)
+		if (!string.IsNullOrWhiteSpace(attr.Name))
 		{
-			Columns = fields;
-			var sb = new StringBuilder();
-
+			IndexName = attr.Name;
+		}
+		else
+		{
 			for (var i = 0; i < fields.Length; i++)
 			{
-				if (i != 0)
+			if (i != 0)
 				{
 					sb.Append('_');
 				}
-				sb.Append(fields[i].Name);
+			sb.Append(fields[i].Name);
 			}
 
 			IndexName = sb.ToString();
-			Unique = attr.Unique;
-			Direction = attr.Direction;
 		}
 
-		private ChildIndexMeta _meta;
+		Scope = attr.Scope;
+		Unique = attr.Unique;
+		Direction = attr.Direction;
+	}
 
-		/// <summary>
-		/// Instances an index of this type. Note that the given type param, T, can only be one type.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <returns></returns>
-		public ServiceCacheIndex<T> CreateIndex<T>()
-			 where T : class
+	private ChildIndexMeta _meta;
+
+	/// <summary>
+	/// Instances an index of this type. Note that the given type param, T, can only be one type.
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	/// <typeparam name="PT"></typeparam>
+	/// <returns></returns>
+	public ServiceCacheIndex<T> CreateIndex<T, PT>()
+		where T : Content<PT>, new()
+		where PT : struct, IConvertible, IEquatable<PT>, IComparable<PT>
+	{
+		if (_meta == null)
 		{
-			if (_meta == null)
+			if (Unique && Columns.Length == 1 && Columns[0].Name == "Id" && (typeof(PT) == typeof(uint) || typeof(PT) == typeof(ulong)))
+			{
+				// Special case for the ID field - we can skip generating a class for it.
+				var childIdType = typeof(UniqueIdIndex<,>).MakeGenericType(new Type[] {
+					typeof(T),
+					typeof(PT)
+				});
+
+				_meta = new ChildIndexMeta()
+				{
+					ChildType = childIdType
+				};
+			}
+			else
 			{
 				_meta = BuildMeta(typeof(T));
 			}
-
-			return Activator.CreateInstance(_meta.ChildType, _meta.Meta) as ServiceCacheIndex<T>;
 		}
 
-		private ChildIndexMeta BuildMeta(Type contentType)
+		return Activator.CreateInstance(_meta.ChildType, _meta.Meta) as ServiceCacheIndex<T>;
+	}
+
+	private ChildIndexMeta BuildMeta(Type contentType)
+	{
+		AssemblyName assemblyName = new AssemblyName("GeneratedIndex_" + counter);
+		counter++;
+		AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
+		ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+		
+		ChildIndexMeta indexMeta = null;
+
+		TypeBuilder[] builders = new TypeBuilder[Columns.Length];
+
+		var cim = new Type[] { typeof(ChildIndexMeta) };
+		var cTypeArr = new Type[] { contentType };
+
+		for (var i = Columns.Length - 1; i >= 0; i--)
 		{
-			AssemblyName assemblyName = new AssemblyName("GeneratedIndex_" + counter);
-			counter++;
-			AssemblyBuilder assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
-			ModuleBuilder moduleBuilder = assemblyBuilder.DefineDynamicModule(assemblyName.Name);
+			var colInfo = Columns[i];
+			Type baseType;
+			var keyType = colInfo.FieldType;
 			
-			ChildIndexMeta indexMeta = null;
-
-			TypeBuilder[] builders = new TypeBuilder[Columns.Length];
-
-			var cim = new Type[] { typeof(ChildIndexMeta) };
-			var cTypeArr = new Type[] { contentType };
-
-			for (var i = Columns.Length - 1; i >= 0; i--)
+			if (i == Columns.Length - 1)
 			{
-				var colInfo = Columns[i];
-				Type baseType;
-				var keyType = colInfo.FieldType;
-				
-				if (i == Columns.Length - 1)
-				{
-					// Last one - this is either a uniqueIndex or NonUniqueIndex.
-					baseType = Unique ? typeof(UniqueIndex<,>).MakeGenericType(new Type[] {
-						contentType,
-						keyType
-					}) : typeof(NonUniqueIndex<,>).MakeGenericType(new Type[] {
-						contentType,
-						keyType
-					});
-				}
-				else
-				{
-					// An Index->Index.
-					baseType = typeof(IndexIndex<,,>).MakeGenericType(new Type[] {
-						contentType,
-						keyType
-					});
-				}
-
-				var baseCtor = baseType.GetConstructor(cim);
-
-				// Create an inheriting type which reads the field as the key value:
-				TypeBuilder typeBuilder = moduleBuilder.DefineType("IndexColumn_"+ i + "_" + colInfo.FieldInfo.Name, TypeAttributes.Public, baseType);
-				
-				// Main constructor accepts 1 arg, a ChildIndexMeta:
-				ConstructorBuilder ctor0 = typeBuilder.DefineConstructor(
-					MethodAttributes.Public,
-					CallingConventions.Standard,
-					cim
-				);
-
-				ILGenerator constructorBody = ctor0.GetILGenerator();
-				constructorBody.Emit(OpCodes.Ldarg_0);
-				constructorBody.Emit(OpCodes.Ldarg_1);
-				constructorBody.Emit(OpCodes.Call, baseCtor);
-				constructorBody.Emit(OpCodes.Ret);
-
-				var writeBinary = typeBuilder.DefineMethod("GetKeyValue", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, keyType, cTypeArr);
-
-				ILGenerator writerBody = writeBinary.GetILGenerator();
-				writerBody.Emit(OpCodes.Ldarg_1);
-				writerBody.Emit(OpCodes.Ldfld, colInfo.FieldInfo);
-				writerBody.Emit(OpCodes.Ret);
-
-				builders[i] = typeBuilder;
+				// Last one - this is either a uniqueIndex or NonUniqueIndex.
+				baseType = Unique ? typeof(UniqueIndex<,>).MakeGenericType(new Type[] {
+					contentType,
+					keyType
+				}) : typeof(NonUniqueIndex<,>).MakeGenericType(new Type[] {
+					contentType,
+					keyType
+				});
+			}
+			else
+			{
+				// An Index->Index.
+				baseType = typeof(IndexIndex<,,>).MakeGenericType(new Type[] {
+					contentType,
+					keyType
+				});
 			}
 
-			for (var i=Columns.Length - 1;i>=0;i--)
-			{
-				var meta = new ChildIndexMeta() { ChildType = builders[i].CreateType(), Meta = indexMeta };
-				indexMeta = meta;
-			}
+			var baseCtor = baseType.GetConstructor(cim);
 
-			return indexMeta;
+			// Create an inheriting type which reads the field as the key value:
+			TypeBuilder typeBuilder = moduleBuilder.DefineType("IndexColumn_"+ i + "_" + colInfo.FieldInfo.Name, TypeAttributes.Public, baseType);
+			
+			// Main constructor accepts 1 arg, a ChildIndexMeta:
+			ConstructorBuilder ctor0 = typeBuilder.DefineConstructor(
+				MethodAttributes.Public,
+				CallingConventions.Standard,
+				cim
+			);
+
+			ILGenerator constructorBody = ctor0.GetILGenerator();
+			constructorBody.Emit(OpCodes.Ldarg_0);
+			constructorBody.Emit(OpCodes.Ldarg_1);
+			constructorBody.Emit(OpCodes.Call, baseCtor);
+			constructorBody.Emit(OpCodes.Ret);
+
+			var writeBinary = typeBuilder.DefineMethod("GetKeyValue", MethodAttributes.Public | MethodAttributes.HideBySig | MethodAttributes.Virtual, keyType, cTypeArr);
+
+			ILGenerator writerBody = writeBinary.GetILGenerator();
+			writerBody.Emit(OpCodes.Ldarg_1);
+			writerBody.Emit(OpCodes.Ldfld, colInfo.FieldInfo);
+			writerBody.Emit(OpCodes.Ret);
+
+			builders[i] = typeBuilder;
 		}
+
+		for (var i=Columns.Length - 1;i>=0;i--)
+		{
+			var meta = new ChildIndexMeta() { ChildType = builders[i].CreateType(), Meta = indexMeta };
+			indexMeta = meta;
+		}
+
+		return indexMeta;
+	}
+}
+
+/// <summary>
+/// A special case index for ID fields on a piece of content.
+/// </summary>
+/// <typeparam name="T"></typeparam>
+/// <typeparam name="PT"></typeparam>
+public class UniqueIdIndex<T, PT> : UniqueIndex<T, PT>
+where T : Content<PT>, new()
+			where PT : struct, IConvertible, IEquatable<PT>, IComparable<PT>
+{
+	/// <summary>
+	/// Creates a new ID index.
+	/// </summary>
+	/// <param name="meta"></param>
+	public UniqueIdIndex(ChildIndexMeta meta) : base(meta) {}
+
+	/// <summary>
+	/// Gets the key value for this index.
+	/// </summary>
+	/// <param name="entry"></param>
+	/// <returns></returns>
+	public override PT GetKeyValue(T entry)
+	{
+		return entry.Id;
 	}
 }

@@ -13,39 +13,39 @@ namespace Api.Startup
 	/// Not required to use these - you can also just directly use ControllerBase if you want.
 	/// Like AutoService this isn't in a namespace due to the frequency it's used.
 	/// </summary>
-	public partial class StdOutController : ControllerBase
+	public partial class StdOutController : AutoController
 	{
 		
 		/// <summary>
 		/// Gets the latest number of websocket clients.
 		/// </summary>
 		[HttpGet("clients")]
-		public async ValueTask GetWsClientCount()
+		public WebsocketClientInfo GetWsClientCount(Context context)
 		{
-			var context = await Request.GetContext();
-			
-			Response.ContentType = _applicationJson;
-			
 			if(context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("monitoring_stdout", context);
 			}
-			
-			var writer = Writer.GetPooled();
-			writer.Start(null);
 
-			writer.WriteASCII("{\"clients\":");
+			int count = Services.Get<WebSocketService>().GetClientCount();
 
-			writer.WriteS(Services.Get<WebSocketService>().GetClientCount());
-			
-			writer.Write((byte)'}');
-			
-			// Flush after each one:
-			await writer.CopyToAsync(Response.Body);
-			writer.Release();
+			return new WebsocketClientInfo() {
+				Clients = count
+			};
 		}
 		
 		
 	}
-	
+
+	/// <summary>
+	/// WS client info.
+	/// </summary>
+	public struct WebsocketClientInfo
+	{
+		/// <summary>
+		/// Client count.
+		/// </summary>
+		public int Clients;
+	}
+
 }

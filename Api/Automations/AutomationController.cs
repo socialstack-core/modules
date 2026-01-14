@@ -15,7 +15,7 @@ namespace Api.Automations
 
 	[Route("v1/automation")]
 	[ApiController]
-	public partial class AutomationController : ControllerBase
+	public partial class AutomationController : AutoController
     {
         private AutomationService _automations;
 
@@ -34,10 +34,8 @@ namespace Api.Automations
 		/// Returns meta about automations available from this API. Includes endpoints and content types.
 		/// </summary>
 		[HttpGet("list")]
-		public async ValueTask<AutomationStructure> Get()
+		public AutomationStructure Get(Context context)
         {
-			var context = await Request.GetContext();
-			
 			if(context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("automation_list", context);
@@ -51,10 +49,8 @@ namespace Api.Automations
 		/// Runs the named automation and waits for it to complete.
 		/// </summary>
 		[HttpGet("{name}/run")]
-		public async ValueTask Execute([FromRoute] string name)
+		public async ValueTask Execute(Context context, [FromRoute] string name)
         {
-			var context = await Request.GetContext();
-			
 			if(string.IsNullOrEmpty(name) || context.Role == null || !context.Role.CanViewAdmin)
 			{
 				throw PermissionException.Create("automation_list", context);

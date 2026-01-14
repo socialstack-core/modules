@@ -1,0 +1,58 @@
+@use "sass:math";
+
+@layer components.embed {
+	$ratio16-9: math.div(100%, 1.7778);
+	$ratio4-3: math.div(100%, 1.3333);
+
+	:root {
+	}
+
+	.ui-embed {
+		$embed: &;
+
+		&__wrapper {
+			overflow: hidden;
+			padding: 1rem;
+			outline: 1px solid rgba(200, 0, 200, .5);
+		}
+
+		&__iframe {
+			position: relative;
+
+			// assumes 16:9 ratio
+			&::before {
+				content: "";
+				display: block;
+				//padding-bottom: calc(100% / #{$ratio16-9});
+				padding-bottom: $ratio16-9;
+			}
+
+			iframe {
+				position: absolute;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 100%;
+			}
+		}
+
+
+		&--resizable {
+
+			#{$embed}__wrapper {
+				//resize: both;
+			}
+
+		}
+
+		&--ratio-4-3 {
+
+			#{$embed}__iframe {
+				//padding-bottom: calc(100% / #{$ratio4-3});
+				padding-bottom: $ratio4-3;
+			}
+
+		}
+
+	}
+}

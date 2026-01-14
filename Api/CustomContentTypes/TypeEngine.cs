@@ -1,5 +1,4 @@
 using Api.AutoForms;
-using Api.Currency;
 using Api.Database;
 using Api.Startup;
 using Api.Translate;
@@ -331,8 +330,17 @@ namespace Api.CustomContentTypes
 						{
 							continue;
 						}
-						
-						FieldBuilder fieldBuilder = typeBuilder.DefineField(fieldName, fieldTypeInfo.Type, FieldAttributes.Public);
+
+						var fieldType = fieldTypeInfo.Type;
+
+						if (field.Localised)
+						{
+							fieldType = typeof(Localized<>).MakeGenericType(new Type[] {
+								fieldType
+							});
+						}
+
+						FieldBuilder fieldBuilder = typeBuilder.DefineField(fieldName, fieldType, FieldAttributes.Public);
 
 						// Add the nickname as an attribute
 						if (!string.IsNullOrWhiteSpace(field.NickName))
@@ -343,15 +351,6 @@ namespace Api.CustomContentTypes
 						if (field.IsHidden)
 						{
 							AddDataAttribute(fieldBuilder, "type", "hidden");
-						}
-
-						if (field.Localised)
-                        {
-							AddAttribute(fieldBuilder,
-								typeof(LocalizedAttribute),
-								Type.EmptyTypes,
-								new object[] { }
-							);
 						}
 
 						if (!string.IsNullOrWhiteSpace(field.Validation))
@@ -431,14 +430,6 @@ namespace Api.CustomContentTypes
                                 new object[1] { "Admin/CustomFormSelect" }
                             );
                         }
-                        else if (field.DataType == "price")
-						{
-							AddAttribute(fieldBuilder,
-								typeof(PriceAttribute),
-								Type.EmptyTypes,
-								new object[0] { }
-							);
-						}
 						else if (field.DataType == "select")
 						{
 							AddAttribute(fieldBuilder,
@@ -458,22 +449,11 @@ namespace Api.CustomContentTypes
                         {
 							AddDataAttribute(fieldBuilder, "contentType", TidyName(field.LinkedEntity));
 
-							if (customType.IsForm)
-							{
-								AddAttribute(fieldBuilder,
-									typeof(ModuleAttribute),
-									new Type[1] { typeof(String) },
-									new object[1] { "UI/ContentSelect" }
-								);
-							} 
-							else
-							{
-                                AddAttribute(fieldBuilder,
-                                    typeof(ModuleAttribute),
-                                    new Type[1] { typeof(String) },
-                                    new object[1] { "Admin/ContentSelect" }
-                                );
-                            }
+                            AddAttribute(fieldBuilder,
+                                typeof(ModuleAttribute),
+                                new Type[1] { typeof(String) },
+                                new object[1] { "Admin/ContentSelect" }
+                            );
 
 							AddDataAttribute(fieldBuilder, "titleField", "name");
 							AddDataAttribute(fieldBuilder, "search", "name");
@@ -481,10 +461,18 @@ namespace Api.CustomContentTypes
 
 						if (!string.IsNullOrEmpty(field.DefaultValue))
 						{
-							// Set the default value for the field:
-							constructorBody.Emit(OpCodes.Ldarg_0);
-							fieldTypeInfo.EmitDefault(constructorBody, field.DefaultValue);
-							constructorBody.Emit(OpCodes.Stfld, fieldBuilder);
+							if (field.Localised)
+							{
+								// Instance one and set the value to the "en" locale.
+								Log.Warn("customcontenttypes", "Default values aren't currently supported on localized fields.");
+							}
+							else
+							{
+								// Set the default value for the field:
+								constructorBody.Emit(OpCodes.Ldarg_0);
+								fieldTypeInfo.EmitDefault(constructorBody, field.DefaultValue);
+								constructorBody.Emit(OpCodes.Stfld, fieldBuilder);
+							}
 						}
 					}
 				}

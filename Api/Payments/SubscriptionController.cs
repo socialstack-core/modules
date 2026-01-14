@@ -14,11 +14,9 @@ namespace Api.Payments
 		/// <summary>
 		/// Updates the card in use on a given subscription.
 		/// </summary>
-		[HttpPost("{subscriptionId}/update-card")]
-		public virtual async ValueTask<CardUpdateStatus> UpdateCard([FromRoute] uint subscriptionId, [FromBody] JObject cardUpdate)
+		[HttpPost("{id}/update-card")]
+		public virtual async ValueTask<CardUpdateStatus> UpdateCard(Context context, [FromRoute] uint id, [FromBody] JObject cardUpdate)
 		{
-			// Get the context (which user is asking)
-			var context = await Request.GetContext();
 			// Parse the payment method.
 			var paymentMethodJson = cardUpdate["paymentMethod"];
 			PaymentMethod paymentMethod;
@@ -39,7 +37,7 @@ namespace Api.Payments
 				throw new PublicException("Gateway ID provided but it did not exist", "gateway_invalid");
 			}
 
-			var subscription = await _service.Get(context, subscriptionId);
+			var subscription = await _service.Get(context, id);
 			if (subscription == null)
 			{
 				// Saving is required if a product is a subscription.

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Api.Database;
+using Api.Translate;
 
 namespace Api.Database
 {
@@ -18,7 +19,7 @@ namespace Api.Database
 		/// The columns name.
 		/// </summary>
 		public string ColumnName;
-		
+
 		/// <summary>
 		/// True if it's nullable.
 		/// </summary>
@@ -27,7 +28,7 @@ namespace Api.Database
 		/// <summary>
 		/// The type that 'owns' this column.
 		/// </summary>
-		public Type OwningType;
+		public Type OwningType { get; set; }
 
 		/// <summary>
 		/// True if this field should just be ignored.
@@ -42,7 +43,7 @@ namespace Api.Database
 		/// <summary>
 		/// Previous column names, if there are any.
 		/// </summary>
-		public string[] PreviousNames;
+		public string[] PreviousNames { get; set; }
 
 		/// <summary>
 		/// Create a new database column definition.
@@ -59,24 +60,45 @@ namespace Api.Database
 			ColumnName = fromField.Name;
 			var fieldType = fromField.Type;
 
-			// fromField.TargetField.DeclaringType
-			
-			if (!fieldType.IsValueType)
+			if (fieldType.IsGenericType)
+			{
+				var genericDef = fieldType.GetGenericTypeDefinition();
+
+				if (genericDef == typeof(Localized<>))
+				{
+					fieldType = typeof(JsonString);
+					IsNullable = true;
+				}
+				else if (genericDef == typeof(Nullable<>))
+				{
+					var underlyingNullableType = Nullable.GetUnderlyingType(fieldType);
+
+					if (underlyingNullableType != null)
+					{
+						fieldType = underlyingNullableType;
+						IsNullable = true;
+					}
+				}
+			}
+			else if (fieldType == typeof(JsonString) || fieldType == typeof(MappingData))
 			{
 				IsNullable = true;
 			}
-			else
+			else if (!fieldType.IsValueType)
 			{
-				var underlyingNullableType = Nullable.GetUnderlyingType(fieldType);
-
-				if (underlyingNullableType != null)
-				{
-					fieldType = underlyingNullableType;
-					IsNullable = true;
-				}
+				IsNullable = true;
 			}
 			
 			FieldType = fieldType;
+		}
+
+		/// <summary>
+		/// Sets if this column is auto-inc. Not supported on all DB engines.
+		/// </summary>
+		/// <param name="value"></param>
+		public virtual void SetIsAutoIncrement(bool value)
+		{
+			
 		}
 
 		/// <summary>

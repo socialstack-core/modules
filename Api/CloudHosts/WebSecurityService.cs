@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Api.Contexts;
 using Api.Eventing;
+using Api.Startup;
 
 namespace Api.CloudHosts;
 
@@ -38,7 +39,7 @@ public partial class WebSecurityService : AutoService
 			await CheckCertificate(context);
 			return obj;
 
-		});
+		}, 60); // 60 here defers it until after the webserver start occurs (at priority 50)
 
 	}
 
@@ -49,7 +50,7 @@ public partial class WebSecurityService : AutoService
 	/// <returns></returns>
 	public async ValueTask CheckCertificate(Context context)
 	{
-		if (Api.Configuration.Environment.IsDevelopment())
+		if (Services.IsDevelopment())
 		{
 			// Avoid doing cert checks on http localhost instances,
 			// including ones with https:// configs present.
@@ -67,6 +68,13 @@ public partial class WebSecurityService : AutoService
 		// Inform the web server service that the certificate set has been updated.
 		await _webServer.UpdateCertificates(context, certs);
 	}
+
+	/// <summary>
+	/// 
+	/// </summary>
+	/// <returns></returns>
+	public WebSecurityConfig GetWebSecurityConfig() => _config;
+
 }
 
 /// <summary>

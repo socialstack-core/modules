@@ -1,24 +1,24 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Mail;
-using System.Threading.Tasks;
-using Api.Database;
-using Microsoft.Extensions.Configuration;
-using System.Text;
-using Microsoft.AspNetCore.Http;
-using System.ComponentModel;
-using Api.Configuration;
 using Api.CanvasRenderer;
-using Api.Permissions;
+using Api.Configuration;
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
+using Api.Pages;
+using Api.Permissions;
+using Api.SocketServerLibrary;
 using Api.Startup;
+using Api.Templates;
+using Api.Translate;
 using Api.Users;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
-using Api.Translate;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Net;
+using System.Net.Mail;
+using System.Threading.Tasks;
 
 namespace Api.Emails
 {
@@ -38,18 +38,73 @@ namespace Api.Emails
 
 		private readonly CanvasRendererService _canvasRendererService;
 
+		private readonly ConfigurationService _configurationService;
+
 		private readonly UserService _users;
+
+		private readonly PageService _pages;
+
+		private readonly HtmlService _html;
+
+		private readonly ConcurrentDictionary<uint, EmailCanvasGenerator> _generators = new ConcurrentDictionary<uint, EmailCanvasGenerator>();
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public EmailTemplateService(CanvasRendererService canvasRendererService, UserService users, RoleService roles) : base(Events.EmailTemplate)
+		public EmailTemplateService(HtmlService html, CanvasRendererService canvasRendererService, UserService users, RoleService roles, PageService pages, TemplateService templates, ConfigurationService configService) : base(Events.EmailTemplate)
 		{
 			_users = users;
+			_pages = pages;
+			_html = html;
+			_configurationService = configService;
 			_canvasRendererService = canvasRendererService;
 			_configuration = GetConfig<EmailConfig>();
-			
-			InstallAdminPages("Emails", "fa:fa-paper-plane", new string[] { "id", "name", "key" });
+
+			InstallAdminPages(new AdminPageOptions()
+			{
+				NavMenuLabel = new Localized<string>("Email Templates"),
+				NavMenuIcon = "fa:fa-paper-plane",
+				ListFields = ["id", "name", "key"],
+				NavMenuParentKey = "content_management",
+				Tabs = [
+					new AdminTab("Design", "design"),
+					new AdminTab("Details", "details")
+				]
+			});
+
+			// Install the base email template.
+			templates.Install(new Template()
+			{
+				Title = "Email default",
+				Key = "email_default",
+				TemplateType = 2, // Email
+				BodyJson = new JsonString(@"{
+					""t"": ""Email/Templates/BaseEmailTemplate"",
+					""r"": {
+						""children"": {
+							""t"": ""Admin/Template/Slot"",
+							""d"": {""name"": ""body""}
+						}
+					}
+				}")
+			});
+
+			Events.Page.BeforePageInstall.AddEventListener((ctx, pageBuilder) =>
+			{
+				if (
+					pageBuilder.IsAdmin &&
+					pageBuilder.ContentType == typeof(EmailTemplate) &&
+					pageBuilder.PageType == CommonPageType.AdminAdd
+				)
+				{
+					pageBuilder.Body.Roots["body"] = new CanvasNode()
+					{
+						Module = "Admin/Email/Create"
+					};
+				}
+
+				return ValueTask.FromResult(pageBuilder);
+			});
 
 			Events.User.BeforeSettable.AddEventListener((Context context, JsonField<User, uint> field) =>
 			{
@@ -57,8 +112,8 @@ namespace Api.Emails
 				{
 					return new ValueTask<JsonField<User, uint>>(field);
 				}
-				
-				if(field.Name == "EmailOptOutFlags")
+
+				if (field.Name == "EmailOptOutFlags")
 				{
 					// This field isn't settable
 					field = null;
@@ -87,11 +142,17 @@ namespace Api.Emails
 				return new ValueTask<EmailTemplate>(template);
 			});
 
-			Events.EmailTemplate.Send.AddEventListener(async (Context context, EmailToSend toSend) => {
+			Events.EmailTemplate.Send.AddEventListener(async (Context context, EmailToSend toSend) =>
+			{
 
 				if (toSend.Handled)
 				{
 					return toSend;
+				}
+
+				if (toSend.FromAccount == null || string.IsNullOrEmpty(toSend.FromAccount.Server) || toSend.FromAccount.Port == 0)
+				{
+					throw new PublicException("This site is currently unable to send emails as it has not been configured", "email/not-configured");
 				}
 
 				SmtpClient client = new SmtpClient(toSend.FromAccount.Server)
@@ -163,76 +224,124 @@ namespace Api.Emails
 				};
 
 				await client.SendMailAsync(mailMessage);
-				
+
 				toSend.Handled = true;
 				return toSend;
 			});
 
+			_pages.Install(new PageBuilder()
+			{
+				Url = "/en-admin/email/test",
+				Key = "admin_email_test",
+				Title = "Send a test email",
+				BuildBody = (PageBuilder builder) =>
+				{
+					return builder.AddTemplate(
+						new CanvasNode("Admin/Tile")
+							.With("className", "email-test")
+							.With("title", "Email Test")
+							.AppendChild(
+								new CanvasNode("Admin/Email/EmailTest")
+							)
+					);
+				}
+			});
+
 			InstallEmails(
-				new EmailTemplate(){
+				new EmailBuilder()
+				{
 					Name = "Verify email address",
 					Subject = "Verify your email address",
 					Key = "verify_email",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"An account was recently created with us. If this was you, click the following link to proceed:\"},"+
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/email-verify/${customData.userId}/${customData.token}\"}}]}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"An account was recently created with us. If this was you, click the following link to proceed:"
+							)
+							.AppendChild(
+								new CanvasNode("Email/PrimaryButton")
+								.With("label", "Verify my email address")
+								.With("target", "/email-verify/${customData.userId}/${customData.token}")
+							)
+						);
+					}
 				},
-				new EmailTemplate()
-                {
+				new EmailBuilder()
+				{
 					Name = "Password reset",
 					Subject = "Password reset",
 					Key = "forgot_password",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:\"}," +
-					"{\"module\":\"Email/PrimaryButton\",\"data\":{\"label\":\"Verify my email address\",\"target\":\"/password/reset/${customData.token}\"}}]}"
+					PrimaryContentType = "PasswordResetRequest",
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"A password reset request was recently created with us for this email. If this was you, click the following link to proceed:"
+							)
+							.AppendChild(
+								new CanvasNode("Email/PrimaryButton")
+								.With("label", "Reset my password")
+								.With("target", "/password/reset/${customData.token}")
+							)
+						);
+					}
 				},
-				new EmailTemplate()
+				new EmailBuilder()
 				{
 					Name = "Welcome",
 					Subject = "Welcome aboard!",
 					Key = "welcome_member_email",
-					BodyJson = "{\"module\":\"Email/Default\",\"content\":[{\"module\":\"Email/Centered\",\"data\":{}," +
-					"\"content\":\"Thanks for joining! If you have any questions please reach out.\"}]}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"Thanks for joining! If you have any questions please reach out."
+							)
+						);
+					}
 				}
 			);
-			
+
 			var userConfig = _users.GetConfig<UserServiceConfig>();
-			
-			Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) => {
-				
-				if(user == null){
+
+			Events.User.AfterCreate.AddEventListener(async (Context ctx, User user) =>
+			{
+
+				if (user == null)
+				{
 					return user;
 				}
-				
+
 				var role = await roles.Get(ctx, user.Role); // (returns instantly)
 
-				if((user.Role == Roles.Guest.Id || (role != null && role.InheritedRoleId == Roles.Guest.Id)) && userConfig.VerifyEmails)
+				if ((user.Role == Roles.Guest.Id || (role != null && role.InheritedRoleId == Roles.Guest.Id)) && userConfig.VerifyEmails)
 				{
 					var token = await _users.SendVerificationEmail(ctx, user);
 					user.EmailVerifyToken = token;
-				} 
-				//sending to regular members only
-				else if(user.Role == Roles.Member.Id && userConfig.SendWelcomeEmail)
-				{
-					Send(new List<Recipient>()
-					{
-						new(user)
-					}, "welcome_member_email");
 				}
-				
+				//sending to regular members only
+				else if (user.Role == Roles.Member.Id && userConfig.SendWelcomeEmail)
+				{
+					Send(user, "welcome_member_email");
+				}
+
 				return user;
 			}, 100);
-			
+
 			Events.User.BeforeCreate.AddEventListener(async (Context ctx, User user) =>
 			{
 				if (user == null)
 				{
 					return user;
 				}
-				
+
 				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email))
 				{
-					// Let's make sure the username is not in use.
+					// Let's make sure the email address is not in use.
 					var usersWithEmail = await _users.Where("Email=?", DataOptions.IgnorePermissions).Bind(user.Email).Any(ctx);
 
 					if (usersWithEmail)
@@ -243,16 +352,16 @@ namespace Api.Emails
 
 				return user;
 			});
-			
+
 			Events.User.BeforeUpdate.AddEventListener(async (Context ctx, User user, User orig) =>
 			{
 				if (user == null)
-                {
+				{
 					return user;
-                }
-				
+				}
+
 				if (userConfig.UniqueEmails && !string.IsNullOrEmpty(user.Email) && user.Email != orig.Email)
-				{		
+				{
 					// Let's make sure the username is not in use by anyone besides this user (in case they didn't change it!).
 					var usersWithEmail = await _users.Where("Email=? and Id!=?", DataOptions.IgnorePermissions).Bind(user.Email).Bind(user.Id).Any(ctx);
 
@@ -264,9 +373,29 @@ namespace Api.Emails
 
 				return user;
 			});
-			
-			// Cache all in memory:
+
+#if !DEBUG
 			Cache();
+#endif
+		}
+
+		/// <summary>
+		/// Generate the canvas JSON for the given template, factoring in locales and caching of the generator.
+		/// </summary>
+		/// <returns>The email generator itself for convenience.</returns>
+		private async ValueTask<EmailCanvasGenerator> GenerateCanvas(Context context, EmailTemplate template, Writer writer, object primaryObject)
+		{
+			if (!_generators.TryGetValue(template.Id, out EmailCanvasGenerator generator))
+			{
+				generator = new EmailCanvasGenerator(template);
+				if (!_generators.TryAdd(template.Id, generator))
+				{
+					_generators.TryGetValue(template.Id, out generator);
+				}
+			}
+
+			await generator.Generate(context, template, writer, primaryObject);
+			return generator;
 		}
 
 		/// <summary>
@@ -289,18 +418,109 @@ namespace Api.Emails
 		public async ValueTask<RenderedCanvas> Render(string key, Recipient recipient)
 		{
 			var template = await GetByKey(recipient.Context, key);
+			return await Render(template, recipient);
+		}
 
+		/// <summary>
+		/// Renders an email with the given key using the given recipient info.
+		/// </summary>
+		/// <param name="template">Template to use.</param>
+		/// <param name="recipient">Mainly used for localisation. The end user's context.</param>
+		/// <returns></returns>
+		public async ValueTask<RenderedCanvas> Render(EmailTemplate template, Recipient recipient)
+		{
 			if (template == null || recipient == null)
 			{
-				return new RenderedCanvas() {
+				return new RenderedCanvas()
+				{
 					Body = null
 				};
 			}
 
-			// Render the template now:
-			var state = "{\"po\": " + Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings) + "}";
+			var po = recipient.CustomData;
+			var context = recipient.Context;
 
-			return await _canvasRendererService.Render(recipient.Context, template.BodyJson, state);
+			// Construct the state now:
+			var writer = Writer.GetPooled();
+			writer.Start(null);
+			writer.WriteASCII("{");
+			writer.WriteS(GetAvailableDomains());
+			writer.WriteASCII("\"page\":{\"bodyJson\":");
+			var bodyGenerator = await GenerateCanvas(context, template, writer, po);
+			writer.Write((byte)'}');
+
+			var cfgBytes = _configurationService.GetLatestFrontendConfigBytesJson();
+
+			if (cfgBytes != null)
+			{
+				writer.WriteASCII(",\"config\":");
+				writer.WriteNoLength(cfgBytes);
+			}
+
+			if (po != null)
+			{
+				writer.WriteASCII(",\"po\":");
+
+				if (bodyGenerator != null && bodyGenerator.PrimaryContentService != null)
+				{
+					// It's a content type - use the proper serialiser
+					await bodyGenerator.PrimaryContentService.ObjectToJson(
+						context,
+						po,
+						writer,
+						null,
+						template.PrimaryContentIncludes,
+						ContextFlags.IsPrimary | ContextFlags.IsEmail
+					);
+				}
+				else
+				{
+					// Newtonsoft
+					var poJsonStr = Newtonsoft.Json.JsonConvert.SerializeObject(po, jsonSettings);
+					writer.WriteS(poJsonStr);
+				}
+			}
+
+			writer.Write((byte)'}');
+			var stateForSSR = writer.ToUTF8String();
+			writer.Release();
+
+			return await _canvasRendererService.Render(
+				recipient.Context,
+				null,
+				stateForSSR
+			);
+		}
+
+		private string _siteDomains;
+
+		/// <summary>
+		/// Get all the site domains for use in tokeniser and url links
+		/// </summary>
+		/// <returns></returns>
+		private string GetAvailableDomains()
+		{
+			if (_siteDomains != null)
+			{
+				return _siteDomains;
+			}
+
+			_siteDomains = "";
+
+			var domainService = Services.Get("SiteDomainService");
+			if (domainService != null)
+			{
+				var getSiteDomains = domainService.GetType().GetMethod("GetSiteDomains");
+
+				_siteDomains = getSiteDomains.Invoke(domainService, null).ToString();
+
+				if (!string.IsNullOrWhiteSpace(_siteDomains))
+				{
+					_siteDomains = _siteDomains + ",";
+				}
+			}
+
+			return _siteDomains;
 		}
 
 		private readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
@@ -315,25 +535,33 @@ namespace Api.Emails
 		/// <summary>
 		/// Installs a template (Creates it if it doesn't already exist).
 		/// </summary>
-		public async ValueTask InstallNow(EmailTemplate template)
+		public async ValueTask InstallNow(EmailBuilder builder)
 		{
 			var context = new Context();
 
 			// Match by target URL of the item.
-			var existingEntry = await Where("Key=?", DataOptions.NoCacheIgnorePermissions).Bind(template.Key).ListAll(context);
+			var existingEntry = await Where("Key=?", DataOptions.NoCacheIgnorePermissions).Bind(builder.Key).ListAll(context);
 
-			if (existingEntry.Count == 0)
+			if (existingEntry.Count != 0)
 			{
-				await Create(context, template, DataOptions.IgnorePermissions);
+				return;
 			}
+
+			// Start building:
+			builder.Build();
+
+			await Events.EmailTemplate.BeforeInstall.Dispatch(context, builder);
+			builder.EmailTemplate.BodyJson = new Localized<JsonString>(new JsonString(builder.Body.ToJson()));
+
+			await Create(context, builder.EmailTemplate, DataOptions.IgnorePermissions);
 		}
-		
+
 		/// <summary>
 		/// Ensures each recipient instance has a User loaded, and that it's also set into the CustomData.
 		/// Note that we don't support sending to emails only, as a user is required to be able to track opt-out state.
 		/// </summary>
 		/// <param name="recipients"></param>
-		private async ValueTask LoadUsers(IList<Recipient> recipients)
+		private async ValueTask LoadUsers(IEnumerable<Recipient> recipients)
 		{
 			List<uint> idsToLoad = null;
 
@@ -383,6 +611,13 @@ namespace Api.Emails
 							if (userLookup.TryGetValue(recipient.UserId, out recipient.User))
 							{
 								recipient.Context.User = recipient.User;
+
+								if (recipient.User != null && recipient.Context.LocaleId == 0 && recipient.User.LocaleId.HasValue)
+								{
+									recipient.Context.LocaleId = recipient.User.LocaleId.GetValueOrDefault();
+
+									// It can still be zero after this - the email generator handles that.
+								}
 							}
 						}
 					}
@@ -390,6 +625,41 @@ namespace Api.Emails
 
 			}
 
+		}
+
+		/// <summary>
+		/// Sends emails to the given user without waiting for it to complete.
+		/// </summary>
+		/// <param name="recipient"></param>
+		/// <param name="key"></param>
+		/// <param name="messageId"></param>
+		/// <param name="attachments"></param>
+		public void Send(User recipient, string key, string messageId = null, IEnumerable<Attachment> attachments = null)
+		{
+			Send(new Recipient(recipient), key, messageId, attachments);
+		}
+
+		/// <summary>
+		/// Sends emails to the given recipient without waiting for it to complete.
+		/// </summary>
+		/// <param name="recipient"></param>
+		/// <param name="key"></param>
+		/// <param name="messageId"></param>
+		/// <param name="attachments"></param>
+		public void Send(Recipient recipient, string key, string messageId = null, IEnumerable<Attachment> attachments = null)
+		{
+			Task.Run(async () =>
+			{
+				try
+				{
+					await SendAsync(recipient, key, messageId, attachments);
+				}
+				catch (Exception e)
+				{
+					Log.Error(LogTag, e, "Failed sending an email.");
+					throw;
+				}
+			});
 		}
 
 		/// <summary>
@@ -416,6 +686,29 @@ namespace Api.Emails
 		}
 
 		/// <summary>
+		/// Sends the given email to the given recipient.
+		/// </summary>
+		/// <param name="recipient"></param>
+		/// <param name="key"></param>
+		/// <param name="messageId"></param>
+		/// <param name="attachments">Optional attachments.</param>
+		/// <returns></returns>
+		public async Task<bool> SendAsync(
+			Recipient recipient,
+			string key,
+			string messageId = null,
+			IEnumerable<Attachment> attachments = null
+		)
+		{
+			return await SendAsync(
+				new List<Recipient>() { recipient },
+				key,
+				messageId,
+				attachments
+			);
+		}
+
+		/// <summary>
 		/// Sends the given email to the given list of recipients.
 		/// </summary>
 		/// <param name="recipients"></param>
@@ -423,15 +716,26 @@ namespace Api.Emails
 		/// <param name="messageId"></param>
 		/// <param name="attachments">Optional attachments.</param>
 		/// <returns></returns>
-		public async Task<bool> SendAsync(IList<Recipient> recipients, string key, string messageId = null, IEnumerable<Attachment> attachments = null)
+		public async Task<bool> SendAsync(
+			IList<Recipient> recipients,
+			string key,
+			string messageId = null,
+			IEnumerable<Attachment> attachments = null
+		)
 		{
-			// First, make sure we have users loaded for all recipients.
+			// Load the template itself:
+			var template = await GetByKey(new Context(1, 0, 1), key);
+
+			if (template == null)
+			{
+				throw new Exception("Invalid email template key provided: " + key);
+			}
+
+
+			// Make sure we have users loaded for all recipients.
 			await LoadUsers(recipients);
 
-			// Next, group recipients by locale:
-			// This is because each locale effectively has a different template object.
-			var recipientsByLocale = new Dictionary<uint, TemplateAndRecipientSet>();
-
+			// For each one..
 			foreach (var recipient in recipients)
 			{
 				if (recipient == null || (recipient.EmailAddress == null && (recipient.User == null || recipient.User.Email == null)) || recipient.Context == null)
@@ -439,66 +743,31 @@ namespace Api.Emails
 					continue;
 				}
 
-				// Locale is either from the Context, or the user's last locale.
-				var localeId = recipient.Context.LocaleId;
+				var renderedResult = await Render(template, recipient);
 
-				if (localeId <= 0)
-				{
-					localeId = recipient.User.LocaleId ?? 1;
-				}
-
-				if (localeId <= 0)
-				{
-					// Site default:
-					localeId = 1;
-				}
-
-				if (!recipientsByLocale.TryGetValue(localeId, out TemplateAndRecipientSet set))
-				{
-					// Create the new set now:
-					set = new TemplateAndRecipientSet();
-					
-					// Load the template:
-					var template = await GetByKey(new Context(localeId, 0, Roles.Developer.Id), key);
-					
-					if(template == null){
-						throw new Exception("Email template with key '" + key + "' doesn't exist.");
-					}
-					
-					set.Template = template;
-
-					// Add it:
-					recipientsByLocale[localeId] = set;
-				}
-
-				set.Recipients.Add(recipient);
-			}
-
-			// For each locale block, render the emails:
-			foreach (var localeKvp in recipientsByLocale)
-			{
-				// Get the set of canvas + all the contexts:
-				var set = localeKvp.Value;
+				// Email to send to:
+				var targetEmail = recipient.EmailAddress == null ? recipient.User.Email : recipient.EmailAddress;
 
 				// Email subject:
-				var subject = set.Template?.Subject;
+				var resolvedSubject = template.Subject.Get(recipient.Context);
 
-				// For each recipient, render it.
-				for (var i=0;i<set.Recipients.Count;i++)
+				// resolve any PrimaryContent tokens in the subject
+				// CustomData must be a primary object type
+				// e.g. For a purchase, "New order :: Reference - {Purchase.Reference}"
+				if (recipient.CustomData != null && ContentTypes.IsContentType(recipient.CustomData.GetType()))
 				{
-					var recipient = set.Recipients[i];
-
-					// Render all. The results are in the exact same order as the recipients set.
-					var state = "{\"po\": " + Newtonsoft.Json.JsonConvert.SerializeObject(recipient.CustomData, jsonSettings) + "}";
-
-					var renderedResult = await _canvasRendererService.Render(recipient.Context, set.Template.BodyJson, state);
-
-					// Email to send to:
-					var targetEmail = recipient.EmailAddress == null ? recipient.User.Email : recipient.EmailAddress;
-
-					// Send now:
-					await Send(targetEmail, subject, renderedResult.Body, messageId, null, attachments);
+					try
+					{
+						resolvedSubject = await _html.ReplaceTokens(recipient.Context, resolvedSubject, recipient.CustomData);
+					}
+					catch (Exception ex)
+					{
+						Log.Error(LogTag, ex, $"Failed to replace tokens in subject '{resolvedSubject}'");
+					}
 				}
+
+				// Send now:
+				await Send(targetEmail, resolvedSubject, renderedResult.Body, messageId, null, attachments);
 			}
 
 			return true;
@@ -535,22 +804,6 @@ namespace Api.Emails
 			await Events.EmailTemplate.Send.Dispatch(new Context(), toSend);
 		}
 
-	}
-
-	/// <summary>
-	/// A pairing of a template and a block of recipients to send it to.
-	/// </summary>
-	public class TemplateAndRecipientSet
-	{
-		/// <summary>
-		/// The email template to receive.
-		/// </summary>
-		public EmailTemplate Template;
-
-		/// <summary>
-		/// The set of recipients that'll receive this template.
-		/// </summary>
-		public List<Recipient> Recipients = new List<Recipient>();
 	}
 
 }

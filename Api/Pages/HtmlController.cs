@@ -9,15 +9,17 @@ using Api.Eventing;
 using Api.Startup;
 using Microsoft.Extensions.Primitives;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
+using Api.Startup.Routing;
 
 namespace Api.Pages
 {
-	/// <summary>
-	/// This is the main frontend controller - its job is to serve html for URLs.
-	/// If you're looking for the handlers for /content/ etc, you'll find that over in Api/Uploads/EventListener.cs
-	/// </summary>
-
-	public partial class HtmlController : Controller
+    /// <summary>
+    /// This is the main frontend controller - its job is to serve html for URLs.
+    /// If you're looking for the handlers for /content/ etc, you'll find that over in Api/Uploads/EventListener.cs
+    /// </summary>
+    [InternalApi]
+    public partial class HtmlController : AutoController
     {
 		private static HtmlService _htmlService;
 
@@ -29,56 +31,34 @@ namespace Api.Pages
 		{
 			_htmlService = htmlService;
 		}
-
+		
+		/*
 		/// <summary>
 		/// Lists all available static files.
 		/// </summary>
 		[HttpPost("/pack/static-assets/mobile-html")]
-		public async ValueTask GetMobileHtml([FromBody] MobilePageMeta mobileMeta)
+		public async ValueTask GetMobileHtml(HttpContext httpContext, Context context, [FromBody] MobilePageMeta mobileMeta)
 		{
-			var context = await Request.GetContext();
+			var response = httpContext.Response;
+			response.ContentType = "text/html";
+			response.Headers["Cache-Control"] = "no-store";
 
-			Response.ContentType = "text/html";
-			Response.Headers["Cache-Control"] = "no-store";
-
-			await _htmlService.BuildMobileHomePage(context, Response.Body, mobileMeta);
+			await _htmlService.BuildMobileHomePage(context, response.Body, mobileMeta);
 		}
+		*/
 
 		/// <summary>
 		/// RTE config popup base HTML.
 		/// </summary>
 		[HttpGet("/pack/rte.html")]
-		public async ValueTask GetRteConfigPage()
+		public async ValueTask GetRteConfigPage(HttpContext httpContext, Context context)
 		{
-			var context = await Request.GetContext();
-
-			Response.ContentType = "text/html";
-			Response.Headers["Cache-Control"] = "no-store";
+			var response = httpContext.Response;
+			response.ContentType = "text/html";
+			response.Headers["Cache-Control"] = "no-store";
 
 			// header only. The body is empty.
-			await _htmlService.BuildHeaderOnly(context, Response.Body);
-		}
-
-		/// <summary>
-		/// The catch all admin panel handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
-		/// </summary>
-		/// <returns></returns>
-		[Route("/en-admin/{*url}", Order = 9998)]
-		public async ValueTask CatchAllAdmin()
-		{
-			var context = await Request.GetContext();
-			await _htmlService.BuildPage(context, Request, Response, false, true);
-		}
-		
-		/// <summary>
-		/// The catch all handler. If you're looking for /content/ etc, you'll find that over in Uploads/EventListener.cs
-		/// </summary>
-		/// <returns></returns>
-		[Route("{*url}", Order = 9999)]
-		public async ValueTask CatchAll()
-		{
-			var context = await Request.GetContext();
-			await _htmlService.BuildPage(context, Request, Response, true);
+			await _htmlService.BuildHeaderOnly(context, response.Body);
 		}
 
 		/// <summary>
@@ -86,15 +66,14 @@ namespace Api.Pages
 		/// </summary>
 		/// <returns></returns>
 		[Route("robots.txt")]
-		public async Task<FileResult> Robots()
+		public FileContent Robots(Context context)
 		{
-			var context = await Request.GetContext();
-
 			// Robots.txt as a byte[]:
 			var robots = _htmlService.GetRobotsTxt(context);
-			return File(robots, "text/plain;charset=UTF-8");
+			return new FileContent(robots, "text/plain;charset=UTF-8");
 		}
 
+		/*
 		/// <summary>
 		/// Sitemap.xml
 		/// </summary>
@@ -104,6 +83,7 @@ namespace Api.Pages
 		{
 			Response.StatusCode = 404;
 		}
+		*/
 
 	}
 

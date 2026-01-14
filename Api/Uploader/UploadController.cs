@@ -12,6 +12,7 @@ using Api.Automations;
 using Api.Eventing;
 using Api.Translate;
 using System;
+using Microsoft.AspNetCore.Http;
 
 namespace Api.Uploader
 {
@@ -30,60 +31,16 @@ namespace Api.Uploader
         }
 
         /// <summary>
-        /// Upload a file.
-        /// </summary>
-        /// <param name="body"></param>
-        /// <returns></returns>
-        [HttpPost("create")]
-        public async ValueTask Upload([FromForm] FileUploadBody body)
-        {
-            var context = await Request.GetContext();
-
-            // body = await Events.Upload.Create.Dispatch(context, body, Response) as FileUploadBody;
-
-            var fileName = body.File.FileName;
-
-            if (string.IsNullOrEmpty(fileName) || fileName.IndexOf('.') == -1)
-            {
-                throw new PublicException("Content-Name header should be a filename with the type.", "invalid_name");
-            }
-
-            // Write to a temporary path first:
-            var tempFile = System.IO.Path.GetTempFileName();
-
-            // Save the content now:
-            var fileStream = new FileStream(tempFile, FileMode.OpenOrCreate);
-
-            await body.File.CopyToAsync(fileStream);
-            fileStream.Close();
-
-            // Upload the file:
-            var upload = await (_service as UploadService).Create(
-                context,
-                fileName,
-                tempFile,
-                null,
-                body.IsPrivate
-            );
-
-            if (upload == null)
-            {
-                // It failed. Usually because white/blacklisted.
-                Response.StatusCode = 401;
-                return;
-            }
-
-            await OutputJson(context, upload, "*");
-        }
-
-        /// <summary>
         /// Upload a file with efficient support for huge ones.
         /// </summary>
         /// <returns></returns>
         [HttpPut("create")]
-        public async ValueTask Upload()
+        public async ValueTask<Upload> Upload(HttpContext httpContext, Context context)
         {
-            if (!Request.Headers.TryGetValue("Content-Name", out StringValues name))
+            var request = httpContext.Request;
+            var response = httpContext.Response;
+
+            if (!request.Headers.TryGetValue("Content-Name", out StringValues name))
             {
                 throw new PublicException("Content-Name header is required", "no_name");
             }
@@ -97,17 +54,15 @@ namespace Api.Uploader
 
             var isPrivate = false;
 
-            if (Request.Headers.TryGetValue("Private-Upload", out StringValues privateState))
+            if (request.Headers.TryGetValue("Private-Upload", out StringValues privateState))
             {
                 var privState = privateState.ToString().ToLower().Trim();
 
                 isPrivate = privState == "true" || privState == "1" || privState == "yes";
             }
 
-            var context = await Request.GetContext();
-
             // The stream for the actual file is just the entire body:
-            var contentStream = Request.Body;
+            var contentStream = request.Body;
 
             var tempFile = System.IO.Path.GetTempFileName();
 
@@ -124,14 +79,7 @@ namespace Api.Uploader
                 isPrivate
             );
 
-            if (upload == null)
-            {
-                // It failed for some generic reason.
-                Response.StatusCode = 401;
-                return;
-            }
-
-            await OutputJson(context, upload, "*");
+            return upload;
         }
 
         /// <summary>
@@ -139,20 +87,20 @@ namespace Api.Uploader
         /// </summary>
         /// <returns></returns>
         [HttpPut("transcoded/{id}")]
-        public async ValueTask TranscodedTar([FromRoute] uint id, [FromQuery] string token)
+        public async ValueTask TranscodedTar(HttpContext httpContext, Context context, [FromRoute] uint id, [FromQuery] string token)
         {
             if (!(_service as UploadService).IsValidTranscodeToken(id, token))
             {
                 throw new PublicException("Invalid transcode token", "tx_token_bad");
             }
 
-            var context = await Request.GetContext();
+            var request = httpContext.Request;
 
             // Proceed only if the target doesn't already exist.
             // Then there must be a GET arg called sig containing an alphachar HMAC of recent time-id. It expires in 24h.
 
             // The stream for the actual file is just the entire body:
-            var contentStream = Request.Body;
+            var contentStream = request.Body;
 
             // Expect a tar:
             await (_service as UploadService).ExtractTarToStorage(context, id, "chunks", contentStream);
@@ -162,10 +110,8 @@ namespace Api.Uploader
         /// List any active media items
         /// </summary>
         [HttpGet("active")]
-        public async ValueTask Active([FromQuery] string includes)
+        public async ValueTask<List<Upload>> Active(Context context)
         {
-            var context = await Request.GetContext();
-
             var usageMap = new Dictionary<uint, int>();
             List<Upload> uploads = new List<Upload>();
 
@@ -187,30 +133,30 @@ namespace Api.Uploader
                     }
                 }
             }
-            await OutputJson(context, uploads.OrderBy(u => u.OriginalName).ToList(), includes, true);
-        }
+
+            return uploads.OrderBy(u => u.OriginalName).ToList();
+
+		}
 
         /// <summary>
         /// List any active media refs
         /// </summary>
         [HttpPost("active")]
-        public async ValueTask ActivePost([FromQuery] string includes)
+        public async ValueTask ActivePost(Context context)
         {
-            await Active(includes);
+            await Active(context);
         }
 
         /// <summary>
         /// Performs a file consistency check, where it will make sure each identified ref file matches the current upload policy.
         /// In the future this will also add any missing database entries.
         /// </summary>
+        /// <param name="context"></param>
         /// <param name="regenBefore">An ISO date string in UTC. Regenerate files if they are before the specified date.</param>
         /// <param name="idRange">Of the form "1-500" inclusive. Will skip any files with an upload ID out of this range if specified. Can be used for bulk task delegation amongst a group of machines. Use blank values for "anything after" ("100-") and "anything before" ("-100").</param>
         [HttpGet("file-consistency")]
-        public async ValueTask FileConsistency([FromQuery] string regenBefore = null, [FromQuery] string idRange = null)
+        public async ValueTask FileConsistency(Context context, [FromQuery] string regenBefore = null, [FromQuery] string idRange = null)
         {
-
-            var context = await Request.GetContext();
-
             if (!context.Role.CanViewAdmin)
             {
                 throw PermissionException.Create("file_consistency", context);
@@ -257,7 +203,7 @@ namespace Api.Uploader
         /// Replace any existing refs with new ones
         /// </summary>
         [HttpGet("replace")]
-        public async ValueTask<List<MediaRef>> Replace([FromQuery] string sourceRef, [FromQuery] string targetRef)
+        public async ValueTask<List<MediaRef>> Replace(Context context, [FromQuery] string sourceRef, [FromQuery] string targetRef)
         {
 
             if (string.IsNullOrWhiteSpace(sourceRef))
@@ -269,8 +215,6 @@ namespace Api.Uploader
             {
                 throw new PublicException("No target media reference was provided - aborted", "no_targetRef");
             }
-
-            var context = await Request.GetContext();
 
             if (!context.Role.CanViewAdmin)
             {
@@ -306,10 +250,8 @@ namespace Api.Uploader
         /// </summary>
         [HttpGet("update-alts")]
 
-        public async void UpdateAlts()
+        public void UpdateAlts(Context context)
         {
-            var context = await Request.GetContext();
-
             if (!context.Role.CanViewAdmin)
             {
                 throw PermissionException.Create("alt_update", context);
@@ -322,10 +264,8 @@ namespace Api.Uploader
         /// Upgrade refs such that any ref fields hold the latest version of a specified ref.
         /// </summary>
         [HttpGet("update-refs")]
-        public async ValueTask<List<MediaRef>> UpdateRefs([FromQuery] bool update)
+        public async ValueTask<List<MediaRef>> UpdateRefs(Context context, [FromQuery] bool update)
         {
-            var context = await Request.GetContext();
-
             if (!context.Role.CanViewAdmin)
             {
                 throw PermissionException.Create("ref_update", context);
@@ -369,14 +309,12 @@ namespace Api.Uploader
         /// Preview any media refs changes 
         /// </summary>
         [HttpGet("replace/preview")]
-        public async ValueTask<List<MediaRef>> Preview([FromQuery] string uploadRef)
+        public async ValueTask<List<MediaRef>> Preview(Context context, [FromQuery] string uploadRef)
         {
             if (string.IsNullOrWhiteSpace(uploadRef))
             {
                 throw new PublicException("No media reference was provided - aborted", "no_ref");
             }
-
-            var context = await Request.GetContext();
 
             if (!context.Role.CanViewAdmin)
             {

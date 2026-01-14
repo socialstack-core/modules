@@ -1,4 +1,5 @@
 using Api.Database;
+using Api.Permissions;
 
 namespace Api.Users{
 	
@@ -9,6 +10,7 @@ namespace Api.Users{
 		/// The user's email address.
 		/// </summary>
 		[DatabaseField(Length = 80)]
+		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string Email;
 
 		/// <summary>

@@ -21,11 +21,16 @@ namespace Api.Permissions
 		/// <summary>
 		/// The nice name of the role, usually in the site default language.
 		/// </summary>
+		[Data("required", true)]
+		[Data("validate", "Required")]
         public string Name;
 		/// <summary>
 		///  The role key - usually the lowercase, underscores instead of spaces variant of the first set name.
 		///  This shouldn't change after it has been set.
 		/// </summary>
+		/// 
+		[Data("required", true)]
+		[Data("validate", "Required")]
         public string Key;
 		
 		/// <summary>
@@ -106,15 +111,28 @@ namespace Api.Permissions
 
 		/// <summary>
 		/// Grants the given features unconditionally. Any capability that uses this feature will be granted.
-		/// For example, GrantFeature("Load") will permit User Load, ForumReply Load etc.
+		/// For example, GrantFeature("load") will permit User Load, ForumReply Load etc.
 		/// </summary>
 		/// <param name="features"></param>
 		/// <returns></returns>
 		public Role GrantFeature(params string[] features)
 		{
+			return GrantFeature(null, features);
+		}
+
+		/// <summary>
+		/// Grants the given features unconditionally. Any capability that uses this feature will be granted.
+		/// For example, GrantFeature("load") will permit User Load, ForumReply Load etc.
+		/// </summary>
+		/// <param name="filter">Optional filter which runs on the capability to determine if the grant applies, returning true if it does.</param>
+		/// <param name="features"></param>
+		/// <returns></returns>
+		public Role GrantFeature(Func<Capability, bool> filter, params string[] features)
+		{
 			AddRule(new RoleGrantRule()
 			{
 				RuleType = RoleGrantRuleType.Feature,
+				Filter = filter,
 				Patterns = features
 			});
 
@@ -273,9 +291,21 @@ namespace Api.Permissions
 		/// <returns></returns>
 		public Role RevokeFeature(params string[] features)
 		{
+			return RevokeFeature(null, features);
+		}
+
+		/// <summary>
+		/// Revokes all caps which are for the given feature.
+		/// </summary>
+		/// <param name="filter">Optional filter which runs on the capability to determine if it is to be revoked or not, returning true if the revoke applies.</param>
+		/// <param name="features"></param>
+		/// <returns></returns>
+		public Role RevokeFeature(Func<Capability, bool> filter, params string[] features)
+		{
 			AddRule(new RoleGrantRule()
 			{
 				RuleType = RoleGrantRuleType.Revoke | RoleGrantRuleType.Feature,
+				Filter = filter,
 				Patterns = features
 			});
 
@@ -330,9 +360,9 @@ namespace Api.Permissions
 		/// <param name="extraArg">
 		/// E.g. the Forum object to check if access is granted for.
 		/// </param>
-		/// <param name="isIncluded">True if we're currently evaluating from within an included context.</param>
+		/// <param name="flags">E.g. IsIncluded flag is set if we're currently evaluating from within an included context.</param>
 		/// <returns></returns>
-		public async ValueTask<bool> IsGranted(Capability capability, Context context, object extraArg, bool isIncluded)
+		public bool IsGranted(Capability capability, Context context, object extraArg, ContextFlags flags = ContextFlags.None)
 		{
 			CheckForNewCapabilities();
 			var handler = CapabilityLookup[capability.InternalId];
@@ -342,14 +372,8 @@ namespace Api.Permissions
 				return false;
 			}
 
-			// Ensure perm filter is prepped:
-			if (handler.RequiresSetup)
-			{
-				await handler.Setup();
-			}
-
 			// Ask the handler:
-			return handler.Match(context, extraArg, isIncluded);
+			return handler.Match(context, extraArg, flags);
         }
 
 		private void CheckForNewCapabilities()
@@ -517,6 +541,11 @@ namespace Api.Permissions
 		public RoleGrantRuleType RuleType;
 
 		/// <summary>
+		/// Optional filter which runs before determining if the rule applies to a given cap.
+		/// </summary>
+		public Func<Capability, bool> Filter;
+
+		/// <summary>
 		/// A filter query string.
 		/// </summary>
 		public string FilterQuery;
@@ -560,6 +589,11 @@ namespace Api.Permissions
 
 			if ((RuleType & RoleGrantRuleType.Feature) == RoleGrantRuleType.Feature)
 			{
+				if (Filter != null && !Filter(cap))
+				{
+					return null;
+				}
+
 				foreach (var pattern in Patterns)
 				{
 					if (cap.Feature == pattern)

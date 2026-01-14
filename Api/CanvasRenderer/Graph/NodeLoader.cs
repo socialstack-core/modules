@@ -167,6 +167,21 @@ public class NodeLoader
 	}
 
 	/// <summary>
+	/// Loads a URL token. The function returns empty strings if the token does not resolve.
+	/// </summary>
+	public void EmitLoadUrlToken(string token)
+	{
+		// Load graph state (arg 1):
+		CodeBody.Emit(OpCodes.Ldarg_1);
+
+		// The GetUrlToken method on it:
+		var getUrlToken = typeof(GraphContext).GetMethod(nameof(GraphContext.GetUrlToken));
+
+		CodeBody.Emit(OpCodes.Ldstr, token);
+		CodeBody.Emit(OpCodes.Callvirt, getUrlToken);
+	}
+
+	/// <summary>
 	/// Loads the primary object from graph state on to the evaluation stack.
 	/// </summary>
 	public void EmitLoadPrimary()
@@ -174,10 +189,10 @@ public class NodeLoader
 		// Load graph state (arg 1):
 		CodeBody.Emit(OpCodes.Ldarg_1);
 
-		// Load PrimaryObject field from it:
-		var poField = typeof(GraphContext).GetField("PrimaryObject");
+		// Load PrimaryObject property getter from it:
+		var primaryObjectGetter = typeof(GraphContext).GetProperty("PrimaryObject").GetGetMethod();
 
-		CodeBody.Emit(OpCodes.Ldfld, poField);
+		CodeBody.Emit(OpCodes.Callvirt, primaryObjectGetter);
 	}
 
 	/// <summary>

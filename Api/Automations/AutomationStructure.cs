@@ -2,16 +2,13 @@ using Api.Database;
 using Api.Startup;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Api.Automations
 {
 	/// <summary>
 	/// Defines what automations are available from this API
 	/// </summary>
-	[CacheOnly]
-	public class AutomationStructure : Content<uint>
+	public class AutomationStructure
 	{
 		/// <summary>
 		/// The automations in this API.
@@ -28,11 +25,16 @@ namespace Api.Automations
 		/// The name of the automation.
 		/// </summary>
 		public string Name;
-		
-		/// <summary>
-		/// The description of the automations cron.
-		/// </summary>
-		public string CronDescription;
+
+        /// <summary>
+        /// The description of the automation.
+        /// </summary>
+        public string Description;
+
+        /// <summary>
+        /// The description of the automations cron.
+        /// </summary>
+        public string CronDescription;
 		
 		/// <summary>
 		/// The cron schedule for the automation.

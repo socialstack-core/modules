@@ -1,5 +1,8 @@
 
+using Api.AutoForms;
+using Api.Contexts;
 using Api.Database;
+using Api.SocketServerLibrary;
 using Api.Translate;
 using System;
 using System.Collections;
@@ -236,6 +239,12 @@ namespace Api.Startup {
 		/// The AutoService that this map is for.
 		/// </summary>
 		public AutoService Service;
+		
+		/// <summary>
+		/// True if this is a content type. Non-content types are more 
+		/// restricted as they are unable to support e.g. global includes.
+		/// </summary>
+		public bool IsContentType;
 
 		/// <summary>
 		/// The type that this map is for.
@@ -309,6 +318,7 @@ namespace Api.Startup {
 		public ContentFields(AutoService service)
 		{
 			Service = service;
+			IsContentType = true;
 			InstanceType = service.InstanceType;
 			BuildMap();
 		}
@@ -317,9 +327,10 @@ namespace Api.Startup {
 		/// Creates a map for the given type.
 		/// Use aService.GetChangeField(..); rather than this directly.
 		/// </summary>
-		public ContentFields(Type instanceType)
+		public ContentFields(Type instanceType, bool isContentType = true)
 		{
 			InstanceType = instanceType;
+			IsContentType = isContentType;
 			BuildMap();
 		}
 
@@ -352,7 +363,7 @@ namespace Api.Startup {
 		/// </summary>
 		/// <param name="includeString"></param>
 		/// <returns></returns>
-		public async ValueTask<IncludeSet> GetIncludeSet(string includeString)
+		public IncludeSet GetIncludeSet(string includeString)
 		{
 			if (string.IsNullOrEmpty(includeString))
 			{
@@ -364,7 +375,7 @@ namespace Api.Startup {
 			if (!includeSets.TryGetValue(lowerIncludes, out IncludeSet result))
 			{
 				result = new IncludeSet(lowerIncludes, this);
-				await result.Parse();
+				result.Parse();
 				includeSets[lowerIncludes] = result;
 			}
 
@@ -382,6 +393,11 @@ namespace Api.Startup {
 		private List<ContentField> _vList;
 		
 		/// <summary>
+		/// Raw secondary result list.
+		/// </summary>
+		private List<ContentField> _secondaryResultList;
+		
+		/// <summary>
 		/// The underlying mapping.
 		/// </summary>
 		private Dictionary<string, ContentField> _nameMap;
@@ -395,6 +411,11 @@ namespace Api.Startup {
 		/// The underlying mapping.
 		/// </summary>
 		private Dictionary<string, ContentField> _vNameMap;
+		
+		/// <summary>
+		/// A lowercase name mapping for secondary results.
+		/// </summary>
+		private Dictionary<string, ContentField> _secondaryResultNameMap;
 
 		/// <summary>
 		/// Raw field list.
@@ -435,6 +456,17 @@ namespace Api.Startup {
 			get
 			{
 				return _vNameMap;
+			}
+		}
+		
+		/// <summary>
+		/// Secondary result set name mapped to entry on this type only, lowercase.
+		/// </summary>
+		public Dictionary<string, ContentField> SecondaryResultNameMap
+		{
+			get
+			{
+				return _secondaryResultNameMap;
 			}
 		}
 
@@ -539,6 +571,143 @@ namespace Api.Startup {
 			return null;
 		}
 
+		/// <summary>
+		/// Creates this field set as only its virtual field set. Global virtual fields are not supported on it.
+		/// </summary>
+		public void BuildVirtualsOnly()
+		{
+			_nameMap = new Dictionary<string, ContentField>();
+			_metaMap = new Dictionary<string, ContentField>();
+			_list = new List<ContentField>();
+			_vNameMap = new Dictionary<string, ContentField>();
+			_vList = new List<ContentField>();
+			_secondaryResultNameMap = new Dictionary<string, ContentField>();
+			_secondaryResultList = new List<ContentField>();
+
+			// Build attribute set:
+			TypeAttributes = ContentField.BuildAttributes(InstanceType);
+
+			BuildVirtuals();
+		}
+
+		private void BuildVirtuals()
+		{
+			// Get all the virtuals:
+			var virtualFields = GetTypeAttributes<HasVirtualFieldAttribute>();
+
+			foreach (var fieldMeta in virtualFields)
+			{
+				if (_nameMap.ContainsKey(fieldMeta.FieldName.ToLower()))
+				{
+					throw new Exception(
+						"Can't create a virtual field called '" + fieldMeta.FieldName + "' on '" + InstanceType.Name + "' " +
+						"because it already exists, probably as a regular field. Typically the usage is [HasVirtualField(\"ATypeName\", typeof(ATypeName), \"ATypeNameId\")], " +
+						"e.g. [HasVirtualField(\"Thing\", typeof(Thing), \"ThingId\")]"
+					);
+				}
+
+				var virtualFieldType = fieldMeta.Type;
+				string virtualFieldTypeName = null;
+				ContentField dynamicTypeField = null;
+				AutoService knownService = null;
+
+				if (virtualFieldType == null)
+				{
+					if (string.IsNullOrEmpty(fieldMeta.TypeSourceField))
+					{
+						continue;
+					}
+
+					// Is it a field on the type - and is it a string?
+					if (
+						_nameMap.TryGetValue(fieldMeta.TypeSourceField.ToLower(), out ContentField targetField) &&
+						targetField.FieldType == typeof(string) &&
+						!string.IsNullOrEmpty(fieldMeta.IdSourceField) &&
+						_nameMap.TryGetValue(fieldMeta.IdSourceField.ToLower(), out ContentField idSource)
+					)
+					{
+						// ID field must be a ulong.
+						if (idSource.FieldType != typeof(ulong))
+						{
+							throw new Exception(
+								"Dynamic includes requires your content ID field to be a ulong. If you're not sure if you wanted a dynamic include, check the wiki page about includes."
+							);
+						}
+
+						// OK - all checks passed. This is a dynamic includes specification.
+						// We have a field which holds content type names, and another which holds ulong IDs.
+						dynamicTypeField = targetField;
+					}
+					else
+					{
+						// Attempt to get the type by name instead:
+						var relatedService = Services.Get(fieldMeta.TypeSourceField + "Service");
+
+						if (relatedService != null)
+						{
+							virtualFieldType = relatedService.InstanceType;
+							knownService = relatedService;
+						}
+						else
+						{
+							// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
+							virtualFieldTypeName = fieldMeta.TypeSourceField;
+						}
+					}
+				}
+				else
+				{
+					knownService = Services.GetByContentType(virtualFieldType);
+				}
+
+				var vInfo = new VirtualInfo()
+				{
+					FieldName = fieldMeta.FieldName,
+					Type = virtualFieldType,
+					TypeName = virtualFieldTypeName,
+					DynamicTypeField = dynamicTypeField,
+					IdSourceField = fieldMeta.IdSourceField,
+					IsList = fieldMeta.List,
+					Service = knownService
+				};
+
+				if (virtualFieldType != null && vInfo.IsList)
+				{
+					// Establish the meta title field name straight away.
+					vInfo.SetupMetaTitle();
+				}
+
+				var cf = new ContentField(vInfo);
+
+				// Resolve ID sources:
+				if (!string.IsNullOrEmpty(vInfo.IdSourceField))
+				{
+					if (!_nameMap.TryGetValue(vInfo.IdSourceField.ToLower(), out vInfo.IdSource))
+					{
+						throw new PublicException("A field called '" + vInfo.IdSourceField + "' doesn't exist as requested by virtual field '" + vInfo.FieldName + "' on type " + InstanceType.Name, "vfield_require_doesnt_exist");
+					}
+
+					if (vInfo.IdSource != null && vInfo.IdSource.UsedByVirtual == null)
+					{
+						vInfo.IdSource.UsedByVirtual = cf;
+					}
+
+					// Must be of the correct 4 acceptable types.
+					if (knownService != null && !IsValidIdSource(vInfo.IdSource.FieldType, knownService.IdType))
+					{
+						throw new PublicException("Can't define virtual field '" + vInfo.FieldName + "' because the ID source field '" + vInfo.IdSourceField + "' is not of a suitable supported type. " +
+							"A common cause is wanting a nullable localized field: in this scenario it is the ID which is nullable not the localized struct itself, i.e. Localized<uint?> not Localized<uint>?.", "vfield_unsupported");
+					}
+
+				}
+
+				_vList.Add(cf);
+				cf.Id = _vList.Count;
+				_vNameMap[vInfo.FieldName.ToLower()] = cf;
+			}
+
+		}
+
 		private void BuildMap()
 		{
 			if (InstanceType == null)
@@ -596,6 +765,16 @@ namespace Api.Startup {
 						IdSourceField = "Id"
 					});
 
+					if (!string.IsNullOrEmpty(listAs.Tab))
+					{
+						if (listAsField.Attributes == null)
+						{
+							listAsField.Attributes = new List<Attribute>();
+						}
+
+						listAsField.Attributes.Add(new DataAttribute("tab", listAs.Tab));
+					}
+					
 					if (listAs.IsPrimary)
 					{
 						if (primary != null)
@@ -623,8 +802,6 @@ namespace Api.Startup {
 				}
 			}
 
-
-
 			// Public fields:
 			var fields = InstanceType.GetFields();
 
@@ -633,6 +810,8 @@ namespace Api.Startup {
 			_list = new List<ContentField>();
 			_vNameMap = new Dictionary<string, ContentField>();
 			_vList = new List<ContentField>();
+			_secondaryResultNameMap = new Dictionary<string, ContentField>();
+			_secondaryResultList = new List<ContentField>();
 
 			for (var i=0;i<fields.Length;i++){
 				var field = fields[i];
@@ -644,6 +823,16 @@ namespace Api.Startup {
 				// Get field attributes:
 				var attribs = cf.Attributes;
 
+				if (field.FieldType.IsGenericType)
+				{
+					var typeDef = field.FieldType.GetGenericTypeDefinition();
+
+					if (typeDef == typeof(Localized<>))
+					{
+						cf.Localised = true;
+					}
+				}
+
 				foreach (var attrib in attribs)
 				{
 					if (attrib is DatabaseIndexAttribute attribute)
@@ -653,11 +842,6 @@ namespace Api.Startup {
 						dbi.Id = _indexSet.Count;
 						cf.AddIndex(dbi);
 						_indexSet.Add(dbi);
-					}
-
-					if (attrib is LocalizedAttribute)
-					{
-						cf.Localised = true;
 					}
 
 					if (attrib is MetaAttribute)
@@ -740,97 +924,36 @@ namespace Api.Startup {
 				_nameMap[property.Name.ToLower()] = cf;
 			}
 
-			// Get all the virtuals:
-			var virtualFields = GetTypeAttributes<HasVirtualFieldAttribute>();
+			BuildVirtuals();
 
-			foreach (var fieldMeta in virtualFields)
+			var secondaryResults = GetTypeAttributes<HasSecondaryResultAttribute>();
+
+			if (secondaryResults != null && secondaryResults.Count > 0)
 			{
-				var virtualFieldType = fieldMeta.Type;
-				string virtualFieldTypeName = null;
-				ContentField dynamicTypeField = null;
-				AutoService knownService = null;
-
-				if (virtualFieldType == null)
+				foreach (var secondaryResult in secondaryResults)
 				{
-					if (string.IsNullOrEmpty(fieldMeta.TypeSourceField))
+					var lcName = secondaryResult.FieldName.ToLower();
+
+					if (_secondaryResultNameMap.ContainsKey(lcName))
 					{
-						continue;
+						throw new Exception(
+							"Can't create a secondary result set called '" + secondaryResult.FieldName + "' on '" + InstanceType.Name + "' " +
+							"because it already exists. Typically the usage is [HasSecondaryField(\"pluralName\", typeof(ATypeName))]."
+						);
 					}
 
-					// Is it a field on the type - and is it a string?
-					if (
-						_nameMap.TryGetValue(fieldMeta.TypeSourceField.ToLower(), out ContentField targetField) &&
-						targetField.FieldType == typeof(string) &&
-						!string.IsNullOrEmpty(fieldMeta.IdSourceField) &&
-						_nameMap.TryGetValue(fieldMeta.IdSourceField.ToLower(), out ContentField idSource)
-					)
-					{
-						// ID field must be a ulong.
-						if (idSource.FieldType != typeof(ulong))
-						{
-							throw new Exception(
-								"Dynamic includes requires your content ID field to be a ulong. If you're not sure if you wanted a dynamic include, check the wiki page about includes."
-							);
-						}
+					var secondaryInfo = new SecondaryResultInfo() {
+						FieldName = secondaryResult.FieldName,
+						Type = secondaryResult.Type,
+						Service = Services.GetByContentType(secondaryResult.Type) // Can be null - not required to be a content type at all.
+					};
 
-						// OK - all checks passed. This is a dynamic includes specification.
-						// We have a field which holds content type names, and another which holds ulong IDs.
-						dynamicTypeField = targetField;
-					}
-					else
-					{
-						// Attempt to get the type by name instead:
-						var relatedService = Services.Get(fieldMeta.TypeSourceField + "Service");
+					var cf = new ContentField(secondaryInfo);
 
-						if (relatedService != null)
-						{
-							virtualFieldType = relatedService.InstanceType;
-							knownService = relatedService;
-						}
-						else
-						{
-							// Lazy load it later. The service might be a dynamic one which simply hasn't loaded yet.
-							virtualFieldTypeName = fieldMeta.TypeSourceField;
-						}
-					}
+					_secondaryResultList.Add(cf);
+					cf.Id = _vList.Count;
+					_secondaryResultNameMap[lcName] = cf;
 				}
-
-				var vInfo = new VirtualInfo()
-				{
-					FieldName = fieldMeta.FieldName,
-					Type = virtualFieldType,
-					TypeName = virtualFieldTypeName,
-					DynamicTypeField = dynamicTypeField,
-					IdSourceField = fieldMeta.IdSourceField,
-					IsList = fieldMeta.List,
-					Service = knownService
-				};
-
-				if (virtualFieldType != null && vInfo.IsList)
-				{
-					// Establish the meta title field name straight away.
-					vInfo.SetupMetaTitle();
-				}
-
-				var cf = new ContentField(vInfo);
-
-				// Resolve ID sources:
-				if (!string.IsNullOrEmpty(vInfo.IdSourceField))
-				{
-					if (!_nameMap.TryGetValue(vInfo.IdSourceField.ToLower(), out vInfo.IdSource))
-					{
-						throw new PublicException("A field called '" + vInfo.IdSourceField + "' doesn't exist as requested by virtual field '" + vInfo.FieldName + "' on type " + InstanceType.Name, "vfield_require_doesnt_exist");
-					}
-
-					if (vInfo.IdSource != null && vInfo.IdSource.UsedByVirtual == null)
-					{
-						vInfo.IdSource.UsedByVirtual = cf;
-					}
-				}
-
-				_vList.Add(cf);
-				cf.Id = _vList.Count;
-				_vNameMap[vInfo.FieldName.ToLower()] = cf;
 			}
 
 			if (listAsFields != null)
@@ -845,6 +968,36 @@ namespace Api.Startup {
 				}
 			}
 
+		}
+
+		/// <summary>
+		/// True if the given field type is a valid ID source for the given ID type as specified by the originating service.
+		/// Basically, can uint, uint? or Localized{uint?} store a uint (yes! all 3 can).
+		/// </summary>
+		/// <param name="fieldType"></param>
+		/// <param name="idType"></param>
+		/// <returns></returns>
+		private bool IsValidIdSource(Type fieldType, Type idType)
+		{
+			// Specific linear order only - can't be nested in the wrong order, e.g. nullable on the outside.
+			if (fieldType.IsGenericType)
+			{
+				var def = fieldType.GetGenericTypeDefinition();
+
+				if (def == typeof(Localized<>))
+				{
+					fieldType = fieldType.GetGenericArguments()[0];
+				}
+			}
+
+			var underlying = Nullable.GetUnderlyingType(fieldType);
+
+			if (underlying != null)
+			{
+				fieldType = underlying;
+			}
+
+			return fieldType == idType;
 		}
 
 		/// <summary>
@@ -896,7 +1049,13 @@ namespace Api.Startup {
 		public ContentField UsedByVirtual;
 
 		/// <summary>
-		/// True if this field is [Localised]
+		/// Set if this is a secondary result set field. 
+		/// These are extremely rare and will only be encountered if you explicitly use the secondary result set map.
+		/// </summary>
+		public SecondaryResultInfo SecondaryInfo;
+
+		/// <summary>
+		/// True if this field is a Localized type
 		/// </summary>
 		public bool Localised;
 
@@ -912,15 +1071,6 @@ namespace Api.Startup {
 			}
 		}
 
-		/// <summary>
-		/// The type an ID collector uses. This is generated.
-		/// </summary>
-		public Type IDCollectorType
-		{
-			get {
-				return _idCollectorType;
-			}
-		}
 		/// <summary>
 		/// Converts a set of attribute data from the given type (including any it inherits) into an attribute list.
 		/// </summary>
@@ -965,23 +1115,7 @@ namespace Api.Startup {
 					for (var i = 0; i < paramCount; i++)
 					{
 						var argInfo = ca.ConstructorArguments[i];
-						var value = argInfo.Value;
-
-						if(value is ICollection<CustomAttributeTypedArgument> col)
-						{
-							// Convert to a string[].
-							var strSet = new string[col.Count];
-							var index = 0;
-
-							foreach (var entry in col)
-							{
-								strSet[index++] = (string)(entry.Value);
-							}
-
-							value = strSet;
-						}
-
-						ctorParSet[i] = value;
+						ctorParSet[i] = ConvertAttribValue(argInfo.Value);
 					}
 
 					var ctor = ca.Constructor;
@@ -1000,10 +1134,11 @@ namespace Api.Startup {
 
 						// Set it on the attrib:
 						var fldInfo = member as FieldInfo;
+						var value = ConvertAttribValue(argInfo.TypedValue.Value);
 
 						if (fldInfo != null)
 						{
-							fldInfo.SetValue(newAttrib, argInfo.TypedValue.Value);
+							fldInfo.SetValue(newAttrib, value);
 						}
 						else
 						{
@@ -1011,7 +1146,7 @@ namespace Api.Startup {
 
 							if (prop != null)
 							{
-								prop.GetSetMethod().Invoke(newAttrib, new object[] { argInfo.TypedValue.Value });
+								prop.GetSetMethod().Invoke(newAttrib, new object[] { value });
 							}
 						}
 
@@ -1024,72 +1159,286 @@ namespace Api.Startup {
 			return attribs;
 		}
 
-		/// <summary>
-		/// IDCollector concrete type for this field, if it represents some kind of ID. 
-		/// This collector type is generated and reads the value of this field from a given object.
-		/// </summary>
-		private Type _idCollectorType;
+		private static object ConvertAttribValue(object value)
+		{
+			if (value is ICollection<CustomAttributeTypedArgument> col)
+			{
+				// Convert to a string[].
+				var strSet = new string[col.Count];
+				var index = 0;
+
+				foreach (var entry in col)
+				{
+					strSet[index++] = (string)(entry.Value);
+				}
+
+				value = strSet;
+			}
+			else if (value is System.Collections.ObjectModel.ReadOnlyCollection<System.Reflection.CustomAttributeTypedArgument> readOnlyCol)
+			{
+				// Convert to a string[].
+				var strSet = new string[readOnlyCol.Count];
+				var index = 0;
+
+				foreach (var entry in readOnlyCol)
+				{
+					strSet[index++] = (string)(entry.Value);
+				}
+
+				value = strSet;
+			}
+
+			return value;
+		}
 
 		/// <summary>
-		/// First ID collector in the pool for this field.
+		/// A generated action which collects one or more IDs from this field in to the given collector, writing it/them to the given writer as a string.
+		/// The ID type is either a uint or ulong.
 		/// </summary>
-		private IDCollector FirstInPool;
+		private Action<LongIDCollector, Writer, object, Context> _collect;
 
 		/// <summary>
-		/// ID collector pool lock.
+		/// A generated action which collects one or more IDs and their type from this field in to the given collector, writing it/them to the given writer as a string.
+		/// The ID type is always ulong.
 		/// </summary>
-		private object IDCollectorPoolLock = new object();
+		private Action<MultiIDCollector, Writer, object, Context> _collectMulti;
 
 		/// <summary>
-		/// Gets an ID collector from a pool.
+		/// Rents a multi collector from the global pool, used for dynamic includes.
 		/// </summary>
 		/// <returns></returns>
-		public IDCollector RentCollector()
+		public MultiIDCollector RentMultiCollector()
 		{
-			IDCollector instance = null;
+			var gen = MultiIDCollector.RentGenericCollector();
 
-			lock (IDCollectorPoolLock)
+			if (_collectMulti == null)
 			{
-				if (FirstInPool != null)
+				if (VirtualInfo == null || VirtualInfo.IdSource == null || VirtualInfo.DynamicTypeField == null)
 				{
-					// Pop from the pool:
-					instance = FirstInPool;
-					FirstInPool = instance.NextCollector;
+					throw new Exception("Use RentCollector instead.");
+				}
+
+				// We're collecting both an id and a type. In this situ the ID must be a ulong.
+
+				if (VirtualInfo.IdSource.FieldType != typeof(ulong))
+				{
+					throw new Exception("ID source for a dynamic include must be exactly a ulong. " +
+						"For include '" + VirtualInfo.FieldName + "' it was: " + VirtualInfo.IdSource.FieldType);
+				}
+
+				_collectMulti = ConstructCollectDelegate(VirtualInfo.IdSource, VirtualInfo.DynamicTypeField);
+			}
+
+			gen.OnCollect = _collectMulti;
+			return gen;
+		}
+
+		/// <summary>
+		/// Rents an ID collector from the global pool.
+		/// </summary>
+		/// <returns></returns>
+		public LongIDCollector RentCollector()
+		{
+			var gen = LongIDCollector.RentGenericCollector();
+
+			if (_collect == null)
+			{
+				if (VirtualInfo != null)
+				{
+					if (VirtualInfo.IsList)
+					{
+						DynamicMethod compareMethod = new DynamicMethod(
+						"IdListFieldCollector",
+						typeof(void),
+						[
+							typeof(IDCollector), typeof(Writer), typeof(object), typeof(Context)
+						],
+						true
+					);
+						ILGenerator generator = compareMethod.GetILGenerator();
+
+						// Read the field:
+						generator.Emit(OpCodes.Ldarg_2); // the obj 
+						generator.Emit(OpCodes.Ldflda, typeof(Content).GetField(nameof(Content.Mappings))); // the .mappings field address
+
+						// The IDCollector arg:
+						generator.Emit(OpCodes.Ldarg_0);
+
+						// The field name:
+						generator.Emit(OpCodes.Ldstr, VirtualInfo.FieldName.ToLower());
+
+						// Writer:
+						generator.Emit(OpCodes.Ldarg_1);
+
+						// The actual collect part:
+						generator.Emit(OpCodes.Callvirt, typeof(MappingData).GetMethod(nameof(MappingData.WriteAndCollect)));
+
+						generator.Emit(OpCodes.Ret);
+						_collect = (Action<IDCollector, Writer, object, Context>)compareMethod.CreateDelegate(
+							typeof(Action<IDCollector, Writer, object, Context>)
+						);
+					}
+					else if (VirtualInfo.IdSource != null && VirtualInfo.DynamicTypeField != null)
+					{
+						throw new Exception("Use RentMultiCollector instead.");
+					}
+					else
+					{
+						throw new Exception("This field is not collectible - you need to collect the underlying ID field instead.");
+					}
+				}
+				else if (FieldInfo != null || PropertyInfo != null)
+				{
+					_collect = ConstructCollectDelegate(this);
+				}
+				else
+				{
+					throw new Exception("This field is not collectible - you need to collect the underlying ID field instead.");
 				}
 			}
 
-			if (instance == null)
-			{
-				// Instance one:
-				instance = Activator.CreateInstance(IDCollectorType) as IDCollector;
-				instance.Pool = this;
-			}
-
-			instance.NextCollector = null;
-			return instance;
+			gen.OnCollect = _collect;
+			return gen;
 		}
 
-		/// <summary>
-		/// Returns the given collector to the pool. This also internally releases the collector's buffers.
-		/// </summary>
-		/// <param name="collector"></param>
-		public void AddToPool(IDCollector collector)
+		private static Action<MultiIDCollector, Writer, object, Context> ConstructCollectDelegate(ContentField idField, ContentField typeField)
 		{
-			// Re-add to this pool:
-			lock (IDCollectorPoolLock)
+			// Emits {"type": "string", "id": ulong} in to the writer and collects both in to a MultiIDCollector.
+
+			DynamicMethod compareMethod = new DynamicMethod(
+				"IdTypeFieldCollector",
+				typeof(void),
+				[
+					typeof(MultiIDCollector), typeof(Writer), typeof(object), typeof(Context)
+				],
+				true
+			);
+			ILGenerator generator = compareMethod.GetILGenerator();
+
+			if (idField.FieldInfo == null)
 			{
-				collector.NextCollector = FirstInPool;
-				FirstInPool = collector;
+				throw new Exception("Invalid field used!");
 			}
+
+			// And type which has to come from a field:
+			if (typeField.FieldInfo == null || typeField.FieldType != typeof(string))
+			{
+				throw new Exception("Invalid dynamic include type field. Must be exactly a string field.");
+			}
+
+			// The MultiIDCollector for the Add call:
+			generator.Emit(OpCodes.Ldarg_0);
+
+			// The type:
+			generator.Emit(OpCodes.Ldarg_2);
+			generator.Emit(OpCodes.Ldfld, typeField.FieldInfo);
+
+			// Load the ulong id:
+			generator.Emit(OpCodes.Ldarg_2);
+			generator.Emit(OpCodes.Ldfld, idField.FieldInfo);
+			
+			// The actual collect part - add the ID and type to the collector:
+			generator.Emit(OpCodes.Callvirt, typeof(MultiIDCollector).GetMethod(nameof(MultiIDCollector.Add)));
+
+			// Next, write the value to the writer as a singular ID string too.
+			var emitDynamicTypeMethod = typeof(ContentField)
+				.GetMethod(nameof(ContentField.EmitDynamicTypeHeader), BindingFlags.Public | BindingFlags.Static);
+
+			generator.Emit(OpCodes.Ldarg_1); // Writer
+
+			// The type:
+			generator.Emit(OpCodes.Ldarg_2);
+			generator.Emit(OpCodes.Ldfld, typeField.FieldInfo);
+
+			// The ID:
+			generator.Emit(OpCodes.Ldarg_2);
+			generator.Emit(OpCodes.Ldfld, idField.FieldInfo);
+
+			generator.Emit(OpCodes.Call, emitDynamicTypeMethod); // write now
+
+			generator.Emit(OpCodes.Ret);
+			return (Action<MultiIDCollector, Writer, object, Context>)compareMethod.CreateDelegate(
+				typeof(Action<MultiIDCollector, Writer, object, Context>)
+			);
 		}
 
 		/// <summary>
-		/// Sets the ID collector type.
+		/// Emits the {"type": "string", "id": x} header for a dynamic type. May emit 'null' if the type was empty.
 		/// </summary>
+		/// <param name="writer"></param>
 		/// <param name="type"></param>
-		public void SetIDCollectorType(Type type)
+		/// <param name="id"></param>
+		public static void EmitDynamicTypeHeader(Writer writer, string type, ulong id)
 		{
-			_idCollectorType = type;
+			if (string.IsNullOrEmpty(type))
+			{
+				writer.WriteASCII("null");
+				return;
+			}
+
+			writer.WriteASCII("{\"type\":");
+			writer.WriteEscaped(type);
+			writer.WriteASCII(",\"id\":");
+			writer.WriteS(id);
+			writer.Write((byte)'}');
+		}
+
+		private static Action<LongIDCollector, Writer, object, Context> ConstructCollectDelegate(ContentField idField)
+		{
+
+			DynamicMethod compareMethod = new DynamicMethod(
+				"IdFieldCollector",
+				typeof(void),
+				[
+					typeof(LongIDCollector), typeof(Writer), typeof(object), typeof(Context)
+				],
+				true
+			);
+			ILGenerator generator = compareMethod.GetILGenerator();
+
+			var valueLoc = generator.DeclareLocal(typeof(ulong));
+
+			// Read the field, unpacking it from nullable and/or localized if necessary:
+			Type type;
+
+			if (idField.FieldInfo != null)
+			{
+				type = TypeIOEngine.UnpackLocalisedNullable(generator, 2, idField.FieldInfo, 3);
+			}
+			else if (idField.PropertyInfo != null)
+			{
+				type = TypeIOEngine.UnpackLocalisedNullable(generator, 2, idField.PropertyInfo, 3);
+			}
+			else
+			{
+				throw new Exception("Invalid field used!");
+			}
+
+			// conv if necessary to ulong (throws if it can't):
+			TypeIOEngine.CoerseToUlong(generator, type);
+
+			generator.Emit(OpCodes.Stloc, valueLoc);
+
+			// The IDCollector for the Add call:
+			generator.Emit(OpCodes.Ldarg_0);
+
+			// Load the ulong val:
+			generator.Emit(OpCodes.Ldloc, valueLoc);
+
+			// The actual collect part - add the ID to the collector:
+			generator.Emit(OpCodes.Callvirt, typeof(LongIDCollector).GetMethod(nameof(LongIDCollector.Add)));
+
+			// Next, write the value to the writer as a singular ID string too.
+			var writeSMethod = typeof(Writer).GetMethod("WriteS", BindingFlags.Public | BindingFlags.Instance, [typeof(ulong)]);
+
+			generator.Emit(OpCodes.Ldarg_1); // Writer
+			generator.Emit(OpCodes.Ldloc, valueLoc); // the ID
+			generator.Emit(OpCodes.Callvirt, writeSMethod); // write now
+
+			generator.Emit(OpCodes.Ret);
+			return (Action<LongIDCollector, Writer, object, Context>)compareMethod.CreateDelegate(
+				typeof(Action<LongIDCollector, Writer, object, Context>)
+			);
 		}
 
 		/// <summary>
@@ -1147,69 +1496,6 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
-		/// Gets the "local"
-		/// </summary>
-		/// <param name="relativeTo"></param>
-		/// <returns></returns>
-		public ContentField GetIdFieldIfMappingNotRequired(ContentFields relativeTo)
-		{
-
-			// Do we need to map? Often yes, but occasionally not necessary.
-			// We don't if the target type has a virtual field of the source type, where the virtual field name is simply the same as the instance type
-			return VirtualInfo.Service.GetContentFields().GetVirtualField(relativeTo.InstanceType, relativeTo.InstanceType.Name);
-
-		}
-
-		/// <summary>
-		/// Gets the mapping service for a virtual list field. Can be null if one isn't actually necessary.
-		/// </summary>
-		/// <returns></returns>
-		public async ValueTask<MappingInfo> GetOptionalMappingService(ContentFields relativeTo)
-		{
-			var fieldOfType = GetIdFieldIfMappingNotRequired(relativeTo);
-
-			if (fieldOfType != null)
-			{
-				// No mapping needed - the mapping is instead to use this virtual field.
-				return new MappingInfo {
-					Service = null,
-					TargetField = fieldOfType,
-					TargetFieldName = fieldOfType.VirtualInfo.IdSource.Name
-				};
-			}
-
-			var mappingService = await GetMappingService(relativeTo);
-
-			// We need to know what the target field is as we'll need a collector on it.
-			var mappingContentFields = mappingService.GetContentFields();
-
-			// Try to get target field (e.g. TagId):
-			if (!mappingContentFields.TryGetValue("targetid", out ContentField targetField))
-			{
-				throw new Exception("Couldn't find target field on a mapping type. This indicates an issue with the mapping engine rather than your usage.");
-			}
-
-			return new MappingInfo
-			{
-				Service = mappingService,
-				TargetField = targetField,
-				TargetFieldName = targetField.Name
-			};
-		}
-
-		/// <summary>
-		/// Gets a mapping service but doesn't consider if it is optional.
-		/// It would be optional if the mapped from type has an ID field that relates to the mapped to type.
-		/// </summary>
-		/// <param name="relativeTo"></param>
-		/// <returns></returns>
-		public async ValueTask<AutoService> GetMappingService(ContentFields relativeTo)
-		{
-			var svc = VirtualInfo.Service;
-			return await MappingTypeEngine.GetOrGenerate(relativeTo.Service, svc, VirtualInfo.FieldName);
-		}
-
-		/// <summary>
 		/// </summary>
 		public ContentField(FieldInfo info){
 			FieldInfo = info;
@@ -1229,6 +1515,14 @@ namespace Api.Startup {
 		public ContentField(VirtualInfo info)
 		{
 			VirtualInfo = info;
+		}
+		
+		/// <summary>
+		/// Secondary result set.
+		/// </summary>
+		public ContentField(SecondaryResultInfo info)
+		{
+			SecondaryInfo = info;
 		}
 
 		/// <summary>
@@ -1334,39 +1628,30 @@ namespace Api.Startup {
 		}
 	}
 
+	/// <summary>
+	/// Metadata about a possible secondary result set on endpoints involving a particular type.
+	/// </summary>
+	public class SecondaryResultInfo
+	{
+		/// <summary>
+		/// A sequential ID for this secondary result set, starting from 1.
+		/// </summary>
+		public int Id;
 
-	/// <summary>
-	/// Meta about a particular map to use (in reverse, target->source)
-	/// </summary>
-	public struct ReverseMappingInfo
-	{
 		/// <summary>
-		/// The service. Will always exist.
+		/// The effective name of the field.
+		/// </summary>
+		public string FieldName;
+
+		/// <summary>
+		/// The type of the field. This type can be a non-content type.
+		/// </summary>
+		public Type Type;
+
+		/// <summary>
+		/// If type is a content type, the associated autoService. null otherwise.
 		/// </summary>
 		public AutoService Service;
-		/// <summary>
-		/// The source ID field.
-		/// </summary>
-		public ContentField SourceField;
-	}
-	
-	/// <summary>
-	/// Meta about a particular map to use.
-	/// </summary>
-	public struct MappingInfo
-	{
-		/// <summary>
-		/// The service, if there is one. This is a MappingService.
-		/// </summary>
-		public AutoService Service;
-		/// <summary>
-		/// The target ID field.
-		/// </summary>
-		public ContentField TargetField;
-		/// <summary>
-		/// The name of the target field.
-		/// </summary>
-		public string TargetFieldName;
 	}
 
 	/// <summary>
@@ -1408,6 +1693,23 @@ namespace Api.Startup {
 			get {
 				return ImplicitTypes != null;
 			}
+		}
+
+		/// <summary>
+		/// Reflection based mechanism to get the return type of a ValueGenerator (functional include).
+		/// </summary>
+		/// <returns></returns>
+		public Type GetValueGeneratorOutputType()
+		{
+			if (ValueGeneratorType == null)
+			{
+				throw new Exception("Not a functional include field!");
+			}
+
+			// Role is used as a common concrete type:
+			var concreteType = ValueGeneratorType.MakeGenericType(typeof(Api.Permissions.Role), typeof(uint));
+			var fieldGen = Activator.CreateInstance(concreteType) as VirtualFieldValueGenerator<Api.Permissions.Role, uint>;
+			return fieldGen.OutputType;
 		}
 
 		/// <summary>

@@ -8,6 +8,7 @@ using System;
 using System.IO;
 using Karambolo.PO;
 using System.Linq;
+using Api.NavMenus;
 using Api.Pages;
 
 namespace Api.Translate
@@ -21,8 +22,15 @@ namespace Api.Translate
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
-        public TranslationService() : base(Events.Translation)
+        public TranslationService(PageService pages) : base(Events.Translation)
         {
+	        AdminNavMenuItemService.RequiredGroups.Add(new()
+	        {
+		        Title = "Languages",
+		        Key = "i18n",
+		        IconRef = "fa:globe",
+		        ParentId = 0
+	        });
             // Always cache by default:
             Cache();
 
@@ -30,42 +38,22 @@ namespace Api.Translate
             // which is important as they are internally cached in a variety of ways.
 
             // Example admin page install:
-            InstallAdminPages(null, null, new string[] { "id", "module", "original", "translation" });
+            InstallAdminPages("Translations", "fa:fa-globe-europe", ["id", "module", "original", "translation"], null, "i18n");
 
-            Events.Service.AfterStart.AddEventListener((Context context, object sender) => {
-
-                // This route is suggested rather than dependency injection
-                // Because some projects (particularly fully headless and micro instances) don't have a page service installed.
-                var pageService = Services.Get<PageService>();
-
-                pageService.Install(
-                    new Page()
-                    {
-                        Url = "/en-admin/translation/upload",
-                        Title = "Translation Upload",
-                        BodyJson = @"{
-	                            ""c"": {
-		                            ""t"": ""Admin/Layouts/Default"",
-		                            ""d"": {},
-		                            ""c"": {
-			                            ""t"": ""Admin/Tile"",
-			                            ""d"": {},
-			                            ""c"": {
-				                            ""t"": ""Admin/TranslationUpload"",
-				                            ""d"": {},
-				                            ""i"": 2
-			                            },
-			                            ""i"": 3
-		                            },
-		                            ""i"": 4
-	                            },
-	                            ""i"": 5
-                            }"
-                    });
-
-                return new ValueTask<object>(sender);
-            });
-
+            // Additional admin page for uploading translations:
+            pages.Install(new PageBuilder()
+            {
+                AdminRelativeUrl = "translation/upload",
+                Title = "Translation Upload",
+                BuildBody = (PageBuilder builder) => {
+                    return builder.AddTemplate(
+						new CanvasNode("Admin/Tile")
+						.AppendChild(
+							new CanvasNode("Admin/TranslationUpload")
+						)
+					);
+                }
+			});
         }
 
         /// <summary>
@@ -76,10 +64,10 @@ namespace Api.Translate
             var localeService = Services.Get<LocaleService>();
 
             // user the UI builder to hunt out any locale files in UI modules
-            var globalMap = new GlobalSourceFileMap();
+            var globalMap = new GlobalSourceFileMap(Services.Get<FrontendCodeService>());
 
             // Create a group of build/watchers for each bundle of files (all in parallel):
-            var builder = new UIBundle("UI", "/pack/", this, localeService, null, null, globalMap, false);
+            var builder = new UIBundle("UI", "/pack/", this, localeService, null, globalMap, false);
 
             builder.Start();
 
@@ -156,13 +144,15 @@ namespace Api.Translate
                         {
                             foreach(var translation in translations)
                             {
-                                if (translation.Translated != po.Translated) {
+                                var translated = translation.Translated.Get(context);
+
+                                if (translated != po.Translated) {
 
 									Log.Info(LogTag, $"Updating translation [{translation.Id}] {translation.Module} {translation.Original}->{po.Translated}");
 
                                     await Update(context, translation, (Context ctx, Translation trans, Translation orig) =>
                                     {
-                                        trans.Translated = po.Translated;
+                                        trans.Translated.Set(context, po.Translated);
                                     }, DataOptions.IgnorePermissions);
                                 }
 

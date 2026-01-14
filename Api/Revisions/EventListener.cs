@@ -1,13 +1,17 @@
-﻿using System;
-using System.Reflection;
-using System.Threading.Tasks;
+﻿using Api.AutoForms;
+using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
+using Api.Pages;
 using Api.Startup;
+using Api.Startup.Routing;
 using Api.Users;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Collections.Generic;
+using System.Reflection.Metadata;
+using System.Runtime.Intrinsics.Arm;
+using System.Threading.Tasks;
 
 
 namespace Api.Revisions
@@ -25,130 +29,24 @@ namespace Api.Revisions
 		/// </summary>
 		public EventListener()
 		{
-			// Hook up the database diff event, which will be used to generate tables for us:
-			Events.DatabaseDiffBeforeAdd.AddEventListener((Context ctx, FieldMap fieldMap, Type typeInfo, Schema newSchema) => {
-
-				if (fieldMap == null)
-				{
-					return new ValueTask<FieldMap>(fieldMap);
-				}
-
-				// Firstly, is this type a RevisionRow?
-				// If so, we'll need to add another table to the schema with the same set of fields only it's called _revisions.
-
-				if (!ContentTypes.IsAssignableToGenericType(typeInfo, typeof(VersionedContent<>), out Type revisionRowType))
-				{
-					return new ValueTask<FieldMap>(fieldMap);
-				}
-				
-				// Above test also eliminated any mappings.
-
-				var revisionIdField = revisionRowType.GetField("_RevisionId", BindingFlags.Instance | BindingFlags.NonPublic);
-				var isDraftField = revisionRowType.GetField("_IsDraft", BindingFlags.Instance | BindingFlags.NonPublic);
-                var publishDraftDateField = revisionRowType.GetField("_PublishDraftDate", BindingFlags.Instance | BindingFlags.NonPublic);
-
-                // We've got a revisionable content type. Add a revisions table to the schema:
-                var targetEntityName = typeInfo.Name + "_revisions";
-				var targetTableName = MySQLSchema.TableName(typeInfo.Name) + "_revisions";
-				Field idField = null;
-
-				// All of the fields in the type can be revisioned, so we add them all.
-				// Note, however, that the Id column changes meaning. It becomes the Id of the *revision*.
-				foreach (var field in fieldMap.Fields)
-				{
-					DatabaseColumnDefinition columnDefinition = null;
-					
-					// If we have the Id field..
-					if (field.Name == "Id")
-					{
-						// Special case for the Id field, as it'll be the revision ID.
-						// That means when we load it, it must go into the RevisionId field instead.
-						// We can do that by cloning the field object and then simply changing the FieldInfo for the field it sets.
-						idField = field;
-						var specialIdField = field.Clone();
-
-						// The field name stays the same, so it's still "Id" in the table, but the value goes to and from the RevisionId field.
-						specialIdField.TargetField = revisionIdField;
-
-						// Create a column definition:
-						columnDefinition = new MySQLDatabaseColumnDefinition(specialIdField, targetTableName)
-						{
-							IsAutoIncrement = true
-						};
-					}
-					else
-					{
-						// Create a column definition:
-						columnDefinition = new MySQLDatabaseColumnDefinition(field, targetTableName);
-					}
-
-					if (!columnDefinition.Ignore)
-					{
-						// Add to target schema:
-						newSchema.Add(columnDefinition);
-					}
-				}
-
-				if (idField != null)
-				{
-					// Next, as the Id column means something else, we'll need to add a special column for the content's ID.
-					// Similarly to above, we can do that by cloning the Id field but this time we give it a new name.
-					// That'll mean its value goes to and from the Id field on objects, but it is retained in a column called RevisionOriginalContentId.
-					var contentIdField = idField.Clone();
-					contentIdField.Name = "RevisionOriginalContentId";
-					contentIdField.SetFullName();
-
-					var contentIdColumn = new MySQLDatabaseColumnDefinition(
-						contentIdField,
-						targetTableName
-					)
-					{
-
-						// It may have seen that the Id column is autoinc, depending on field attributes, so clear that:
-						IsAutoIncrement = false
-					};
-
-					if (!contentIdColumn.Ignore)
-					{
-						newSchema.Add(
-							contentIdColumn
-						);
-					}
-				}
-
-				// Add IsDraft column:
-				var isDraft = new Field(typeInfo, targetEntityName)
-				{
-					Type = isDraftField.FieldType,
-					TargetField = isDraftField,
-					Name = "RevisionIsDraft"
-				};
-				isDraft.SetFullName();
-				newSchema.AddColumn(isDraft);
-
-                // Add Publish Draft Date column:
-                var publishDraftDate = new Field(typeInfo, targetEntityName)
-                {
-                    Type = publishDraftDateField.FieldType,
-                    TargetField = publishDraftDateField,
-                    Name = "PublishDraftDate"
-                };
-                publishDraftDate.SetFullName();
-                newSchema.AddColumn(publishDraftDate);
-
-                return new ValueTask<FieldMap>(fieldMap);
-			});
-
-			// Next hook up all before update events for anything which is a RevisionRow type.
+			// Hook up all before update events for anything which is a RevisionRow type.
 			// Essentially before the content actually goes into the database, we copy the database row into the _revisions table (with 1 database-side query), 
 			// and bump the Revision number of the about to be updated row.
 			
 			var methodInfo = GetType().GetMethod(nameof(SetupForRevisions));
 
-			Events.Service.AfterCreate.AddEventListener((Context ctx, AutoService svc) => {
+			Events.Service.AfterCreate.AddEventListener(async (Context ctx, AutoService svc) => {
 				if (svc == null || svc.ServicedType == null)
 				{
-					return new ValueTask<AutoService>(svc);
+					return svc;
+				}
+
+				// Do nothing if this is a revision service itself.
+				var svcType = svc.GetType();
+
+				if (svcType.IsGenericType && svcType.GetGenericTypeDefinition() == typeof(RevisionService<,>))
+				{
+					return svc;
 				}
 
 				var eventGroup = svc.GetEventGroup();
@@ -163,52 +61,113 @@ namespace Api.Revisions
 						idType
 					});
 
-					setupType.Invoke(this, new object[] {
+					var valTask = (ValueTask)setupType.Invoke(this, new object[] {
+						ctx,
 						svc
 					});
+
+					await valTask;
 				}
 
-				return new ValueTask<AutoService>(svc);
+				return svc;
 			});
-		}
 
-		/// <summary>
-		/// The database service.
-		/// </summary>
-		private MySQLDatabaseService database = null;
+			Events.Permalink.BeforeAddTerminal.AddEventListener((Context context, PageTerminalBehaviour pageTerminal) => {
 
-		private Query BuildCopyQuery(Type contentType, string contentTypeName)
-		{
-			var fieldMap = new FieldMap(contentType, contentTypeName);
-
-			// First, generate a 'copy' query. It'll transfer values from table A to table B.
-			var transferMap = new FieldTransferMap
-			{
-				TargetTypeNameExtension = "_revisions"
-			};
-
-			// For each field in the map, create a transfer:
-			foreach (var field in fieldMap.Fields)
-			{
-				// Special case for the Id field.
-				if (field.Name == "Id")
+				if (pageTerminal == null || pageTerminal.Page == null)
 				{
-					// Id transfers to the RevisionContentId field.
-					transferMap.Add(contentType, contentTypeName, field.Name, contentType, contentTypeName, "RevisionOriginalContentId");
+					return new ValueTask<PageTerminalBehaviour>(pageTerminal);
 				}
-				else
+
+				if (pageTerminal.Page.PrimaryContentIsRevisions)
 				{
-					// The only difference is the target type name extension above.
-					transferMap.Add(contentType, contentTypeName, field.Name, contentType, contentTypeName, field.Name);
+					// This page wants its primary content from a revision ID rather than an actual piece of content.
+					// To do that we'll make the page terminal instance with a node which loads a revision first.
+					pageTerminal.GenericPageTerminalType = typeof(RouterRevisionPageTerminal<,>);
 				}
-			}
 
-			transferMap.AddConstant(contentType, contentTypeName, "RevisionIsDraft", false);
+				return new ValueTask<PageTerminalBehaviour>(pageTerminal);
+			});
 
-			// The query itself:
-			var copyQuery = Query.Copy(transferMap);
-			copyQuery.Where("Id=@id");
-			return copyQuery;
+			PageService pageService = null;
+
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
+			{
+				if (builder == null)
+				{
+					return new ValueTask<PageBuilder>(builder);
+				}
+
+				if (
+					builder.IsAdmin && 
+					builder.PageType == CommonPageType.AdminEdit && 
+					builder.ContentType != null && 
+					ContentTypes.IsAssignableToGenericType(builder.ContentType, typeof(VersionedContent<>)))
+				{
+					// It's an edit page for something which supports revisions. 
+					// We need to also request another edit page for displaying the revisions themselves.
+					pageService ??= Services.Get<PageService>();
+					var typeName = builder.ContentType.Name;
+					var typeNameLowercase = typeName.ToLower();
+
+					// "BlogPost" -> "Blog Post".
+					var tidySingularName = Api.Startup.Pluralise.NiceName(typeName);
+					var tidyPluralName = Api.Startup.Pluralise.Apply(tidySingularName);
+					var options = builder.AdminPageOptions;
+					
+					var singlePage = new PageBuilder
+					{
+						ContentType = builder.ContentType,
+						PageType = CommonPageType.AdminRevisionEdit,
+						PrimaryContentType = typeName,
+						PrimaryContentIncludes = builder.PrimaryContentIncludes,
+						Url = "/en-admin/" + typeNameLowercase + "/revision/${" + typeNameLowercase + ".id}",
+						Key = "admin_" + typeNameLowercase + "_revision_edit",
+						Title = "Editing revision",
+						BuildBody = (PageBuilder builder) =>
+						{
+							var singlePageCanvas = new CanvasNode("Admin/AutoForm")
+								.With("contentType", typeName)
+								.With("singular", tidySingularName)
+								.With("isRevision", true)
+								.With("plural", tidyPluralName);
+
+							if (options.Tabs != null && options.Tabs.Count > 0)
+							{
+								singlePageCanvas.With("tabs", new List<AdminTab>(options.Tabs));
+							}
+
+							singlePageCanvas.WithPrimaryLink("content");
+
+							return builder.AddTemplate(
+								singlePageCanvas
+							);
+						},
+						PrimaryContentIsRevisions = true
+					};
+
+					pageService.Install(singlePage);
+
+					// Also need to add the recentDraft include to the source edit page itself:
+					if (string.IsNullOrEmpty(builder.PrimaryContentIncludes))
+					{
+						builder.PrimaryContentIncludes = "recentDraft";
+					}
+					else
+					{
+						builder.PrimaryContentIncludes += ",recentDraft";
+					}
+				}
+
+				return new ValueTask<PageBuilder>(builder);
+			});
+
+			Events.AutoForm.BuildMeta.AddEventListener((Context context, AutoFormInfo autoForm, AutoService service) => {
+
+				autoForm.SupportsRevisions = service.GetRevisions() != null;
+
+				return new ValueTask<AutoFormInfo>(autoForm);
+			});
 		}
 
 		/// <summary>
@@ -216,109 +175,115 @@ namespace Api.Revisions
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
+		/// <param name="context"></param>
 		/// <param name="autoService"></param>
-		public void SetupForRevisions<T, ID>(AutoService<T, ID> autoService)
+		public async ValueTask SetupForRevisions<T, ID>(Context context, AutoService<T, ID> autoService)
 			where T : VersionedContent<ID>, new()
 			where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
+			// Spawn the revisions service:
+			autoService.Revisions = new RevisionService<T, ID>(autoService);
+
+			// Tell the system that this service has started. The main side effect we're after here
+			// is for whichever data service is in use to mount it and create whatever data storage mechanism it needs.
+			// Note that this is itself called from AfterCreate, so our handler explicitly looks out for & then no-ops 
+			// when it spots the revisions on revisions situation.
+			await Services.StateChange(true, autoService.Revisions);
+
 			var contentType = autoService.InstanceType;
 			var evtGroup = autoService.EventGroup;
 
 			// Invoked by reflection
 
-			// Create the query:
-			var copyQuery = BuildCopyQuery(autoService.InstanceType, autoService.EntityName);
-			copyQuery.GetQuery();
-
-			evtGroup.AfterInstanceTypeUpdate.AddEventListener((Context context, AutoService s) => {
-
-				if (s == null)
-				{
-					return new ValueTask<AutoService>(s);
-				}
-
-				var cq = BuildCopyQuery(autoService.InstanceType, autoService.EntityName);
-				cq.GetQuery();
-				copyQuery = cq;
-
-				return new ValueTask<AutoService>(s);
-			});
-
-			// And add an event handler now:
-			evtGroup.BeforeUpdate.AddEventListener(async (Context context, T content, T original) =>
+			evtGroup.BeforeUpdate.AddEventListener((Context context, T content, T original) =>
 			{
 				if (content == null)
 				{
-					return content;
+					return new ValueTask<T>(content);
 				}
-
-				if (database == null)
-				{
-					database = Services.Get<MySQLDatabaseService>();
-				}
-
-				/*
-				// trigger the before create revision events:
-				if(beforeUpdateEvent.EventGroup != null){
-					beforeUpdateEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
-				}
-				*/
-
-				// Run the copy query now:
-				await database.RunWithId(context, copyQuery, content.Id);
-
-				// TODO: Trigger the before and after events (#208):
-				// - Requires collecting the ID from the above copy call.
-				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
-
-				/*
-				// trigger the after create revision events:
-				if(beforeUpdateEvent.EventGroup != null){
-					// Note: This will not know what the revisions ID is.
-					beforeUpdateEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
-				}
-				*/
 
 				// Bump its revision number.
 				content.Revision++;
 
-				return content;
+				return new ValueTask<T>(content);
 			}, 11);
 
-			// Add the beforeDelete handler too:
-			evtGroup.BeforeDelete.AddEventListener(async (Context context, T content) =>
+			evtGroup.AfterCreate.AddEventListener(async (Context context, T content) =>
 			{
 				if (content == null)
 				{
 					return content;
 				}
 
-				if (database == null)
+				var now = DateTime.UtcNow;
+
+				var contentJson = await autoService.ToStoredJson(content);
+
+				var rev = new Revision<T, ID>()
 				{
-					database = Services.Get<MySQLDatabaseService>();
-				}
-				
-				/*
-				// trigger the before create revision events:
-				if(beforeDeleteEvent.EventGroup != null){
-					beforeDeleteEvent.EventGroup.RevisionBeforeCreate(context, revisionableContent);
-				}
-				*/
+					UserId = content.UserId,
+					CreatedUtc = now,
+					EditedUtc = now,
+					ContentId = content.Id,
+					ContentJson = contentJson,
+					ImpersonatorUserId = context.RealUserId,
+					ActionType = 1
+				};
 
-				// Run the copy query now:
-				await database.RunWithId(context, copyQuery, content.Id);
+				await autoService.Revisions.Create(context, rev, DataOptions.IgnorePermissions);
 
-				// TODO: Trigger the before and after events (#208):
-				// - Requires collecting the ID from the above copy call.
-				// - Also requires collecting the EventGroup that the update event came from in order to call the events.
+				return content;
+			}, 11);
 
-				/*
-				// trigger the after create revision events:
-				if(beforeDeleteEvent.EventGroup != null){
-					// Note: This will not know what the revisions ID is.
-					beforeDeleteEvent.EventGroup.RevisionAfterCreate(context, revisionableContent);
+			evtGroup.AfterUpdate.AddEventListener(async (Context context, T content) => 
+			{
+				if (content == null)
+				{
+					return content;
 				}
-				*/
+
+				var now = DateTime.UtcNow;
+
+				var contentJson = await autoService.ToStoredJson(content);
+
+				var rev = new Revision<T, ID>() {
+					UserId = content.UserId,
+					CreatedUtc = now,
+					EditedUtc = now,
+					ContentId = content.Id,
+					ImpersonatorUserId = context.RealUserId,
+					ContentJson = contentJson,
+					ActionType = 2
+				};
+
+				await autoService.Revisions.Create(context, rev, DataOptions.IgnorePermissions);
+
+				return content;
+			});
+
+			evtGroup.AfterDelete.AddEventListener(async (Context context, T content) =>
+			{
+				if (content == null)
+				{
+					return content;
+				}
+
+				var now = DateTime.UtcNow;
+
+				var contentJson = await autoService.ToStoredJson(content);
+
+				var rev = new Revision<T, ID>()
+				{
+					UserId = content.UserId,
+					ImpersonatorUserId = context.RealUserId,
+					CreatedUtc = now,
+					EditedUtc = now,
+					ContentId = content.Id,
+					ContentJson = contentJson,
+					ActionType = 3
+				};
+
+				await autoService.Revisions.Create(context, rev, DataOptions.IgnorePermissions);
 
 				return content;
 			}, 11);

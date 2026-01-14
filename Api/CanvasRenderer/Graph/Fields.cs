@@ -72,11 +72,12 @@ namespace Api.CanvasRenderer
 			where T : Content<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			var jsonStructure = await svc.GetTypedJsonStructure(new Context());
+			var ctxt = new Context();
+			var jsonStructure = await svc.GetTypedJsonStructure(ctxt);
 
 			if (jsonStructure.TypeIO == null)
 			{
-				jsonStructure.TypeIO = TypeIOEngine.Generate(jsonStructure);
+				jsonStructure.TypeIO = TypeIOEngine.Generate<T>(jsonStructure, svc);
 			}
 
 			_typeReadWrite = jsonStructure.TypeIO;
@@ -145,7 +146,7 @@ namespace Api.CanvasRenderer
 			}
 
 			// Write a singular field:
-			TypeIOEngine.EmitWriteField(compileEngine.CodeBody, fld, (ILGenerator body) => {
+			TypeIOEngine.EmitWriteBasicField(compileEngine.CodeBody, fld, (ILGenerator body) => {
 
 				// Load the input:
 				compileEngine.EmitLoadInput("object", this);

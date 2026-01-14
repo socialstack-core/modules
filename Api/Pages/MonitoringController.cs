@@ -10,17 +10,15 @@ namespace Api.Startup;
 
 /// <summary>
 /// </summary>
-public partial class StdOutController : ControllerBase
+public partial class StdOutController : AutoController
 {
-
+	/*
 	/// <summary>
 	/// Page cache status.
 	/// </summary>
 	[HttpGet("cachestatus/html")]
-	public async ValueTask<HtmlCacheStatus> HtmlCache()
+	public HtmlCacheStatus HtmlCache(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 		{
 			throw PermissionException.Create("monitoring_cachestat", context);
@@ -28,6 +26,7 @@ public partial class StdOutController : ControllerBase
 
 		return Services.Get<HtmlService>().GetCacheStatus();
 	}
+	*/
 
 	/// <summary>
 	/// Plaintext benchmark.

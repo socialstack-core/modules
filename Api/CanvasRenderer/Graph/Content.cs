@@ -246,13 +246,14 @@ public class Content : Executor
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
-		var jsonStructure = await svc.GetTypedJsonStructure(new Context());
+		var ctxt = new Context();
+		var jsonStructure = await svc.GetTypedJsonStructure(ctxt);
 
 		var tio = jsonStructure.TypeIO;
 
 		if (tio == null)
 		{
-			jsonStructure.TypeIO = tio = TypeIOEngine.Generate(jsonStructure);
+			jsonStructure.TypeIO = tio = TypeIOEngine.Generate<T>(jsonStructure, svc);
 		}
 
 		_typeReadWrite = tio;
@@ -263,7 +264,7 @@ public class Content : Executor
 		{
 			var includesEngine = new IncludesExecutor<T, ID>(svc, _fields, tio);
 			_includes = includesEngine;
-			_outputWriterFld = await includesEngine.Setup(incl, compileEngine);
+			_outputWriterFld = includesEngine.Setup(incl, compileEngine);
 			_setWriter = compileEngine.DefineSetter(_outputWriterFld);
 		}
 
@@ -377,6 +378,10 @@ public class Content : Executor
 				// Writer to put it in:
 				compileEngine.EmitWriter();
 
+				// Context and isIncluded:
+				compileEngine.EmitLoadUserContext();
+				compileEngine.CodeBody.Emit(OpCodes.Ldc_I4_0);
+
 				// Invoke the write method:
 				var writeJsonMethod = _typeReadWrite.GetType().GetMethod("WriteJsonUnclosed");
 				compileEngine.CodeBody.Emit(OpCodes.Callvirt, writeJsonMethod);
@@ -454,7 +459,7 @@ public class Content : Executor
 		compileEngine.CodeBody.MarkLabel(notNull);
 
 		// Write a singular field:
-		TypeIOEngine.EmitWriteField(compileEngine.CodeBody, fld, (ILGenerator body) => {
+		TypeIOEngine.EmitWriteBasicField(compileEngine.CodeBody, fld, (ILGenerator body) => {
 
             // Load the input:
             if (_isPrimary)
@@ -599,7 +604,7 @@ public class Content : Executor
 
 				_setWriter(state, writer);
 
-				var vt = incEx.WriteJson(state.Context, contentVT.Result, writer);
+				var vt = incEx.WriteJson(state.Context, contentVT.Result, writer, ContextFlags.IsGraph | ContextFlags.IsIncluded);
 
 				if (!vt.IsCompleted)
 				{
@@ -642,7 +647,7 @@ public class Content : Executor
 		writer.Start(null);
 		_setWriter(state, writer);
 
-		var vt = incEx.WriteJson(state.Context, content, writer);
+		var vt = incEx.WriteJson(state.Context, content, writer, ContextFlags.IsGraph | ContextFlags.IsPrimary | ContextFlags.IsIncluded);
 
 		if (!vt.IsCompleted)
 		{
@@ -667,7 +672,7 @@ public class Content : Executor
 		_setContent(gc, res.Result);
 
 		// Are includes needed?
-		// If yes, don't stop the waiter and start constructing the json into the inclded writer.
+		// If yes, don't stop the waiter and start constructing the json into the included writer.
 		if (_includes == null)
 		{
 			gc.RemoveWaiter();
@@ -680,7 +685,7 @@ public class Content : Executor
 		writer.Start(null);
 		_setWriter(gc, writer);
 
-		var vt = incEx.WriteJson(gc.Context, res.Result, writer);
+		var vt = incEx.WriteJson(gc.Context, res.Result, writer, ContextFlags.IsGraph | ContextFlags.IsIncluded);
 
 		if (vt.IsCompleted)
 		{

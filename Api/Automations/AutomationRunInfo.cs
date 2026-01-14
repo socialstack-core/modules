@@ -37,10 +37,15 @@ namespace Api.Automations
 		/// </summary>
 		public string Name;
 
-		/// <summary>
-		/// The context the automation uses.
-		/// </summary>
-		public Context Context = new Context(1,1,1);
+        /// <summary>
+        /// The description of this run info.
+        /// </summary>
+        public string Description;
+
+        /// <summary>
+        /// The context the automation uses.
+        /// </summary>
+        public Context Context = new Context(1,0,1);
 
 		/// <summary>
 		/// The set of event handlers on this run info.

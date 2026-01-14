@@ -2,6 +2,7 @@ using Api.AutoForms;
 using Api.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Web;
 
 
 namespace Api.Pages
@@ -187,6 +188,66 @@ namespace Api.Pages
 		/// Meta name="" attribute.
 		/// </summary>
 		public string Name { get; set; }
+
+		private string _html;
+
+		/// <summary>
+		/// True if Rel is set.
+		/// </summary>
+		public bool IsRel => Rel != null;
+
+		/// <summary>
+		/// Gets this as the built html.
+		/// </summary>
+		/// <returns></returns>
+		public string GetHtml()
+		{
+			if (_html != null)
+			{
+				return _html;
+			}
+
+			string result;
+
+			// is the headTag a link or meta?
+			if (Rel != null)
+			{
+				result = "<link rel=\"" + HttpUtility.HtmlAttributeEncode(Rel) + "\"";
+
+				if (!string.IsNullOrEmpty(As))
+				{
+					result += " as=\"" + HttpUtility.HtmlAttributeEncode(As) + "\"";
+					result += " crossorigin=\"" + HttpUtility.HtmlAttributeEncode(CrossOrigin) + "\"";
+				}
+
+				if (Href != null)
+				{
+					result += " href=\"" + HttpUtility.HtmlAttributeEncode(Href) + "\"";
+				}
+			}
+			else
+			{
+				result = "<meta name=\"" + HttpUtility.HtmlAttributeEncode(Name) + "\"";
+
+				if (Content != null)
+				{
+					result += " content=\"" + HttpUtility.HtmlAttributeEncode(Content) + "\"";
+				}
+
+			}
+
+			if (Attributes != null)
+			{
+				foreach (var kvp in Attributes)
+				{
+					result += " " + kvp.Key + "=\"" + HttpUtility.HtmlAttributeEncode(kvp.Value) + "\"";
+				}
+			}
+
+			result += "/>";
+			_html = result;
+			return result;
+		}
 	}
 
 	/// <summary>
@@ -234,6 +295,87 @@ namespace Api.Pages
 		/// </summary>
 		public Dictionary<string, string> Attributes { get; set; }
 
+
+		private string _html;
+		private bool _remote;
+
+		/// <summary>
+		/// Gets this as HTML.
+		/// </summary>
+		/// <param name="isRemote"></param>
+		/// <returns></returns>
+		public string GetHtml(out bool isRemote)
+		{
+			if (_html == null)
+			{
+				BuildHtml();
+			}
+
+			isRemote = _remote;
+			return _html;
+		}
+
+		private void BuildHtml()
+		{
+			string opening;
+			string content;
+
+			if (!string.IsNullOrEmpty(NoScriptText))
+			{
+				_remote = false;
+				opening = "<noscript";
+				content = ">" + NoScriptText + "</noscript>";
+			}
+			else if (!string.IsNullOrEmpty(Content))
+			{
+				_remote = false;
+				opening = "<script";
+				content = ">" + Content + "</script>";
+			}
+			else
+			{
+				_remote = true;
+				opening = "<script";
+
+				// Expect an src:
+				if (Src != null)
+				{
+					opening += " src=\"" + Src + "\"";
+				}
+
+				content = "></script>";
+			}
+
+			if (Async)
+			{
+				opening += " async";
+			}
+
+			if (Defer)
+			{
+				opening += " defer";
+			}
+
+			if (Type != null)
+			{
+				opening += " type=\"" + Type + "\"";
+			}
+
+			if (Id != null)
+			{
+				opening += " id=\"" + Id + "\"";
+			}
+
+			if (Attributes != null)
+			{
+				foreach (var kvp in Attributes)
+				{
+					opening += " " + kvp.Key + "=\"" + HttpUtility.HtmlAttributeEncode(kvp.Value) + "\"";
+				}
+			}
+
+			_html = opening + content;
+		}
 	}
 
 }

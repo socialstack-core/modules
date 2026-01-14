@@ -1,0 +1,123 @@
+.shopping-cart {
+
+	&__promo {
+
+		> legend {
+			font-size: px_to_rem(16);
+			line-height: normal;
+			font-weight: 700;
+			margin: 0 0 px_to_rem(10) 0;
+			text-wrap: balance;
+		}
+
+		&-form {
+			display: flex;
+			flex-direction: column;
+			gap: px_to_rem(8);
+
+			.form-response {
+				margin-top: px_to_rem(8);
+
+				.spacer-container {
+					display: none;
+				}
+			}
+		}
+
+		.alert {
+			margin: 0;
+		}
+
+	}
+
+	&__coupon {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: px_to_rem(14);
+
+		> li {
+			font-size: px_to_rem(13);
+			font-weight: 600;
+			border-radius: px_to_rem(8);
+			background-color: var(--palette-light-green, var(--success));
+			color: var(--palette-green, var(--success-fg));
+			padding: px_to_rem(6) px_to_rem(14);
+			text-transform: uppercase;
+		}
+	}
+
+}
+
+@media only screen and (min-width: 800px) {
+
+	.shopping-cart {
+
+		&__promo {
+
+			&-form {
+				// can't do this as UI/Form injects .form-response at the same level (::grumbling noises::)
+				//flex-direction: row;
+				display: grid;
+				grid-template-columns: 1fr px_to_rem(160);
+				grid-template-rows: auto auto;
+				grid-template-areas: 
+					"code apply"
+					"response response";
+				gap: 0 px_to_rem(8);
+
+				input[type="text"] {
+					grid-area: code;
+					font-family: var(--font-mono);
+
+					&::placeholder {
+						font-family: var(--font);
+					}
+				}
+
+				button[type="submit"],
+				button[type="reset"] {
+					grid-area: apply;
+				}
+
+				.form-response {
+					grid-area: response;
+				}
+			}
+		}
+	}
+
+}
+
+/*
+@media only screen and (min-width: 1024px) {
+
+	.shopping-cart {
+
+		&__promo {
+			grid-area: promo;
+		}
+
+	}
+
+}
+*/
+
+@media only screen and (min-width: 1360px) {
+
+	.shopping-cart {
+
+		&__promo {
+
+			> legend {
+				font-size: px_to_rem(18);
+				line-height: normal;
+			}
+
+		}
+
+	}
+
+}

@@ -1,0 +1,88 @@
+// styles used by UI/Form can be overridden by updating the relevant CSS prop below
+// defaults will be used for any undefined values
+:root {
+/*
+	// extra small (xs)
+	--label-xs-font-size: 13;
+	--label-xs-font-weight: 700;
+	
+	--field-xs-min-height: 35;
+	--field-xs-padding: 10;
+	--field-xs-font-size: 13;
+	--field-xs-font-weight: 400;
+	--field-xs-border-radius: 5;
+	--field-xs-placeholder-font-size: 13;
+	--field-xs-placeholder-font-weight: 400;
+	--field-xs-text-font-size: 11;
+	--field-xs-select-icon-width: 13;
+	--field-xs-select-icon-height: 6;
+
+
+	// small (sm)
+	--label-sm-font-size: 14;
+	--label-sm-font-weight: 700;
+	
+	--field-sm-min-height: 40;
+	--field-sm-padding: 16;
+	--field-sm-font-size: 14;
+*/
+	--field-sm-font-weight: 400;
+/*
+	--field-sm-border-radius: 5;
+	--field-sm-placeholder-font-size: 14;
+	--field-sm-placeholder-font-weight: 400;
+	--field-sm-text-font-size: 12;
+	--field-sm-select-icon-width: 14;
+	--field-sm-select-icon-height: 7;
+
+
+	// regular (md)
+	--label-md-font-size: 15;
+	--label-md-font-weight: 700;
+	
+	--field-md-min-height: 45;
+	--field-md-padding: 18;
+	--field-md-font-size: 16;
+*/
+	--field-md-font-weight: 400;
+/*
+	--field-md-border-radius: 5;
+	--field-md-placeholder-font-size: 16;
+	--field-md-placeholder-font-weight: 400;
+	--field-md-text-font-size: 14;
+	--field-md-select-icon-width: 16;
+	--field-md-select-icon-height: 8;
+
+	
+	// large (lg)
+	--label-lg-font-size: 18;
+	--label-lg-font-weight: 700;
+  
+	--field-lg-min-height: 55;
+	--field-lg-padding: 20;
+	--field-lg-font-size: 18;
+	--field-lg-font-weight: 700;
+	--field-lg-border-radius: 5;
+	--field-lg-placeholder-font-size: 18;
+	--field-lg-placeholder-font-weight: 400;
+	--field-lg-text-font-size: 16;
+	--field-lg-select-icon-width: 18;
+	--field-lg-select-icon-height: 9;
+
+
+	// extra large (xl)
+	--label-xl-font-size: 23;
+	--label-xl-font-weight: 700;
+	
+	--field-xl-min-height: 65;
+	--field-xl-padding: 25;
+	--field-xl-font-size: 23;
+	--field-xl-font-weight: 700;
+	--field-xl-border-radius: 5;
+	--field-xl-placeholder-font-size: 23;
+	--field-xl-placeholder-font-weight: 400;
+	--field-xl-text-font-size: 20;
+	--field-xl-select-icon-width: 23;
+	--field-xl-select-icon-height: 11;
+*/
+}

@@ -1,0 +1,27 @@
+.ui-product-price {
+	display: flex;
+	align-items: flex-end;
+	gap: px_to_rem(4);
+	font-size: px_to_rem(18);
+	line-height: normal;
+	font-weight: 600;
+	color: var(--site-fg, #000);
+
+	> span {
+		font-size: px_to_rem(10);
+		font-weight: 400;
+		transform: translateY(px_to_rem(-1));
+	}
+
+	// previous price
+	&--from {
+		font-weight: 700;
+	}
+
+	// previous price
+	&--was {
+		color: var(--danger);
+		font-weight: 700;
+	}
+
+}

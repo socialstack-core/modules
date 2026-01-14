@@ -3,9 +3,9 @@
 namespace Api.Startup
 {
 	/// <summary>
-	/// Add [HasOptionalField(..)] attributes to declare that some named optional secondary data.
+	/// Add [HasVirtualField(..)] attributes to declare that some named data can be included.
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
+	[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class, Inherited = true, AllowMultiple = true)]
 	internal sealed class HasVirtualFieldAttribute : Attribute
 	{
 		/// <summary>

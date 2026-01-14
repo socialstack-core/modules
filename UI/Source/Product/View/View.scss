@@ -1,0 +1,333 @@
+// allow spacing for docked price info
+body:has(.ui-product-view__price-info) #react-root {
+	padding-bottom: px_to_rem(135);
+}
+
+// ensure docked price info appears below product image lightbox
+body:has(.ui-product-images__slides .ui-product-images__slide[open]) {
+	
+	.ui-product-view__price-info {
+		z-index: auto;
+	}
+
+}
+
+// mobile first
+.ui-product-view {
+	$ui-product-view: &;
+	color: var(--secondary);
+    display: flex;
+	flex-direction: column;
+    gap: px_to_rem(10);
+
+	.site-breadcrumb {
+		order: -2;
+	}
+
+	.ui-product-header {
+		order: -1;
+	}
+
+	&__price-info {
+		grid-area: price;
+		display: grid;
+		//grid-template-columns: auto auto auto;
+		//grid-template-rows: auto auto;
+		//grid-template-areas:
+		//	"approved variants price"
+		//	"qty qty qty";
+		grid-template-columns: auto auto;
+		grid-template-rows: auto auto;
+		grid-template-areas:
+			"approved price"
+			"variants qty";
+		gap: px_to_rem(10) px_to_rem(15);
+		padding: px_to_rem(20);
+		border-radius: px_to_rem(20) px_to_rem(20) 0 0;
+		box-shadow: 0 0 px_to_rem(45) 0px rgba(71, 6, 49, .06);
+		background: var(--site-bg, #fff);
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		min-height: px_to_rem(135);
+		z-index: 900;
+
+		&-approved {
+			grid-area: approved;
+			height: px_to_rem(30);
+			padding: 0 px_to_rem(10);
+			text-transform: uppercase;
+			font-size: px_to_rem(11);
+			font-weight: 800;
+			background: var(--approved-bg, var(--success));
+			color: var(--approved-fg, var(--success-fg));
+			display: inline-flex;
+			align-items: center;
+			gap: px_to_rem(10);
+			margin: auto 0;
+
+			i {
+				font-size: px_to_rem(14);
+			}
+
+		}
+
+		&-variants {
+			grid-area: variants;
+			--btn-min-height: 0;
+			height: px_to_rem(36);
+			//width: px_to_rem(35);
+			margin: auto 0;
+			padding: 0;
+
+			&-header {
+				display: flex;
+				align-items: center;
+				gap: px_to_rem(10);
+				font-size: px_to_rem(12);
+				font-weight: 700;
+				margin-bottom: px_to_rem(10);
+
+				i {
+					font-size: px_to_rem(15);
+					color: var(--primary);
+				}
+			}
+
+			&.btn-info {
+				//color: var(--info);
+				//background-color: var(--palette-light-grey);
+				//border: 0;
+			}
+
+			i { 
+				//color: var(--info);
+			}
+
+			/*
+			> span {
+				// mimic .sr-only
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip-path: rect(0, 0, 0, 0);
+				border: 0;
+			}
+			*/
+		}
+
+		#product_variants {
+			max-width: 80vw;
+			padding: 1rem;
+			border: 0;
+			box-shadow: 0 0 px_to_rem(16) 0 rgba(#210818, 25%);
+
+			&::backdrop {
+				background-color: rgba(#210818, 25%);
+			}
+		}
+
+		.ui-product-price {
+			grid-area: price;
+			font-size: px_to_rem(30);
+			font-weight: 700;
+			letter-spacing: px_to_rem(-1.5);
+			display: flex;
+			align-items: center;
+			justify-content: flex-end;
+			gap: px_to_rem(5);
+
+			span {
+				font-size: px_to_rem(11);
+				font-weight: 400;
+				//align-self: flex-end;
+				letter-spacing: px_to_rem(-.55);
+				transform: translateY(45%);
+			}
+
+		}
+
+		.ui-product-qty {
+			grid-area: qty;
+		}
+
+	}
+
+	&__tab--about {
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(32);
+	}
+
+}
+
+@media only screen and (min-width: 600px) {
+
+	// price info no longer docked, remove spacing
+	body:has(.ui-product-view__price-info) #react-root {
+		padding-bottom: 0;
+	}
+
+	.ui-product-view {
+		display: grid;
+		gap: px_to_rem(10) px_to_rem(20);
+		grid-template-columns: px_to_rem(344) 1fr;
+		grid-template-rows: auto auto auto auto;
+		grid-template-areas: 
+			"breadcrumbs breadcrumbs"
+			"header header"
+			"carousel price"
+			"tabs tabs";
+
+		.site-breadcrumb {
+			grid-area: breadcrumbs;
+			order: 0;
+		}
+
+		.ui-product-images {
+			grid-area: carousel;
+		}
+
+		.ui-product-header {
+			grid-area: header;
+			order: 0;
+		}
+
+		.ui-page__tabs {
+			grid-area: tabs;
+		}
+
+		&__price-info {
+			position: static;
+			//position: sticky;
+			//top: calc(var(--site-header-height) + #{px_to_rem(20)});
+			min-height: 0;
+			z-index: auto;
+			display: flex;
+			flex-direction: column;
+			gap: px_to_rem(10);
+			border-radius: px_to_rem(10);
+			height: fit-content;
+			max-width: px_to_rem(250);
+			/*
+			grid-area: price;
+			display: flex;
+			flex-direction: column;
+			gap: px_to_rem(10);
+			padding: px_to_rem(20);
+			border-radius: px_to_rem(10);
+			background: var(--site-bg, #fff);
+			box-shadow: 0 0 px_to_rem(45) 0 rgba(71, 6, 49, .06);
+			*/
+
+			&-approved {
+				margin: 0;
+				justify-content: center;
+			}
+
+			&-variants {
+				display: none;
+			}
+
+			#product_variants {
+				// undo default popover styling
+				position: static;
+				width: auto;
+				height: auto;
+				color: currentColor;
+				background-color: var(--palette-light-grey);
+				inset: auto;
+				margin: 0;
+				border-width: 0;
+				//border-style: solid;
+				//border-color: initial;
+				//border-image: initial;
+				padding: px_to_rem(10);
+				overflow: visible;
+				display: block;
+				font-size: px_to_rem(11);
+				line-height: normal;
+			
+				// undo mobile styling
+				max-width: none;
+				box-shadow: none;
+			}
+
+			.ui-product-price {
+				flex-direction: column;
+				align-items: flex-start;
+				gap: 0;
+
+				span {
+					font-size: px_to_rem(12);
+					letter-spacing: px_to_rem(-.6);
+					transform: none;
+				}
+
+			}
+
+		}
+
+	}
+
+}
+
+// full width Figma design
+@media only screen and (min-width: 1360px) {
+
+	.ui-product-view {
+		margin-top: px_to_rem(40);
+		gap: px_to_rem(30);
+		grid-template-columns: px_to_rem(250) px_to_rem(344) minmax(0, 1fr) px_to_rem(250);
+		grid-template-rows: auto auto 1fr;
+		grid-template-areas: 
+			"breadcrumbs carousel header price"
+			"breadcrumbs carousel tabs price"
+			". . tabs .";
+
+		.site-breadcrumb {
+			flex-direction: column;
+			align-self: flex-start;
+			position: sticky;
+			top: calc(var(--site-header-height) + #{px_to_rem(20)});
+
+			//grid-area: breadcrumbs;
+			//order: 0;
+
+			menu {
+				padding: px_to_rem(20);
+				flex-direction: column;
+			}
+
+			&__item {
+				font-size: px_to_rem(13);
+
+				i {
+					font-size: px_to_rem(14);
+				}
+
+			}
+
+		}
+
+		&__price-info {
+			position: sticky;
+			top: calc(var(--site-header-height) + #{px_to_rem(20)});
+
+			.ui-product-price {
+
+				span {
+					font-size: px_to_rem(14);
+				}
+
+			}
+
+		}
+
+	}
+
+}

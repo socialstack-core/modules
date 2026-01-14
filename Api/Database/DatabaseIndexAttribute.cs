@@ -9,14 +9,27 @@ namespace Api.Database
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
 	public sealed class DatabaseIndexAttribute : Attribute
 	{
+
+		/// <summary>
+		///  The optional name of the index, other wise generated based on the field names 
+		/// </summary>
+		public string Name;
+
+		/// <summary>
+		///  The scope of the index, initially cache or database, if blank all are assumed.
+		/// </summary>
+		public string Scope;
+
 		/// <summary>
 		///  Can be either ASC or DESC.
 		/// </summary>
 		public string Direction;
+
 		/// <summary>
 		/// True if this is a unique index.
 		/// </summary>
 		public bool Unique = true;
+
 		/// <summary>
 		/// The fields in this index (case sensitive).
 		/// </summary>

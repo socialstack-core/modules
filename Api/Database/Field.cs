@@ -11,6 +11,14 @@ using System.Threading.Tasks;
 namespace Api.Database
 {
 	/// <summary>
+	/// Parse the given JSON string and returns a boxed Localized for a specific field. 
+	/// Note that the target method is a concrete type (Localized string etc).
+	/// </summary>
+	/// <param name="src"></param>
+	/// <returns></returns>
+	public delegate object LocalizeParseBoxed(string src);
+
+	/// <summary>
 	/// Stores details about a DatabaseRow child type field.
 	/// </summary>
 	public class Field
@@ -19,7 +27,7 @@ namespace Api.Database
 		/// The type that this field is part of.
 		/// This isn't the same as TargetField.DeclaringType (specifically because Id is declared elsewhere, but is "owned" by the row type).
 		/// </summary>
-		public Type OwningType;
+		public readonly Type OwningType;
 		/// <summary>
 		/// The type of this fields value (int, string etc).
 		/// </summary>
@@ -41,10 +49,6 @@ namespace Api.Database
 		/// </summary>
 		public string OwningTypeName;
 		/// <summary>
-		/// The full name of this field, except it ends with an underscore. OwningType.Name.`Name_
-		/// </summary>
-		public string LocalisedName;
-		/// <summary>
 		/// Does this field have a price attribute? If so, do not use default locale value if null
 		/// </summary>
 		public bool IsPrice;
@@ -52,6 +56,15 @@ namespace Api.Database
 		/// Attributes on the field/ property (if any). Can be null.
 		/// </summary>
 		public List<Attribute> TargetFieldCustomAttributes;
+		/// <summary>
+		/// True if this field is Localized.
+		/// </summary>
+		public bool IsLocalized;
+
+		/// <summary>
+		/// Converts a JSON string to a Localized, boxed.
+		/// </summary>
+		public LocalizeParseBoxed ParseLocalized;
 
 		/// <summary>
 		/// Creates a new empty field
@@ -79,6 +92,7 @@ namespace Api.Database
             {
 				IsPrice = true;
 			}
+			SetIsLocalized();
 			SetFullName(null);
 		}
 
@@ -108,23 +122,34 @@ namespace Api.Database
 			return _isNullable.Value;
 		}
 
+		private void SetIsLocalized()
+		{
+			if (TargetField == null)
+			{
+				return;
+			}
+
+			var ft = TargetField.FieldType;
+
+			if (ft.IsGenericType)
+			{
+				var typeDef = ft.GetGenericTypeDefinition();
+
+				if (typeDef == typeof(Localized<>))
+				{
+					ParseLocalized = ft.GetMethod("ParseBoxed", BindingFlags.Static | BindingFlags.Public).CreateDelegate<LocalizeParseBoxed>();
+
+					IsLocalized = true;
+				}
+			}
+		}
+
 		/// <summary>
 		/// Updates the FullName and LocalisedName fields.
 		/// </summary>
 		public void SetFullName(string extension = null)
 		{
 			FullName = "`" + OwningTypeName + ((extension == null) ? "" : "_" + extension) + "`.`" + Name;
-
-			if ((TargetField != null && TargetField.GetCustomAttribute<LocalizedAttribute>() != null) 
-				|| (TargetFieldCustomAttributes != null && TargetFieldCustomAttributes.FirstOrDefault(attr => attr is LocalizedAttribute) != null))
-			{
-				LocalisedName = FullName + "_";
-			}
-			else
-			{
-				LocalisedName = null;
-			}
-
 			FullName += "`";
 		}
 		
@@ -140,7 +165,7 @@ namespace Api.Database
 				TargetField = TargetField,
 				Name = Name,
 				FullName = FullName,
-				LocalisedName = LocalisedName
+				IsLocalized = IsLocalized
 			};
 		}
 

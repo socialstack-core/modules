@@ -62,11 +62,6 @@ public partial class LogTransactionReader
 	public bool Halt = false;
 
 	/// <summary>
-	/// The cache being used by the current transaction.
-	/// </summary>
-	public CacheSet CacheSet;
-
-	/// <summary>
 	/// The number of fields.
 	/// </summary>
 	public int FieldCount;

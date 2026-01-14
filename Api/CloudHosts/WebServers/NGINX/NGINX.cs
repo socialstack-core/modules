@@ -2,10 +2,10 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using Api.Contexts;
 using Api.Startup;
-using Api.Redirects;
 using Api.Translate;
 using System.Linq;
 using System.IO;
+using System;
 
 namespace Api.CloudHosts
 {
@@ -15,7 +15,6 @@ namespace Api.CloudHosts
 	/// </summary>
 	public partial class NGINX : WebServer
     {
-		private RedirectService _redirectService;
 		private LocaleService _localeService;
 		private List<Locale> _allLocales;
 		/// <summary>
@@ -39,46 +38,52 @@ namespace Api.CloudHosts
 		public override async ValueTask Apply(Context context)
 		{
 			_localeService ??= Services.Get<LocaleService>();
-			_redirectService ??= Services.Get<RedirectService>(); // In Startup namespace
-												// Start constructing new NGINX config.
+			
+			// Start constructing new NGINX config.
 			var configFile = new NGINXConfigFile();
 
 			// Get the cert info:
 			var certInfo = Service.GetCertificateInfo();
 
-			// Ensure this dir exists as it's referenced by the config.
-			Directory.CreateDirectory("./nginx");
-
-			List<string> hostnames = new List<string>();
+            // Ensure this dir exists as it's referenced by the config.
+            var nginxConfigPath = Path.GetFullPath("nginx");
+            Directory.CreateDirectory(nginxConfigPath);
 
 			foreach (var kvp in certInfo)
 			{
-				hostnames.Add(kvp.Key);
 				var serviceCert = kvp.Value;
 
 				if (serviceCert.Certificate != null)
 				{
 					// Ensure this certs pk and chain are written out.
 					// SetupDefaults assumes they are at ./nginx/{host}-privkey.pem and ./nginx/{host}-fullchain.pem
-					File.WriteAllText("./nginx/" + kvp.Key + "-privkey.pem", serviceCert.Certificate.PrivateKeyPem);
-					File.WriteAllText("./nginx/" + kvp.Key + "-fullchain.pem", serviceCert.Certificate.FullchainPem);
+					File.WriteAllText($"{nginxConfigPath}/" + kvp.Key + "-privkey.pem", serviceCert.Certificate.PrivateKeyPem);
+					File.WriteAllText($"{nginxConfigPath}/" + kvp.Key + "-fullchain.pem", serviceCert.Certificate.FullchainPem);
 				}
 			}
 
 			// Apply the default config in to it for the given set of hostnames.
-			configFile.SetupDefaults(hostnames);
-
-			// Add the redirects - get them all from the DB:
-			var redirects = await _redirectService.Where("", DataOptions.IgnorePermissions).ListAll(context);
+			configFile.SetupDefaults(nginxConfigPath, certInfo);
 
 			// Get the configurable context, the one into which we can put our custom redirect rules:
 			var cfgContext = configFile.GetConfigurableContext();
-
+			
+			// case insensitive list to stop duplicate redirects
+			var redirectsList = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
+			
+			/*
+			 * These redirects are obsoleted: use permalinks instead. They are much more powerful.
+			 * 
 			// For each redirect:
 			foreach (var redirect in redirects)
 			{
 				var from = redirect.From.Trim();
-				var to = redirect.To.Trim();
+                var to = redirect.To.Trim();
+                if (redirectsList.Contains(from)) {
+					Log.Error("nginx", $"Found duplicate redirect - ignoring - {from} -> {to}");
+					continue;
+				}
+
 				var statusCode = redirect.PermanentRedirect ? "301 " : "302 ";
 
 				// From & to originate from the admin panel.
@@ -89,22 +94,25 @@ namespace Api.CloudHosts
 					continue;
 				}
 
+				redirectsList.Add(from);	
+
 				// Add 2 location contexts to the NGINX config:
 				cfgContext.AddLocationContext($"= " + from).AddDirective($"return", statusCode + to);
 				cfgContext.AddLocationContext($"= " + from + "/").AddDirective($"return", statusCode + to);
 			}
+			*/
 
-			// each locale can also be optionally redirected
+			// locales can also be optionally redirected
 			var locales = GetAllLocales(context);
 
 			if (locales != null && locales.Count > 0)
 			{
 				foreach (var altLocale in locales)
 				{
-
-					if (altLocale.isRedirected)
+					if (altLocale.isRedirected && !redirectsList.Contains("/" + altLocale.Code))
 					{
 						var statusCode = altLocale.PermanentRedirect ? "301 " : "302 ";
+						redirectsList.Add("/" + altLocale.Code);
 						cfgContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
 						cfgContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
 					}
@@ -112,7 +120,7 @@ namespace Api.CloudHosts
 			}
 
 			// Write it out:
-			configFile.WriteToFile();
+			configFile.WriteToFile(nginxConfigPath);
 
 			// Tell NGINX to reload:
 			await Reload();
@@ -151,6 +159,7 @@ namespace Api.CloudHosts
 		/// </summary>
 		public override async ValueTask Reload()
 		{
+            Log.Info("nginx", $"Reloading nginx config");
 			await CommandLine.Execute("sudo nginx -s reload");
 		}
 
@@ -159,6 +168,7 @@ namespace Api.CloudHosts
 		/// </summary>
 		public override async ValueTask Restart()
 		{
+            Log.Info("nginx", $"Restarting nginx");
 			await CommandLine.Execute("sudo service nginx restart");
 		}
 

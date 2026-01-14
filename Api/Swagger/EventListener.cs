@@ -1,65 +1,122 @@
-﻿using System;
+﻿using Api.Contexts;
 using Api.Startup;
 using Microsoft.AspNetCore.Builder;
-using System.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using System.Linq;
-using System.Collections.Generic;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.SwaggerGen;
+using Swashbuckle.AspNetCore.SwaggerUI;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace Api.Swagger
 {
+    /// <summary>
+    /// Listens for events to setup the development pack directory.
+    /// </summary>
+    [EventListener]
+    public class EventListener
+    {
+        /// <summary>
+        /// Instanced automatically.
+        /// </summary>
+        public EventListener()
+        {
+            var title = SwaggerService.GetAssemblyAttribute<AssemblyTitleAttribute>().Title;
+            var version = "v1"; // Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 
-	/// <summary>
-	/// Listens for events to setup the development pack directory.
-	/// </summary>
-	[EventListener]
-	public class EventListener
-	{
-		/// <summary>
-		/// Instanced automatically.
-		/// </summary>
-		public EventListener()
-		{
-			var title = GetAssemblyAttribute<AssemblyTitleAttribute>().Title;
+            WebServerStartupInfo.OnConfigureServices +=
+                (IServiceCollection builder) =>
+                {
+					builder.AddRouting();
 
-			WebServerStartupInfo.OnConfigureServices +=
-				(IServiceCollection builder) =>
-				{
 					builder.AddEndpointsApiExplorer();
-					builder.AddOpenApiDocument(config =>
-					{
-						config.DocumentName = title;
-						config.Title = title;
-						config.Version = Assembly.GetExecutingAssembly().GetName().Version?.ToString();
-					});
-				};
+                    builder.AddSwaggerGen(options =>
+                    {
+                        options.SwaggerDoc(version, new OpenApiInfo { Title = title, Version = version });
+                        options.DocumentFilter<SwaggerDocumentFilter>();
+                    });
+                };
 
-			// Also hook up the configure app method:
-			WebServerStartupInfo.OnConfigureApplication += (IApplicationBuilder app) => {
+            // Also hook up the after app configuration
+            WebServerStartupInfo.OnConfigureApplication += (IApplicationBuilder app) =>
+            {
+                //restrict access to admin panel users 
+                app.UseMiddleware<SwaggerAuthenticationMiddleware>();
 
-				app.UseOpenApi();
-				app.UseSwaggerUi(config =>
-				{
-					config.DocumentTitle = title;
-					config.Path = "/swagger";
-					config.DocumentPath = "/swagger/{documentName}/swagger.json";
-					config.DocExpansion = "list";
-				});
+                // if we get a 500 error from /swagger/v1/swagger.json
+                // try moving the calls below directly into WebServerStartupInfo
+                // as this appeared to improve/expose the errors to stdout when initially trying
+                // to get this to work ...
+                app.UseSwagger();
+                app.UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint($"/swagger/{version}/swagger.json", $"{title} {version}");
+                    c.SupportedSubmitMethods(new SubmitMethod[] { SubmitMethod.Get});
+                    
+                    // auto shows try it out when chosing an endpoint
+                    //c.EnableTryItOutByDefault();
+                });
+            };
+        }
 
-			};
+        /// <summary>
+        /// 
+        /// </summary>
+        public class SwaggerDocumentFilter : IDocumentFilter
+        {
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="swaggerDoc"></param>
+            /// <param name="context"></param>
+            public void Apply(OpenApiDocument swaggerDoc, DocumentFilterContext context)
+            {
+                //call service so that we have dynamic config etc 
+                var swaggerService = Services.Get<SwaggerService>();
+                if (swaggerService != null)
+                {
+                    swaggerService.FilterDocuments(swaggerDoc, context);
+                }
+            }
+        }
 
-		}
+        /// <summary>
+        /// 
+        /// </summary>
+        public class SwaggerAuthenticationMiddleware
+        {
+            private readonly RequestDelegate _next;
 
-		public static T GetAssemblyAttribute<T>() where T : Attribute
-		{
-			var thisAsm = typeof(EventListener).Assembly;
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="next"></param>
+            public SwaggerAuthenticationMiddleware(RequestDelegate next)
+            {
+                _next = next;
+            }
 
-			object[] attributes = thisAsm.GetCustomAttributes(typeof(T), false);
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <param name="context"></param>
+            /// <returns></returns>
+            public async Task InvokeAsync(HttpContext context)
+            {
+                if (context.Request.Path.StartsWithSegments("/swagger"))
+                {
+                    var ctx = await context.Request.GetContext();
+                    if (ctx == null || ctx.Role == null || !ctx.Role.CanViewAdmin)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status404NotFound;
+                        return;
+                    }
+                }
 
-			if (attributes.Length == 0)
-				return null;
-
-			return attributes.OfType<T>().SingleOrDefault();
-		}
-	}
+                await _next(context);
+            }
+        }
+    }
 }
+

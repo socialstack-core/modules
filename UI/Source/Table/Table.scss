@@ -1,0 +1,37 @@
+.ui-table {
+	border: 0;
+
+	&--sticky {
+
+		thead {
+			position: sticky;
+			top: var(--table-header-top, #{px_to_rem(50)});
+			z-index: 100;
+
+			// display block of colour directly below header
+			// (used to mask content scrolling behind)
+			&::after {
+				content: "";
+				background: var(--table-header-background, var(--light));
+				position: absolute;
+				width: 100%;
+				top: px_to_rem(-20);
+				bottom: 0;
+				z-index: -1;
+			}
+
+		}
+
+	}
+
+	thead {
+
+		tr {
+
+			th {
+				vertical-align: middle;
+			}
+		}
+	}
+
+}

@@ -4,6 +4,7 @@ using Api.Eventing;
 using Api.Permissions;
 using Api.SocketServerLibrary;
 using Api.Startup;
+using Api.Translate;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Concurrent;
@@ -49,11 +50,7 @@ public enum DataOptions : int
 	/// Checks if the given row has not changed based on the EditedUtc date.
 	/// </summary>
 	CheckNotChanged = 8,
-	/// <summary>
-	/// Set this flag true to get the raw data from the db.
-	/// </summary>
-	RawFlag = 4,
-
+	
 	/// <summary>
 	/// Cache flag
 	/// </summary>
@@ -93,7 +90,7 @@ public enum DataOptions : int
 /// </summary>
 /// <typeparam name="T"></typeparam>
 /// <typeparam name="ID">ID type (usually int)</typeparam>
-public partial class AutoService<T, ID> : AutoService 
+public partial class AutoService<T, ID> : AutoService, ContentStreamSource<T, ID>
 	where T: Content<ID>, new()
 	where ID: struct, IConvertible, IEquatable<ID>, IComparable<ID>
 {
@@ -274,26 +271,6 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Gets the underlying mapping service from this type to the given type, with the given map name. The map name is the same as the "list as" attribute on the target type.
-	/// </summary>
-	/// <typeparam name="MAP_TARGET"></typeparam>
-	/// <typeparam name="T_ID"></typeparam>
-	/// <param name="mappingName"></param>
-	/// <returns></returns>
-	public async ValueTask<MappingService<T, MAP_TARGET, ID, T_ID>> GetMap<MAP_TARGET, T_ID>(string mappingName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
-		where MAP_TARGET : Content<T_ID>, new()
-	{
-		// Get mapping service:
-		var targetSvc = Services.GetByContentType(typeof(MAP_TARGET));
-
-		// Get the mapping type:
-		var mappingService = await MappingTypeEngine.GetOrGenerate(this, targetSvc, mappingName) as MappingService<T, MAP_TARGET, ID, T_ID>;
-
-		return mappingService;
-	}
-
-	/// <summary>
 	/// List a set of values from this service which are present in a mapping of the given target type.
 	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
 	/// </summary>
@@ -308,116 +285,9 @@ public partial class AutoService<T, ID> : AutoService
 		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 		where MAP_TARGET : Content<T_ID>, new()
 	{
-		var res = new List<T>();
-		await ListByTarget<MAP_TARGET, T_ID>(context, targetId, mappingName, (Context c, T r, int ind, object a, object b) =>
-		{
-			var set = (List<T>)a;
-			set.Add(r);
-			return new ValueTask();
-		}, res, null, options);
-
-		return res;
+		return await Where(mappingName + " contains ?", options).Bind(targetId).ListAll(context);
 	}
-
-	/// <summary>
-	/// List a set of values from this service which are present in a mapping of the given target type.
-	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
-	/// </summary>
-	/// <typeparam name="MAP_SOURCE"></typeparam>
-	/// <typeparam name="S_ID"></typeparam>
-	/// <param name="context"></param>
-	/// <param name="src"></param>
-	/// <param name="srcId"></param>
-	/// <param name="mappingName"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public async ValueTask<List<T>> ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
-		where MAP_SOURCE : Content<S_ID>, new()
-	{
-		var set = new List<T>();
-
-		await ListBySource(context, src, srcId, mappingName, (Context c, T obj, int index, object a, object b) => {
-
-			var passedSet = (List<T>)a;
-			passedSet.Add(obj);
-			return new ValueTask();
-
-		}, set, null, options);
-
-		return set;
-	}
-
-	/// <summary>
-	/// List a set of values from this service which are present in a mapping of the given target type.
-	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
-	/// </summary>
-	/// <typeparam name="MAP_SOURCE"></typeparam>
-	/// <typeparam name="S_ID"></typeparam>
-	/// <param name="context"></param>
-	/// <param name="src"></param>
-	/// <param name="srcId"></param>
-	/// <param name="mappingName"></param>
-	/// <param name="onResult"></param>
-	/// <param name="a"></param>
-	/// <param name="b"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, S_ID srcId, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
-		where MAP_SOURCE : Content<S_ID>, new()
-	{
-		// Get map:
-		var mappingService = await src.GetMap<T, ID>(mappingName);
-
-		var collector = new IDCollector<ID>();
-		
-		// Ask mapping service for all target values with the given source ID.
-		await mappingService.ListTargetIdBySource(context, srcId, (Context ctx, ID id, object src) => {
-			var _collector = (IDCollector<ID>)src;
-			_collector.Add(id);
-			return new ValueTask();
-		}, collector);
-
-		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
-		collector.Release();
-	}
-
-	/// <summary>
-	/// List a set of values from this service which are present in a mapping of the given target type.
-	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
-	/// </summary>
-	/// <typeparam name="MAP_SOURCE"></typeparam>
-	/// <typeparam name="S_ID"></typeparam>
-	/// <param name="context"></param>
-	/// <param name="src"></param>
-	/// <param name="srcIds"></param>
-	/// <param name="mappingName"></param>
-	/// <param name="onResult"></param>
-	/// <param name="a"></param>
-	/// <param name="b"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public async ValueTask ListBySource<MAP_SOURCE, S_ID>(Context context, AutoService<MAP_SOURCE, S_ID> src, IDCollector<S_ID> srcIds, string mappingName, Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
-		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
-		where MAP_SOURCE : Content<S_ID>, new()
-	{
-		// Get map:
-		var mappingService = await src.GetMap<T, ID>(mappingName);
-
-		var collector = new IDCollector<ID>();
-
-		// Ask mapping service for all target values with the given source ID.
-		await mappingService.ListTargetIdBySource(context, srcIds, (Context ctx, ID id, object src) => {
-			var _collector = (IDCollector<ID>)src;
-			_collector.Add(id);
-			return new ValueTask();
-		}, collector);
-
-		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
-		collector.Release();
-	}
-
+	
 	/// <summary>
 	/// List a set of values from this service which are present in a mapping of the given target type.
 	/// This is backwards from the typical mapping flow - i.e. you're getting the list of sources with a given single target value.
@@ -436,20 +306,66 @@ public partial class AutoService<T, ID> : AutoService
 	where T_ID: struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
 	where MAP_TARGET: Content<T_ID>, new()
 	{
-		// Get map:
-		var mappingService = await GetMap<MAP_TARGET, T_ID>(mappingName);
+		await Where(mappingName + " contains ?", options).Bind(targetId).ListAll(context, onResult, a, b);
+	}
+	
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// </summary>
+	/// <typeparam name="S_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="mappingName"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	public async ValueTask<List<T>> ListBySource<S_ID>(Context context, Content<S_ID> src, string mappingName, DataOptions options = DataOptions.Default)
+		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
+	{
+		var set = new List<T>();
 
-		// Ask mapping service for all source values with the given target ID.
-		var collector = new IDCollector<ID>();
+		await ListBySource(context, src, mappingName, (Context c, T obj, int index, object a, object b) => {
 
-		await mappingService.ListSourceIdByTarget(context, targetId, (Context ctx, ID id, object src) => {
-			var _collector = (IDCollector<ID>)src;
-			_collector.Add(id);
+			var passedSet = (List<T>)a;
+			passedSet.Add(obj);
 			return new ValueTask();
-		}, collector);
 
-		await Where("Id=[?]", options).Bind(collector).ListAll(context, onResult, a, b);
-		collector.Release();
+		}, set, null, options);
+
+		return set;
+	}
+
+	/// <summary>
+	/// List a set of values from this service which are present in a mapping of the given target type.
+	/// </summary>
+	/// <typeparam name="S_ID"></typeparam>
+	/// <param name="context"></param>
+	/// <param name="src"></param>
+	/// <param name="mappingName"></param>
+	/// <param name="onResult"></param>
+	/// <param name="a"></param>
+	/// <param name="b"></param>
+	/// <param name="options"></param>
+	/// <returns></returns>
+	public async ValueTask ListBySource<S_ID>(Context context, Content<S_ID> src, string mappingName, 
+		Func<Context, T, int, object, object, ValueTask> onResult, object a, object b, DataOptions options = DataOptions.Default)
+		where S_ID : struct, IEquatable<S_ID>, IConvertible, IComparable<S_ID>
+	{
+		if (src == null)
+		{
+			// Nothing to do.
+			return;
+		}
+
+		var ids = src.Mappings.Get(mappingName);
+
+		if (ids == null)
+		{
+			return;
+		}
+
+		await Where("Id=[?]", options)
+			.Bind(ids)
+			.ListAll(context, onResult, a, b);
 	}
 
 	private ConcurrentDictionary<string, FilterMeta<T,ID>> _filterSets = new ConcurrentDictionary<string, FilterMeta<T,ID>>();
@@ -515,107 +431,7 @@ public partial class AutoService<T, ID> : AutoService
 
 			for (var i = 0; i < argSet.Count; i++)
 			{
-				var array = argSet[i] as JArray;
-
-				if (array != null)
-				{
-					// Can't mix types here - can either be a string or a uint array.
-					// If it's an empty array, use original behaviour for now.
-					JToken v = array.Count != 0 ? array[0] as JToken : null;
-
-					if (v != null && v.Type == JTokenType.String)
-					{
-						// Act like an array of strings.
-						var strSet = new List<string>();
-
-						foreach (var jValue in array)
-						{
-							if (!(jValue is JValue))
-							{
-								throw new PublicException(
-									"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of strings.",
-									"filter_invalid"
-								);
-							}
-
-							var strVal = jValue.Value<string>();
-							strSet.Add(strVal);
-						}
-
-						filter.BindUnknown(strSet as IEnumerable<string>);
-					}
-					else
-					{
-						// Act like an array of uint's.
-						var idSet = new List<uint>();
-
-						foreach (var jValue in array)
-						{
-							if (!(jValue is JValue))
-							{
-								throw new PublicException(
-									"Arg #" + (i + 1) + " in the args set is invalid - an array of objects was given, but it can only be an array of IDs or strings.",
-									"filter_invalid"
-								);
-							}
-
-							var id = jValue.Value<uint>();
-							idSet.Add(id);
-						}
-
-						filter.BindUnknown(idSet as IEnumerable<uint>);
-					}
-				}
-				else
-				{
-					var value = argSet[i] as JValue;
-
-					if (value == null)
-					{
-						throw new PublicException(
-							"Arg #" + (i + 1) + " in the args set is invalid - it can't be an object, only a string or numeric/ bool value.",
-							"filter_invalid"
-						);
-					}
-
-					// The underlying JSON token is textual, so we'll use a general use bind from string method.
-					if (value.Type == JTokenType.Date)
-					{
-						var date = value.Value as DateTime?;
-
-						// The target value could be a nullable date, in which case we'd need to use Bind(DateTime?)
-						if (filter.NextBindType == typeof(DateTime?))
-						{
-							filter.Bind(date);
-						}
-						else
-						{
-							filter.Bind(date.Value);
-						}
-					}
-					else if (value.Type == JTokenType.Boolean)
-					{
-						var boolVal = value.Value as bool?;
-
-						// The target value could be a nullable bool, in which case we'd need to use Bind(bool?)
-						if (filter.NextBindType == typeof(bool?))
-						{
-							filter.Bind(boolVal);
-						}
-						else
-						{
-							filter.Bind(boolVal.Value);
-						}
-					}
-					else if(value.Type == JTokenType.Null)
-					{
-						filter.BindFromString(null);
-					}
-					else
-					{
-						filter.BindFromString(value.Value<string>());
-					}
-				}
+				filter.BindJToken(argSet[i]);
 			}
 
 		}
@@ -637,16 +453,6 @@ public partial class AutoService<T, ID> : AutoService
 			pageIndex = pageIndexJToken.Value<int>();
 		}
 
-		if (pageSize.HasValue)
-		{
-			filter.SetPage(pageIndex.HasValue ? pageIndex.Value : 0, pageSize.Value);
-		}
-		else if (pageIndex.HasValue)
-		{
-			// Default page size used
-			filter.SetPage(pageIndex.Value);
-		}
-
 		var includeTotalJToken = newtonsoft["includeTotal"];
 		bool? includeTotal = null;
 
@@ -658,6 +464,18 @@ public partial class AutoService<T, ID> : AutoService
 		if (includeTotal.HasValue)
 		{
 			filter.IncludeTotal = includeTotal.Value;
+		}
+
+		if (pageSize.HasValue)
+		{
+			filter.SetPage(pageIndex.HasValue ? pageIndex.Value : 0, pageSize.Value);
+			filter.IncludeTotal = true;
+		}
+		else if (pageIndex.HasValue)
+		{
+			// Default page size used
+			filter.SetPage(pageIndex.Value);
+			filter.IncludeTotal = true;
 		}
 
 		var sort = newtonsoft["sort"] as JObject;
@@ -680,7 +498,95 @@ public partial class AutoService<T, ID> : AutoService
 
 		return filter;
 	}
-	
+
+	/// <summary>
+	/// Loads a filter from the given newtonsoft representation. You must .Release() this filter when you're done with it.
+	/// </summary>
+	/// <param name="filterConfig"></param>
+	/// <returns></returns>
+	public override FilterBase LoadFilter(ListFilter filterConfig)
+	{
+		string str = (filterConfig == null || filterConfig.Query == null) ? "" : filterConfig.Query;
+
+		// Get the filter base:
+		var filter = GetFilterFor(str, DataOptions.Default, false);
+
+		if (filterConfig == null)
+		{
+			return filter;
+		}
+
+		var argTypes = filter.GetArgTypes();
+
+		if (argTypes != null && argTypes.Count > 0)
+		{
+			var argSet = filterConfig.Args;
+			if (argSet == null)
+			{
+				throw new PublicException(
+					"Your filter has arguments (?) in it, but no args were given, or the args were not an array. Please provide an array of args.",
+					"filter_invalid"
+				);
+			}
+
+			if (argSet.Count != argTypes.Count)
+			{
+				throw new PublicException(
+					"Not enough arguments were given. Your filter has " + argTypes.Count + " but the given args array only has " + argSet.Count,
+					"filter_invalid"
+				);
+			}
+
+			for (var i = 0; i < argSet.Count; i++)
+			{
+				var arg = argSet[i];
+				filter.Bind(arg);
+			}
+		}
+
+		if (filterConfig.IncludeTotal.HasValue)
+		{
+			filter.IncludeTotal = filterConfig.IncludeTotal.Value;
+		}
+
+		// Handle universal pagination:
+		var pageSize = filterConfig.PageSize;
+		var pageIndex = filterConfig.PageIndex;
+
+		if (pageSize != 0)
+		{
+			filter.SetPage(pageIndex, pageSize);
+			filter.IncludeTotal = true;
+		}
+		else if (pageIndex != 0)
+		{
+			// Default page size used
+			filter.SetPage(pageIndex);
+			filter.IncludeTotal = true;
+		}
+
+		if (filterConfig.Sort.HasValue)
+		{
+			var sort = filterConfig.Sort.Value;
+			var field = sort.Field;
+			var dir = sort.Direction;
+			
+			if (field != null)
+			{
+				if (dir != null && dir == "desc")
+				{
+					filter.Sort(field, false);
+				}
+				else
+				{
+					filter.Sort(field, true);
+				}
+			}
+		}
+
+		return filter;
+	}
+
 	/// <summary>
 	/// Gets a fast filter for the given query text. 
 	/// You should ensure the query text is constant and that you use binded args on the filter instead of baking values into a string.
@@ -758,6 +664,34 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Starts streaming results for the given filter. 
+	/// Usually use Where and then one if its convenience functions instead.
+	/// </summary>
+	/// <param name="filter"></param>
+	/// <param name="release">Release the filter afterwards.</param>
+	/// <returns>Total, if filter.IncludeTotal is set. Otherwise its meaning is undefined.</returns>
+	public ContentStream<T, ID> GetResults(Filter<T, ID> filter, bool release = true)
+	{
+		var res = new ContentStream<T, ID>() {
+			Source = this,
+			ServiceForType = this,
+			Filter = filter,
+			ReleaseFilter = release
+		};
+
+		return res;
+	}
+
+	/// <summary>
+	/// If this content stream source has more than one additional source, this gets the next one.
+	/// </summary>
+	/// <returns></returns>
+	public SecondaryContentStreamSource GetNextSource()
+	{
+		return null;
+	}
+
+	/// <summary>
 	/// Starts cycling results for the given filter with the given callback function. Usually use Where and then one if its convenience functions instead.
 	/// </summary>
 	/// <param name="context"></param>
@@ -805,65 +739,10 @@ public partial class AutoService<T, ID> : AutoService
 			queryPair.QueryB = EmptyFilter;
 		}
 
-		// Next, rent any necessary collectors, and execute the collections. RentAndCollect internally performs Setup as well.
-		// The first time this happens on a given filter type may also cause the mapping services to load, thus it is awaitable.
-		queryPair.QueryA.FirstCollector = await queryPair.QueryA.RentAndCollect(context, this);
-
-		// Ensure B is setup:
-		if (queryPair.QueryB.RequiresSetup)
-		{
-			await queryPair.QueryB.Setup();
-		}
-
 		queryPair = await EventGroup.List.Dispatch(context, queryPair);
 		var total = queryPair.Total;
 
-		// If collectors were made, let's now release them.
-		if (queryPair.QueryA.FirstCollector != null)
-        {
-			var col = queryPair.QueryA.FirstCollector;
-			while (col != null)
-			{
-				var next = col.NextCollector;
-				col.Release();
-				col = next;
-			}
-		}
-
 		return total;
-	}
-
-	/// <summary>
-	/// Gets an object from this service which matches the given filter and values. If multiple match, it's only ever the first one.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filter"></param>
-	/// <param name="filterValues"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public override async ValueTask<object> GetObjectByFilter(Context context, string filter, List<string> filterValues, DataOptions options = DataOptions.Default)
-	{
-		var filterObject = Where(filter, options); // Region=? and Slug=? and Article=?
-
-		for (var i = 0; i < filterValues.Count; i++) // polar regions, svalbard, where-to-go
-		{
-			filterObject = filterObject.BindFromString(filterValues[i]);
-		}
-
-		return await filterObject.First(context);
-	}
-
-	/// <summary>
-	/// Gets an object from this service. Generally use Get instead with a fixed type.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="fieldName"></param>
-	/// <param name="fieldValue"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public override async ValueTask<object> GetObject(Context context, string fieldName, string fieldValue, DataOptions options = DataOptions.Default)
-	{
-		return await Where(fieldName + "=?", options).BindFromString(fieldValue).First(context);
 	}
 
 	/// <summary>
@@ -900,91 +779,72 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
-	/// Checks if the given target Id is mapped to the given source in the given named map.
+	/// Sets the fields from the given JSON object on the given target object, based on the user role in the context.
+	/// Note that there's 2 sets of fields - a primary set, then also a secondary set which are set only after the ID of the object is known.
+	/// E.g. during create, the object is instanced, initial fields are set, it's then actually created, and then the after ID set is run.
 	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="srcId"></param>
 	/// <param name="target"></param>
-	/// <param name="targetId"></param>
-	/// <param name="mapName"></param>
-	public async ValueTask<bool> CheckIfMappingExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
-	{
-		// First, get the mapping service:
-		var mapping = await MappingTypeEngine.GetOrGenerate(
-			this,
-			target,
-			mapName
-		) as MappingService<ID, T_ID>;
-
-		// Create if not exists:
-		return await mapping.CheckIfExists(context, srcId, targetId);
-	}
-	
-	/// <summary>
-	/// Deletes a given src->target map entry, returning true if it existed and has been removed.
-	/// </summary>
 	/// <param name="context"></param>
-	/// <param name="srcId"></param>
-	/// <param name="target"></param>
-	/// <param name="targetId"></param>
-	/// <param name="mapName"></param>
-	public async ValueTask<bool> DeleteMapping<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
+	/// <param name="body"></param>
+	public async ValueTask SetFieldsOnObject(T target, Context context, JObject body)
 	{
-		// First, get the mapping service:
-		var mapping = await MappingTypeEngine.GetOrGenerate(
-			this,
-			target,
-			mapName
-		) as MappingService<ID, T_ID>;
+		// Get the JSON meta which will indicate exactly which fields are editable by this user (role):
+		var availableFields = await GetTypedJsonStructure(context);
 
-		// Delete:
-		return await mapping.DeleteByIds(context, srcId, targetId);
-	}
-	
-	/// <summary>
-	/// Ensures the given target Id is mapped to the given source in the given named map.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="srcId"></param>
-	/// <param name="target"></param>
-	/// <param name="targetId"></param>
-	/// <param name="mapName"></param>
-	public async ValueTask<bool> CreateMappingIfNotExists<T_ID>(Context context, ID srcId, AutoService target, T_ID targetId, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
-	{
-		// First, get the mapping service:
-		var mapping = await MappingTypeEngine.GetOrGenerate(
-			this,
-			target,
-			mapName
-		) as MappingService<ID, T_ID>;
+		foreach (var property in body.Properties())
+		{
+			if (property.Name == "on")
+			{
+				continue;
+			}
 
-		// Create if not exists:
-		return await mapping.CreateIfNotExists(context, srcId, targetId);
+			// Attempt to get the available field:
+			var field = availableFields.GetField(property.Name);
+
+			if (field == null)
+			{
+				continue;
+			}
+
+			var writeRule = field.GetWriteAccessRule();
+
+			if (writeRule.IsGranted(context, target))
+			{
+				// Try setting the value now:
+				await field.SetFieldValue(context, target, property.Value);
+			}
+		}
 	}
 
 	/// <summary>
-	/// Ensures the list of target IDs are mapped to the given source in the given named map.
+	/// Bulk creates more than one entity. The set that you provide may be modified inline.
 	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="src"></param>
-	/// <param name="target"></param>
-	/// <param name="targetIds"></param>
-	/// <param name="mapName"></param>
-	public virtual async ValueTask EnsureMapping<T_ID>(Context context, T src, AutoService target, IEnumerable<T_ID> targetIds, string mapName)
-		where T_ID : struct, IEquatable<T_ID>, IConvertible, IComparable<T_ID>
+	public virtual async ValueTask<List<T>> CreateAll(Context context, List<T> set, DataOptions options = DataOptions.Default)
 	{
-		// First, get the mapping service:
-		var mapping = await MappingTypeEngine.GetOrGenerate(
-			this,
-			target,
-			mapName
-		) as MappingService<ID, T_ID>;
+		if (set == null || set.Count == 0)
+		{
+			return new List<T>();
+		}
+		
+		for(var i=0;i<set.Count;i++)
+		{
+			var previousPermState = context.IgnorePermissions;
+			context.IgnorePermissions = (options & DataOptions.PermissionsFlag) != DataOptions.PermissionsFlag;
+			set[i] = await EventGroup.BeforeCreate.Dispatch(context, set[i]);
+			context.IgnorePermissions = previousPermState;
+		}
 
-		// Ask it to validate:
-		await mapping.EnsureMapping(context, src.Id, targetIds);
+		set = await EventGroup.CreateAll.Dispatch(context, set);
+
+		for (var i = 0; i < set.Count; i++)
+		{
+			// Handles cache updates and after create event calls.
+			// These are almost always things which complete instantly
+			// so we don't get O(N) waiting behaviour.
+			set[i] = await CreatePartialComplete(context, set[i]);
+		}
+
+		return set;
 	}
 
 	/// <summary>
@@ -1017,121 +877,6 @@ public partial class AutoService<T, ID> : AutoService
 		entity = await EventGroup.Create.Dispatch(context, entity);
 
 		return entity;
-	}
-
-	/// <summary>
-	/// Populates the given raw entity from the given entity. Any blank localised fields are copied from the primary entity.
-	/// </summary>
-	/// <param name="raw"></param>
-	/// <param name="entity"></param>
-	/// <param name="primaryEntity"></param>
-	public void PopulateRawEntityFromTarget(T raw, T entity, T primaryEntity)
-	{
-		// First, all the fields we'll be working with:
-		var allFields = FieldMap.Fields;
-
-		for (var i = 0; i < allFields.Count; i++)
-		{
-			// Get the field:
-			var field = allFields[i];
-
-			// Read the value from the original object:
-			var value = field.TargetField.GetValue(entity);
-
-			// If the field is localised, and the raw value is null, use value from primaryEntity instead.
-			// Note! [Localised] fields must be a nullable type for this to ever happen.
-
-			if (field.LocalisedName != null && field.IsNullable())
-			{
-				// If the entity field matches the primary content one and the type is nullable, set a null into raw.
-				var primaryContentValue = field.TargetField.GetValue(primaryEntity);
-
-				if (primaryContentValue != null)
-				{
-					if (primaryContentValue.Equals(value))
-					{
-						// This localised type has the same value as the primary locale. Don't translate it.
-						value = null;
-					}
-				}
-			}
-
-			field.TargetField.SetValue(raw, value);
-		}
-	}
-
-	/// <summary>
-	/// Creates a raw entity from a given localised target.
-	/// This clones the given object and sets any localised fields to their default.
-	/// </summary>
-	/// <param name="entity"></param>
-	/// <returns></returns>
-	public T CreateRawEntityFromTarget(T entity)
-	{
-		var raw = (T)Activator.CreateInstance(InstanceType);
-
-		var allFields = FieldMap.Fields;
-
-		for (var i = 0; i < allFields.Count; i++)
-		{
-			// Get the field:
-			var field = allFields[i];
-
-			// If the field is localised, it remains on its default.
-			if (field.LocalisedName == null)
-			{
-				// Not a localised field - set its value from the given entity.
-				var value = field.TargetField.GetValue(entity);
-				field.TargetField.SetValue(raw, value);
-			}
-		}
-
-		return raw;
-	}
-
-	/// <summary>
-	/// Populates the given entity from the given raw and primary entities.
-	/// The raw entity is used to check if a locale specific override exists.
-	/// If it does, the value comes from the raw entity. Otherwise, it comes from the primary entity.
-	/// </summary>
-	/// <param name="entity"></param>
-	/// <param name="raw"></param>
-	/// <param name="primaryEntity"></param>
-	public void PopulateTargetEntityFromRaw(T entity, T raw, T primaryEntity)
-	{
-		// First, all the fields we'll be working with:
-		var allFields = FieldMap.Fields;
-
-		for (var i = 0; i < allFields.Count; i++)
-		{
-			// Get the field:
-			var field = allFields[i];
-
-			object value;
-
-			// If the field is not localised, then the new value comes from the primary entity.
-			if (field.LocalisedName == null)
-			{
-				value = field.TargetField.GetValue(primaryEntity);
-			}
-			else
-			{
-				// Does the locale specify a value for this field?
-				// Read the value from the raw object:
-				value = field.TargetField.GetValue(raw);
-
-				// If the field is localised, and the raw value is null, use value from primaryEntity instead.
-				// Note! [Localised] fields must be a nullable type for this to ever happen.
-				if (value == null)
-				{
-					// Read from primary entity instead:
-					value = field.TargetField.GetValue(primaryEntity);
-				}
-			}
-
-			field.TargetField.SetValue(entity, value);
-		}
-
 	}
 
 	/// <summary>
@@ -1174,45 +919,6 @@ public partial class AutoService<T, ID> : AutoService
 	public ulong ReverseId(ID input)
 	{
 		return _idConverter.Reverse(input);
-	}
-
-	/// <summary>
-	/// Call this when the primary object changes. It makes sure any localised versions are updated.
-	/// </summary>
-	/// <param name="entity"></param>
-	public void OnPrimaryEntityChanged(T entity)
-	{
-		// Primary locale update - must update all other caches in case they contain content from the primary locale.
-		var id = entity.GetId();
-
-		var caches = _cacheSet?.Caches;
-
-		if (caches == null)
-		{
-			return;
-		}
-
-		for (var i = 1; i < caches.Length; i++)
-		{
-			var altLocaleCache = caches[i];
-
-			if (altLocaleCache == null)
-			{
-				continue;
-			}
-
-			var altRaw = altLocaleCache.GetRaw(id);
-			var alt = altLocaleCache.Get(id);
-
-			if (altRaw == null || alt == null)
-			{
-				// This row is not in this locale.
-				continue;
-			}
-
-			// Update the alt object again:
-			PopulateTargetEntityFromRaw(alt, altRaw, entity);
-		}
 	}
 
 	/// <summary>
@@ -1264,8 +970,9 @@ public partial class AutoService<T, ID> : AutoService
 
 			if (flds.Count > 64)
 			{
-				// You've ignored the other error for too long and it has become more severe.
-				// If you encounter this situation and having this many fields is required, ChangedFields needs to instead allocate a ulong array.
+				// This project has ignored the 50+ error for too long and it has become more severe.
+				// If you encounter this situation and having this many fields is required,
+				// ChangedFields needs to instead allocate a ulong array for larger types and a ulong (unchanged) for everything else.
 				throw new Exception("Too many fields");
 			}
 			else if (flds.Count >= 50)
@@ -1342,7 +1049,9 @@ public partial class AutoService<T, ID> : AutoService
 					generator.Emit(OpCodes.Ldfld, field.TargetField);
 				}
 				
-				if (mainType == typeof(DateTime) || mainType == typeof(string) || mainType == typeof(decimal))
+				if (mainType == typeof(DateTime) || mainType == typeof(string) || 
+					mainType == typeof(decimal) || mainType == typeof(MappingData) || mainType == typeof(JsonString) ||
+					(mainType.IsGenericType && mainType.GetGenericTypeDefinition() == typeof(Localized<>)))
 				{
 					var eq = mainType.GetMethod("Equals", new Type[] { mainType, mainType });
 					generator.Emit(OpCodes.Call, eq);
@@ -1400,10 +1109,22 @@ public partial class AutoService<T, ID> : AutoService
 
 			foreach (var field in InstanceType.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic))
 			{
-				generator.Emit(OpCodes.Ldarg_1);
-				generator.Emit(OpCodes.Ldarg_0);
-				generator.Emit(OpCodes.Ldfld, field);
-				generator.Emit(OpCodes.Stfld, field);
+				if (field.FieldType == typeof(MappingData))
+				{
+					// A deep clone is required to avoid references to the same dictionary and list objects.
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldflda, field);
+					generator.Emit(OpCodes.Callvirt, typeof(MappingData).GetMethod(nameof(MappingData.Clone)));
+					generator.Emit(OpCodes.Stfld, field);
+				}
+				else
+				{
+					generator.Emit(OpCodes.Ldarg_1);
+					generator.Emit(OpCodes.Ldarg_0);
+					generator.Emit(OpCodes.Ldfld, field);
+					generator.Emit(OpCodes.Stfld, field);
+				}
 			}
 
 			// Return
@@ -1421,7 +1142,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, T cachedEntity, Action<Context, T, T> cb, DataOptions options = DataOptions.Default)
 	{
-		var entityToUpdate = await StartUpdate(context, cachedEntity, options);
+		var entityToUpdate = StartUpdate(context, cachedEntity, options);
 
 		if (entityToUpdate == null)
 		{
@@ -1458,7 +1179,7 @@ public partial class AutoService<T, ID> : AutoService
 	/// </summary>
 	public virtual async ValueTask<T> Update(Context context, T cachedEntity, Func<Context, T, T, ValueTask> cb, DataOptions options = DataOptions.Default)
 	{
-		var entityToUpdate = await StartUpdate(context, cachedEntity, options);
+		var entityToUpdate = StartUpdate(context, cachedEntity, options);
 
 		if (entityToUpdate == null)
 		{
@@ -1479,18 +1200,40 @@ public partial class AutoService<T, ID> : AutoService
 	}
 
 	/// <summary>
+	/// Performs an update on the given entity, setting it to the specified object.
+	/// </summary>
+	public virtual async ValueTask<T> UpdateExact(Context context, T entityToUpdate, DataOptions options = DataOptions.Default)
+	{
+		if (options != DataOptions.IgnorePermissions)
+		{
+			// Perform the permission test now:
+			EventGroup.BeforeUpdate.TestCapability(context, entityToUpdate);
+		}
+
+		var originalEntity = await Get(context, entityToUpdate.Id, options);
+
+		if (originalEntity == null)
+		{
+			return null;
+		}
+
+		await FinishUpdate(context, entityToUpdate, originalEntity, options);
+		return entityToUpdate;
+	}
+
+	/// <summary>
 	/// For simpler usage, see Update. This is for advanced non-allocating updates. Returns the object that you MUST apply your changes to.
 	/// </summary>
 	/// <param name="context"></param>
 	/// <param name="entity"></param>
 	/// <param name="options"></param>
 	/// <returns></returns>
-	public async ValueTask<T> StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
+	public T StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
 		if (options != DataOptions.IgnorePermissions)
 		{
 			// Perform the permission test now:
-			await EventGroup.BeforeUpdate.TestCapability(context, entity);
+			EventGroup.BeforeUpdate.TestCapability(context, entity);
 		}
 
 		// Minor todo: get this object from a pool for high velocity updates.
@@ -1642,10 +1385,11 @@ public partial class AutoService
 	/// <param name="collectors"></param>
 	/// <param name="idSet"></param>
 	/// <param name="writer"></param>
-	/// <param name="viaInclude">True if it's via an include, and therefore the "from" filter field is implied true.</param>
+	/// <param name="flags">Additional serialiser flags which can be used to control things like field visibility in protected contexts. 
+	/// For example IsIncluded is true if it's via an include, and therefore the "from" filter field is implied true.</param>
 	/// <param name="functionalIncludes">Optional set of functional includes to execute on each node as the json is rendered.</param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, bool viaInclude, FunctionalInclusionNode[] functionalIncludes = null)
+	public virtual ValueTask OutputJsonList(Context context, IDCollector collectors, IDCollector idSet, Writer writer, ContextFlags flags, FunctionalInclusionNode[] functionalIncludes = null)
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1674,8 +1418,9 @@ public partial class AutoService
 	/// <param name="writer"></param>
 	/// <param name="targetStream"></param>
 	/// <param name="includes"></param>
+	/// <param name="flags"></param>
 	/// <returns></returns>
-	public virtual ValueTask ObjectToJson(Context context, object entity, Writer writer, Stream targetStream = null, string includes = null)
+	public virtual ValueTask ObjectToJson(Context context, object entity, Writer writer, Stream targetStream = null, string includes = null, ContextFlags flags = ContextFlags.None)
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1716,37 +1461,13 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Outputs a list of things from this service as JSON into the given writer.
-	/// Executes the given collector(s) whilst it happens, which can also be null.
-	/// Does not perform permission checks internally.
+	/// Loads a filter from the given filterConfig. You must .Release() this filter when you're done with it.
 	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="collectors"></param>
-	/// <param name="idSet"></param>
-	/// <param name="setField"></param>
-	/// <param name="writer"></param>
-	/// <param name="viaIncludes">True if the list is via includes</param>
-	/// <param name="functionalIncludes">Optional set of functional includes to execute on each node as the json is rendered.</param>
+	/// <param name="filterConfig"></param>
 	/// <returns></returns>
-	public virtual ValueTask OutputJsonList<S_ID>(Context context, IDCollector collectors, IDCollector idSet, string setField, Writer writer, bool viaIncludes, FunctionalInclusionNode[] functionalIncludes = null)
-		 where S_ID : struct, IEquatable<S_ID>, IComparable<S_ID>
+	public virtual FilterBase LoadFilter(ListFilter filterConfig)
 	{
-		// Not supported on this service.
-		return new ValueTask();
-	}
-
-	/// <summary>
-	/// Outputs a mapping. Only valid on a Mapping service.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="mappingCollector"></param>
-	/// <param name="idSet"></param>
-	/// <param name="writer"></param>
-	/// <returns></returns>
-	public virtual ValueTask OutputMap(Context context, IDCollector mappingCollector, IDCollector idSet, Writer writer)
-	{
-		// Not supported on this service.
-		return new ValueTask();
+		return null;
 	}
 
 	/// <summary>
@@ -1756,9 +1477,10 @@ public partial class AutoService
 	/// <param name="context"></param>
 	/// <param name="id"></param>
 	/// <param name="writer"></param>
+	/// <param name="dataOptions"></param>
 	/// <param name="includes"></param>
 	/// <returns></returns>
-	public virtual ValueTask OutputById(Context context, ulong id, Writer writer, string includes = "*")
+	public virtual ValueTask OutputById(Context context, ulong id, Writer writer, DataOptions dataOptions = DataOptions.Default, string includes = "*")
 	{
 		// Not supported on this service.
 		return new ValueTask();
@@ -1832,17 +1554,48 @@ public partial class AutoService
 	}
 
 	/// <summary>
+	/// Reads a particular metadata field by its name. Common ones are "title" and "description".
+	/// Use this to generically read common descriptive things about a given content type.
+	/// Note that as fields vary by role, it is possible for users of different roles to obtain different meta values.
+	/// </summary>
+	public async ValueTask<string> GetMetaString(Context context, string fieldName, object content)
+	{
+		var baseValue = await GetMetaFieldValue(context, fieldName, content);
+
+		if (baseValue == null)
+		{
+			return null;
+		}
+
+		if (baseValue is string)
+		{
+			return (string)baseValue;
+		}
+
+		if (baseValue is Localized<string>)
+		{
+			return ((Localized<string>)baseValue).Get(context);
+		}
+
+		// Ignores other localized types at the mo.
+		return baseValue.ToString();
+	}
+
+	/// <summary>
 	/// Gets a map which lists the available fields in the content type.
 	/// </summary>
 	/// <returns></returns>
 	public ContentFields GetContentFields()
 	{
-		if (_contentFields == null)
+		var cf = _contentFields;
+
+		if (cf == null)
 		{
-			_contentFields = new ContentFields(this);
+			cf = new ContentFields(this);
+			_contentFields = cf;
 		}
 
-		return _contentFields;
+		return cf;
 	}
 
 	/// <summary>
@@ -1882,32 +1635,6 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// Gets an object from this service which matches the given particular field/value. If multiple match, it's only ever the first one.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="fieldName"></param>
-	/// <param name="fieldValue"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public virtual ValueTask<object> GetObject(Context context, string fieldName, string fieldValue, DataOptions options = DataOptions.Default)
-	{
-		return new ValueTask<object>(null);
-	}
-
-	/// <summary>
-	/// Gets an object from this service which matches the given filter and values. If multiple match, it's only ever the first one.
-	/// </summary>
-	/// <param name="context"></param>
-	/// <param name="filter"></param>
-	/// <param name="filterValues"></param>
-	/// <param name="options"></param>
-	/// <returns></returns>
-	public virtual ValueTask<object> GetObjectByFilter(Context context, string filter, List<string> filterValues, DataOptions options = DataOptions.Default)
-	{
-		return new ValueTask<object>(null);
-	}
-
-	/// <summary>
 	/// Gets an object from this service.
 	/// </summary>
 	/// <param name="context"></param>
@@ -1920,55 +1647,56 @@ public partial class AutoService
 	}
 
 	/// <summary>
-	/// List is mappings linked back to this service e.g tags
-	/// </summary>
-    public List<MappingServiceGenerationMeta> GeneratedMappings;
-
-
-    /// <summary>
-    /// Installs generic admin pages for this service.
-    /// Does nothing if there isn't a page service installed, or if the admin pages already exist.
-    /// </summary>
-    /// <param name="fields"></param>
-    protected void InstallAdminPages(string[] fields)
-	{
-		InstallAdminPages(null, null, fields, null);
-	}
-
-	/// <summary>
-	/// Installs generic admin pages for this service, including the nav menu entry.
+	/// Installs generic admin pages for this service, including the nav menu entry. 
+	/// If you need more configuration options such as tabs on your edit/ add page, see the AdminPageOptions overload.
 	/// Does nothing if there isn't a page service installed, or if the admin pages already exist.
 	/// </summary>
 	/// <param name="navMenuLabel">The text to show on the navmenu.</param>
 	/// <param name="navMenuIconRef">The ref for the icon to use on the navmenu. Usually a fontawesome icon, of the form "fa:fa-thing".</param>
 	/// <param name="fields">The fields to show in the list of your content type. Usually include at least some sort of name or title.</param>
 	/// <param name="childAdminPage">
+	/// <param name="navMenuParentKey"></param>
 	/// A shortcut for specifying that your type has some kind of sub-type.
 	/// For example, the NavMenu admin page specifies a child type of NavMenuItem, meaning each NavMenu ends up with a list of NavMenuItems.
 	/// Make sure you specify the fields that'll be visible from the child type in the list on the parent type.
 	/// For example, if you'd like each child entry to show its Id and Title fields, specify new string[]{"id", "title"}.
 	/// </param>
-	/// <param name="visibilityJson"></param>
-	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage = null, string visibilityJson = null)
+	protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, AdminPageOptions childAdminPage = null, string navMenuParentKey = null)
+	{
+		InstallAdminPages(new AdminPageOptions() {
+			NavMenuLabel = new Localized<string>(navMenuLabel),
+			NavMenuIcon = navMenuIconRef,
+			ListFields = fields,
+			ChildType = childAdminPage,
+			NavMenuParentKey = navMenuParentKey
+		});
+	}
+
+	/// <summary>
+	/// Installs admin pages with more advanced options.
+	/// </summary>
+	/// <param name="options"></param>
+	protected void InstallAdminPages(AdminPageOptions options)
 	{
 		if (Services.Started)
 		{
-			InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage, visibilityJson);
+			InstallAdminPagesInternal(options);
 		}
 		else
 		{
 			// Must happen after services start otherwise the page service isn't necessarily available yet.
 			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
 			{
-				InstallAdminPagesInternal(navMenuLabel, navMenuIconRef, fields, childAdminPage, visibilityJson);
+				InstallAdminPagesInternal(options);
 				return new ValueTask<object>(src);
 			});
 		}
 	}
 	
-	private void InstallAdminPagesInternal(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage, string visibilityJson = null)
+	private void InstallAdminPagesInternal(AdminPageOptions options)
 	{
 		var pageService = Api.Startup.Services.Get("PageService");
+		var adminNavMenuService = Services.Get("AdminNavMenuItemService");
 
 		if (pageService == null)
 		{
@@ -1976,80 +1704,32 @@ public partial class AutoService
 			return;
 		}
 
-		Task.Run(async () =>
+		if (adminNavMenuService is not null)
 		{
-			var installPages = pageService.GetType().GetMethod("InstallAdminPages");
-			
-			if (installPages != null)
+			var method = adminNavMenuService.GetType().GetMethod("InstallGroups");
+
+			if (method is not null)
 			{
-				// InstallAdminPages(string typeName, string[] fields)
-				await (ValueTask)installPages.Invoke(pageService, [
-					ServicedType,
-					fields,
-					childAdminPage
-				]);
+				var valueTask = (ValueTask) method.Invoke(adminNavMenuService, []);
+				
+				valueTask.GetAwaiter().GetResult();
 			}
-
-			// Nav menu also?
-			if (navMenuLabel != null)
-			{
-				var navMenuItemService = Api.Startup.Services.Get("AdminNavMenuItemService");
-
-				if (navMenuItemService != null)
-				{
-					var installNavMenuEntry = navMenuItemService.GetType().GetMethod("InstallAdminEntry");
-
-					if (installNavMenuEntry != null)
-					{
-						// InstallAdminEntry(string targetUrl, string iconRef, string label)
-						await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, [
-							"/en-admin/" + ServicedType.Name.ToLower(),
-							navMenuIconRef,
-							navMenuLabel,
-							visibilityJson
-						]);
-					}
-				}
-			}
-		});
-
-	}
-
-	/// <summary>
-	/// Installs one or more roles. You must provide a Key and no Id on each one.
-	/// The permissions module is required anyway and must be up to date.
-	/// </summary>
-	protected void InstallRoles(params Role[] roles)
-	{
-		if (Services.Started)
-		{
-			InstallRolesInternal(roles);
-		}
-		else
-		{
-			// Must happen after services start otherwise the role service isn't necessarily available yet.
-			Events.Service.AfterStart.AddEventListener((Context ctx, object src) =>
-			{
-				InstallRolesInternal(roles);
-				return new ValueTask<object>(src);
-			});
-		}
-	}
-	
-	private static void InstallRolesInternal(Role[] roles)
-	{
-		var roleService = Services.Get<RoleService>();
-
-		if (roleService == null)
-		{
-			return;
 		}
 		
-		Task.Run(async () =>
+		var installPages = pageService.GetType().GetMethod("InstallAdminPagesInt");
+			
+		if (installPages != null)
 		{
-			await roleService.InstallNow(roles);
-		});
+			if (options.ContentService == null)
+			{
+				options.ContentService = this;
+			}
 
+			// InstallAdminPages(string typeName, string[] fields)
+			installPages.Invoke(pageService, [
+				ServicedType,
+				options
+			]);
+		}
 	}
-
 }

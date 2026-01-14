@@ -1,0 +1,54 @@
+.ui-productcategory-header {
+	display: grid;
+	grid-template-columns: 1fr 36%;
+	grid-template-rows: auto 1fr;
+	grid-template-areas: 
+		"title image"
+		"details image";
+	gap: px_to_rem(20) px_to_rem(24);
+	margin-bottom: px_to_rem(40);
+
+	&__title {
+		grid-area: title;
+		font-weight: 400;
+		font-size: px_to_rem(39);
+		margin-bottom: 0;
+		text-wrap: balance;
+	}
+
+	&__details {
+		grid-area: details;
+		font-size: px_to_rem(15);
+
+		* + * {
+			margin-top: px_to_rem(20);
+		}
+
+		p {
+			text-wrap: pretty;
+		}
+
+	}
+
+	&__image {
+		grid-area: image;
+
+		> img {
+			max-width: 100%;
+			height: auto;
+			object-fit: contain;
+		}
+
+	}
+
+}
+
+/*
+Size overrides. See bootstrap breakpoints for more information:
+https://getbootstrap.com/docs/5.0/layout/breakpoints/#min-width
+
+@include media-breakpoint-up(md) {
+	.ui-productcategory-view {
+	}
+}
+*/

@@ -1,34 +1,54 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
+﻿using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
-using Api.Contexts;
+using Api.NavMenus;
+using Api.Permissions;
 using Api.Startup;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Api.Blogs
 {
-	/// <summary>
-	/// Handles blogs - containers for individual blog posts.
-	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-	/// </summary>
-	public partial class BlogService : AutoService<Blog>
+    /// <summary>
+    /// Handles blogs - containers for individual blog posts.
+    /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
+    /// </summary>
+
+    // Ensure that this loads after the search service
+    [LoadPriority(200)]
+
+    public partial class BlogService : AutoService<Blog>
     {
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public BlogService() : base(Events.Blog)
         {
-			InstallAdminPages(
-				"Blogs", "fa:fa-blog", new string[] { "id", "name" },
+			AdminNavMenuItemService.RequiredGroups.Add(new()
+			{
+				Title = "Blogging",
+				Key = "blogs",
+				IconRef = "fa:fa-blog",
+				ParentId = 0
+			});
 
-				// Each blog page also has a list of blogpost's on it:
-				new ChildAdminPageOptions(){
-					ChildType = "BlogPost",
-					Fields = new string[] { "title" },
-					SearchFields = new string[]{ "title" }
+			InstallAdminPages(
+				new AdminPageOptions() {
+					NavMenuIcon = "fa:fa-blog",
+					NavMenuLabel = new Translate.Localized<string>("Blogs"),
+					NavMenuParentKey = "blogs",
+					ListFields = new string[] { "id", "name" },
+
+					/*
+					// Each blog page also has a list of blogpost's on it:
+					ChildType = new AdminPageOptions()
+					{
+						ContentType = "BlogPost",
+						ListFields = new string[] { "title" },
+						SearchFields = new string[] { "title" }
+					}
+					*/
 				}
-				
 			);
 
 			// A site has 1 blog unless configured otherwise.
@@ -48,12 +68,6 @@ namespace Api.Blogs
 				}
 
 				return new ValueTask<JsonField<BlogPost, uint>>(field);
-			});
-
-			InstallRoles(new Role() {
-				Key = "blogger",
-				Name = "Blogger",
-				CanViewAdmin = true
 			});
 		}
 	}

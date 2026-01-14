@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.AvailableEndpoints
@@ -14,22 +16,31 @@ namespace Api.AvailableEndpoints
 		/// The URL to the endpoint including any substitute fields, e.g. "v1/user/{id}".
 		/// </summary>
 		public string Url;
+
 		/// <summary>
 		/// The summary of this endpoint.
 		/// </summary>
 		public string Summary;
+
 		/// <summary>
 		/// The fields which are subsituted into the URL.
 		/// </summary>
 		public Dictionary<string, object> UrlFields;
+
 		/// <summary>
 		/// The accepted fields to post to this endpoint.
 		/// </summary>
 		public Dictionary<string, object> BodyFields;
+
 		/// <summary>
 		/// The uppercase HTTP method for this endpoint.
 		/// </summary>
 		public string HttpMethod;
 
+		/// <summary>
+		/// The underlying controller method.
+		/// </summary>
+		[JsonIgnore]
+		public MethodInfo Method;
 	}
 }

@@ -7,13 +7,26 @@ using Api.Permissions;
 namespace Api.Database
 {
 	/// <summary>
+	/// The underlying type for all DB content types. You should generally use Content[ID] instead.
+	/// </summary>
+	public abstract partial class Content
+	{
+		/// <summary>
+		/// Holds the data for mappings such as tags, categories and so on.
+		/// </summary>
+		[JsonIgnore]
+		public MappingData Mappings;
+	}
+
+	/// <summary>
 	/// Used to represent an entity which can either be stored in the cache only or in the database.
 	/// By default, unless you specify [CacheOnly] on your type, the entity will be stored in the database.
 	/// A database table will always have the columns defined here as fields.
 	/// Will often be ContentType{int}
 	/// </summary>
 	/// <typeparam name="ID">The type of ID of your entity. Usually int.</typeparam>
-	public abstract partial class Content<ID> where ID : struct
+	public abstract partial class Content<ID> : Content 
+		where ID : struct
 	{
 		/// <summary>
 		/// The row ID.
@@ -21,7 +34,7 @@ namespace Api.Database
 		[DatabaseIndex]
 		[DatabaseField(AutoIncrement = true)]
 		[Module(Hide = true)]
-		[Permissions(HideFieldByDefault = false)]
+		[Permissions(Hide = false)]
 		public ID Id;
 
 		/// <summary>

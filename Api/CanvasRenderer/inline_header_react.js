@@ -1,4 +1,4 @@
-__mm={};function require(mdName){var m=__mm[mdName];if(!m){throw new Error(mdName+" not found");}if(!m.l){var md={};var e={};md.exports=e;m(window,e,md);m.v=e;m.l=1;}return m.v;}_rq=require;
+__mm={};function require(mdName){var m=__mm[mdName.toLowerCase()];if(!m){throw new Error(mdName+" not found");}if(!m.l){var md={};var e={};md.exports=e;m(window,e,md);m.v=e;m.l=1;}return m.v;}_rq=require;
 
 (function (global, factory) {
     factory(global.React = {});

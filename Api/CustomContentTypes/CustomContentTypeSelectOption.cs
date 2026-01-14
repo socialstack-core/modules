@@ -23,8 +23,7 @@ namespace Api.CustomContentTypes
 		/// <summary>
 		/// The value of the option
 		/// </summary>
-		[Localized]
-		public string Value;
+		public Localized<string> Value;
 
 		/// <summary>
 		/// The order the field should display

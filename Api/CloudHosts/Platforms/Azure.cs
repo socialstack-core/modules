@@ -1,7 +1,4 @@
 using System.Threading.Tasks;
-using Amazon.S3;
-using Amazon.S3.Transfer;
-using Amazon.Runtime;
 using Api.Uploader;
 using Api.Contexts;
 using System;

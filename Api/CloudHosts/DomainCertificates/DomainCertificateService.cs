@@ -14,6 +14,7 @@ using System.Linq;
 using Org.BouncyCastle.X509;
 using Api.PasswordResetRequests;
 using Api.Configuration;
+using Api.Startup;
 
 namespace Api.CloudHosts;
 
@@ -21,6 +22,8 @@ namespace Api.CloudHosts;
 /// Handles domainCertificates.
 /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 /// </summary>
+
+[HostType("web")]
 public partial class DomainCertificateService : AutoService<DomainCertificate>
     {
 	private ContentSyncService _contentSync;
@@ -32,7 +35,7 @@ public partial class DomainCertificateService : AutoService<DomainCertificate>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public DomainCertificateService(ContentSyncService csync, UploadService uploads, DomainCertificateChallengeService challengeService) : base(Events.DomainCertificate)
-    {
+        {
 		_contentSync = csync;
 		_uploads = uploads;
 		_challengeService = challengeService;
@@ -304,97 +307,142 @@ public partial class DomainCertificateService : AutoService<DomainCertificate>
 
 	private async Task<ServiceCertificate> RequestCertificate(Context context, DomainCertificate pendingRecord, string contactEmail)
 	{
-		// Set status to requesting:
-		await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+		try
 		{
-			toUpdate.Status = 2;
-			toUpdate.LastPingUtc = DateTime.UtcNow;
-		}, DataOptions.IgnorePermissions);
 
-		// Create the request:
-		var acmeClient = new AcmeClient(ApiEnvironment.LetsEncryptV2); // LetsEncryptV2Staging if testing
-
-		// Load or create the account:
-		var account = await GetAccount(context, acmeClient, contactEmail);
-
-		// Account ping:
-		await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-		{
-			toUpdate.LastPingUtc = DateTime.UtcNow;
-		}, DataOptions.IgnorePermissions);
-
-		// Create the domain order:
-		var order = await acmeClient.NewOrderAsync(account, new List<string> { pendingRecord.Domain });
-
-		// Order ping:
-		await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-		{
-			toUpdate.Status = 3;
-			toUpdate.OrderUrl = order.Location.ToString();
-			toUpdate.LastPingUtc = DateTime.UtcNow;
-		}, DataOptions.IgnorePermissions);
-
-		// Collect HTTP authorisations and add them to the DB:
-		List<Challenge> challenges = new List<Challenge>();
-
-		foreach (var authorizationLocation in order.Authorizations)
-		{
-			var authorization = await acmeClient.GetAuthorizationAsync(account, authorizationLocation);
-			var toAdd = authorization.Challenges.Where(i => i.Type == ChallengeType.Http01);
-
-			foreach (var challenge in toAdd)
+			// Set status to requesting:
+			await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
 			{
-				await _challengeService.Create(context, new DomainCertificateChallenge()
-				{
-					DomainCertificateId = pendingRecord.Id,
-					Token = challenge.Token,
-					VerificationValue = acmeClient.GetChalangeKey(account, challenge.Token),
-				}, DataOptions.IgnorePermissions);
+				toUpdate.Status = 2;
+				toUpdate.LastPingUtc = DateTime.UtcNow;
+			}, DataOptions.IgnorePermissions);
 
-				challenges.Add(challenge);
+			var webSecurityService = Services.Get<WebSecurityService>().GetWebSecurityConfig();
+
+			// Create the request - LetsEncryptV2Staging if testing
+			var acmeClient = new AcmeClient(webSecurityService.UseLetsEncryptStaging ? ApiEnvironment.LetsEncryptV2Staging : ApiEnvironment.LetsEncryptV2);
+
+			// Load or create the account:
+			var account = await GetAccount(context, acmeClient, contactEmail);
+
+			// Account ping:
+			await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+			{
+				toUpdate.LastPingUtc = DateTime.UtcNow;
+			}, DataOptions.IgnorePermissions);
+
+			// Create the domain order:
+			var order = await acmeClient.NewOrderAsync(account, new List<string> { pendingRecord.Domain });
+
+			// Order ping:
+			await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+			{
+				toUpdate.Status = 3;
+				toUpdate.OrderUrl = order.Location.ToString();
+				toUpdate.LastPingUtc = DateTime.UtcNow;
+			}, DataOptions.IgnorePermissions);
+
+			// Collect HTTP authorisations and add them to the DB:
+			List<Challenge> challenges = new List<Challenge>();
+
+			foreach (var authorizationLocation in order.Authorizations)
+			{
+				var authorization = await acmeClient.GetAuthorizationAsync(account, authorizationLocation);
+				var toAdd = authorization.Challenges.Where(i => i.Type == ChallengeType.Http01);
+
+				foreach (var challenge in toAdd)
+				{
+					await _challengeService.Create(context, new DomainCertificateChallenge()
+					{
+						DomainCertificateId = pendingRecord.Id,
+						Token = challenge.Token,
+						VerificationValue = acmeClient.GetChalangeKey(account, challenge.Token),
+					}, DataOptions.IgnorePermissions);
+
+					challenges.Add(challenge);
+				}
+
 			}
 
-		}
-
-		// All challenges collected and are in the db - wait for validation now.
-		await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-		{
-			toUpdate.Status = 4;
-			toUpdate.LastPingUtc = DateTime.UtcNow;
-		}, DataOptions.IgnorePermissions);
-
-		foreach (var challenge in challenges)
-		{
-			await acmeClient.ValidateChallengeAsync(account, challenge.Url.ToString());
-		}
-
-		// All challenges have had their validation requested.
-		await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-		{
-			toUpdate.Status = 5;
-			toUpdate.LastPingUtc = DateTime.UtcNow;
-		}, DataOptions.IgnorePermissions);
-
-		// Try checking the validation status:
-		for (var i = 0; i < 20; i++)
-		{
-			var newOrderObject = await acmeClient.GetOrderAsync(account, order.Location);
-
-			if (newOrderObject.Status == OrderStatus.Ready || newOrderObject.Status == OrderStatus.Valid)
+			// All challenges collected and are in the db - wait for validation now.
+			await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
 			{
-				// A certificate is available!
-				await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-				{
-					toUpdate.Status = 6;
-					toUpdate.LastPingUtc = DateTime.UtcNow;
-				}, DataOptions.IgnorePermissions);
+				toUpdate.Status = 4;
+				toUpdate.LastPingUtc = DateTime.UtcNow;
+			}, DataOptions.IgnorePermissions);
 
-				// Collect the cert:
-				var certificate = await acmeClient.GenerateCertificateAsync(account, order, pendingRecord.Domain);
+			foreach (var challenge in challenges)
+			{
+				await acmeClient.ValidateChallengeAsync(account, challenge.Url.ToString());
+			}
 
-				if (certificate == null)
+			// All challenges have had their validation requested.
+			await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+			{
+				toUpdate.Status = 5;
+				toUpdate.LastPingUtc = DateTime.UtcNow;
+			}, DataOptions.IgnorePermissions);
+
+			// Try checking the validation status:
+			for (var i = 0; i < 20; i++)
+			{
+				var newOrderObject = await acmeClient.GetOrderAsync(account, order.Location);
+
+				if (newOrderObject.Status == OrderStatus.Ready || newOrderObject.Status == OrderStatus.Valid)
 				{
-					// Fail state:
+					// A certificate is available!
+					await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+					{
+						toUpdate.Status = 6;
+						toUpdate.LastPingUtc = DateTime.UtcNow;
+					}, DataOptions.IgnorePermissions);
+
+					// Collect the cert:
+					var certificate = await acmeClient.GenerateCertificateAsync(account, order, pendingRecord.Domain);
+
+					if (certificate == null)
+					{
+						// Fail state:
+						await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+						{
+							toUpdate.Status = 1;
+							toUpdate.Ready = false;
+							toUpdate.LastPingUtc = DateTime.UtcNow;
+						}, DataOptions.IgnorePermissions);
+
+						return null;
+					}
+
+					// Write the cert to the filesystem:
+					var cert = await StoreCertificate(context, pendingRecord.Id, certificate, pendingRecord.FileKey);
+
+					await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+					{
+						toUpdate.Status = 1;
+						toUpdate.ExpiryUtc = cert.ExpiryUtc;
+						toUpdate.Ready = true;
+						toUpdate.LastPingUtc = DateTime.UtcNow;
+					}, DataOptions.IgnorePermissions);
+
+					return cert;
+				}
+				else if (newOrderObject.Status == OrderStatus.Pending)
+				{
+					// Wait for 2s (40s max).
+					await Task.Delay(2000);
+
+					// ping:
+					await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
+					{
+						toUpdate.LastPingUtc = DateTime.UtcNow;
+					}, DataOptions.IgnorePermissions);
+
+				}
+				else
+				{
+					// Failed.
+
+					// Stopping there.
 					await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
 					{
 						toUpdate.Status = 1;
@@ -404,47 +452,14 @@ public partial class DomainCertificateService : AutoService<DomainCertificate>
 
 					return null;
 				}
-					
-				// Write the cert to the filesystem:
-				var cert = await StoreCertificate(context, pendingRecord.Id, certificate, pendingRecord.FileKey);
-
-				await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-				{
-					toUpdate.Status = 1;
-					toUpdate.ExpiryUtc = cert.ExpiryUtc;
-					toUpdate.Ready = true;
-					toUpdate.LastPingUtc = DateTime.UtcNow;
-				}, DataOptions.IgnorePermissions);
-
-				return cert;
-			}
-			else if (newOrderObject.Status == OrderStatus.Pending)
-			{
-				// Wait for 2s (40s max).
-				await Task.Delay(2000);
-
-				// ping:
-				await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-				{
-					toUpdate.LastPingUtc = DateTime.UtcNow;
-				}, DataOptions.IgnorePermissions);
 
 			}
-			else
-			{
-				// Failed.
 
-				// Stopping there.
-				await Update(context, pendingRecord, (Context ctx, DomainCertificate toUpdate, DomainCertificate original) =>
-				{
-					toUpdate.Status = 1;
-					toUpdate.Ready = false;
-					toUpdate.LastPingUtc = DateTime.UtcNow;
-				}, DataOptions.IgnorePermissions);
-
-				return null;
-			}
-
+			return null;
+		}
+		catch (Exception e)
+		{
+			Log.Error(LogTag, e, "Unable to request a certificate");
 		}
 
 		return null;
@@ -514,6 +529,11 @@ public partial class DomainCertificateService : AutoService<DomainCertificate>
 
 			// Create the account now:
 			var account = await acmeClient.CreateNewAccountAsync(contactEmail);
+
+			if (account == null || account.Location == null || account.Location.AbsoluteUri == null)
+			{
+				throw new Exception("Let's Encrypt rejected account creation");
+			}
 
 			// build a JSON string:
 			var jsonObject = new JObject();

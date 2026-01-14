@@ -40,9 +40,17 @@ namespace Api.Pages
 				Roles.Guest.Revoke("page_load");
 				Roles.Public.Revoke("page_load");
 				Roles.Member.Revoke("page_load");
-				Roles.Guest.Grant("page_load");
-				Roles.Public.Grant("page_load");
-				Roles.Member.Grant("page_load");
+				Roles.Guest.If("NotRoleExcluded()").ThenGrant("page_load");
+				Roles.Public.If("NotRoleExcluded()").ThenGrant("page_load");
+				Roles.Member.If("NotRoleExcluded()").ThenGrant("page_load");
+
+				Roles.Guest.Revoke("permalink_load", "permalink_list");
+				Roles.Public.Revoke("permalink_load", "permalink_list");
+				Roles.Member.Revoke("permalink_load", "permalink_list");
+
+				// Dev only
+				Roles.Admin.Revoke("page_update", "page_create");
+
 				return new ValueTask<object>(source);
 			});
 		}

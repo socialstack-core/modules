@@ -15,6 +15,12 @@ namespace Api.Startup
 		public string FieldName;
 
 		/// <summary>
+		/// Optionally place this listAs field in a specific admin panel tab. 
+		/// The tab must exist otherwise you will effectively permanently hide the field.
+		/// </summary>
+		public string Tab;
+
+		/// <summary>
 		/// True if this ListAs declaration is the primary one. A type can have multiple ListAs declarations, but only one can be primary.
 		/// </summary>
 		public bool IsPrimary = true;

@@ -14,7 +14,12 @@ namespace Api.AutoForms
 		/// True if it supports revisions.
 		/// </summary>
 		public bool SupportsRevisions;
-		
+
+		/// <summary>
+		/// The content type name as-is. May contain generics using angle brackets.
+		/// </summary>
+		public string ContentType;
+
 		/// <summary>
 		/// The endpoint that this autoform is for.
 		/// e.g. "v1/forumreply"
@@ -62,8 +67,11 @@ namespace Api.AutoForms
 		/// Can this field be represented by tokens?
 		/// </summary>
 		public bool Tokeniseable = true;
-
-
+		
+		/// <summary>
+		/// The field name.
+		/// </summary>
+		public string FieldName;
 	}
 
 }

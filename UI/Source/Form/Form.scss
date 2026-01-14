@@ -1,0 +1,422 @@
+:root {
+	// set defaults
+	--label-color: #{$default-label-color};
+	--label-font-size: var(--label-md-font-size, #{$default-label-md-font-size});
+	--label-font-weight: var(--label-md-font-weight, #{$default-label-md-font-weight});
+	
+	--field-background: #{$default-field-background};
+	--field-color: #{$default-field-color};
+	--field-border: #{$default-field-border};
+
+	--field-select-background: #{$default-field-select-background};
+	--field-select-color: #{$default-field-select-color};
+	--field-select-border: #{$default-field-select-border};
+	--field-select-option-background: #{$default-field-select-option-background};
+	--field-select-icon--dark: #{$default-field-select-icon-dark};
+	--field-select-icon--light: #{$default-field-select-icon-light};
+	--field-select-icon: var(--field-select-icon--dark);
+
+	--field-placeholder-color: #{$default-field-placeholder-color};
+	--field-placeholder-font-style: #{$default-field-placeholder-font-style};
+	--field-placeholder-opacity: #{$default-field-placeholder-opacity};
+	
+	--field-readonly-background: #{$default-field-readonly-background};
+	--field-disabled-background: #{$default-field-disabled-background};
+	--field-disabled-opacity: #{$default-field-disabled-opacity};
+	--field-text-color: #{$default-field-text-color}; // for small info text / validation messages displayed beneath the field
+
+	--field-min-height: var(--field-md-min-height, #{$default-field-md-min-height});
+	--field-padding: var(--field-md-padding, #{$default-field-md-padding});
+	--field-font-size: var(--field-md-font-size, #{$default-field-md-font-size});
+	--field-font-weight: var(--field-md-font-weight, #{$default-field-md-font-weight});
+	--field-border-radius: var(--field-md-border-radius, #{$default-field-md-border-radius});
+	--field-placeholder-font-size: var(--field-md-placeholder-font-size, #{$default-field-md-placeholder-font-size});
+	--field-placeholder-font-weight: var(--field-md-placeholder-font-weight, #{$default-field-md-placeholder-font-weight});  
+	--field-text-font-size: var(--field-md-text-font-size, #{$default-field-md-text-font-size});
+	--field-select-icon-width: var(--field-md-select-icon-width, #{$default-field-md-select-icon-width});
+	--field-select-icon-height: var(--field-md-select-icon-height, #{$default-field-md-select-icon-height});
+}
+
+// size overrides (as used by .ui-form--[SIZE] / .fieldset--[SIZE] classes - see below)
+@mixin sizeXs() {
+	--form-check-font-size: var(--form-xs-font-size, #{$default-form-xs-font-size});
+	--form-check-size: var(--form-xs-check-size, #{$default-form-xs-check-size});
+	--form-check-gap: var(--form-xs-check-gap, #{$default-form-xs-check-gap});
+	--form-check-border-radius: var(--form-xs-check-border-radius, #{$default-form-xs-check-border-radius});
+	--form-check-background-size: var(--form-xs-check-background-size, #{$default-form-xs-check-background-size});
+
+	--form-switch-width: var(--form-xs-switch-width, #{$default-form-xs-switch-width});
+	--form-switch-height: var(--form-xs-switch-height, #{$default-form-xs-switch-height});
+	--form-switch-dot: var(--form-xs-switch-dot, #{$default-form-xs-switch-dot});
+	--form-switch-gap: var(--form-xs-switch-gap, #{$default-form-xs-switch-gap});
+	--form-switch-border-radius: var(--form-xs-switch-border-radius, #{$default-form-xs-switch-border-radius});
+
+    --label-font-size: var(--label-xs-font-size, #{$default-label-xs-font-size});
+    --label-font-weight: var(--label-xs-font-weight, #{$default-label-xs-font-weight});
+
+    --field-min-height: var(--field-xs-min-height, #{$default-field-xs-min-height});
+    --field-padding: var(--field-xs-padding, #{$default-field-xs-padding});
+    --field-font-size: var(--field-xs-font-size, #{$default-field-xs-font-size});
+    --field-font-weight: var(--field-xs-font-weight, #{$default-field-xs-font-weight});
+    --field-border-radius: var(--field-xs-border-radius, #{$default-field-xs-border-radius});
+    --field-placeholder-font-size: var(--field-xs-placeholder-font-size, #{$default-field-xs-placeholder-font-size});
+    --field-placeholder-font-weight: var(--field-xs-placeholder-font-weight, #{$default-field-xs-placeholder-font-weight});    
+	--field-text-font-size: var(--field-xs-text-font-size, #{$default-field-xs-text-font-size});
+    --field-select-icon-width: var(--field-xs-select-icon-width, #{$default-field-xs-select-icon-width});
+    --field-select-icon-height: var(--field-xs-select-icon-height, #{$default-field-xs-select-icon-height});
+}
+
+@mixin sizeSm() {
+	--form-check-font-size: var(--form-sm-font-size, #{$default-form-sm-font-size});
+	--form-check-size: var(--form-sm-check-size, #{$default-form-sm-check-size});
+	--form-check-gap: var(--form-sm-check-gap, #{$default-form-sm-check-gap});
+	--form-check-border-radius: var(--form-sm-check-border-radius, #{$default-form-sm-check-border-radius});
+	--form-check-background-size: var(--form-sm-check-background-size, #{$default-form-sm-check-background-size});
+
+	--form-switch-width: var(--form-sm-switch-width, #{$default-form-sm-switch-width});
+	--form-switch-height: var(--form-sm-switch-height, #{$default-form-sm-switch-height});
+	--form-switch-dot: var(--form-sm-switch-dot, #{$default-form-sm-switch-dot});
+	--form-switch-gap: var(--form-sm-switch-gap, #{$default-form-sm-switch-gap});
+	--form-switch-border-radius: var(--form-sm-switch-border-radius, #{$default-form-sm-switch-border-radius});
+
+    --label-font-size: var(--label-sm-font-size, #{$default-label-sm-font-size});
+    --label-font-weight: var(--label-sm-font-weight, #{$default-label-sm-font-weight});
+
+    --field-min-height: var(--field-sm-min-height, #{$default-field-sm-min-height});
+    --field-padding: var(--field-sm-padding, #{$default-field-sm-padding});
+    --field-font-size: var(--field-sm-font-size, #{$default-field-sm-font-size});
+    --field-font-weight: var(--field-sm-font-weight, #{$default-field-sm-font-weight});
+    --field-border-radius: var(--field-sm-border-radius, #{$default-field-sm-border-radius});
+    --field-placeholder-font-size: var(--field-sm-placeholder-font-size, #{$default-field-sm-placeholder-font-size});
+    --field-placeholder-font-weight: var(--field-sm-placeholder-font-weight, #{$default-field-sm-placeholder-font-weight});     
+	--field-text-font-size: var(--field-sm-text-font-size, #{$default-field-sm-text-font-size});
+    --field-select-icon-width: var(--field-sm-select-icon-width, #{$default-field-sm-select-icon-width});
+    --field-select-icon-height: var(--field-sm-select-icon-height, #{$default-field-sm-select-icon-height});
+}
+
+@mixin sizeMd() {
+	--form-check-font-size: var(--form-md-font-size, #{$default-form-md-font-size});
+	--form-check-size: var(--form-md-check-size, #{$default-form-md-check-size});
+	--form-check-gap: var(--form-md-check-gap, #{$default-form-md-check-gap});
+	--form-check-border-radius: var(--form-md-check-border-radius, #{$default-form-md-check-border-radius});
+	--form-check-background-size: var(--form-md-check-background-size, #{$default-form-md-check-background-size});
+
+	--form-switch-width: var(--form-md-switch-width, #{$default-form-md-switch-width});
+	--form-switch-height: var(--form-md-switch-height, #{$default-form-md-switch-height});
+	--form-switch-dot: var(--form-md-switch-dot, #{$default-form-md-switch-dot});
+	--form-switch-gap: var(--form-md-switch-gap, #{$default-form-md-switch-gap});
+	--form-switch-border-radius: var(--form-md-switch-border-radius, #{$default-form-md-switch-border-radius});
+
+    --label-font-size: var(--label-md-font-size, #{$default-label-md-font-size});
+    --label-font-weight: var(--label-md-font-weight, #{$default-label-md-font-weight});
+
+    --field-min-height: var(--field-md-min-height, #{$default-field-md-min-height});
+    --field-padding: var(--field-md-padding, #{$default-field-md-padding});
+    --field-font-size: var(--field-md-font-size, #{$default-field-md-font-size});
+    --field-font-weight: var(--field-md-font-weight, #{$default-field-md-font-weight});
+    --field-border-radius: var(--field-md-border-radius, #{$default-field-md-border-radius});
+    --field-placeholder-font-size: var(--field-md-placeholder-font-size, #{$default-field-md-placeholder-font-size});
+    --field-placeholder-font-weight: var(--field-md-placeholder-font-weight, #{$default-field-md-placeholder-font-weight});     
+	--field-text-font-size: var(--field-md-text-font-size, #{$default-field-md-text-font-size});
+    --field-select-icon-width: var(--field-md-select-icon-width, #{$default-field-md-select-icon-width});
+    --field-select-icon-height: var(--field-md-select-icon-height, #{$default-field-md-select-icon-height});
+}
+
+@mixin sizeLg() {
+	--form-check-font-size: var(--form-lg-font-size, #{$default-form-lg-font-size});
+	--form-check-size: var(--form-lg-check-size, #{$default-form-lg-check-size});
+	--form-check-gap: var(--form-lg-check-gap, #{$default-form-lg-check-gap});
+	--form-check-border-radius: var(--form-lg-check-border-radius, #{$default-form-lg-check-border-radius});
+	--form-check-background-size: var(--form-lg-check-background-size, #{$default-form-lg-check-background-size});
+
+	--form-switch-width: var(--form-lg-switch-width, #{$default-form-lg-switch-width});
+	--form-switch-height: var(--form-lg-switch-height, #{$default-form-lg-switch-height});
+	--form-switch-dot: var(--form-lg-switch-dot, #{$default-form-lg-switch-dot});
+	--form-switch-gap: var(--form-lg-switch-gap, #{$default-form-lg-switch-gap});
+	--form-switch-border-radius: var(--form-lg-switch-border-radius, #{$default-form-lg-switch-border-radius});
+
+    --label-font-size: var(--label-lg-font-size, #{$default-label-lg-font-size});
+    --label-font-weight: var(--label-lg-font-weight, #{$default-label-lg-font-weight});
+
+    --field-min-height: var(--field-lg-min-height, #{$default-field-lg-min-height});
+    --field-padding: var(--field-lg-padding, #{$default-field-lg-padding});
+    --field-font-size: var(--field-lg-font-size, #{$default-field-lg-font-size});
+    --field-font-weight: var(--field-lg-font-weight, #{$default-field-lg-font-weight});
+    --field-border-radius: var(--field-lg-border-radius, #{$default-field-lg-border-radius});
+    --field-placeholder-font-size: var(--field-lg-placeholder-font-size, #{$default-field-lg-placeholder-font-size});
+    --field-placeholder-font-weight: var(--field-lg-placeholder-font-weight, #{$default-field-lg-placeholder-font-weight});     
+	--field-text-font-size: var(--field-lg-text-font-size, #{$default-field-lg-text-font-size});
+    --field-select-icon-width: var(--field-lg-select-icon-width, #{$default-field-lg-select-icon-width});
+    --field-select-icon-height: var(--field-lg-select-icon-height, #{$default-field-lg-select-icon-height});
+}
+
+@mixin sizeXl() {
+	--form-check-font-size: var(--form-xl-font-size, #{$default-form-xl-font-size});
+	--form-check-size: var(--form-xl-check-size, #{$default-form-xl-check-size});
+	--form-check-gap: var(--form-xl-check-gap, #{$default-form-xl-check-gap});
+	--form-check-border-radius: var(--form-xl-check-border-radius, #{$default-form-xl-check-border-radius});
+	--form-check-background-size: var(--form-xl-check-background-size, #{$default-form-xl-check-background-size});
+	
+	--form-switch-width: var(--form-xl-switch-width, #{$default-form-xl-switch-width});
+	--form-switch-height: var(--form-xl-switch-height, #{$default-form-xl-switch-height});
+	--form-switch-dot: var(--form-xl-switch-dot, #{$default-form-xl-switch-dot});
+	--form-switch-gap: var(--form-xl-switch-gap, #{$default-form-xl-switch-gap});
+	--form-switch-border-radius: var(--form-xl-switch-border-radius, #{$default-form-xl-switch-border-radius});
+
+    --label-font-size: var(--label-xl-font-size, #{$default-label-xl-font-size});
+    --label-font-weight: var(--label-xl-font-weight, #{$default-label-xl-font-weight});
+
+    --field-min-height: var(--field-xl-min-height, #{$default-field-xl-min-height});
+    --field-padding: var(--field-xl-padding, #{$default-field-xl-padding});
+    --field-font-size: var(--field-xl-font-size, #{$default-field-xl-font-size});
+    --field-font-weight: var(--field-xl-font-weight, #{$default-field-xl-font-weight});
+    --field-border-radius: var(--field-xl-border-radius, #{$default-field-xl-border-radius});
+    --field-placeholder-font-size: var(--field-xl-placeholder-font-size, #{$default-field-xl-placeholder-font-size});
+    --field-placeholder-font-weight: var(--field-xl-placeholder-font-weight, #{$default-field-xl-placeholder-font-weight});     
+	--field-text-font-size: var(--field-xl-text-font-size, #{$default-field-xl-text-font-size});
+    --field-select-icon-width: var(--field-xl-select-icon-width, #{$default-field-xl-select-icon-width});
+    --field-select-icon-height: var(--field-xl-select-icon-height, #{$default-field-xl-select-icon-height});
+}
+
+// apply .ui-form--[SIZE] class to <form>
+// (affects all field controls within the entire form)
+.form.ui-form {
+
+	&:where(.ui-form--xs) {
+		@include sizeXs();
+	}
+
+	&:where(.ui-form--sm) {
+		@include sizeSm();
+	}
+
+	&:where(.ui-form--md) {
+		@include sizeMd();
+	}
+
+	&:where(.ui-form--lg) {
+		@include sizeLg();
+	}
+
+	&:where(.ui-form--xl) {
+		@include sizeXl();
+	}
+
+}
+
+// apply .fieldset--[SIZE] class to <fieldset>
+// (affects all controls within that fieldset only)
+fieldset {
+
+	&:where(.fieldset--xs) {
+		@include sizeXs();
+	}
+
+	&:where(.fieldset--sm) {
+		@include sizeSm();
+	}
+
+	&:where(.fieldset--md) {
+		@include sizeMd();
+	}
+
+	&:where(.fieldset--lg) {
+		@include sizeLg();
+	}
+
+	&:where(.fieldset--xl) {
+		@include sizeXl();
+	}
+
+	&.fieldset--bordered {
+		border-radius: px_to_rem(8);
+		border: 1px solid #ced4da;
+		padding: px_to_rem(20);
+	}
+
+}
+
+// NB: Bootstrap allows for field-level sizing (sm/lg);
+// chances that we'll need to support this for individual fields are vanishingly thin,
+// so preference is to set the size for either the entire form or a specific fieldset (see above)
+.ui-form-control {
+
+	&:where(.ui-form-control--xs) {
+		@include sizeXs();
+	}
+
+	&:where(.ui-form-control--sm) {
+		@include sizeSm();
+	}
+
+	&:where(.ui-form-control--md) {
+		@include sizeMd();
+	}
+
+	&:where(.ui-form-control--lg) {
+		@include sizeLg();
+	}
+
+	&:where(.ui-form-control--xl) {
+		@include sizeXl();
+	}
+
+}
+
+.ui-form-select {
+
+	&:where(.ui-form-select--xs) {
+		@include sizeXs();
+	}
+
+	&:where(.ui-form-select--sm) {
+		@include sizeSm();
+	}
+
+	&:where(.ui-form-select--md) {
+		@include sizeMd();
+	}
+
+	&:where(.ui-form-select--lg) {
+		@include sizeLg();
+	}
+
+	&:where(.ui-form-select--xl) {
+		@include sizeXl();
+	}
+
+}
+
+// form labels
+.form-label.ui-form-label {
+	//font-family: var(--label-font-family);
+	font-size: var_to_rem(--label-font-size);
+	font-weight: var(--label-font-weight);
+	color: var(--label-color);
+	margin-bottom: .5em;  
+}
+
+// form controls (text, date, search, etc.)
+.form-control.ui-form-control {
+	color: var(--field-color);
+	background: var(--field-background);
+	border: var(--field-border);
+	border-radius: var_to_rem(--field-border-radius);
+	min-height: var_to_rem(--field-min-height);
+	//font-family: var(--field-font-family);
+	font-size: var_to_rem(--field-font-size);
+	font-weight: var(--field-font-weight);
+	padding: 0 var_to_rem(--field-padding);
+	
+	&.ui-form-control--outlined {
+		border-width: 1px;
+	}
+	
+	&.ui-form-control--solid {
+		border-width: 0;
+	}
+	
+	&::placeholder {
+		font-size: var_to_rem(--field-placeholder-font-size);
+		font-weight: var(--field-placeholder-font-weight);
+		font-style: var(--field-placeholder-font-style);
+		color: var(--field-placeholder-color);
+		opacity: var(--field-placeholder-opacity);
+	}
+	
+	&[readonly] {
+		background: var(--field-readonly-background);
+	}
+	
+	&[disabled] {
+		background: var(--field-disabled-background);
+		opacity: var(--field-disabled-opacity);
+		cursor: not-allowed;
+	}
+  
+}
+
+// additional styling for textareas
+textarea.form-control.ui-form-control {
+	padding-top: calc(1rem * ((var(--field-padding) / 2) / #{$base_font_size}));
+}
+
+// associated help text displayed below field
+.form-text.ui-form-text {
+	margin-top: .25rem;  
+	font-size: var_to_rem(--field-text-font-size);
+	color: var(--field-text-color);
+	
+	&.ui-form-text--validation {
+		display: none;
+	}
+
+}
+
+// select dropdowns
+.form-select.ui-form-select {
+	position: relative;
+	width: auto;
+	color: var(--field-color);
+	background-color: var(--field-select-background);
+	background-image: var(--field-select-icon);
+	background-repeat: no-repeat;
+	background-size: var_to_rem(--field-select-icon-width) var_to_rem(--field-select-icon-height);
+	background-position: right var_to_rem(--field-padding) center;     
+	border: var(--field-border);  
+	border-radius: var_to_rem(--field-border-radius);
+	min-height: var_to_rem(--field-min-height);
+	//font-family: var(--field-font-family);
+	font-size: var_to_rem(--field-font-size);
+	font-weight: var(--field-font-weight);
+	padding: 0 var_to_rem(--field-padding);
+	padding-right: calc(1rem * (((var(#{--field-padding}) * 2) + var(#{--field-select-icon-width})) / #{$base_font_size}));
+	
+	&.ui-form-select--outlined {
+		border-width: 1px;
+	}
+	
+	&.ui-form-select--solid {
+		border-width: 0;
+	}
+
+	// if we have a selected option	without a value, treat this as the "please select" prompt
+	// (style as per placeholder text on text input controls)
+	&:has(option:checked[value=""]) {
+		font-size: var_to_rem(--field-placeholder-font-size);
+		font-weight: var(--field-placeholder-font-weight);
+		font-style: var(--field-placeholder-font-style);
+		color: var(--field-placeholder-color);
+		//opacity: var(--field-placeholder-opacity);
+	}
+	
+	&[disabled] {
+		background: var(--field-disabled-background);
+		opacity: var(--field-disabled-opacity);
+		cursor: not-allowed;
+	}
+	
+	optgroup, option {
+		//font-family: var(--field-font-family);
+		font-size: var_to_rem(--field-font-size);
+		//font-weight: var(--field-font-weight);
+		font-weight: normal;
+		font-style: normal;
+		color: var(--field-color);
+		//opacity: 1;
+	}
+	
+	optgroup {
+		font-weight: 700;
+	}
+	
+	option {
+		background: var(--field-select-dropdown-background);
+		
+		&[selected] {
+			font-weight: var(--field-font-weight);
+		}
+
+	}
+  
+}

@@ -1,0 +1,57 @@
+
+
+.admin-tabs {
+    
+    padding-top:20px;
+    
+    .control {
+        height: 50px;
+        border-bottom: 1px solid #cccccc50;
+        
+        .container {
+            
+            button {
+                display: inline-block;
+                vertical-align: top;
+                background:transparent;
+                color:#000;
+                border:0;
+                outline:0 !important;
+                height:50px;
+                border-radius: 0px;
+                box-shadow: none !important;
+                font-weight: normal;
+                
+                &:hover {
+                    background:#cccccc50;
+                }
+                
+                &.active {
+                    background: transparent;
+                    height: 50px;
+                    border-bottom:3px solid var(--primary);
+                    line-height: 50px;
+                    font-weight: bold   ;
+                    
+                    &:hover {
+                        background:#cccccc25;
+                    }
+                }
+            }
+            
+        }
+    }
+    
+    .panels {
+        padding-top:60px;
+        
+        .tab-pane {
+            display: none;
+            
+            &.active {
+                display: block;
+            }
+        }
+    }
+    
+}

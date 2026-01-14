@@ -1,0 +1,396 @@
+@use "sass:color";
+
+// Button variants
+//
+// Easily pump out default styles, as well as :hover, :focus, :active,
+// and disabled options for all buttons
+
+// scss-docs-start btn-variant-mixin
+@mixin button-variant(
+  $background,
+  $border,
+  $color: color-contrast($background),
+  $hover-background: if($color == $color-contrast-light, shade-color($background, $btn-hover-bg-shade-amount), tint-color($background, $btn-hover-bg-tint-amount)),
+  $hover-border: if($color == $color-contrast-light, shade-color($border, $btn-hover-border-shade-amount), tint-color($border, $btn-hover-border-tint-amount)),
+  $hover-color: color-contrast($hover-background),
+  $active-background: if($color == $color-contrast-light, shade-color($background, $btn-active-bg-shade-amount), tint-color($background, $btn-active-bg-tint-amount)),
+  $active-border: if($color == $color-contrast-light, shade-color($border, $btn-active-border-shade-amount), tint-color($border, $btn-active-border-tint-amount)),
+  $active-color: color-contrast($active-background),
+  $disabled-background: $background,
+  $disabled-border: $border,
+  $disabled-color: color-contrast($disabled-background)
+) {
+  color: $color;
+  @include gradient-bg($background);
+  border-color: $border;
+  @include box-shadow($btn-box-shadow);
+
+  &:hover {
+    color: $hover-color;
+    @include gradient-bg($hover-background);
+    border-color: $hover-border;
+  }
+
+  .btn-check:focus + &,
+  &:focus {
+    color: $hover-color;
+    @include gradient-bg($hover-background);
+    border-color: $hover-border;
+    @if $enable-shadows {
+      @include box-shadow($btn-box-shadow, 0 0 0 $btn-focus-width rgba(color.mix($color, $border, 15%), .5));
+    } @else {
+      // Avoid using mixin so we can pass custom focus shadow properly
+      box-shadow: 0 0 0 $btn-focus-width rgba(color.mix($color, $border, 15%), .5);
+    }
+  }
+
+  .btn-check:checked + &,
+  .btn-check:active + &,
+  &:active,
+  &.active,
+  .show > &.dropdown-toggle {
+    color: $active-color;
+    background-color: $active-background;
+    // Remove CSS gradients if they're enabled
+    background-image: if($enable-gradients, none, null);
+    border-color: $active-border;
+
+    &:focus {
+      @if $enable-shadows {
+        @include box-shadow($btn-active-box-shadow, 0 0 0 $btn-focus-width rgba(color.mix($color, $border, 15%), .5));
+      } @else {
+        // Avoid using mixin so we can pass custom focus shadow properly
+        box-shadow: 0 0 0 $btn-focus-width rgba(color.mix($color, $border, 15%), .5);
+      }
+    }
+  }
+
+  &:disabled,
+  &.disabled {
+    color: $disabled-color;
+    background-color: $disabled-background;
+    // Remove CSS gradients if they're enabled
+    background-image: if($enable-gradients, none, null);
+    border-color: $disabled-border;
+  }
+}
+// scss-docs-end btn-variant-mixin
+
+// scss-docs-start btn-outline-variant-mixin
+@mixin button-outline-variant(
+  $color,
+  $color-hover: color-contrast($color),
+  $active-background: $color,
+  $active-border: $color,
+  $active-color: color-contrast($active-background)
+) {
+  color: $color;
+  border-color: $color;
+
+  &:hover {
+    color: $color-hover;
+    background-color: $active-background;
+    border-color: $active-border;
+  }
+
+  .btn-check:focus + &,
+  &:focus {
+    box-shadow: 0 0 0 $btn-focus-width rgba($color, .5);
+  }
+
+  .btn-check:checked + &,
+  .btn-check:active + &,
+  &:active,
+  &.active,
+  &.dropdown-toggle.show {
+    color: $active-color;
+    background-color: $active-background;
+    border-color: $active-border;
+
+    &:focus {
+      @if $enable-shadows {
+        @include box-shadow($btn-active-box-shadow, 0 0 0 $btn-focus-width rgba($color, .5));
+      } @else {
+        // Avoid using mixin so we can pass custom focus shadow properly
+        box-shadow: 0 0 0 $btn-focus-width rgba($color, .5);
+      }
+    }
+  }
+
+  &:disabled,
+  &.disabled {
+    color: $color;
+    background-color: transparent;
+  }
+}
+// scss-docs-end btn-outline-variant-mixin
+
+// scss-docs-start btn-size-mixin
+@mixin button-size($padding-y, $padding-x, $font-size, $border-radius) {
+  padding: $padding-y $padding-x;
+  @include font-size($font-size);
+  // Manually declare to provide an override to the browser default
+  @include border-radius($border-radius, 0);
+}
+// scss-docs-end btn-size-mixin
+
+
+
+//
+// Base styles
+//
+
+.btn {
+  display: inline-block;
+  font-family: $btn-font-family;
+  font-weight: $btn-font-weight;
+  line-height: $btn-line-height;
+  color: $body-color;
+  text-align: center;
+  text-decoration: if($link-decoration == none, null, none);
+  white-space: $btn-white-space;
+  vertical-align: middle;
+  cursor: if($enable-button-pointers, pointer, null);
+  user-select: none;
+  background-color: transparent;
+  border: $btn-border-width solid transparent;
+  @include button-size($btn-padding-y, $btn-padding-x, $btn-font-size, $btn-border-radius);
+  @include transition($btn-transition);
+
+  &:hover {
+    color: $body-color;
+    text-decoration: if($link-hover-decoration == underline, none, null);
+  }
+
+  .btn-check:focus + &,
+  &:focus {
+    outline: 0;
+    box-shadow: $btn-focus-box-shadow;
+  }
+
+  .btn-check:checked + &,
+  .btn-check:active + &,
+  &:active,
+  &.active {
+    @include box-shadow($btn-active-box-shadow);
+
+    &:focus {
+      @include box-shadow($btn-focus-box-shadow, $btn-active-box-shadow);
+    }
+  }
+
+  &:disabled,
+  &.disabled,
+  fieldset:disabled & {
+    pointer-events: none;
+    opacity: $btn-disabled-opacity;
+    @include box-shadow(none);
+  }
+}
+
+
+//
+// Alternate buttons
+//
+
+// scss-docs-start btn-variant-loops
+@each $color, $value in $theme-colors {
+  .btn-#{$color} {
+    @include button-variant($value, $value);
+  }
+}
+
+@each $color, $value in $theme-colors {
+  .btn-outline-#{$color} {
+    @include button-outline-variant($value);
+  }
+}
+// scss-docs-end btn-variant-loops
+
+
+//
+// Link buttons
+//
+
+// Make a button look and behave like a link
+.btn-link {
+  font-weight: $font-weight-normal;
+  color: $btn-link-color;
+  text-decoration: $link-decoration;
+
+  &:hover {
+    color: $btn-link-hover-color;
+    text-decoration: $link-hover-decoration;
+  }
+
+  &:focus {
+    text-decoration: $link-hover-decoration;
+  }
+
+  &:disabled,
+  &.disabled {
+    color: $btn-link-disabled-color;
+  }
+
+  // No need for an active state here
+}
+
+
+//
+// Button Sizes
+//
+
+.btn-lg {
+  @include button-size($btn-padding-y-lg, $btn-padding-x-lg, $btn-font-size-lg, $btn-border-radius-lg);
+}
+
+.btn-sm {
+  @include button-size($btn-padding-y-sm, $btn-padding-x-sm, $btn-font-size-sm, $btn-border-radius-sm);
+}
+
+//
+// Button Groups
+//
+
+// Make the div behave like a button
+.btn-group,
+.btn-group-vertical {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle; // match .btn alignment given font-size hack above
+
+  > .btn {
+    position: relative;
+    flex: 1 1 auto;
+  }
+
+  // Bring the hover, focused, and "active" buttons to the front to overlay
+  // the borders properly
+  > .btn-check:checked + .btn,
+  > .btn-check:focus + .btn,
+  > .btn:hover,
+  > .btn:focus,
+  > .btn:active,
+  > .btn.active {
+    z-index: 1;
+  }
+}
+
+// Optional: Group multiple button groups together for a toolbar
+.btn-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+
+  .input-group {
+    width: auto;
+  }
+}
+
+.btn-group {
+  @include border-radius($btn-border-radius);
+
+  // Prevent double borders when buttons are next to each other
+  > :not(.btn-check:first-child) + .btn,
+  > .btn-group:not(:first-child) {
+    margin-left: calc(#{$btn-border-width} * -1); // stylelint-disable-line function-disallowed-list
+  }
+
+  // Reset rounded corners
+  > .btn:not(:last-child):not(.dropdown-toggle),
+  > .btn.dropdown-toggle-split:first-child,
+  > .btn-group:not(:last-child) > .btn {
+    @include border-end-radius(0);
+  }
+
+  // The left radius should be 0 if the button is:
+  // - the "third or more" child
+  // - the second child and the previous element isn't `.btn-check` (making it the first child visually)
+  // - part of a btn-group which isn't the first child
+  > .btn:nth-child(n + 3),
+  > :not(.btn-check) + .btn,
+  > .btn-group:not(:first-child) > .btn {
+    @include border-start-radius(0);
+  }
+}
+
+// Sizing
+//
+// Remix the default button sizing classes into new ones for easier manipulation.
+
+.btn-group-sm > .btn { @extend .btn-sm; }
+.btn-group-lg > .btn { @extend .btn-lg; }
+
+
+//
+// Split button dropdowns
+//
+
+.dropdown-toggle-split {
+  padding-right: $btn-padding-x * .75;
+  padding-left: $btn-padding-x * .75;
+
+  &::after,
+  .dropup &::after,
+  .dropend &::after {
+    margin-left: 0;
+  }
+
+  .dropstart &::before {
+    margin-right: 0;
+  }
+}
+
+.btn-sm + .dropdown-toggle-split {
+  padding-right: $btn-padding-x-sm * .75;
+  padding-left: $btn-padding-x-sm * .75;
+}
+
+.btn-lg + .dropdown-toggle-split {
+  padding-right: $btn-padding-x-lg * .75;
+  padding-left: $btn-padding-x-lg * .75;
+}
+
+
+// The clickable button for toggling the menu
+// Set the same inset shadow as the :active state
+.btn-group.show .dropdown-toggle {
+  @include box-shadow($btn-active-box-shadow);
+
+  // Show no shadow for `.btn-link` since it has no other button styles.
+  &.btn-link {
+    @include box-shadow(none);
+  }
+}
+
+
+//
+// Vertical button groups
+//
+
+.btn-group-vertical {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+
+  > .btn,
+  > .btn-group {
+    width: 100%;
+  }
+
+  > .btn:not(:first-child),
+  > .btn-group:not(:first-child) {
+    margin-top: calc(#{$btn-border-width} * -1); // stylelint-disable-line function-disallowed-list
+  }
+
+  // Reset rounded corners
+  > .btn:not(:last-child):not(.dropdown-toggle),
+  > .btn-group:not(:last-child) > .btn {
+    @include border-bottom-radius(0);
+  }
+
+  > .btn ~ .btn,
+  > .btn-group:not(:first-child) > .btn {
+    @include border-top-radius(0);
+  }
+}

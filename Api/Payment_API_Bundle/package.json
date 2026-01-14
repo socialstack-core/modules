@@ -1,8 +1,0 @@
-{
-	"dependencies":[
-		"API/PaymentGateways",
-		"API/Products",
-		"API/PurchaseProducts",
-		"API/Purchases"
-	]
-}

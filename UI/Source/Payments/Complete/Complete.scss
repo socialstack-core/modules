@@ -1,0 +1,11 @@
+.payment-complete {
+
+	&-intent {
+		&__title {
+			display: flex;
+			align-items: center;
+			gap: px_to_rem(16);
+		}
+	}	
+}
+

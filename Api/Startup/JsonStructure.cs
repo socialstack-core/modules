@@ -18,25 +18,6 @@ namespace Api.Startup
 {
 
 	/// <summary>
-	/// Used when searching for a field.
-	/// </summary>
-	public enum JsonFieldGroup : int
-	{
-		/// <summary>
-		/// The default group is set regardless of if the entity ID is known yet.
-		/// </summary>
-		Default = 1,
-		/// <summary>
-		/// Fields in this group are only set after an entity ID is known.
-		/// </summary>
-		AfterId = 2,
-		/// <summary>
-		/// Either the default or after ID group.
-		/// </summary>
-		Any = 3
-	}
-
-	/// <summary>
 	/// Describes the available fields on a particular type.
 	/// This exists so we can, for example, role restrict setting particular fields.
 	/// </summary>
@@ -101,10 +82,6 @@ namespace Api.Startup
 		public TypeReaderWriter<T> TypeIO;
 
 		/// <summary>
-		/// Fields that can be read by users of the current role.
-		/// </summary>
-		public List<JsonField<T, ID>> ReadableFields = new List<JsonField<T, ID>>();
-		/// <summary>
 		/// All raw fields in this structure.
 		/// </summary>
 		public Dictionary<string, JsonField<T, ID>> Fields;
@@ -112,14 +89,6 @@ namespace Api.Startup
 		/// All meta fields in this structure. Common ones are e.g. "title" and "description".
 		/// </summary>
 		public Dictionary<string, JsonField<T, ID>> MetaFields;
-		/// <summary>
-		/// The after ID fields in this structure.
-		/// </summary>
-		public Dictionary<string, JsonField<T, ID>> AfterIdFields;
-		/// <summary>
-		/// The before ID fields in this structure.
-		/// </summary>
-		public Dictionary<string, JsonField<T, ID>> BeforeIdFields;
 
 		
 		/// <summary>
@@ -131,8 +100,6 @@ namespace Api.Startup
 			ForRole = forRole;
 			Fields = new Dictionary<string, JsonField<T, ID>>();
 			MetaFields = new Dictionary<string, JsonField<T, ID>>();
-			AfterIdFields = new Dictionary<string, JsonField<T, ID>>();
-			BeforeIdFields = new Dictionary<string, JsonField<T, ID>>();
 		}
 
 		/// <summary>
@@ -213,19 +180,16 @@ namespace Api.Startup
 		{
 			var context = new Context();
 
-			// Most types have all fields as readable by default:
-			var readable = true;
+			// Load the access rules:
+			var fieldAccessService = Services.Get<ContentFieldAccessRuleService>();
 
-			var permAttribute = typeof(T).GetCustomAttribute<PermissionsAttribute>();
+			var accessRules = await fieldAccessService.Where("RoleId=? and EntityName=?", DataOptions.IgnorePermissions)
+				.Bind(ForRole.Id)
+				.Bind(typeof(T).Name)
+				.ListAll(context);
 
-			if (permAttribute != null)
-			{
-				if (permAttribute.HideFieldByDefault)
-				{
-					// Default read state is false
-					readable = false;
-				}
-			}
+			// Get the perm attributes on the type, if any:
+			var permAttributes = typeof(T).GetCustomAttributes<PermissionsAttribute>();
 
 			foreach (var contentField in fields.List)
 			{
@@ -239,7 +203,7 @@ namespace Api.Startup
 					{
 						Name = field.Name,
 						OriginalName = field.Name,
-						Attributes = contentField.Attributes,
+						Attributes = MergeAttributes(permAttributes, contentField.Attributes),
 						Structure = this,
 						TargetType = field.FieldType,
 						FieldInfo = field,
@@ -255,7 +219,7 @@ namespace Api.Startup
 					{
 						Name = property.Name,
 						OriginalName = property.Name,
-						Attributes = contentField.Attributes,
+						Attributes = MergeAttributes(permAttributes, contentField.Attributes),
 						Structure = this,
 						PropertyInfo = property,
 						TargetType = property.PropertyType,
@@ -269,7 +233,13 @@ namespace Api.Startup
 					};
 				}
 
-				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
+				// Locate an access rule if there is one:
+				var fieldName = jsonField.Name;
+				var lowercaseFirst = char.ToLower(fieldName[0]) + fieldName.Substring(1);
+				var matchedAccessRule = accessRules == null ? null : accessRules.Find(rule => rule.FieldName == lowercaseFirst);
+				jsonField.AccessRule = matchedAccessRule;
+
+				await TryAddField(context, jsonField, beforeSettable, beforeGettable);
 			}
 
 			// Add local list virtual fields:
@@ -301,7 +271,7 @@ namespace Api.Startup
 					Hide = isExplicit,
 					ContentField = field,
 					IsExplicit = isExplicit,
-					Attributes = Array.Empty<Attribute>(),
+					Attributes = MergeAttributes(permAttributes, field.Attributes),
 					AfterId = true
 				};
 
@@ -323,7 +293,7 @@ namespace Api.Startup
 
 					// These fields are exclusively readonly.
 					jsonField.Writeable = false;
-					jsonField.TargetType = valueGenerator.GetOutputType();
+					jsonField.TargetType = valueGenerator.OutputType;
 				}
 				else
 				{
@@ -334,7 +304,7 @@ namespace Api.Startup
 				}
 				
 				// Note: initial module is set by TryAdd.
-				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
+				await TryAddField(context, jsonField, beforeSettable, beforeGettable);
 			}
 
 			// Add global virtual fields:
@@ -363,7 +333,7 @@ namespace Api.Startup
 					Hide = isExplicit,
 					ContentField = field,
 					IsExplicit = isExplicit,
-					Attributes = Array.Empty<Attribute>(),
+					Attributes = MergeAttributes(permAttributes, field.Attributes),
 					AfterId = true
 				};
 
@@ -385,7 +355,7 @@ namespace Api.Startup
 
 					// These fields are exclusively readonly.
 					jsonField.Writeable = false;
-					jsonField.TargetType = valueGenerator.GetOutputType();
+					jsonField.TargetType = valueGenerator.OutputType;
 				}
 				else
 				{
@@ -396,7 +366,7 @@ namespace Api.Startup
 				}
 
 				// Note: initial module is set by TryAdd.
-				await TryAddField(context, jsonField, readable, beforeSettable, beforeGettable);
+				await TryAddField(context, jsonField, beforeSettable, beforeGettable);
 			}
 
 
@@ -417,6 +387,22 @@ namespace Api.Startup
 		/// <returns></returns>
 		private static bool IsNumericType(Type type)
 		{
+			if (type.IsGenericType)
+			{
+				var def = type.GetGenericTypeDefinition();
+
+				if (def == typeof(Localized<>))
+				{
+					return IsNumericType(type.GetGenericArguments()[0]);
+				}
+				else if (def == typeof(Nullable<>))
+				{
+					return IsNumericType(type.GetGenericArguments()[0]);
+				}
+
+				return false;
+			}
+
 			switch (Type.GetTypeCode(type))
 			{
 				case TypeCode.Byte:
@@ -436,45 +422,92 @@ namespace Api.Startup
 			}
 		}
 
+		private IEnumerable<Attribute> MergeAttributes(IEnumerable<Attribute> a, IEnumerable<Attribute> b)
+		{
+			if (a == null && b == null)
+			{
+				return Array.Empty<Attribute>();
+			}
+
+			if (a == null)
+			{
+				// b as-is is fine. (A as-is should be avoided as it would end up being shared by the output).
+				return b;
+			}
+
+			var result = new List<Attribute>();
+			result.AddRange(a);
+
+			if (a != null)
+			{
+				result.AddRange(a);
+			}
+
+			if (b != null)
+			{
+				result.AddRange(b);
+			}
+
+			return result;
+		}
+
 		/// <summary>
 		/// Adds the given field to this structure.
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="field"></param>
-		/// <param name="readableState"></param>
 		/// <param name="beforeSettable"></param>
 		/// <param name="beforeGettable"></param>
-		private async ValueTask TryAddField(Context context, JsonField<T, ID> field, bool readableState, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
+		private async ValueTask TryAddField(Context context, JsonField<T, ID> field, Api.Eventing.EventHandler<JsonField<T, ID>> beforeSettable, Api.Eventing.EventHandler<JsonField<T, ID>> beforeGettable)
 		{
 			// Set the default just before the field event:
 			field.SetDefaultDisplayModule();
 
-			// Get underlying nullable type:
-			var nullableType = Nullable.GetUnderlyingType(field.TargetType);
-
 			// Set if it's numeric:
-			field.UnderlyingNullable = nullableType;
-			field.IsNumericField = IsNumericType(nullableType ?? field.TargetType);
+			field.IsNumericField = IsNumericType(field.TargetType);
 
-			var readable = readableState;
+			// Fields are readable by default:
+			string readRule = "true";
+			string writeRule = "true";
 
 			if (field.Attributes != null)
 			{
 				foreach (var attrib in field.Attributes)
 				{
 					var perm = attrib as PermissionsAttribute;
-					if(perm != null){
-						readable = !perm.HideFieldByDefault;
+					if (perm == null)
+					{
+						// Not an attribute we care about.
+						continue;
+					}
+
+					// Can this attrib be applied to this role?
+					if (!RoleInKeySet(field.ForRole, perm.Roles))
+					{
+						// This attribute is for other roles.
+						continue;
+					}
+
+					// Attribute is active for this role.
+
+					if (!string.IsNullOrEmpty(perm.ReadRule))
+					{
+						readRule = perm.ReadRule;
+					}
+
+					if (!string.IsNullOrEmpty(perm.WriteRule))
+					{
+						writeRule = perm.WriteRule;
 					}
 				}
 			}
 
-			field.Readable = readable;
+			field.WriteRule = writeRule;
+			field.ReadRule = readRule;
 			var gettableField = await beforeGettable.Dispatch(context, field);
-
-			if (gettableField != null && gettableField.Readable)
-			{
-				ReadableFields.Add(gettableField);
+			
+			if(gettableField == null){
+				field.ReadRule = "false";
 			}
 
 			field = await beforeSettable.Dispatch(context, field);
@@ -499,44 +532,78 @@ namespace Api.Startup
 			
 			var lowerName = field.Name.ToLower();
 
-			if (field.Writeable)
+			Fields[lowerName] = field;
+		}
+
+		/// <summary>
+		/// True if the given non-null key set applies to the given role.
+		/// For example "members" applies to exactly 1 role.
+		/// Can be comma separated and contain two keywords: * and admins (all admin roles).
+		/// Can also use ! to invert. "*,!member" meaning everything but the member role.
+		/// Note that the last matching rule wins: "!member,*" will be true for member as the * test comes later.
+		/// </summary>
+		/// <param name="role"></param>
+		/// <param name="keySet"></param>
+		/// <returns></returns>
+		private bool RoleInKeySet(Role role, string keySet)
+		{
+			if (role == null)
 			{
-				if (field.AfterId)
+				return false;
+			}
+
+			if (string.IsNullOrEmpty(keySet))
+			{
+				// null/empty is equiv to "*"
+				return true;
+			}
+
+			var applicable = false;
+			var roles = keySet.Split(",");
+
+			for (var i = 0; i < roles.Length; i++)
+			{
+				var current = roles[i].Trim();
+				if (current == "")
 				{
-					AfterIdFields[lowerName] = field;
+					continue;
 				}
-				else
+
+				var negated = current[0] == '!';
+
+				if (negated)
 				{
-					BeforeIdFields[lowerName] = field;
+					current = current.Substring(1);
+				}
+
+				if (current == "*")
+				{
+					applicable = !negated;
+				}
+				else if (current == "admins")
+				{
+					if (role.CanViewAdmin)
+					{
+						applicable = !negated;
+					}
+				}
+				else if(role.Key == current)
+				{
+					applicable = !negated;
 				}
 			}
 
-			Fields[lowerName] = field;
+			return applicable;
 		}
 
 		/// <summary>
 		/// Attempts to get a given case insensitive field.
 		/// </summary>
 		/// <param name="name"></param>
-		/// <param name="fieldGroup"></param>
-		public JsonField<T, ID> GetField(string name, JsonFieldGroup fieldGroup)
+		public JsonField<T, ID> GetField(string name)
 		{
 			JsonField<T, ID> result;
-
-			switch (fieldGroup)
-			{
-				default:
-				case JsonFieldGroup.Default:
-					BeforeIdFields.TryGetValue(name.ToLower(), out result);
-				break;
-				case JsonFieldGroup.AfterId:
-					AfterIdFields.TryGetValue(name.ToLower(), out result);
-				break;
-				case JsonFieldGroup.Any:
-					Fields.TryGetValue(name.ToLower(), out result);
-				break;
-			}
-			
+			Fields.TryGetValue(name.ToLower(), out result);
 			return result;
 		}
 
@@ -611,26 +678,51 @@ namespace Api.Startup
 		/// </summary>
 		public Type TargetType;
 		/// <summary>
-		/// If TargetType is nullable, the underlying type.
-		/// </summary>
-		public Type UnderlyingNullable;
-		/// <summary>
 		/// True if this is a numeric field (int, double etc).
 		/// </summary>
 		public bool IsNumericField;
 		/// <summary>
-		/// True if this field is readable by this role.
+		/// True if this field is readable by this role. 
+		/// Can also set Readable for a general true/false rather than conditional.
 		/// </summary>
-		public bool Readable = true;
+		public string ReadRule = "true";
 		/// <summary>
-		/// True if this field is writeable by this role.
+		/// The code specified rule definining if this field is writeable by this role. 
+		/// Can also set Writeable for a general true/false rather than conditional.
 		/// </summary>
-		public bool Writeable = true;
+		public string WriteRule = "true";
 		/// <summary>
 		/// The field or property attributes.
 		/// </summary>
 		public IEnumerable<Attribute> Attributes;
 		
+		/// <summary>
+		/// True if this field is basic readable. Sets the ReadRule to either "true" or "false".
+		/// </summary>
+		public bool Readable {
+			get {
+				return ReadRule == "true";
+			}
+			set {
+				ReadRule = value ? "true" : "false";
+			}
+		}
+
+		/// <summary>
+		/// True if this field is basic writeable. Sets the WriteRule to either "true" or "false".
+		/// </summary>
+		public bool Writeable
+		{
+			get
+			{
+				return WriteRule == "true";
+			}
+			set
+			{
+				WriteRule = value ? "true" : "false";
+			}
+		}
+
 		/// <summary>
 		/// The display module when this field is displayed in a form.
 		/// Can be overriden durign field load.
@@ -647,6 +739,15 @@ namespace Api.Startup
 		public bool Hide;
 
 		/// <summary>
+		/// Gets the read access rule as the raw textual filter, if there is one.
+		/// </summary>
+		/// <returns></returns>
+		public virtual string GetReadAccessRuleText()
+		{
+			return null;
+		}
+
+		/// <summary>
 		/// Sets up the default display module for common field types.
 		/// This runs just before the field load event occurs.
 		/// </summary>
@@ -658,6 +759,27 @@ namespace Api.Startup
 			var name = OriginalName;
 			var labelName = name;
 			var fieldType = TargetType;
+			var isLocalized = false;
+
+			if (fieldType.IsGenericType)
+			{
+				var genericFieldType = fieldType.GetGenericTypeDefinition();
+
+				if (genericFieldType == typeof(Localized<>))
+				{
+					isLocalized = true;
+
+					// Everything else acts as the interior type.
+					fieldType = fieldType.GetGenericArguments()[0];
+				}
+			}
+
+			var underlying = Nullable.GetUnderlyingType(fieldType);
+
+			if (underlying != null)
+			{
+				fieldType = underlying;
+			}
 
 			if (isVirtualList)
 			{
@@ -701,7 +823,7 @@ namespace Api.Startup
 			}
 			*/
 			
-			else if ((fieldType == typeof(int) || fieldType == typeof(int?) || fieldType == typeof(uint) || fieldType == typeof(uint?)) && labelName != "Id" && labelName.EndsWith("Id") && ContentTypes.GetType(labelName[0..^2].ToLower()) != null)
+			else if ((fieldType == typeof(int) || fieldType == typeof(uint)) && labelName != "Id" && labelName.EndsWith("Id") && ContentTypes.GetType(labelName[0..^2].ToLower()) != null)
 			{
 				// Remove "Id" from the end of the label:
 				labelName = labelName[0..^2];
@@ -717,7 +839,12 @@ namespace Api.Startup
 			Data["label"] = SpaceCamelCase(labelName);
 			Data["name"] = FirstCharacterToLower(name);
 			Data["type"] = type;
-			
+
+			if (isLocalized)
+			{
+				Data["localized"] = true;
+			}
+
 			// Any of these [Module] or inheritors?
 			foreach (var attrib in Attributes)
 			{
@@ -739,11 +866,6 @@ namespace Api.Startup
 				{
 					var data = attrib as DataAttribute;
 					Data[data.Name] = data.Value;
-				}
-				else if (attrib is LocalizedAttribute)
-				{
-					// Yep - it's translatable.
-					Data["localized"] = true;
 				}
 			}
 			
@@ -788,6 +910,10 @@ namespace Api.Startup
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
+		/// <summary>
+		/// The access rule for this field.
+		/// </summary>
+		public ContentFieldAccessRule AccessRule;
 
 		/// <summary>
 		/// The structure this field belongs to.
@@ -802,6 +928,79 @@ namespace Api.Startup
 		/// An event which is called when the value is set. It returns the value it wants to be set.
 		/// </summary>
 		public EventHandler<object, T, JToken> OnSetValue = new EventHandler<object, T, JToken>();
+
+		private FieldGrantRule<T, ID> _readAccessRule;
+		private FieldGrantRule<T, ID> _writeAccessRule;
+
+		/// <summary>
+		/// Gets the fields write access rule (filter text) if there is one set. Null/ empty string otherwise.
+		/// </summary>
+		/// <returns></returns>
+		public string GetWriteAccessRuleText()
+		{
+			if (AccessRule == null)
+			{
+				return null;
+			}
+
+			return AccessRule.CanWrite;
+		}
+
+		/// <summary>
+		/// Gets the write access filter.
+		/// </summary>
+		/// <returns></returns>
+		public FieldGrantRule<T, ID> GetWriteAccessRule()
+		{
+			// This whole JsonField is reconstructed 
+			// whenever the role is edited so we can safely just cache a constructed filter in here.
+			var ar = _writeAccessRule;
+
+			if (ar != null)
+			{
+				return ar;
+			}
+
+			var text = GetWriteAccessRuleText();
+			ar = new FieldGrantRule<T, ID>(this, text, WriteRule);
+			_writeAccessRule = ar;
+			return ar;
+		}
+
+		/// <summary>
+		/// Gets the fields read access rule (filter text) if there is one set. Null/ empty string otherwise.
+		/// </summary>
+		/// <returns></returns>
+		public override string GetReadAccessRuleText()
+		{
+			if (AccessRule == null)
+			{
+				return null;
+			}
+
+			return AccessRule.CanRead;
+		}
+
+		/// <summary>
+		/// Gets the read access filter.
+		/// </summary>
+		/// <returns></returns>
+		public FieldGrantRule<T, ID> GetReadAccessRule()
+		{
+			// This whole JsonField is reconstructed 
+			// whenever the role is edited so we can safely just cache a constructed filter in here.
+			var ar = _readAccessRule;
+
+			if (ar != null)
+			{
+				return ar;
+			}
+
+			var text = GetReadAccessRuleText();
+			ar = new FieldGrantRule<T, ID>(this, text, ReadRule);
+			_readAccessRule = ar;
+			return ar;
+		}
 
 		/// <summary>
 		/// The role that this is for.
@@ -834,95 +1033,118 @@ namespace Api.Startup
 			if (targetValue is JToken targetJToken)
 			{
 				// Still a JToken - lets try and map it through now.
-
-				if (TargetType == typeof(DateTime) || TargetType == typeof(DateTime?))
-				{
-					// Special case for a date. If the value is numeric, it's a JS compatible timestamp (unix timestamp in *milliseconds*).
-					// Otherwise, it's the JS compatible date string.
-
-					if (targetJToken.Type == JTokenType.Integer || targetJToken.Type == JTokenType.Float)
-					{
-						// JS Timestamp (milliseconds).
-						var msTimestamp = targetJToken.ToObject<double>();
-
-						targetValue = ConvertFromJsUnixTimestamp(msTimestamp);
-					}
-					else
-					{
-						var str = value.ToObject<string>();
-
-						if (string.IsNullOrWhiteSpace(str))
-						{
-							if (TargetType == typeof(DateTime))
-							{
-								throw new PublicException("A date is required for " + Name, "date_format");
-							}
-							targetValue = null;
-						}
-						else if (DateTime.TryParse(
-							str,
-							CultureInfo.InvariantCulture,
-							System.Globalization.DateTimeStyles.RoundtripKind,
-							out DateTime dateResult))
-						{
-							targetValue = dateResult;
-						}
-						else
-						{
-							// Unrecognised date format.
-							throw new PublicException("Unrecognised date format", "date_format");
-						}
-					}
-
-				}
-				else if (targetJToken.Type == JTokenType.Null)
-				{
-					// Use the default targetValue:
-					if (TargetType.IsValueType)
-					{
-						targetValue = Activator.CreateInstance(TargetType);
-					}
-					else
-					{
-						targetValue = null;
-					}
-				}
-				else if (targetJToken.Type == JTokenType.String && IsNumericField)
-				{
-					// can be e.g. an empty string on a numeric field.
-					var str = targetJToken.Value<string>();
-
-					if (string.IsNullOrEmpty(str))
-					{
-						// Use the default value:
-						targetValue = Activator.CreateInstance(TargetType);
-					}
-					else
-					{
-						// Try parse:
-						targetValue = targetJToken.ToObject(TargetType);
-					}
-				}
-				else
-				{
-					targetValue = targetJToken.ToObject(TargetType);
-				}
+				targetValue = ConvertToken(targetJToken, TargetType);
 			}
 
 			return targetValue;
+		}
+
+		private object ConvertToken(JToken src, Type targetType)
+		{
+			if (targetType.IsGenericType && targetType.GetGenericTypeDefinition() == typeof(Localized<>))
+			{
+				var argType = targetType.GetGenericArguments()[0];
+				var baseVal = ConvertToken(src, argType);
+				return Activator.CreateInstance(targetType, baseVal);
+			}
+
+			if (targetType == typeof(DateTime) || targetType == typeof(DateTime?))
+			{
+				// Special case for a date. If the value is numeric, it's a JS compatible timestamp (unix timestamp in *milliseconds*).
+				// Otherwise, it's the JS compatible date string.
+
+				if (src.Type == JTokenType.Integer || src.Type == JTokenType.Float)
+				{
+					// JS Timestamp (milliseconds).
+					var msTimestamp = src.ToObject<double>();
+
+					return ConvertFromJsUnixTimestamp(msTimestamp);
+				}
+
+				var str = src.ToObject<string>();
+
+				if (string.IsNullOrWhiteSpace(str))
+				{
+					if (targetType == typeof(DateTime))
+					{
+						throw new PublicException("A date is required for " + Name, "date_format");
+					}
+
+					return null;
+				}
+				else if (ulong.TryParse(str, out ulong timestamp))
+				{
+					// it's a timestamp, in milliseconds from year 0.
+					// It was parsed as a ulong because negative numbers are not permitted here (BC years).
+					// Milliseconds from 0 to ticks is simply a multiply:
+					return new DateTime((long)(timestamp * 10000));
+				}
+				else if (DateTime.TryParse(
+					str,
+					CultureInfo.InvariantCulture,
+					System.Globalization.DateTimeStyles.RoundtripKind,
+					out DateTime dateResult))
+				{
+					return dateResult;
+				}
+
+				// Unrecognised date format.
+				throw new PublicException("Unrecognised date format", "date_format");
+			}
+
+			if (targetType == typeof(JsonString))
+			{
+				var str = src.Type == JTokenType.Null ? null : src.Value<string>();
+				return new JsonString(str);
+			}
+
+			if (src.Type == JTokenType.Null)
+			{
+				// Use the default targetValue:
+				if (targetType.IsValueType)
+				{
+					return Activator.CreateInstance(targetType);
+				}
+				
+				return null;
+			}
+			
+			if (src.Type == JTokenType.String && IsNumericField)
+			{
+				// can be e.g. an empty string on a numeric field.
+				var str = src.Value<string>();
+
+				if (string.IsNullOrEmpty(str))
+				{
+					// Use the default value:
+					return Activator.CreateInstance(targetType);
+				}
+				
+				// Try parse:
+				return ConvertToObjectNumber(str, targetType);
+			}
+
+			return src.ToObject(targetType);
 		}
 
 		/// <summary>
 		/// Allocating number parse to the target value.
 		/// </summary>
 		/// <param name="srcValue"></param>
+		/// <param name="targetType"></param>
 		/// <returns></returns>
-		private object ConvertToObjectNumber(string srcValue)
+		private object ConvertToObjectNumber(string srcValue, Type targetType)
 		{
-			var isNullable = UnderlyingNullable != null;
-			var type = isNullable ? UnderlyingNullable : TargetType;
+			var underlying = Nullable.GetUnderlyingType(targetType);
+			var isNullable = false;
 
-			switch (Type.GetTypeCode(type))
+			if (underlying != null)
+			{
+				targetType = underlying;
+				isNullable = true;
+			}
+
+			switch (Type.GetTypeCode(targetType))
 			{
 				case TypeCode.Byte:
 
@@ -1041,22 +1263,7 @@ namespace Api.Startup
 			if (IsNumericField)
 			{
 				// byte, int etc. Can be nullable.
-				if (UnderlyingNullable != null)
-				{
-					if (srcValue != null)
-					{
-						valueToSet = ConvertToObjectNumber(srcValue);
-					}
-				}
-				else if (srcValue == null)
-				{
-					// Not valid
-					return;
-				}
-				else
-				{
-					valueToSet = ConvertToObjectNumber(srcValue);
-				}
+				valueToSet = ConvertToObjectNumber(srcValue, TargetType);
 			}
 			else if (TargetType == typeof(bool?))
 			{
@@ -1083,6 +1290,13 @@ namespace Api.Startup
 				{
 					valueToSet = false;
 				}
+			}
+			else if (TargetType == typeof(Localized<string>))
+			{
+				// Currently the only Localized case actually used by the pot file bits which use this method.
+				// Ideally needs conversion towards being a set of generated methods
+				// but that is a much bigger edit on this rarely used method than..
+				valueToSet = new Localized<string>(srcValue);
 			}
 			else if (TargetType == typeof(string))
 			{
@@ -1120,7 +1334,7 @@ namespace Api.Startup
 				{
 					return;
 				}
-					
+
 				if (double.TryParse(srcValue, out double ticks))
 				{
 					// It was a number of ticks
@@ -1139,6 +1353,13 @@ namespace Api.Startup
 						return;
 					}
 				}
+			}
+			else
+			{
+				throw new Exception(
+					"Can't set this field which is of type '" + TargetType.Name + "' from a string yet. " +
+					"If it's a localized field specifically, then making this method broader is currently a todo."
+				);
 			}
 
 			if (PropertySet != null)
@@ -1189,7 +1410,14 @@ namespace Api.Startup
 					// Create mappings from onObject -> entry.Id
 					// * We have write access to the "source" object because we're in SetIfChanged.
 					// * We have read access to the "target" because we just got it successfully.
-					await Structure.Service.EnsureMapping(context, onObject, targetService, idSet, ContentField.VirtualInfo.FieldName);
+
+					var idList = new List<ulong>();
+					foreach (var id in idSet)
+					{
+						idList.Add(id);
+					}
+
+					onObject.Mappings.Set(ContentField.VirtualInfo.FieldName, idList);
 				}
 			}
 		}

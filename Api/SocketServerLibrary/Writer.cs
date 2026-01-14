@@ -1,3 +1,4 @@
+using Api.Database;
 using Api.Startup;
 using Api.Startup.Utf8Helpers;
 using System;
@@ -5,6 +6,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Api.SocketServerLibrary
@@ -834,19 +836,33 @@ namespace Api.SocketServerLibrary
 		/// Writes the given short ascii string to this writer.
 		/// </summary>
 		/// <param name="str"></param>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void WriteASCII(string str)
 		{
-			if (Fill > (Pool.BufferSize - str.Length))
+			var space = Pool.BufferSize - str.Length;
+
+			if (Fill > space)
 			{
-				NextBuffer();
+				HandleWriteASCIIBufferOverflow(space);
 			}
 
-			for (var i = 0; i < str.Length; i++)
-			{
-				_LastBufferBytes[Fill++] = (byte)str[i];
-			}
+			Ascii.FromUtf16(str, _LastBufferBytes.AsSpan(Fill), out int bytesWritten);
+			Fill += bytesWritten;
 		}
+		
+		[MethodImpl(MethodImplOptions.NoInlining)]
+		private void HandleWriteASCIIBufferOverflow(int space)
+		{
+			if (space < 0)
+			{
+				// WriteASCII is explicitly for short(er than 1 buffer) strings.
+				// It is the function which does the vast majority of write calls during JSON serialisation so this keeps its hot path very fast.
+				throw new Exception("Invalid WriteASCII usage: use WriteS instead for longer strings, which should typically be UTF8 as well.");
+			}
 
+			NextBuffer();
+		}
+		
 		/// <summary>
 		/// Writes a series of bytes from the given buffer as 2 letters. Somewhat like hex, but only uses letters.
 		/// a = 0, b = 1, c = 2 etc.
@@ -947,6 +963,64 @@ namespace Api.SocketServerLibrary
 			Write((byte)'"');
 			Write((byte)'"');
 			throw new NotSupportedException();
+		}
+
+		/// <summary>
+		/// Writes the given MappingData as an escaped JSON string to the writer.
+		/// </summary>
+		/// <param name="mapData"></param>
+		public void WriteEscaped(MappingData mapData)
+		{
+			var val = mapData.ToJson();
+			WriteEscaped(val);
+		}
+
+		/// <summary>
+		/// Writes the given MappingData as-is to the writer.
+		/// </summary>
+		/// <param name="mapData"></param>
+		public void Write(MappingData mapData)
+		{
+			var val = mapData.ToJson();
+
+			if (val == null)
+			{
+				WriteASCII("null");
+			}
+			else
+			{
+				// As-is:
+				WriteS(val);
+			}
+		}
+
+		/// <summary>
+		/// Writes the given JsonString as an escaped string to the writer.
+		/// </summary>
+		/// <param name="jStr"></param>
+		public void WriteEscaped(JsonString jStr)
+		{
+			var val = jStr.ValueOf();
+			WriteEscaped(val);
+		}
+		
+		/// <summary>
+		/// Writes the given JsonString as-is to the writer.
+		/// </summary>
+		/// <param name="jStr"></param>
+		public void Write(JsonString jStr)
+		{
+			var val = jStr.ValueOf();
+
+			if (val == null)
+			{
+				WriteASCII("null");
+			}
+			else
+			{
+				// As-is:
+				WriteS(val);
+			}
 		}
 
 		/// <summary>

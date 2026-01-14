@@ -13,6 +13,7 @@ namespace Api.WebSockets
 	/// </summary>
 	public partial class WebSocketClient : Client
 	{
+		/*
 		/// <summary>
 		/// Linked list of rooms that this client is currently in.
 		/// </summary>
@@ -91,6 +92,7 @@ namespace Api.WebSockets
 
 			return null;
 		}
+		*/
 
 		/// <summary>
 		/// Called when the client dc's (either intentionally or otherwise).
@@ -99,7 +101,7 @@ namespace Api.WebSockets
 		{
 			if (Socket != null)
 			{	
-				LeaveAllRooms();
+				// LeaveAllRooms();
 
 				_ = ClientDisconnectedEvent();
 			}
@@ -114,10 +116,10 @@ namespace Api.WebSockets
 				if (Context.UserId != 0)
 				{
 					// Try getting personal network room:
-					NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms == null ? null : WebSocketService.PersonalRooms.GetRoom(Context.UserId);
+					// NetworkRoom<User, uint, uint> personalRoomForCurrentId = WebSocketService.PersonalRooms == null ? null : WebSocketService.PersonalRooms.GetRoom(Context.UserId);
 
 					// Trigger WS logout:
-					await Events.WebSocket.AfterLogout.Dispatch(Context, this, personalRoomForCurrentId);
+					// await Events.WebSocket.AfterLogout.Dispatch(Context, this, personalRoomForCurrentId);
 				}
 
 				try
@@ -137,13 +139,14 @@ namespace Api.WebSockets
 		/// </summary>
 		/// <param name="context"></param>
 		/// <returns></returns>
-		public override async ValueTask SetContext(Context context)
+		public override ValueTask SetContext(Context context)
 		{
 			var prevContext = Context;
 			var prevUserId = Context != null ? Context.UserId : 0;
 			Context = context;
 			var newId = context != null ? context.UserId : 0;
 
+			/*
 			if (newId != prevUserId && WebSocketService.PersonalRooms != null)
 			{
 				if (prevUserId != 0)
@@ -173,6 +176,9 @@ namespace Api.WebSockets
 				}
 
 			}
+			*/
+
+			return new ValueTask();
 		}
 
 		private static WebSocketService _wsService;

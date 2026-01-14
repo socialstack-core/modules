@@ -9,7 +9,7 @@ public class UploadRefGenerator
 	/// <summary>
 	/// Gets a signed ref (typically a URL) for the given upload.
 	/// </summary>
-	public virtual string GetSignedRef(Upload upload, string sizeName = "original")
+	public virtual string GetSignedRef(Upload upload, string sizeName = "original", bool isDownload = false)
 	{
 		return null;
 	}

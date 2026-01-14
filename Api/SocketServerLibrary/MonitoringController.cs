@@ -10,17 +10,15 @@ namespace Api.Startup;
 
 /// <summary>
 /// </summary>
-public partial class StdOutController : ControllerBase
+public partial class StdOutController : AutoController
 {
 
 	/// <summary>
 	/// V8 status.
 	/// </summary>
 	[HttpGet("bufferpool/status")]
-	public async ValueTask<BufferPoolStatus> BufferPoolStatus()
+	public BufferPoolStatus BufferPoolStatus(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 		{
 			throw PermissionException.Create("monitoring_bpstatus", context);
@@ -43,10 +41,8 @@ public partial class StdOutController : ControllerBase
 	/// Attempts to purge V8 engines from the canvas renderer service.
 	/// </summary>
 	[HttpGet("bufferpool/clear")]
-	public async ValueTask BufferPoolClear()
+	public void BufferPoolClear(Context context)
 	{
-		var context = await Request.GetContext();
-
 		if (context.Role == null || !context.Role.CanViewAdmin || context.Role.Id != 1)
 		{
 			throw PermissionException.Create("monitoring_bpclear", context);

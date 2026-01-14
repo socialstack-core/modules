@@ -1,0 +1,70 @@
+html {
+
+	body {
+		// potential fix for iOS text size increase
+		-webkit-text-size-adjust: 100%;
+	}
+
+	// Identify a frontend (mobile app build too):
+	&.ui {
+	}
+
+	// Identify a mobile app build:
+	&.mobile {
+	}
+
+	// running on a mobile device:
+	&.device-mobile {
+	}
+
+	// running on an iPad
+	&.device-ipad {
+	}
+
+	// running on a tablet
+	&.device-tablet {
+	}
+
+	// Identify a frontend but not the app build:
+	&.web {
+	}
+
+	// Identify the admin panel:
+	&.admin {
+		// NB: admin-specific rules should be defined within Admin/Source/GeneralStyle
+	}
+
+	// define rules which shouldn't be applied for admin views
+	&:not(.admin),
+	&.admin.fullscreen-preview {
+
+		/* uncomment if site footer should always appear at the bottom of the view (by using margin-top: auto)
+		// required to allow site footer to use margin-top: auto
+		#react-root {
+			display: flex;
+			flex-direction: column;
+			flex-wrap: nowrap;
+		}
+		*/
+	}
+
+	// default font weight for emboldened items
+	b, strong {
+		font-weight: 700;
+	}
+}
+
+// override Bootstrap default max width
+html .container {
+	max-width: var(--max-width);
+}
+
+// ensure there's always spacing between page content and the page footer
+#react-root > #wrapper > #content + footer {
+	margin-top: px_to_rem(40);
+}
+
+// ensure there's padding around the main page content
+#react-root > #wrapper > #content > main:not(:has(> .container:first-child)) {
+	padding: 0 px_to_rem(20);
+}

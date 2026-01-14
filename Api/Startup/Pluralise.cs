@@ -135,5 +135,40 @@ namespace Api.Startup
 				return lower + "s";
 			}
 		}
+		/// <summary>
+		/// Pluralises the given phrase
+		/// </summary>
+		/// <param name="phrase"></param>
+		/// <returns></returns>
+		public static string PluraliseWords(string phrase)
+		{
+			if (string.IsNullOrWhiteSpace(phrase))
+				return phrase;
+
+			// Find last word using regex to preserve spaces and handle punctuation, etc.
+			int lastSpaceIndex = phrase.LastIndexOf(' ');
+			if (lastSpaceIndex == -1)
+			{
+				// Single word
+				return CapitalizeToMatch(phrase, Apply(phrase));
+			}
+
+			string beforeLastWord = phrase.Substring(0, lastSpaceIndex + 1);
+			string lastWord = phrase.Substring(lastSpaceIndex + 1);
+
+			string pluralLastWord = CapitalizeToMatch(lastWord, Apply(lastWord));
+			return beforeLastWord + pluralLastWord;
+		}
+
+		private static string CapitalizeToMatch(string original, string result)
+		{
+			if (string.IsNullOrEmpty(original) || string.IsNullOrEmpty(result))
+				return result;
+
+			if (char.IsUpper(original[0]))
+				return char.ToUpper(result[0]) + result.Substring(1);
+
+			return result;
+		}
 	}
 }

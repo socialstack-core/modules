@@ -24,6 +24,9 @@ namespace Api.Configuration
 				Roles.Public.Revoke("configuration_load", "configuration_list");
 				Roles.Member.Revoke("configuration_load", "configuration_list");
 
+				// Config is developer only
+				Roles.Admin.Revoke("configuration_update", "configuration_create");
+
 				return new ValueTask<object>(source);
 			}, 20);
 		}

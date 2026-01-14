@@ -37,7 +37,7 @@ namespace Api.CustomContentTypes
 				Roles.Public.Revoke("customContentType_load", "customContentType_list");
 				Roles.Member.Revoke("customContentType_load", "customContentType_list");
 				*/
-				
+
 				/*
 				Example permission rules.
 				
@@ -55,7 +55,11 @@ namespace Api.CustomContentTypes
 				Roles.Public.Revoke("customContentTypeField_load", "customContentTypeField_list");
 				Roles.Member.Revoke("customContentTypeField_load", "customContentTypeField_list");
 				*/
-				
+
+				// CCT is developer only
+				Roles.Admin.Revoke("customcontenttype_update", "customcontenttype_create", 
+					"customcontenttypefield_update", "customcontenttypefield_create");
+
 				return new ValueTask<object>(source);
 			}, 20);
 		}

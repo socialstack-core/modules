@@ -1,0 +1,47 @@
+.ui-product-view__faqs {
+
+	.ui-product-view__subtitle {
+		margin-bottom: 1em;
+	}
+
+	.collapsible {
+		margin-bottom: 1rem;
+
+		&-summary {
+			padding: 0 !important;
+			border: 0;
+
+			&:hover {
+
+				.collapsible-title {
+					color: var(--primary);
+				}
+
+			}
+		}
+
+		&-title {
+			font-size: px_to_rem(14) !important;
+		}
+
+		&-content {
+			border: 0;
+			padding: 0 !important;
+			margin-top: .5em;
+			font-size: px_to_rem(14);
+		}
+	}
+}
+
+.ui-product-view__faq {
+
+	// allow longer FAQs to wrap
+	.collapsible-title {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: normal;
+		text-align: left;
+	}
+
+}

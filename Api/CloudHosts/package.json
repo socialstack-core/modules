@@ -1,6 +1,0 @@
-{
-	"dependencies":[
-		"nuget:AWSSDK.S3",
-		"nuget:Azure.Storage.Blobs"
-	]
-}

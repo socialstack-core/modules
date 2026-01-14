@@ -1,0 +1,51 @@
+@layer components.expander {
+
+	:root {
+		--ui-summary-min-height: #{toRem(40)};
+	}
+
+	.ui-expander {
+		$expander: &;
+
+		&__summary {
+			cursor: pointer;
+			-webkit-user-select: none;
+			user-select: none;
+			background-color: var(--ui-summary-bg);
+			color: var(--ui-summary-fg);
+			padding: .5rem 2rem .5rem 1rem;
+			min-height: var(--ui-summary-min-height);
+			display: flex;
+			align-items: center;
+			list-style: none;
+			position: relative;
+
+			&::-webkit-details-marker {
+				display: none;
+			}
+
+			&::after {
+				content: '';
+				mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-chevron-down'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+				display: inline-block;
+				width: toRem(24);
+				height: toRem(24);
+				background-color: var(--ui-summary-fg);
+				mask-size: cover;
+				position: absolute;
+				right: .75em;
+				top: 50%;
+				margin-block-start: toRem(-12);
+				transition: all .2s ease;
+			}
+		}
+
+		&[open] {
+
+			#{$expander}__summary::after {
+				transform: rotate(-180deg);
+			}
+
+		}
+	}
+}

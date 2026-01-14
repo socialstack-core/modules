@@ -1,0 +1,111 @@
+// default values
+$default-label-color: currentColor;
+
+$default-field-background: #fff;
+$default-field-color: currentColor;
+$default-field-border: 1px solid #ced4da;
+
+$default-field-select-background: #fff;
+$default-field-select-color: currentColor;
+$default-field-select-border: 1px solid #ced4da;
+$default-field-select-option-background: #fff;
+$default-field-select-icon-dark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='none'%3E%3Cpath d='M15.8 1.66a.69.69 0 000-.96.66.66 0 00-.94 0L8.94 6.74a1.31 1.31 0 01-1.88 0L1.13.7A.66.66 0 00.2.7a.7.7 0 000 .97L6.12 7.7a2.62 2.62 0 003.77 0l5.93-6.04h-.02z' fill='currentColor'/%3E%3C/svg%3E");
+$default-field-select-icon-light: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9' fill='none'%3E%3Cpath d='M15.8 1.66a.69.69 0 000-.96.66.66 0 00-.94 0L8.94 6.74a1.31 1.31 0 01-1.88 0L1.13.7A.66.66 0 00.2.7a.7.7 0 000 .97L6.12 7.7a2.62 2.62 0 003.77 0l5.93-6.04h-.02z' fill='%23fff'/%3E%3C/svg%3E");
+
+$default-field-placeholder-color: currentColor;
+$default-field-placeholder-font-style: italic;
+$default-field-placeholder-opacity: .6;
+
+$default-field-readonly-background: #e8e8e8;
+$default-field-disabled-background: #fff;
+$default-field-disabled-opacity: .6;
+$default-field-text-color: #6c757d; // for small info text / validation messages displayed beneath the field
+
+// extra small (xs)
+$default-form-xs-font-size: 12;
+
+$default-label-xs-font-size: 13;
+$default-label-xs-font-weight: 700;
+
+$default-field-xs-min-height: 35;
+$default-field-xs-padding: 10;
+$default-field-xs-font-size: 13;
+$default-field-xs-font-weight: 400;
+$default-field-xs-border-radius: 5;
+$default-field-xs-placeholder-font-size: 13;
+$default-field-xs-placeholder-font-weight: 400;
+$default-field-xs-text-font-size: 11;
+$default-field-xs-select-icon-width: 13;
+$default-field-xs-select-icon-height: 6;
+
+// small (sm)
+$default-form-sm-font-size: 13;
+
+$default-label-sm-font-size: 14;
+$default-label-sm-font-weight: 700;
+
+$default-field-sm-min-height: 40;
+$default-field-sm-padding: 20;
+$default-field-sm-font-size: 14;
+//$default-field-sm-font-weight: 700;
+$default-field-sm-font-weight: 400;
+$default-field-sm-border-radius: 5;
+$default-field-sm-placeholder-font-size: 14;
+$default-field-sm-placeholder-font-weight: 400;
+$default-field-sm-text-font-size: 12;
+$default-field-sm-select-icon-width: 14;
+$default-field-sm-select-icon-height: 7;
+
+// regular (md)
+$default-form-md-font-size: 15;
+
+$default-label-md-font-size: 15;
+$default-label-md-font-weight: 700;
+
+$default-field-md-min-height: 45;
+$default-field-md-padding: 20;
+$default-field-md-font-size: 16;
+//$default-field-md-font-weight: 700;
+$default-field-md-font-weight: 400;
+$default-field-md-border-radius: 5;
+$default-field-md-placeholder-font-size: 16;
+$default-field-md-placeholder-font-weight: 400;
+$default-field-md-text-font-size: 14;
+$default-field-md-select-icon-width: 16;
+$default-field-md-select-icon-height: 8;
+
+// large (lg)
+$default-form-lg-font-size: 16;
+
+$default-label-lg-font-size: 18;
+$default-label-lg-font-weight: 700;
+
+$default-field-lg-min-height: 55;
+$default-field-lg-padding: 20;
+$default-field-lg-font-size: 18;
+//$default-field-lg-font-weight: 700;
+$default-field-lg-font-weight: 400;
+$default-field-lg-border-radius: 5;
+$default-field-lg-placeholder-font-size: 18;
+$default-field-lg-placeholder-font-weight: 400;
+$default-field-lg-text-font-size: 16;
+$default-field-lg-select-icon-width: 18;
+$default-field-lg-select-icon-height: 9;
+
+// extra large (xl)
+$default-form-xl-font-size: 18;
+
+$default-label-xl-font-size: 23;
+$default-label-xl-font-weight: 700;
+
+$default-field-xl-min-height: 65;
+$default-field-xl-padding: 25;
+$default-field-xl-font-size: 23;
+//$default-field-xl-font-weight: 700;
+$default-field-xl-font-weight: 400;
+$default-field-xl-border-radius: 5;
+$default-field-xl-placeholder-font-size: 23;
+$default-field-xl-placeholder-font-weight: 400;
+$default-field-xl-text-font-size: 20;
+$default-field-xl-select-icon-width: 23;
+$default-field-xl-select-icon-height: 12;

@@ -22,9 +22,11 @@ namespace Api.Categories
 		/// </summary>
 		public CategoryService() : base(Events.Category)
 		{
-			InstallAdminPages("Categories", "fa:fa-folder", new string[] { "id", "name" });
+			InstallAdminPages("Categories", "fa:fa-folder", [ "id", "name" ]);
 
+#if !DEBUG
 			Cache();
+#endif
 		}
 
 	}

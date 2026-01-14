@@ -1,0 +1,36 @@
+.category-treeview {
+	$category-treeview: &;
+	list-style: none;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(4);
+	--ui-link-xs-font-weight: 500;
+
+	ul {
+		list-style: none;
+		// to match fr-fw + link gap
+		padding-left: calc(1.28571429em + #{px_to_rem(6)});
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(4);
+	}
+
+	> li#{$category-treeview}__item > ul#{$category-treeview}__item {
+		padding-left: 0;
+	}
+
+	&__item {
+
+		a {
+			--ui-link-gap: 6;
+
+			&:hover {
+				font-weight: bold !important;
+			}
+		}
+
+	}
+}

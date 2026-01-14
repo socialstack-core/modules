@@ -1,11 +1,15 @@
-using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using Api.AvailableEndpoints;
+using Api.CanvasRenderer;
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
-using System;
-using Api.Startup;
 using Api.Pages;
+using Api.Startup;
+using Api.Startup.Routing;
+using Api.Translate;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Api.CustomContentTypes
 {
@@ -25,217 +29,22 @@ namespace Api.CustomContentTypes
         {
             _fieldService = fieldService;
 
-            // NOT using core install admin pages as there are custom/specific page layouts
+            var fieldTab = new AdminTab("Fields", "fields");
+            fieldTab.Content = new CanvasNode("Admin/CustomFieldEditor")
+                .With("name", "fields");
 
-            // Example admin page install:
-            //InstallAdminPages("Data", "fa:fa-database", new string[] { "id", "nickName" });
+			InstallAdminPages(new AdminPageOptions()
+			{
+				NavMenuLabel = new Localized<string>("Custom Content Types"),
+				NavMenuIcon = "fa:fa-folder",
+				ListFields = ["id", "nickName"],
+				Tabs = [
+					new AdminTab("Details", "details"),
+					fieldTab,
+				]
+			});
 
-            Events.Service.AfterStart.AddEventListener((Context context, object sender) =>
-            {
-                // This route is suggested rather than dependency injection
-                // Because some projects (particularly fully headless and micro instances) don't have a page service installed.
-                var pageService = Services.Get<PageService>();
-
-                pageService.Install(
-                    new Page()
-                    {
-                        Url = "/en-admin/customcontenttype",
-                        Title = "Edit or create custom content types",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/Datamap"",
-		                        ""d"": {
-			                        ""endpoint"": ""page"",
-			                        ""fields"": [
-				                        ""id"",
-				                        ""nickName""
-			                        ],
-			                        ""filter"": {
-				                        ""where"": {
-					                        ""isForm"": false
-				                        }
-			                        },
-			                        ""singular"": ""Custom Content Type"",
-			                        ""plural"": ""custom content types""
-		                        },
-		                        ""c"": {
-			                        ""t"": ""p"",
-			                        ""c"": {
-				                        ""t"": ""br""
-			                        },
-			                        ""d"": {},
-			                        ""i"": 2
-		                        },
-		                        ""i"": 3
-	                        },
-	                        ""i"": 4
-                            }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/customcontenttype/{customcontenttype.id}",
-                        Title = "Editing custom content type",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/AutoEdit"",
-		                        ""d"": {
-			                        ""endpoint"": ""customcontenttype"",
-			                        ""singular"": ""Custom Content Type"",
-			                        ""id"": ""${primary.id}"",
-			                        ""plural"": ""custom content types""
-		                        }
-	                        }
-                        }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/{entity}",
-                        Title = "Manage Data Types",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/List"",
-		                        ""d"": {
-			                        ""entity"": ""${entity}"",
-			                        ""fields"": [
-				                        ""id"",
-				                        ""name""
-			                        ],
-			                        ""singular"": ""Data Type"",
-			                        ""plural"": ""Data Types"",
-			                        ""previousPageUrl"": ""/en-admin/datatypes"",
-			                        ""previousPageName"": ""Manage Data Types""
-		                        },
-		                        ""r"": {
-			                        ""beforeList"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 4
-			                        },
-			                        ""children"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 5
-			                        }
-		                        },
-		                        ""i"": 2
-	                        },
-	                        ""i"": 3
-                            }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/{entity}/{id}",
-                        Title = "Editing custom data type",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/AutoEdit"",
-		                        ""d"": {
-			                        ""singular"": ""Custom Data Type"",
-			                        ""id"": ""${primary.id}"",
-			                        ""plural"": ""Custom Data Types"",
-			                        ""hideEndpointUrl"": true,
-			                        ""previousPageUrl"": ""/en-admin/customcontenttype"",
-			                        ""previousPageName"": ""Data""
-		                        }
-	                        }
-                        }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/datatypes",
-                        Title = "Manage Data Types",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/CustomContentTypeList"",
-		                        ""d"": {},
-		                        ""i"": 2
-	                        },
-	                        ""i"": 3
-                        }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/forms",
-                        Title = "Create or edit forms",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/List"",
-		                        ""d"": {
-			                        ""endpoint"": ""customcontenttype"",
-			                        ""fields"": [
-				                        ""id"",
-				                        ""name"",
-				                        ""nickName""
-			                        ],
-			                        ""filter"": {
-				                        ""where"": {
-					                        ""deleted"": false,
-					                        ""isForm"": true
-				                        }
-			                        },
-			                        ""customUrl"": ""forms"",
-			                        ""singular"": ""Form"",
-			                        ""plural"": ""Forms""
-		                        },
-		                        ""r"": {
-			                        ""beforeList"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 5
-			                        },
-			                        ""children"": {
-				                        ""t"": ""p"",
-				                        ""c"": {
-					                        ""t"": ""br""
-				                        },
-				                        ""d"": {},
-				                        ""i"": 2
-			                        }
-		                        },
-		                        ""i"": 3
-	                        },
-	                        ""i"": 4
-                        }"
-                    },
-                    new Page()
-                    {
-                        Url = "/en-admin/forms/{customcontenttype.id}",
-                        Title = "Editing custom form",
-                        BodyJson = @"{
-	                        ""c"": {
-		                        ""t"": ""Admin/Layouts/AutoEdit"",
-		                        ""d"": {
-			                        ""endpoint"": ""customcontenttype"",
-			                        ""singular"": ""Form"",
-			                        ""hideEndpointUrl"": true,
-			                        ""previousPageUrl"": ""/en-admin/forms/"",
-			                        ""previousPageName"": ""Forms"",
-			                        ""id"": ""${primary.id}"",
-			                        ""plural"": ""forms"",
-			                        ""values"": {
-				                        ""isForm"": true
-			                        },
-			                        ""showExportButton"": false
-		                        }
-	                        }
-                        }"
-                    }
-                    );
-
-
-                return new ValueTask<object>(sender);
-            });
-
-            Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
+			Events.Service.AfterStart.AddEventListener(async (Context ctx, object x) =>
             {
                 // Get all types:
                 var allTypes = await Where("Deleted =?", DataOptions.IgnorePermissions).Bind(false).ListAll(ctx);
@@ -243,33 +52,31 @@ namespace Api.CustomContentTypes
 
                 // Load them now:
                 await LoadCustomTypes(allTypes, allTypeFields);
-
-                // NOT using core install admin pages as there are custom/specific page layouts
-                // so need to add custom admin nav menu link 
-                var navMenuItemService = Api.Startup.Services.Get("AdminNavMenuItemService");
-
-                if (navMenuItemService != null)
-                {
-                    var installNavMenuEntry = navMenuItemService.GetType().GetMethod("InstallAdminEntry");
-                    if (installNavMenuEntry != null)
-                    {
-                        await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
-                                "/en-admin/" + ServicedType.Name.ToLower(),
-                                "fa:fa-database",
-                                "Data"
-                            });
-
-                        await (ValueTask)installNavMenuEntry.Invoke(navMenuItemService, new object[] {
-                                "/en-admin/forms",
-                                "fa:fa-file-alt",
-                                "Forms"
-                            });
-
-                    }
-                }
-
+                
                 return x;
             }, 9);
+
+            Events.Router.CollectRoutes.AddEventListener((Context context, RouterBuilder builder) => {
+
+                var endpointSvc = Services.Get<AvailableEndpointService>();
+
+                foreach (var kvp in loadedTypes)
+                {
+                    var customContentType = kvp.Value;
+
+                    List<HttpMethodInfo> routes = new List<HttpMethodInfo>();
+                    endpointSvc.CollectRoutes(customContentType.ControllerType, routes);
+
+                    if (routes.Count > 0)
+                    {
+                        // Add as-is:
+                        builder.AddRoutes(routes);
+                    }
+				}
+
+                return new ValueTask<RouterBuilder>(builder);
+
+			});
 
             Events.CustomContentType.BeforeUpdate.AddEventListener((Context context, CustomContentType type, CustomContentType original) =>
             {
@@ -538,9 +345,8 @@ namespace Api.CustomContentTypes
 
             setupType.Invoke(this, new object[] { compiledType });
 
-            // Signal a change to MVC:
-            ActionDescriptorChangeProvider.Instance.HasChanged = true;
-            ActionDescriptorChangeProvider.Instance.TokenSource.Cancel();
+            // Type was changed. Tell the router:
+            await RouterBuilder.Rebuild();
         }
 
         /// <summary>
@@ -595,15 +401,15 @@ namespace Api.CustomContentTypes
                 await (ValueTask)setupType.Invoke(this, new object[] { compiledType });
             }
 
-            // New controller type - signal it:
-            ActionDescriptorChangeProvider.Instance.HasChanged = true;
-            ActionDescriptorChangeProvider.Instance.TokenSource.Cancel();
-        }
+			// Type was changed. Tell the router:
+			await RouterBuilder.Rebuild();
+
+		}
 
         /// <summary>
         /// Raw controller types for custom types, mapped by CustomContentType.Id -> the constructed result.
         /// </summary>
-        private Dictionary<uint, ConstructedCustomContentType> loadedTypes;
+        private Dictionary<uint, ConstructedCustomContentType> loadedTypes = [];
 
         /// <summary>
         /// Creates a service etc for the given system type and activates it. Invoked via reflection with a runtime compiled type.

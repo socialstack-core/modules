@@ -16,7 +16,7 @@ namespace Api.Startup
 		/// <summary>
 		/// Undelying error response.
 		/// </summary>
-        public ErrorResponse Response;
+        public PublicMessage Response;
 		
 		/// <summary>
 		/// Status code. Usually 400.
@@ -33,11 +33,7 @@ namespace Api.Startup
 		public PublicException(string message, string code, int statusCode = 400) : base(message)
 		{
 			StatusCode = statusCode;
-			Response = new ErrorResponse()
-			{
-				Message = message,
-				Code = code
-			};
+			Response = new PublicMessage(message, code);
 		}
 
 		/// <summary>
@@ -50,4 +46,32 @@ namespace Api.Startup
 		}
 
     }
+
+	/// <summary>
+	/// Like PublicException, except it just declares a more generic success or informational message.
+	/// </summary>
+	public struct PublicMessage
+	{
+		/// <summary>
+		/// The error message
+		/// </summary>
+		public string Message;
+
+		/// <summary>
+		/// Optional textual error code for localisation. E.g. "already_booked".
+		/// </summary>
+		public string Code;
+
+		/// <summary>
+		/// Create a new public message.
+		/// </summary>
+		/// <param name="message"></param>
+		/// <param name="code"></param>
+		public PublicMessage(string message, string code)
+		{
+			Message = message;
+			Code = code;
+		}
+
+	}
 }

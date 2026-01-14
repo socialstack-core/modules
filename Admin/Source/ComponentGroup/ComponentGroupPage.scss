@@ -1,0 +1,28 @@
+
+.component-group-page {
+
+    #filter-components {
+        display: block;
+        margin-top:20px;
+        margin-bottom:20px;
+        width:100%;
+    }
+
+    .group-item {
+        margin-bottom: 5px;
+        border:1px solid #ccc;
+        max-width: 50vw;
+        padding:10px 15px;
+
+        i {
+            margin-right: 10px;
+        }
+
+        &.selected {
+            background:#cccccc20;
+            border-left-color: #66bc69;
+            border-left-width: 5px;
+        }
+    }
+    
+}

@@ -10,167 +10,10 @@ using System.Threading.Tasks;
 namespace Api.Startup{
 
 	/// <summary>
-	/// A set of caches per locale.
+	/// General base class for service classes, if you need a non-generic ref to one.
 	/// </summary>
-	public partial class CacheSet
+	public class ServiceCache
 	{
-		/// <summary>
-		/// The content fields for the type of this service cache.
-		/// </summary>
-		public ContentFields ContentFields;
-
-		/// <summary>
-		/// The instance type.
-		/// </summary>
-		public Type InstanceType;
-
-		/// <summary>
-		/// Creates a new cache set for the given content fields.
-		/// </summary>
-		/// <param name="cf"></param>
-		public CacheSet(ContentFields cf)
-		{
-			ContentFields = cf;
-			InstanceType = cf == null ? null : cf.InstanceType;
-		}
-
-		/// <summary>
-		/// Adds the given primary entity to this cache.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="entity"></param>
-		public virtual void AddPrimary(Context context, object entity)
-		{
-			
-		}
-	}
-
-	/// <summary>
-	/// A set of caches per locale, specific to the given type.
-	/// </summary>
-	public partial class CacheSet<T, ID> : CacheSet
-		where T : Content<ID>, new()
-		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
-	{
-		/// <summary>
-		/// The caches, if enabled. Call Cache() to set this service as one with caching active.
-		/// It's an array as there's one per locale.
-		/// </summary>
-		protected ServiceCache<T, ID>[] _cache;
-
-		/// <summary>
-		/// Get the underlying caches.
-		/// </summary>
-		public ServiceCache<T, ID>[] Caches => _cache;
-
-		/// <summary>
-		/// The onChange callback to use.
-		/// </summary>
-		private Action<Context, T, T> _onChange;
-
-		/// <summary>
-		/// Sets the onChange callback for each cache in the set.
-		/// </summary>
-		public void SetOnChange(Action<Context, T, T> onChange)
-		{
-			_onChange = onChange;
-
-			for (var i = 0; i < _cache.Length; i++)
-			{
-				var sc = _cache[i];
-				if (sc == null)
-				{
-					continue;
-				}
-				sc.OnChange = onChange;
-			}
-		}
-
-		/// <summary>
-		/// Gets a cache for a given locale ID. Null if none.
-		/// </summary>
-		/// <param name="localeId"></param>
-		/// <returns></returns>
-		public ServiceCache<T, ID> GetCacheForLocale(uint localeId)
-		{
-			if (localeId > _cache.Length)
-			{
-				return null;
-			}
-			return _cache[localeId - 1];
-		}
-
-		/// <summary>
-		/// Adds the given primary entity to this cache.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="entity"></param>
-		public override void AddPrimary(Context context, object entity)
-		{
-			var typedEntity = entity as T;
-			GetCacheForLocale(1).Add(context, typedEntity, typedEntity);
-		}
-
-		/// <summary>
-		/// The entity name that this is a set for.
-		/// </summary>
-		private string EntityName;
-
-		/// <summary>
-		/// The number of caches currently present.
-		/// </summary>
-		public int Length => _cache.Length;
-
-		/// <summary>
-		/// Used to convert to/ from a ulong and ID.
-		/// </summary>
-		private IDConverter<ID> _idConverter;
-
-		/// <summary>
-		/// Creates a new cache set for the given content fields.
-		/// </summary>
-		/// <param name="cf"></param>
-		/// <param name="entityName"></param>
-		public CacheSet(ContentFields cf, string entityName) : base(cf)
-		{
-			EntityName = entityName;
-			_cache = new ServiceCache<T, ID>[1];
-			RequireCacheForLocale(1); // Primary cache always exists.
-
-			// Setup ID converter:
-			if (typeof(ID) == typeof(uint))
-			{
-				_idConverter = new UInt32IDConverter() as IDConverter<ID>;
-			}
-			else if (typeof(ID) == typeof(ulong))
-			{
-				_idConverter = new UInt64IDConverter() as IDConverter<ID>;
-			}
-		}
-
-		/// <summary>
-		/// Requires that the cache for the given locale exists.
-		/// </summary>
-		/// <param name="localeId"></param>
-		/// <returns></returns>
-		public ServiceCache<T, ID> RequireCacheForLocale(uint localeId)
-		{
-			if (localeId > _cache.Length)
-			{
-				Array.Resize(ref _cache, (int)localeId + 5);
-			}
-
-			var cache = _cache[localeId - 1];
-
-			if (cache == null)
-			{
-				cache = new ServiceCache<T, ID>(ContentFields.IndexList, EntityName);
-				cache.OnChange = _onChange;
-				_cache[localeId - 1] = cache;
-			}
-			
-			return cache;
-		}
 
 	}
 
@@ -178,7 +21,7 @@ namespace Api.Startup{
 	/// A cache for content which is frequently read but infrequently written.
 	/// There is one of these per locale, stored by AutoService.
 	/// </summary>
-	public class ServiceCache<T, PT> 
+	public class ServiceCache<T, PT> : ServiceCache
 		where T: Content<PT>, new()
 		where PT : struct, IConvertible, IEquatable<PT>, IComparable<PT>
 	{
@@ -188,15 +31,9 @@ namespace Api.Startup{
 		public bool LazyLoadMode;
 
 		/// <summary>
-		/// The raw index - this is for caches for a particular locale, and holds "raw" objects 
-		/// (as they are in the database, with blanks where the default translation should apply).
+		/// The index of objects in the cache by their ID.
 		/// </summary>
-		private ConcurrentDictionary<PT, T> Raw = new ConcurrentDictionary<PT, T>();
-
-		/// <summary>
-		/// The primary cached index. If localised, this holds objects that have had the primary locale applied to them.
-		/// </summary>
-		private ConcurrentDictionary<PT, T> Primary;
+		private ConcurrentDictionary<PT, T> IdIndex;
 
 		/// <summary>
 		/// The indices of the cache. The name of the index is the same as it is in the database 
@@ -223,20 +60,13 @@ namespace Api.Startup{
 		public Action<Context, T, T> OnChange;
 
 		/// <summary>
-		/// Fields of the type.
-		/// </summary>
-		private FieldMap Fields;
-
-		/// <summary>
 		/// Creates a new service cache using the given indices.
 		/// </summary>
 		/// <param name="indices"></param>
-		/// <param name="entityName"></param>
-		public ServiceCache(List<DatabaseIndexInfo> indices, string entityName)
+		public ServiceCache(List<DatabaseIndexInfo> indices)
 		{
 			Indices = new Dictionary<string, ServiceCacheIndex<T>>();
 			SecondaryIndices = new List<ServiceCacheIndex<T>>();
-			Fields = new FieldMap(typeof(T), entityName);
 			IndexLookup = new ServiceCacheIndex<T>[indices.Count];
 
 			var indexId = -1;
@@ -251,6 +81,20 @@ namespace Api.Startup{
 					continue;
 				}
 
+				if (indexInfo.Scope != null && 
+					indexInfo.Scope.Length > 0 && 
+					!indexInfo.Scope.Contains("cache",StringComparison.InvariantCultureIgnoreCase))
+				{
+					continue;
+				}
+
+				if (indexInfo.Columns.Length > 1)
+				{
+					// Multicolumn indices aren't supported by the cache at the moment.
+					Log.Warn("cache", "Multicolumn indices aren't supported by the cache at the moment. Tried to create one on " + typeof(T).Name);
+					continue;
+				}
+
 				var firstCol = indexInfo.Columns[0].FieldInfo;
 				var indexFieldType = firstCol.FieldType;
 
@@ -261,7 +105,7 @@ namespace Api.Startup{
 				}
 
 				// Instance each one next:
-				var index = indexInfo.CreateIndex<T>();
+				var index = indexInfo.CreateIndex<T, PT>();
 
 				// Add to fast lookup:
 				IndexLookup[indexId] = index;
@@ -269,10 +113,11 @@ namespace Api.Startup{
 
 				if (indexInfo.IndexName == "Id")
 				{
+					// This is the main index to use
 					index.Primary = true;
 
-					// Primary - grab the underlying dictionary ref:
-					Primary = index.GetUnderlyingStructure() as ConcurrentDictionary<PT, T>;
+					// Grab the underlying dictionary ref:
+					IdIndex = index.GetUnderlyingStructure() as ConcurrentDictionary<PT, T>;
 				}
 				else
 				{
@@ -282,28 +127,19 @@ namespace Api.Startup{
 				Indices[indexInfo.IndexName] = index;
 			}
 
-			if (Primary == null)
+			if (IdIndex == null)
 			{
-				Primary = new ConcurrentDictionary<PT, T>();
+				IdIndex = new ConcurrentDictionary<PT, T>();
 			}
 		}
 
 		/// <summary>
-		/// Get the primary index.
+		/// Get the ID index.
 		/// </summary>
 		/// <returns></returns>
-		public ConcurrentDictionary<PT, T> GetPrimary()
+		public ConcurrentDictionary<PT, T> GetIdIndex()
 		{
-			return Primary;
-		}
-
-		/// <summary>
-		/// Get the raw lookup.
-		/// </summary>
-		/// <returns></returns>
-		public ConcurrentDictionary<PT, T> GetRaw()
-		{
-			return Raw;
+			return IdIndex;
 		}
 
 		/// <summary>
@@ -319,7 +155,7 @@ namespace Api.Startup{
 			// FilterA and FilterB are never null.
 			var filterA = queryPair.QueryA;
 			var filterB = queryPair.QueryB;
-			var isIncluded = filterA.IsIncluded;
+			var contextFlags = filterA.ContextFlags;
 
 			var total = 0;
 			var includeTotal = filterA.IncludeTotal;
@@ -330,16 +166,16 @@ namespace Api.Startup{
 			{
 				var set = new List<T>();
 
-				foreach (var kvp in Primary)
+				foreach (var kvp in IdIndex)
 				{
-					if (filterA.Match(context, kvp.Value, isIncluded) && filterB.Match(context, kvp.Value, isIncluded))
+					if (filterA.Match(context, kvp.Value, contextFlags) && filterB.Match(context, kvp.Value, contextFlags))
 					{
 						set.Add(kvp.Value);
 					}
 				}
 
 				total = set.Count;
-				HandleSorting(set, filterA.SortField.FieldInfo, filterA.SortAscending);
+				HandleSorting(context, set, filterA.SortField.FieldInfo, filterA.SortAscending);
 
 				var rowStart = filterA.Offset;
 
@@ -374,9 +210,9 @@ namespace Api.Startup{
 			}
 			else
 			{
-				foreach (var kvp in Primary)
+				foreach (var kvp in IdIndex)
 				{
-					if (filterA.Match(context, kvp.Value, isIncluded) && filterB.Match(context, kvp.Value, isIncluded))
+					if (filterA.Match(context, kvp.Value, contextFlags) && filterB.Match(context, kvp.Value, contextFlags))
 					{
 						var pageFill = total - filterA.Offset;
 						total++;
@@ -403,7 +239,7 @@ namespace Api.Startup{
 			return total;
 		}
 
-		private void HandleSorting(List<T> set, FieldInfo sort, bool ascend)
+		private void HandleSorting(Context context, List<T> set, FieldInfo sort, bool ascend)
 		{		
 			set.Sort((a, b) => {
 					
@@ -446,7 +282,7 @@ namespace Api.Startup{
 		/// <returns></returns>
 		public int Count()
 		{
-			return Primary.Count;
+			return IdIndex.Count;
 		}
 
 		/// <summary>
@@ -464,24 +300,13 @@ namespace Api.Startup{
 		}
 
 		/// <summary>
-		/// Attempts to get the raw object with the given ID from the cache.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public T GetRaw(PT id)
-		{
-			Raw.TryGetValue(id, out T value);
-			return value;
-		}
-
-		/// <summary>
 		/// Attempts to get the object with the given ID from the cache.
 		/// </summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
 		public T Get(PT id)
 		{
-			Primary.TryGetValue(id, out T value);
+			IdIndex.TryGetValue(id, out T value);
 			return value;
 		}
 
@@ -491,7 +316,7 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="name"></param>
 		/// <returns></returns>
-		public ServiceCacheIndex<T> GetIndex<U>(string name)
+		public ServiceCacheIndex<T> GetIndex(string name)
 		{
 			Indices.TryGetValue(name, out ServiceCacheIndex<T> value);
 			return value;
@@ -502,8 +327,7 @@ namespace Api.Startup{
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="entry"></param>
-		/// <param name="rawEntry"></param>
-		public void Add(Context context, T entry, T rawEntry)
+		public void Add(Context context, T entry)
 		{
 			if (entry == null)
 			{
@@ -514,7 +338,7 @@ namespace Api.Startup{
 			var prev = Remove(entry.GetId(), false);
 
 			// Add:
-			AddInternal(entry, rawEntry);
+			AddInternal(entry);
 
 			OnChange?.Invoke(context, prev, entry);
 		}
@@ -538,20 +362,19 @@ namespace Api.Startup{
 		/// Removes the given object from the index.
 		/// </summary>
 		/// <param name="id"></param>
-		/// <param name="fromPrimary">Also remove from the primary</param>
-		private T Remove(PT id, bool fromPrimary)
+		/// <param name="fromIdIndex">Also remove from the ID index</param>
+		private T Remove(PT id, bool fromIdIndex)
 		{
-			if (Primary == null || !Primary.TryGetValue(id, out T value))
+			if (IdIndex == null || !IdIndex.TryGetValue(id, out T value))
 			{
 				// Not cached anyway
 				return null;
 			}
 
-			if (fromPrimary)
+			if (fromIdIndex)
 			{
-				lock(Primary){
-					Primary.Remove(id, out _);
-					Raw.Remove(id, out _);
+				lock(IdIndex){
+					IdIndex.Remove(id, out _);
 				}
 			}
 
@@ -568,14 +391,12 @@ namespace Api.Startup{
 		/// Adds the given entry to the index.
 		/// </summary>
 		/// <param name="entry"></param>
-		/// <param name="rawEntry"></param>
-		private void AddInternal(T entry, T rawEntry)
+		private void AddInternal(T entry)
 		{
-			lock(Primary){
-				// Add to primary index, and the raw backing index:
+			lock(IdIndex){
+				// Add to ID index
 				var id = entry.GetId();
-				Primary[id] = entry;
-				Raw[id] = rawEntry;
+				IdIndex[id] = entry;
 			}
 			
 			// Add to any secondary indices:

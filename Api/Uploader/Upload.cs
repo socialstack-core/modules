@@ -105,6 +105,11 @@ namespace Api.Uploader
         public int TranscodeState;
 
         /// <summary>
+        /// The ref for a cover image, if this is a video.
+        /// </summary>
+        public string CoverImageRef;
+
+        /// <summary>
         /// The subdirectory that this upload was put into, if any. Ensure that users can't directly set this.
         /// </summary>
         [JsonIgnore]

@@ -1,0 +1,8 @@
+<Project>
+	<ItemGroup>
+    <PackageReference Include="AWSSDK.S3" Version="3.7.415.13" />
+    <PackageReference Include="AWSSDK.SimpleNotificationService" Version="3.7.400.137" />
+    <PackageReference Include="AWSSDK.SQS" Version="3.7.400.137" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.23.0" />
+	</ItemGroup>
+</Project>

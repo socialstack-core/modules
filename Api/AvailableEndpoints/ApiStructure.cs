@@ -10,13 +10,13 @@ namespace Api.AvailableEndpoints
 	/// <summary>
 	/// Defines what's available from this API
 	/// </summary>
-	[CacheOnly]
-	public class ApiStructure : Content<uint>
+	public class ApiStructure
 	{
 		/// <summary>
 		/// The endpoints in this API.
 		/// </summary>
 		public List<Endpoint> Endpoints { get; set; }
+
 		/// <summary>
 		/// The content types in this API.
 		/// </summary>

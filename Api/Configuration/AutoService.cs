@@ -72,6 +72,7 @@ public partial class AutoService
 		if (appsettingsConfig != null)
 		{
 			set.Configurations.Add(appsettingsConfig);
+			configService.UpdateFrontendConfig(appsettingsConfig, set);
 		}
 
 		if (set.Configurations.Count > 0)

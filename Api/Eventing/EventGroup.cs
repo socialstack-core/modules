@@ -54,19 +54,6 @@ namespace Api.Eventing
 		public EventHandler<T> ListEntry;
 
 		/// <summary>
-		/// List entities.
-		/// </summary>
-		public EndpointEventHandler<Filter<T, ID>> EndpointStartList;
-		/// <summary>
-		/// List entities.
-		/// </summary>
-		public EndpointEventHandler<Filter<T, ID>> EndpointEndList;
-		/// <summary>
-		/// Called after an entity has been listed, just before it is written to the output
-		/// </summary>
-		public EndpointEventHandler<T> EndpointListEntry;
-
-		/// <summary>
 		/// Just before a field is added (and made settable).
 		/// </summary>
 		public EventHandler<JsonField<T, ID>> BeforeSettable;
@@ -100,7 +87,12 @@ namespace Api.Eventing
 		/// Called to actually create the result in the data engine during partial complete.
 		/// </summary>
 		public EventHandler<T> CreatePartial;
-
+		
+		/// <summary>
+		/// Called to actually create the result in the data engine.
+		/// </summary>
+		public EventHandler<List<T>> CreateAll;
+		
 		/// <summary>
 		/// Just after an entity has been created. The given object will now have an ID.
 		/// </summary>
@@ -153,49 +145,18 @@ namespace Api.Eventing
 		/// </summary>
 		public EventHandler<T> AfterLoad;
 
-		#endregion
+        /// <summary>
+        /// Called to extract the metadata of an entity
+		/// to allow for the processing of related data/includes etc
+        /// </summary>
+        public EventHandler<HashSet<string>, T> SearchMetaData;
 
-		/// <summary>
-		/// Called just after the host service instance type has been changed. Use this to clear out any caches built on the instance type.
-		/// </summary>
-		public EventHandler<AutoService> AfterInstanceTypeUpdate;
+        #endregion
 
-		#region Controller events
-
-		/// <summary>
-		/// Load entity metadata.
-		/// </summary>
-		public EndpointEventHandler<ID> EndpointStartLoad;
-		/// <summary>
-		/// Load entity metadata.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointEndLoad;
-		/// <summary>
-		/// Create a new entity.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointStartCreate;
-		/// <summary>
-		/// Create a new entity.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointEndCreate;
-		/// <summary>
-		/// Delete an entity.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointStartDelete;
-		/// <summary>
-		/// Delete an entity.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointEndDelete;
-		/// <summary>
-		/// Update entity metadata.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointStartUpdate;
-		/// <summary>
-		/// Update entity metadata.
-		/// </summary>
-		public EndpointEventHandler<T> EndpointEndUpdate;
-
-		#endregion
+        /// <summary>
+        /// Called just after the host service instance type has been changed. Use this to clear out any caches built on the instance type.
+        /// </summary>
+        public EventHandler<AutoService> AfterInstanceTypeUpdate;
 
 		/// <summary>
 		/// Called when a remote entity was received via remote sync.

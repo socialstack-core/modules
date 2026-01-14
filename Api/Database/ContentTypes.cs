@@ -25,10 +25,6 @@ namespace Api.Database
 		/// </summary>
 		public Type ContentType;
 		/// <summary>
-		/// The ID.
-		/// </summary>
-		public int Id;
-		/// <summary>
 		/// The service.
 		/// </summary>
 		public AutoService Service;
@@ -56,18 +52,11 @@ namespace Api.Database
 		/// </summary>
 		public static ConcurrentDictionary<Type, ContentTypeMeta> TypeMap;
 
-		/// <summary>
-		/// Reverse mapping from ID to type name.
-		/// Setup during DB service startup.
-		/// </summary>
-		public static ConcurrentDictionary<int, ContentTypeMeta> ReverseMap;
-		
 		static ContentTypes()
 		{
 			// Setup the content maps:
 			Map = new ConcurrentDictionary<string, ContentTypeMeta>();
 			TypeMap = new ConcurrentDictionary<Type, ContentTypeMeta>();
-			ReverseMap = new ConcurrentDictionary<int, ContentTypeMeta>();
 		}
 
 		/// <summary>
@@ -90,7 +79,6 @@ namespace Api.Database
 		public static void StateChange(bool active, AutoService service, Type type)
 		{
 			var name = type.Name.ToLower();
-			var id = GetId(name);
 
 			if (active)
 			{
@@ -99,19 +87,16 @@ namespace Api.Database
 				{
 					ContentType = type,
 					Name = type.Name,
-					Service = service,
-					Id = id
+					Service = service
 				};
 				Map[name] = typeMeta;
 				TypeMap[type] = typeMeta;
- 				ReverseMap[id] = typeMeta;
 			}
 			else
 			{
 				// Remove from the maps:
 				Map.Remove(name, out ContentTypeMeta _);
 				TypeMap.Remove(type, out ContentTypeMeta _);
-				ReverseMap.Remove(id, out ContentTypeMeta _);
 			}
 		}
 
@@ -184,61 +169,6 @@ namespace Api.Database
 				return meta.ContentType;
 			}
 			return null;
-		}
-
-		/// <summary>
-		/// Gets a content type from its ID.
-		/// </summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		public static Type GetType(int id)
-		{
-			if (ReverseMap.TryGetValue(id, out ContentTypeMeta meta))
-			{
-				return meta.ContentType;
-			}
-			return null;
-		}
-
-		/// <summary>
-		/// Gets the ContentTypeId from the type name. Just a hash number function.
-		/// </summary>
-		/// <param name="typeName"></param>
-		/// <returns></returns>
-		public static int GetId(string typeName)
-		{
-			// Note: Caching this would be nice but isn't worthwhile
-			// because it _is_ the deterministic .NET hash function. If it was cached in a dictionary 
-			// you'd end up running this code anyway during the lookup!
-
-			typeName = typeName.ToLower();
-			
-			unchecked
-			{
-				int hash1 = (5381 << 16) + 5381;
-				int hash2 = hash1;
-
-				for (int i = 0; i < typeName.Length; i += 2)
-				{
-					hash1 = ((hash1 << 5) + hash1) ^ typeName[i];
-					if (i == typeName.Length - 1)
-						break;
-					hash2 = ((hash2 << 5) + hash2) ^ typeName[i + 1];
-				}
-
-				return hash1 + (hash2 * 1566083941);
-			}
-		}
-
-		/// <summary>
-		/// Gets the content ID for the given system type.
-		/// The type itself should be a DatabaseRow derivative - e.g. typeof(User).
-		/// </summary>
-		/// <param name="systemType"></param>
-		/// <returns></returns>
-		public static int GetId(Type systemType)
-		{
-			return GetId(systemType.Name);
 		}
 
     }

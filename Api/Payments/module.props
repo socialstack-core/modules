@@ -1,0 +1,22 @@
+<Project>
+  <PropertyGroup>
+    <DefineConstants Condition="Exists('$(MSBuildThisFileDirectory)../GuestUsers')">$(DefineConstants);PAYMENTS_GUEST_USERS</DefineConstants>
+  </PropertyGroup>
+	<ItemGroup>
+		<Compile Remove="$(MSBuildThisFileDirectory)/Search/MongoDBSearch/**/*.cs" />
+		<Compile Include="$(MSBuildThisFileDirectory)/Search/MongoDBSearch/**/*.cs" Condition="Exists('$(MSBuildThisFileDirectory)../DatabaseMongoDB')" />
+	</ItemGroup>
+  <ItemGroup>
+    <Compile Remove="$(MSBuildThisFileDirectory)/Guests/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)/Guests/**/*.cs" Condition="Exists('$(MSBuildThisFileDirectory)../GuestUsers')" />
+  </ItemGroup>
+	<ItemGroup>
+    <PackageReference Condition="'$(StripeGateway)' != 'false'" Include="Stripe.net" Version="48.0.0" />
+    <Compile Remove="$(MSBuildThisFileDirectory)/Gateways/Stripe/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)/Gateways/Stripe/**/*.cs" Condition="'$(StripeGateway)' != 'false'" />
+	</ItemGroup>
+  <ItemGroup>
+    <Compile Remove="$(MSBuildThisFileDirectory)/Gateways/Opayo/**/*.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)/Gateways/Opayo/**/*.cs" Condition="'$(OpayoGateway)' == 'true'" />
+  </ItemGroup>
+</Project>

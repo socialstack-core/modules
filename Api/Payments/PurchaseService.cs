@@ -1,12 +1,19 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Startup;
 using Api.Emails;
 using System;
+using Api.Pages;
+using Api.CanvasRenderer;
+using Api.Translate;
+using Api.Users;
+using System.Text;
+using Newtonsoft.Json.Linq;
+using Api.Counters;
+using Newtonsoft.Json;
+using Api.Addresses;
 
 namespace Api.Payments
 {
@@ -15,48 +22,204 @@ namespace Api.Payments
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 	/// </summary>
 	public partial class PurchaseService : AutoService<Purchase>
-    {
+	{
 		private PaymentMethodService _paymentMethods;
 		private PaymentGatewayService _gateways;
 		private ProductQuantityService _prodQuantities;
 		private ProductService _products;
-		private SubscriptionService _subscriptions;
-		private PriceService _prices;
+		private PurchaseTokenService _purchaseTokens;
+		private DeliveryService _deliveries;
+		private UserService _users;
+		private EmailTemplateService _emails;
+		private CounterService _counters;
+
+		// removed any similar chars like 1/ I 5/S 0/O etc 
+		private const string refPattern = "ACEFHJKMNPRTUVWXY23456789";
 
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PurchaseService(PaymentMethodService paymentMethods, PaymentGatewayService gateways, ProductQuantityService prodQuantities, ProductService products, EmailTemplateService emails, PriceService prices) : base(Events.Purchase)
-        {
+		public PurchaseService(PaymentMethodService paymentMethods, PageService pages,
+			PaymentGatewayService gateways, ProductQuantityService prodQuantities,
+			ProductService products, PurchaseTokenService purchaseTokens, EmailTemplateService emailTemplateService, PriceService prices,
+			UserService users, LocaleService locales, DeliveryService deliveries, CounterService counters) : base(Events.Purchase)
+		{
 			_paymentMethods = paymentMethods;
 			_gateways = gateways;
 			_prodQuantities = prodQuantities;
 			_products = products;
-			_prices = prices;
+			_purchaseTokens = purchaseTokens;
+			_users = users;
+			_deliveries = deliveries;
+			_emails = emailTemplateService;
+			_counters = counters;
+
+			InstallAdminPages("Orders", "fa:fa-shopping-basket", ["id", "total"], null, "ecommerce");
+
+			pages.Install(
+				new PageBuilder()
+				{
+					Url = "/cart/",
+					Key = "cart_view",
+					Title = "View your shopping cart",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Payments/Cart")
+						);
+					}
+				},
+				new PageBuilder()
+				{
+					Url = "/cart/complete",
+					Key = "cart_complete",
+					Title = "Checkout completion",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Payments/Complete")
+						);
+					}
+				},
+				new PageBuilder()
+				{
+					Url = "/cart/checkout",
+					Key = "cart_checkout",
+					Title = "Review your cart",
+					LoginRequired = true,
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Payments/Checkout")
+						);
+					}
+				},
+				new PageBuilder()
+				{
+					Url = "/cart/purchases/${purchase.id}",
+					Key = "primary:purchase",
+					Title = "Viewing purchase",
+					LoginRequired = true,
+					PrimaryContentIncludes = "productQuantities",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Payments/Purchase/View").WithPrimaryLink("purchase")
+						);
+					}
+				},
+				new PageBuilder()
+				{
+					Url = "/cart/purchases/token/${token}",
+					Key = "payment_order_by_token",
+					Title = "Purchase",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Guest/Purchase")
+								.WithLink("token", "url.token", false)
+						);
+					}
+				}
+			);
 
 			InstallEmails(
-				new EmailTemplate()
+				new EmailBuilder()
 				{
 					Name = "Your payment receipt",
 					Subject = "Your payment receipt",
 					Key = "payment_receipt",
-					BodyJson = "{\"t\":\"Email/Default\",\"c\":[{\"t\":\"Email/Centered\",\"d\":{}," +
-					"\"c\":[\"Thank you! A payment was successfully made for \", {\"t\":\"UI/Token\",\"c\":\"${customData.printablePrice}\", \"d\":{\"mode\":\"customdata\",\"fields\":[\"printablePrice\"]}}]}," +
-					"{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"}}]}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"Thank you! A payment was successfully made for "
+							)
+							.AppendChild(
+								new CanvasNode("UI/Token")
+									.With("mode", "customdata")
+									.With("fields", new string[] { "printablePrice" })
+									.AppendChild("${customData.printablePrice}")
+							)
+							.AppendChild(
+								new CanvasNode("Email/PrimaryButton")
+									.With("label", "View payment details")
+									.With("target", "/checkout/payment/${customData.paymentId}")
+							)
+						);
+					}
 				},
-				new EmailTemplate()
+				new EmailBuilder()
 				{
 					Name = "A payment issue occurred",
 					Subject = "A payment issue occurred",
 					Key = "payment_fault",
-					BodyJson = "{\"c\":{\"t\":\"Email/Default\",\"d\":{},\"r\":{\"children\":[{\"t\":\"Email/Centered\",\"d\":{},\"c\":[{\"s\":\"We tried to request a payment of \",\"i\":2},{\"t\":\"UI/Token\",\"d\":{\"fields\":[\"customData\",\"printablePrice\"]},\"c\":{\"s\":\"customData.printablePrice\",\"i\":6},\"i\":4},{\"s\":\" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank.\",\"i\":5}],\"i\":6},{\"t\":\"Email/PrimaryButton\",\"d\":{\"label\":\"View payment details\",\"target\":\"/checkout/payment/${customData.paymentId}\"},\"r\":{\"label\":null},\"i\":7}],\"customLogo\":null},\"i\":8},\"i\":9}"
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"We tried to request a payment of "
+							)
+							.AppendChild(
+								new CanvasNode("UI/Token")
+									.With("mode", "customdata")
+									.With("fields", new string[] { "printablePrice" })
+									.AppendChild("${customData.printablePrice}")
+							)
+							.AppendChild(
+								" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank."
+							)
+							.AppendChild(
+								new CanvasNode("Email/PrimaryButton")
+									.With("label", "View payment details")
+									.With("target", "/checkout/payment/${customData.paymentId}")
+							)
+						);
+					}
+				},
+				new EmailBuilder()
+				{
+					Name = "Your order details",
+					Subject = "Your order details",
+					Key = "payment_order_details",
+					PrimaryContentType = "PurchaseToken",
+					PrimaryContentIncludes = "purchase, purchase.productQuantities, purchase.productQuantities.product, purchase.billingAddress, purchase.deliveryAddress",
+					BuildBody = (EmailBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("Email/Centered")
+							.AppendChild(
+								"Thank you for your order"
+							)
+							.AppendChild(
+								new CanvasNode("Email/Purchase/View")
+									.WithPrimaryLink("purchaseToken")
+							)
+							.AppendChild(
+								new CanvasNode("Email/PrimaryButton")
+									.With("label", "View your order details online")
+									.With("target", "cart/purchases/token/${customData.token}")
+							)
+						);
+					}
 				}
 			);
-			
-			Events.Purchase.BeforeCreate.AddEventListener(async (Context context, Purchase purchase) => {
 
-				// Ensure paymentGatewayId is set:
-				await EnsureGatewayId(context, purchase);
+			Events.Purchase.BeforeCreate.AddEventListener(async (Context context, Purchase purchase) =>
+			{
+
+				if (purchase == null)
+				{
+					return purchase;
+				}
+
+				if (!purchase.BuyNowPayLater)
+				{
+					// Ensure paymentGatewayId is set:
+					await EnsureGatewayId(context, purchase);
+				}
 
 				// Ensure a locale is set:
 				if (purchase.LocaleId == 0)
@@ -64,67 +227,317 @@ namespace Api.Payments
 					purchase.LocaleId = context.LocaleId;
 				}
 
+				if (string.IsNullOrWhiteSpace(purchase.Reference))
+				{
+					purchase.Reference = await _counters.GetCounter("PurchaseId", "WEB");
+				}
+
 				return purchase;
 			});
 
-			Events.Purchase.BeforeUpdate.AddEventListener((Context context, Purchase purchase, Purchase original) => {
-
+			Events.Purchase.BeforeUpdate.AddEventListener(async (Context context, Purchase purchase, Purchase original) =>
+			{
 				// State change - is it now a successful payment?
 				if (purchase.Status != original.Status)
 				{
-					if (purchase.Status == 202)
+					if (purchase.Status == 201) // Just send order confirmation for BNPL
 					{
-						// Send success email:
-						var userRecipient = new Recipient(purchase.UserId, purchase.LocaleId);
-						userRecipient.CustomData = new
-						{
-							Purchase = purchase,
-							PrintablePrice = PrintPrice(purchase.TotalCost, purchase.CurrencyCode),
-							PaymentId = purchase.Id
-						};
-						var recipients = new List<Recipient>();
-						recipients.Add(userRecipient);
-						emails.Send(recipients, "payment_receipt");
+						// send order confirmation email
+						var processed = false;
+						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
+					}
+					else if (purchase.Status == 202) // Don't include BNPL here (201) as the payment doesn't actually happen until later.
+					{
+						// send order payment success email
+						var processed = false;
+						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_receipt", purchase);
+
+						// send order confirmation email
+						processed = false;
+						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
 					}
 					else if (purchase.Status > 299)
 					{
-						// Send failure email:
-						var userRecipient = new Recipient(purchase.UserId, purchase.LocaleId);
-						userRecipient.CustomData = new
-						{
-							Purchase = purchase,
-							PrintablePrice = PrintPrice(purchase.TotalCost, purchase.CurrencyCode),
-							PaymentId = purchase.Id
-						};
-						var recipients = new List<Recipient>();
-						recipients.Add(userRecipient);
-						emails.Send(recipients, "payment_fault");
+						// send order payment failure  email
+						var processed = false;
+						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_fault", purchase);
 					}
 				}
-
-				return new ValueTask<Purchase>(purchase);
-
+				return purchase;
 			});
 
+			Events.Purchase.SendConfirmationEmail.AddEventListener(async (Context context, bool processed, string key, Purchase purchase) =>
+			{
+				if (processed || string.IsNullOrWhiteSpace(key) || purchase == null)
+				{
+					return processed;
+				}
+
+				var userRecipient = new Recipient(
+					purchase.UserId,
+					purchase.LocaleId
+				);
+
+				var token = await _purchaseTokens.Create(context,
+					new PurchaseToken()
+					{
+						PurchaseId = purchase.Id,
+						Scope = "View",
+						IsSingleUse = false,
+						CreatedUtc = DateTime.UtcNow,
+						ExpiresUtc = DateTime.UtcNow.AddDays(14)
+					}, DataOptions.IgnorePermissions);
+
+				if (token == null)
+				{
+					throw new PublicException("Could not create session token.", "Purchase_session_token");
+				}
+
+				if (key == "payment_order_details")
+				{
+					userRecipient.CustomData = token;
+				}
+				else
+				{
+					// Send success email:
+					userRecipient.CustomData = new
+					{
+						Purchase = purchase,
+						PrintablePrice = PrintPrice(purchase.TotalCost, purchase.CurrencyCode),
+						Token = Uri.EscapeDataString(Convert.ToBase64String(Encoding.UTF8.GetBytes(token.Token)))
+					};
+				}
+
+				await _emails.SendAsync(userRecipient, key);
+
+				// processed so return null
+				return true;
+			});
+
+#if PAYMENTS_GUEST_USERS
+	
+			// link the purchase to the guest user
+			Events.Purchase.Checkout.AddEventListener(async (Context context, Purchase purchase, CheckoutInfo checkoutInfo) =>
+			{
+				// only anon users should be checking out as a quest
+				if (context.UserId != 0 || context.RoleId != 6)
+				{
+					return purchase;
+				}
+
+				if (purchase == null || checkoutInfo.GuestUserId == 0)
+				{
+					return purchase;
+				}
+
+				purchase.GuestUserId = checkoutInfo.GuestUserId;
+
+				return purchase;
+			}, 20);
+
+			// send any emails to the guest user 
+			Events.Purchase.SendConfirmationEmail.AddEventListener(async(Context context, bool processed, string key, Purchase purchase) => {
+
+				if (processed || string.IsNullOrWhiteSpace(key) || purchase == null || purchase.GuestUserId == 0)
+				{
+					return processed;
+				}
+
+				//for guest users only send order confirmation
+				if (key != "payment_order_details")
+				{
+					return true;
+				}
+
+				var guestUser = await Services.Get<Api.GuestUsers.GuestUserService>().Get(context, purchase.GuestUserId.GetValueOrDefault(), DataOptions.IgnorePermissions);
+
+				if (guestUser == null || string.IsNullOrWhiteSpace(guestUser.Email))
+				{
+					return processed;
+				}
+
+				// send email to guest passing token to allow for lookup/retrieval
+				var userRecipient = new Recipient(guestUser.Email);
+
+				var token = await _purchaseTokens.Create(context,
+					new PurchaseToken()
+					{
+						PurchaseId = purchase.Id,
+						Scope = "View",
+						IsSingleUse = false,
+						CreatedUtc = DateTime.UtcNow,
+						ExpiresUtc = DateTime.UtcNow.AddDays(14)
+					}, DataOptions.IgnorePermissions);
+
+				if (token == null)
+				{
+					throw new PublicException("Could not create session token.", "Purchase_session_token");
+				}
+
+				userRecipient.CustomData = token;
+
+				await _emails.SendAsync(userRecipient, key);
+
+				// processed so return null
+				return true;
+			},5); // run before any stock listeners and sets processed to block others 
+#endif
+
+		}
+
+		/// <summary>
+		/// helper class to append to response logging
+		/// </summary>
+		/// <param name="jsonString"></param>
+		/// <param name="newElement"></param>
+		/// <returns></returns>
+		public string AppendResponseElement(string jsonString, object newElement)
+		{
+			if (newElement == null)
+			{
+				throw new ArgumentNullException(nameof(newElement), "New element cannot be null.");
+			}
+
+			JObject elementObject;
+			try
+			{
+				// If it's already a JObject, use it; otherwise try to convert the POCO to a JObject.
+				elementObject = newElement as JObject ?? JObject.FromObject(newElement);
+			}
+			catch (Exception ex)
+			{
+				throw new ArgumentException("newElement must be convertible to a JSON object (JObject).", nameof(newElement), ex);
+			}
+
+			if (string.IsNullOrWhiteSpace(jsonString))
+			{
+				var newArray = new JArray { elementObject };
+				return newArray.ToString(Formatting.None);
+			}
+
+			JToken token;
+			try
+			{
+				token = JToken.Parse(jsonString);
+			}
+			catch (JsonReaderException ex)
+			{
+				throw new ArgumentException("Invalid JSON in jsonString.", nameof(jsonString), ex);
+			}
+
+			JArray array = token as JArray ?? new JArray { token };
+
+			array.Add(elementObject);
+			return array.ToString(Formatting.None);
+		}
+
+		/// <summary>
+		/// Get a purcase via the onetime token
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="token"></param>
+		/// <param name="ipAddress"></param>
+		/// <returns></returns>
+		public async ValueTask<Purchase> GetByToken(Context context, string token, string ipAddress = null)
+		{
+			var purchaseToken = await _purchaseTokens.Get(context, token, ipAddress);
+
+			if (purchaseToken == null)
+			{
+				return null;
+			}
+
+			return await Get(context, purchaseToken.PurchaseId, DataOptions.IgnorePermissions);
+		}
+
+		/// <summary>
+		/// Gets the products in the given purchase.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <returns></returns>
+		public async ValueTask<List<ProductQuantity>> GetProductQuantities(Context context, Purchase purchase)
+		{
+			return await _prodQuantities
+				.ListBySource(context, purchase, "ProductQuantities", DataOptions.IgnorePermissions);
+		}
+
+		/// <summary>
+		/// Gets the requested products in the given purchase. Null if the purchase has not been modified.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <returns></returns>
+		public async ValueTask<List<ProductQuantity>> GetOriginalProductQuantities(Context context, Purchase purchase)
+		{
+			return await _prodQuantities
+				.ListBySource(context, purchase, "RequestedProductQuantities", DataOptions.IgnorePermissions);
+		}
+
+		/// <summary>
+		/// Clones the purchase set of product/quants in to a set called 'RequestedProductQuantities'.
+		/// This is used to save a snapshot of the original purchase items for changes and returns etc 
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <returns></returns>
+		public async ValueTask<Purchase> CloneToRequestedProductQuantities(Context context, Purchase purchase)
+		{
+			var existing = await GetOriginalProductQuantities(context, purchase);
+			if(existing != null && existing.Count > 0)
+			{
+				return purchase;
+			}
+
+			// Not yet - clone them now. *must* clone them as the objects will be modified.
+			var originalRequests = await GetProductQuantities(context, purchase);
+
+			List<ulong> ids = new List<ulong>();
+
+			foreach (var entry in originalRequests)
+			{
+				var purchaseQuantity = new ProductQuantity()
+				{
+					ProductId = entry.ProductId,
+					Quantity = entry.Quantity,
+					OrderedCurrencyCode = entry.OrderedCurrencyCode,
+					OrderedTotal = entry.OrderedTotal,
+					OrderedTotalLessTax = entry.OrderedTotalLessTax
+				};
+
+				var result = await _prodQuantities.Create(context, purchaseQuantity, DataOptions.IgnorePermissions);
+
+				if (result == null)
+				{
+					continue;
+				}
+
+				ids.Add(result.Id);
+			}
+
+			return await Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase original) =>
+			{
+				toUpdate.Mappings.Set("RequestedProductQuantities", ids);
+
+			}, DataOptions.IgnorePermissions);
 		}
 
 		private async ValueTask EnsureGatewayId(Context context, Purchase purchase)
 		{
-			if (purchase.PaymentMethodId == 0)
+
+			if (purchase.PaymentGatewayId != 0 && purchase.PaymentMethodId == 0)
 			{
-				throw new PublicException("No payment gateway specified.", "payment_method_required");
+				// method known but has no saved payment details (guest)
+				return;
 			}
 
-			var dOpts = DataOptions.Default;
-
-			if (context.RoleId == 1)
+			if (purchase.PaymentMethodId == 0)
 			{
-				// Offline purchases
-				dOpts = DataOptions.IgnorePermissions;
+				throw new PublicException("No saved payment details specified.", "payment_gateway_required");
 			}
 
 			// Get the payment method (must be reachable by the context):
-			var paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId, dOpts);
+			var paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId);
 
 			if (paymentMethod == null)
 			{
@@ -152,187 +565,56 @@ namespace Api.Payments
 		/// </summary>
 		/// <param name="context"></param>
 		/// <param name="toPurchase"></param>
-		/// <param name="productQuantities"></param>
-		/// <returns></returns>
-		public async ValueTask AddProducts(Context context, Purchase toPurchase, List<ProductQuantity> productQuantities)
+		/// <param name="productAndPricing"></param>
+		/// <param name="mappingName"></param>
+		/// <returns>True if at least 1 was added.</returns>
+		public async ValueTask<List<LineItem>> AddProductsUnsaved(Context context, Purchase toPurchase,
+			ProductQuantityPricing productAndPricing,
+			string mappingName = "ProductQuantities")
 		{
-			if (productQuantities == null || toPurchase == null)
+			if (productAndPricing == null || toPurchase == null)
 			{
-				return;
+				return null;
 			}
 
-			foreach (var pq in productQuantities)
+			var contents = productAndPricing.Contents;
+
+			if (contents == null || contents.Count == 0)
 			{
+				return null;
+			}
+
+			var set = new List<LineItem>();
+
+			foreach (var lineItem in contents)
+			{
+				// Must clone it and set the ordered totals:
 				var purchaseQuantity = new ProductQuantity()
 				{
-					ProductId = pq.ProductId,
-					Quantity = pq.Quantity,
-					PurchaseId = toPurchase.Id
+					ProductId = lineItem.ProductId,
+					Quantity = lineItem.Quantity,
+					OrderedCurrencyCode = productAndPricing.CurrencyCode,
+					OrderedTotal = lineItem.Total,
+					OrderedTotalLessTax = lineItem.TotalLessTax
 				};
 
-				// Inform that the given product quantity is being added to a purchase and is ready to be charged.
-				// This is the place to inject usage based on reading some other dataset(s).
-				purchaseQuantity = await Events.ProductQuantity.BeforeAddToPurchase.Dispatch(context, purchaseQuantity, toPurchase);
+				var result = await _prodQuantities.Create(context, purchaseQuantity, DataOptions.IgnorePermissions);
 
-				if (purchaseQuantity == null)
+				if (result == null)
 				{
 					continue;
 				}
 
-				// Add it:
-				await _prodQuantities.Create(context, purchaseQuantity, DataOptions.IgnorePermissions);
+				// Add to mapping (unsaved):
+				toPurchase.Mappings.Add(mappingName, result);
 
+				set.Add(new LineItem(lineItem, result));
 			}
-		}
-		
-		/// <summary>
-		/// Gets the products in the given purchase.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="purchase"></param>
-		/// <returns></returns>
-		public async ValueTask<List<ProductQuantity>> GetProducts(Context context, Purchase purchase)
-		{
-			return await _prodQuantities.Where("PurchaseId=?", DataOptions.IgnorePermissions).Bind(purchase.Id).ListAll(context);
+
+			return set;
 		}
 
-		/// <summary>
-		/// Calculates the total amount of the given purchase and returns it. Does not apply it to the purchase.
-		/// </summary>
-		/// <param name="context"></param>
-		/// <param name="purchase"></param>
-		/// <param name="coupon"></param>
-		/// <returns></returns>
-		public async ValueTask<ProductCost> CalcuateTotal(Context context, Purchase purchase, Coupon coupon = null)
-		{
-			// Get all product quantities:
-			var productQuantities = await GetProducts(context, purchase);
-
-			// Using the purchase locale, we'll now go through each product and establish the price
-			// based on the number of units and the product unit price.
-			// The product may be tiered though so we check for tiered prices as well.
-
-			// Valid coupon?
-			if (coupon != null)
-			{
-				if (coupon.Disabled || (coupon.ExpiryDateUtc.HasValue && coupon.ExpiryDateUtc.Value < System.DateTime.UtcNow))
-				{
-					// NB: If max number of people is reached, it is marked as disabled.
-					throw new PublicException("Unfortunately the provided coupon has expired.", "coupon_expired");
-				}
-			}
-
-			var hasSubscriptionProducts = false;
-			string currencyCode = null;
-			ulong totalCost = 0;
-
-			foreach (var pq in productQuantities)
-			{
-				// Get the cost of this entry:
-				var cost = await _prodQuantities.GetCostOf(pq, purchase.LocaleId);
-
-				if (cost.SubscriptionProducts)
-				{
-					hasSubscriptionProducts = true;
-				}
-
-				if (currencyCode == null)
-				{
-					// First one:
-					currencyCode = cost.CurrencyCode;
-				}
-				else
-				{
-					if (cost.CurrencyCode != currencyCode)
-					{
-						// Mixed currency purchases not supported.
-						throw new PublicException("Unable to request a mixed currency purchase at this time.", "mixed_currencies");
-					}
-				}
-
-				// Add to the cost:
-				var prevTotal = totalCost;
-				totalCost += cost.Amount;
-
-				// Overflow checking:
-				if (totalCost < prevTotal)
-				{
-					throw new PublicException("The requested quantity is too large.", "substantial_quantity");
-				}
-
-			}
-
-			// Next, factor in the coupon.
-			if (coupon != null)
-			{
-				var priceContext = context;
-
-				if (purchase.LocaleId != context.LocaleId)
-				{
-					priceContext = new Context(purchase.LocaleId, 0, 0);
-				}
-
-				if (coupon.MinimumSpendAmount != 0)
-				{
-					// Get the relevant price:
-					var minSpendPrice = await _prices.Get(priceContext, coupon.MinimumSpendAmount, DataOptions.IgnorePermissions);
-
-					if (minSpendPrice != null)
-					{
-						// Are we above it?
-						if (totalCost < minSpendPrice.Amount)
-						{
-							// No!
-							throw new PublicException("Can't use this coupon as the total is below the minimum spend.", "min_spend");
-						}
-					}
-				}
-
-				if (coupon.DiscountPercent != 0)
-				{
-					var discountedTotal = totalCost * (1d - ((double)coupon.DiscountPercent / 100d));
-
-					if (discountedTotal <= 0)
-					{
-						// Becoming free!
-						totalCost = 0;
-					}
-					else
-					{
-						// Round to nearest pence/ cent
-						totalCost = (ulong)Math.Ceiling(discountedTotal);
-					}
-				}
-
-				if (coupon.DiscountFixedAmount != 0)
-				{
-					// Get the relevant price:
-					var discountAmount = await _prices.Get(priceContext, coupon.DiscountFixedAmount, DataOptions.IgnorePermissions);
-
-					if (discountAmount != null)
-					{
-						if (totalCost < discountAmount.Amount)
-						{
-							// Becoming free!
-							totalCost = 0;
-						}
-						else
-						{
-							// Discount a fixed number of units:
-							totalCost -= (ulong)discountAmount.Amount;
-						}
-					}
-				}
-			}
-
-			return new ProductCost()
-			{
-				SubscriptionProducts = hasSubscriptionProducts,
-				CurrencyCode = currencyCode,
-				Amount = totalCost
-			};
-		}
-
+		/*
 		/// <summary>
 		/// Exceutes potentially multiple subscriptions in one transaction. For example if someone wants to buy an annual and monthly subscription at the same time.
 		/// This could also be whilst paying a one off amount too (in the provided purchase, which can be null).
@@ -340,64 +622,203 @@ namespace Api.Payments
 		/// Otherwise, a purchase will be created and everything will be added to it.
 		/// </summary>
 		/// <param name="context"></param>
-		/// <param name="purchase"></param>
 		/// <param name="subscriptions"></param>
 		/// <param name="paymentMethod"></param>
-		/// <param name="coupon"></param>
 		/// <returns></returns>
-		public async ValueTask<PurchaseAndAction> MultiExecute(Context context, Purchase purchase, List<Subscription> subscriptions, PaymentMethod paymentMethod, Coupon coupon = null)
+		public async ValueTask<PurchaseAndAction> MultiExecute(Context context, List<Subscription> subscriptions, PaymentMethod paymentMethod)
 		{
-			if (purchase == null)
+			if (subscriptions == null || subscriptions.Count == 0)
 			{
-				// Create a purchase:
-				purchase = await Create(context, new Purchase()
-				{
-					LocaleId = context.LocaleId,
-					MultiExecute = true,
-					PaymentGatewayId = paymentMethod.PaymentGatewayId,
-					PaymentMethodId = paymentMethod.Id,
-					UserId = context.UserId
-				}, DataOptions.IgnorePermissions);
+				throw new Exception("No subs!");
 			}
-			else
+
+			if (_subscriptions == null)
 			{
-				// Mark this as a multiExecute purchase
-				if (!purchase.MultiExecute)
-				{
-					purchase = await Update(context, purchase, (Context c, Purchase p, Purchase orig) => {
-						p.MultiExecute = true;
-					}, DataOptions.IgnorePermissions);
-				}
+				_subscriptions = Services.Get<SubscriptionService>();
+			}
+
+			var locale = await context.GetLocale();
+
+			// Create a purchase:
+			var purchase = new Purchase()
+			{
+				LocaleId = locale.Id,
+				MultiExecute = true,
+				CurrencyCode = locale.CurrencyCode,
+				TaxJurisdiction = subscriptions[0].TaxJurisdiction,
+				PaymentGatewayId = paymentMethod.PaymentGatewayId,
+				PaymentMethodId = paymentMethod.Id,
+				UserId = context.UserId
+			};
+			
+			if (subscriptions != null)
+			{
+				purchase.Mappings.Set("subscriptions", GetSubscriptionIds(subscriptions));
 			}
 
 			// Copy the items from the subs to the purchase:
-			if (subscriptions != null)
+			foreach (var subscription in subscriptions)
 			{
-				if (_subscriptions == null)
+				if (subscription == null)
 				{
-					_subscriptions = Services.Get<SubscriptionService>();
+					continue;
 				}
 
-				foreach (var subscription in subscriptions)
-				{
-					if (subscription == null)
-					{
-						continue;
-					}
-
-					// Add the sub to the multi-execute purchase:
-					await CreateMappingIfNotExists(context, purchase.Id, _subscriptions, subscription.Id, "subscriptions");
-
-					// Get its items, clone to purchase:
-					var inSub = await _subscriptions.GetProducts(context, subscription);
-					await AddProducts(context, purchase, inSub);
-				}
+				// Get its items, clone to purchase:
+				var inSub = await _subscriptions.GetProducts(context, subscription);
+				await AddProductsUnsaved(context, purchase, inSub);
 			}
 
-			// Attempt to fulfil the purchase now:
-			return await Execute(context, purchase, paymentMethod, coupon);
-		}
+			// Save & create:
+			purchase = await Create(context, purchase, DataOptions.IgnorePermissions);
 			
+			// Attempt to fulfil the purchase now:
+			return await Execute(context, purchase, paymentMethod);
+		}
+		
+		/// <summary>
+		/// Gets the set of subscription IDs suitable for a mapping.
+		/// </summary>
+		/// <param name="subscriptions"></param>
+		/// <returns></returns>
+		private List<ulong> GetSubscriptionIds(List<Subscription> subscriptions)
+		{
+			var set = new List<ulong>();
+
+			foreach (var subscription in subscriptions)
+			{
+				set.Add(subscription.Id);
+			}
+
+			return set;
+		}
+		*/
+
+		/// <summary>
+		/// Creates a purchase and immediately proceeds to executing it.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="pricingInfo"></param>
+		/// <param name="contentTypeName"></param>
+		/// <param name="contentId"></param>
+		/// <param name="paymentMethod"></param>
+		/// <param name="excludeTax">Only usable if the customers location is zero rated relative to the shop. 
+		/// For example, a UK VAT registered business selling to another VAT registered business in the EU can exclude tax but must use the VEIS system.
+		/// UK B2B is not tax exempt in this way.</param>
+		/// <param name="dupeKey"></param>
+		/// <param name="checkoutInfo"></param>
+		/// <returns></returns>
+		public async ValueTask<PurchaseAndAction> CreateAndExecute(
+			Context context, ProductQuantityPricing pricingInfo,
+			string contentTypeName, uint contentId,
+			PaymentMethod paymentMethod, bool excludeTax,
+			CheckoutInfo checkoutInfo,
+			ulong dupeKey = 0)
+		{
+			var locale = await context.GetLocale();
+
+			// Throw if the info has any error info in it (such as invalid coupons, pricing issues etc).
+			_prodQuantities.RequireNoErrors(pricingInfo);
+
+			if (checkoutInfo.DeliveryAddress == null)
+			{
+				checkoutInfo.DeliveryAddress = await checkoutInfo.GetDeliveryAddress(context);
+			}
+
+			if (checkoutInfo.BillingAddress == null)
+			{
+				checkoutInfo.BillingAddress = await checkoutInfo.GetBillingAddress(context);
+			}
+
+			var purchase = new Purchase()
+			{
+				UserId = context.UserId,
+				TaxJurisdiction = pricingInfo.TaxJurisdiction,
+				CouponId = pricingInfo.CouponId,
+				CurrencyCode = pricingInfo.CurrencyCode,
+				ContentType = contentTypeName,
+				ContentId = contentId,
+				ContentAntiDuplication = dupeKey,
+				HasSubscriptions = pricingInfo.HasSubscriptionProducts,
+				// Tax exclusions are highly regulated. Do not use unless you know the relevant laws.
+				ExcludeTax = excludeTax,
+				ProductsCost = pricingInfo.Total,
+				ProductsCostLessTax = pricingInfo.TotalLessTax,
+				DeliveryAddressId = checkoutInfo.DeliveryAddress != null ? checkoutInfo.DeliveryAddress.Id : 0,
+				BillingAddressId = checkoutInfo.BillingAddress != null ? checkoutInfo.BillingAddress.Id : 0,
+				DeliveryOptionId = checkoutInfo.DeliveryOptionId,
+				BuyNowPayLater = paymentMethod == null,
+				PaymentMethodId = paymentMethod == null ? 0 : paymentMethod.Id,
+				PaymentGatewayId = paymentMethod == null ? 0 : paymentMethod.PaymentGatewayId,
+				IpAddress = checkoutInfo.IpAddress,
+				Reference = checkoutInfo.Reference
+			};
+
+			// Handle any custom checkout fields:
+			await Events.Purchase.Checkout.Dispatch(context, purchase, checkoutInfo);
+
+			// Calculate delivery if any.
+			var deliveryInfo = _prodQuantities.GetDeliveryDetail(pricingInfo);
+
+			// Copying in the product set - this creates new ones, it *does not* use the same PQ Id.
+			// This is to avoid modding the quantity during the payment being processed:
+			var purchaseLineItems = await AddProductsUnsaved(context, purchase, pricingInfo);
+
+			if (checkoutInfo.DeliveryOptionId == 0)
+			{
+				// Delivery cost is simply zero. This option includes both collection and digital goods only orders.
+				purchase.DeliveryCost = 0;
+				purchase.DeliveryCostLessTax = 0;
+			}
+			else
+			{
+				purchase.DeliveryApportionment = deliveryInfo.Value.TaxApportion;
+
+				// Ask delivery option service for the prices it stated.
+				var deliveryEstimate = await _deliveries.GetEstimate(context, checkoutInfo.DeliveryOptionId);
+
+				if (deliveryEstimate == null)
+				{
+					throw new PublicException("A delivery option is required but one was not provided.", "delivery/required");
+				}
+
+				purchase.DeliveryCost = deliveryEstimate.Price;
+				purchase.DeliveryCostLessTax = deliveryEstimate.PriceLessTax;
+
+				// Init deliveries on this new purchase:
+				purchase.InitialDeliveryData = await _deliveries.SetupDeliveries(context, purchase, purchaseLineItems, deliveryEstimate);
+			}
+
+			purchase.TotalCost = purchase.ProductsCost + purchase.DeliveryCost;
+			purchase.TotalCostLessTax = purchase.ProductsCostLessTax + purchase.DeliveryCostLessTax;
+
+			var toPay = excludeTax ? purchase.TotalCostLessTax : purchase.TotalCost;
+			purchase.Status = paymentMethod == null ? (uint)(toPay == 0 ? 202 : 201) : 0; // Straight to completion. Free stuff goes to 202, bnpl unpaid 201.
+
+			purchase = await Events.Purchase.BeforeExecuteCreate.Dispatch(context, purchase, pricingInfo, paymentMethod);
+
+			// Save & create:
+			purchase = await Create(context, purchase, DataOptions.IgnorePermissions);
+
+			// Attempt to fulfil it immediately:
+			return await Execute(context, purchase, paymentMethod);
+		}
+
+		/// <summary>
+		/// Requests execution of the given payment.
+		/// This is triggered by the frontend after the given purchase has had a payment method attached to it.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <returns></returns>
+		public async ValueTask<PurchaseAndAction> Execute(Context context, Purchase purchase)
+		{
+			var paymentMethod = purchase.PaymentMethodId == 0 ? null :
+				await _paymentMethods.Get(context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
+
+			return await Execute(context, purchase, paymentMethod);
+		}
+
 		/// <summary>
 		/// Requests execution of the given payment. Internally calculates the total.
 		/// This is triggered by the frontend after the given purchase has had a payment method attached to it.
@@ -405,23 +826,30 @@ namespace Api.Payments
 		/// <param name="context"></param>
 		/// <param name="purchase"></param>
 		/// <param name="paymentMethod"></param>
-		/// <param name="coupon"></param>
 		/// <returns></returns>
-		public async ValueTask<PurchaseAndAction> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null, Coupon coupon = null)
+		private async ValueTask<PurchaseAndAction> Execute(Context context, Purchase purchase, PaymentMethod paymentMethod = null)
 		{
 			// Event to indicate the purchase is about to execute:
 			await Events.Purchase.BeforeExecute.Dispatch(context, purchase);
-
-			// First ensure the correct total:
-			var totalAmount = await CalcuateTotal(context, purchase, coupon);
 
 			// If the total is free, we complete immediately, unless it's the first of a subscription payment.
 			// If first subscription payment, must authorise the card.
 			PaymentGateway gateway;
 
-			if (totalAmount.Amount == 0)
+			if (paymentMethod == null || purchase.Status == 203)
 			{
-				if (totalAmount.SubscriptionProducts)
+				// Deferred execution - either BNPL or the order requires review.
+				return new PurchaseAndAction()
+				{
+					Purchase = purchase
+				};
+			}
+
+			var toPay = purchase.ExcludeTax ? purchase.TotalCostLessTax : purchase.TotalCost;
+
+			if (toPay == 0)
+			{
+				if (purchase.HasSubscriptions)
 				{
 					// Get the gateway:
 					gateway = _gateways.Get(purchase.PaymentGatewayId);
@@ -434,7 +862,7 @@ namespace Api.Payments
 						);
 					}
 
-					if (totalAmount.CurrencyCode == null)
+					if (purchase.CurrencyCode == null)
 					{
 						throw new PublicException(
 							"Whoops! Sorry, we messed up. A currency code was missing from a free subscription purchase. It's required to make sure your bank knows what currency we'll be using. If this keeps happening, please let us know.",
@@ -442,24 +870,20 @@ namespace Api.Payments
 						);
 					}
 
-					if (paymentMethod == null)
-					{
-						// Get the payment method:
-						paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId);
-					}
-
 					// Ask the gateway to authorise:
-					return await gateway.AuthorisePurchase(purchase, totalAmount, paymentMethod, coupon);
+					return await gateway.AuthorisePurchase(purchase, new ProductCost()
+					{
+						// Legal liability danger - do not set ExcludeTax to true unless you know what you are doing.
+						Amount = toPay,
+						CurrencyCode = purchase.CurrencyCode
+					}, paymentMethod);
 				}
 				else
 				{
 					purchase = await Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
 					{
-
 						// 202 for payment success:
 						toUpdate.Status = 202;
-						toUpdate.TotalCost = 0;
-						toUpdate.CurrencyCode = null;
 						toUpdate.PaymentGatewayInternalId = "";
 
 					}, DataOptions.IgnorePermissions);
@@ -489,9 +913,56 @@ namespace Api.Payments
 			}
 
 			// Ask the gateway to do the thing:
-			return await gateway.ExecutePurchase(purchase, totalAmount, paymentMethod, coupon);
+			return await gateway.ExecutePurchase(purchase, new ProductCost()
+			{
+				// Legal liability danger - do not set ExcludeTax to true unless you know what you are doing.
+				Amount = toPay,
+				CurrencyCode = purchase.CurrencyCode
+			}, paymentMethod);
 		}
 
+		/// <summary>
+		/// Get a unique user friendly reference for a purchase
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<string> GetReference(Context context)
+		{
+			var reference = RandomToken.Generate(16, 4, refPattern);
+
+			// Is this slug unique?
+			var existingPurchase = await Where("Reference=?", DataOptions.IgnorePermissions).Bind(reference).First(context);
+
+			while (existingPurchase != null)
+			{
+				// Let's reroll and check again
+				reference = RandomToken.Generate(16, 4, refPattern);
+				existingPurchase = await Where("Reference=?", DataOptions.IgnorePermissions).Bind(reference).First(context);
+			}
+			return reference;
+		}
+
+		/// <summary>
+		/// Requests the validation of a challenge response from the gateway
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <param name="challengeResponse"></param>
+		/// <returns></returns>
+		public async ValueTask<PurchaseAndAction> ValidateChallenge(Context context, Purchase purchase, ChallengeResponse challengeResponse)
+		{
+			// Get the gateway:
+			PaymentGateway gateway = _gateways.Get(purchase.PaymentGatewayId);
+
+			if (gateway == null)
+			{
+				throw new PublicException(
+					"The gateway providing your payment method is currently unavailable. If this keeps happening please let us know.",
+					"gateway_unavailable"
+				);
+			}
+
+			// Ask the gateway to do the thing:
+			return await gateway.ValidateChallenge(purchase, challengeResponse);
+		}
 	}
-    
 }

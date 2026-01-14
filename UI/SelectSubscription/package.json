@@ -1,7 +1,0 @@
-{
-	"dependencies":[
-		"UI/FlipCard",
-		"UI/Payments",
-		"UI/Functions/CurrencyTools"
-	]
-}

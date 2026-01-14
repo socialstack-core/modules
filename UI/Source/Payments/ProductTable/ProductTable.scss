@@ -1,0 +1,22 @@
+.shopping-cart__table {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(20);
+
+	> li {
+		padding-bottom: px_to_rem(20);
+		border-bottom: 1px solid #ddd;
+
+		&:last-child {
+			padding-bottom: 0;
+			border-bottom: 0;
+		}
+	}
+
+	.ui-product-signpost {
+		border-color: transparent;
+	}
+}

@@ -1,0 +1,98 @@
+// default values for input controls
+$default-form-check-border: 1px solid var(--primary);
+$default-form-check-border-color--focus: var(--primary);
+$default-form-check-box-shadow--focus: 0 0 0 0.25rem var(--primary-shadow);
+$default-form-check-font-weight: 400;
+$default-form-check-font-weight--checked: 400;
+$default-form-check-color: var(--primary);
+$default-form-check-color--checked: var(--primary);
+$default-form-check-color--hover: var(--primary);
+$default-form-check-background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2.49 2.49'%3E%3Cpath d='M.88 2.14a.23.23 0 01-.1-.03 10.69 10.69 0 01-.74-.75.2.2 0 01-.03-.12v-.08a.2.2 0 01.1-.1.19.19 0 01.1-.03.2.2 0 01.13.04l.3.28.27.28.61-.62.64-.63a.26.26 0 01.07-.04h.1a.2.2 0 01.15.14V.6l-.04.07A201.5 201.5 0 01.97 2.13a.24.24 0 01-.1.01z' fill='%23fff'/%3E%3C/svg%3E");
+
+$default-form-switch-border: 1px solid transparent;
+$default-form-switch-border--focus: 1px solid transparent;
+$default-form-switch-background-color: #d3d3d3;
+$default-form-switch-background-color--checked: var(--primary);
+$default-form-switch-box-shadow--focus: 0 0 0 0.25rem var(--primary-shadow);
+$default-form-switch-font-weight: 400;
+$default-form-switch-font-weight--checked: 400;
+
+$default-form-switch-dot-color: #fff;
+$default-form-switch-dot-color--checked: var(--primary-fg);
+
+$default-form-switch-dot-color: #fff;
+$default-form-switch-dot-color--checked: var(--primary-fg);
+$default-form-switch-color: var(--primary);
+$default-form-switch-color--checked: var(--primary);
+
+$default-form-radio-background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2.49 2.49'%3E%3Cpath d='M.88 2.14a.23.23 0 01-.1-.03 10.69 10.69 0 01-.74-.75.2.2 0 01-.03-.12v-.08a.2.2 0 01.1-.1.19.19 0 01.1-.03.2.2 0 01.13.04l.3.28.27.28.61-.62.64-.63a.26.26 0 01.07-.04h.1a.2.2 0 01.15.14V.6l-.04.07A201.5 201.5 0 01.97 2.13a.24.24 0 01-.1.01z' fill='%23fff'/%3E%3C/svg%3E");
+
+// extra small (xs)
+$default-form-xs-check-size: 16;
+$default-form-xs-check-gap: 6;
+$default-form-xs-check-border-radius: 2;
+$default-form-xs-check-background-size: 8;
+
+$default-form-xs-switch-width: 32;
+$default-form-xs-switch-height: 20;
+$default-form-xs-switch-dot: 14;
+$default-form-xs-switch-gap: 6;
+$default-form-xs-switch-border-radius: 10;
+
+$default-form-xs-radio-background-size: 8;
+
+// small (sm)
+$default-form-sm-check-size: 20;
+$default-form-sm-check-gap: 8;
+$default-form-sm-check-border-radius: 3;
+$default-form-sm-check-background-size: 10;
+
+$default-form-sm-switch-width: 40;
+$default-form-sm-switch-height: 20;
+$default-form-sm-switch-dot: 16;
+$default-form-sm-switch-gap: 8;
+$default-form-sm-switch-border-radius: 10;
+
+$default-form-sm-radio-background-size: 10;
+
+// regular (md)
+$default-form-md-check-size: 24;
+$default-form-md-check-gap: 10;
+$default-form-md-check-border-radius: 3;
+$default-form-md-check-background-size: 10;
+
+$default-form-md-switch-width: 48;
+$default-form-md-switch-height: 24;
+$default-form-md-switch-dot: 18;
+$default-form-md-switch-gap: 10;
+$default-form-md-switch-border-radius: 12;
+
+$default-form-md-radio-background-size: 10;
+	
+// large (lg)
+$default-form-lg-check-size: 28;
+$default-form-lg-check-gap: 12;
+$default-form-lg-check-border-radius: 4;
+$default-form-lg-check-background-size: 12;
+
+$default-form-lg-switch-width: 56;
+$default-form-lg-switch-height: 28;
+$default-form-lg-switch-dot: 22;
+$default-form-lg-switch-gap: 12;
+$default-form-lg-switch-border-radius: 14;
+
+$default-form-lg-radio-background-size: 12;
+
+// extra large (xl)
+$default-form-xl-check-size: 32;
+$default-form-xl-check-gap: 12;
+$default-form-xl-check-border-radius: 6;
+$default-form-xl-check-background-size: 14;
+
+$default-form-xl-switch-width: 64;
+$default-form-xl-switch-height: 32;
+$default-form-xl-switch-dot: 24;
+$default-form-xl-switch-gap: 12;
+$default-form-xl-switch-border-radius: 16;
+
+$default-form-xl-radio-background-size: 14;

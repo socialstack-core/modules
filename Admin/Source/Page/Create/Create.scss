@@ -1,0 +1,15 @@
+
+
+.page-create {
+    justify-content: center;
+    margin-top:8vh;
+
+    .section {
+        display: none;
+
+        &.active {
+            display: block;
+        }
+    }
+
+}

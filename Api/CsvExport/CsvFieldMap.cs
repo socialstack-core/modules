@@ -1,6 +1,5 @@
 using System;
 using System.Threading.Tasks;
-using CsvHelper;
 using System.Reflection;
 
 namespace Api.CsvExport;
@@ -28,24 +27,12 @@ public class CsvFieldMap<T>
 	public Type TargetType;
 
 	/// <summary>
-	/// Maps an 'advanced' object. E.g. a list of interests -> comma separated ID's.
-	/// </summary>
-	public Func<T, CsvWriter, ValueTask> AdvancedHandler;
-
-	/// <summary>
 	/// Gets this field value for the given object.
 	/// </summary>
 	/// <param name="src"></param>
-	/// <param name="writer"></param>
 	/// <returns></returns>
-	public async ValueTask WriteValue(T src, CsvWriter writer)
+	public object GetValue(T src)
 	{
-		if (AdvancedHandler != null)
-		{
-			await AdvancedHandler(src, writer);
-			return;
-		}
-
 		object value;
 
 		if (SrcField != null)
@@ -57,6 +44,6 @@ public class CsvFieldMap<T>
 			value = SrcProperty.Invoke(src, null);
 		}
 
-		writer.WriteField(value);
+		return value;
 	}
 }

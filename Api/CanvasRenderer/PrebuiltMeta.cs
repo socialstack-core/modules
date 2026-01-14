@@ -19,6 +19,11 @@ namespace Api.CanvasRenderer
 		public long BuildTime {get; set;}
 		
 		/// <summary>
+		/// The code module metadata.
+		/// </summary>
+		public Dictionary<string, MetaCodeModule> CodeModules { get; set; }
+
+		/// <summary>
 		/// List of meta template literals.
 		/// </summary>
 		public List<PrebuiltTemplateLiteralMeta> Templates {get; set;}

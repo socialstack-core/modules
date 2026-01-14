@@ -1,14 +1,8 @@
-using Api.Database;
 using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
 using Api.Contexts;
 using Api.Eventing;
 using System;
 using Api.Users;
-using Microsoft.Extensions.Configuration;
-using Api.Configuration;
-using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Http;
 using System.Linq;
 
@@ -67,6 +61,13 @@ namespace Api.AnonymousUsers
 
 			Events.ContextAfterAnonymous.AddEventListener(async (Context ctx, Context result, HttpRequest request) =>
 			{
+                // should we always create a 'anonymous' user 
+                // if not need to use endpoint v1/anonymoususer/ensureaccount
+                if (_configuration == null || !_configuration.AutoGenerate) 
+				{
+					return result;
+				}
+
 				// ignore specified user agents
 				if (IgnoreUserAgents != null && IgnoreUserAgents.Any() && request.Headers.ContainsKey("user-agent"))
                 {
@@ -80,8 +81,8 @@ namespace Api.AnonymousUsers
 
 				if (result != null && result.UserId == 0)
 				{
-					// Create an account and use a context for it:
-					var user = await CreateAccount();
+					// Create an account and use a context for it
+					var user = await CreateAccount(ctx);
 					result.User = user;
 				}
 
@@ -89,7 +90,11 @@ namespace Api.AnonymousUsers
 			});
 		}
 
-		private async ValueTask<User> CreateAccount()
+		/// <summary>
+		/// Create a temp/guest user, used for keeping track of things like payments/purchases
+		/// </summary>
+		/// <returns></returns>
+		public async ValueTask<User> CreateAccount(Context ctx)
 		{
 			var firstName = "";
 			var lastName = "";
@@ -104,13 +109,14 @@ namespace Api.AnonymousUsers
 				lastName = LastNames[_randomiser.Next(0, LastNames.Length)];
 			}
 
-			// Must use admin role in order to specify a role for the user like this.
-			return await _users.Create(new Context(Roles.Developer),
-			new User() {
-				FirstName = firstName,
-				LastName = lastName,
-				Role = Role
-			});
+			return await _users.Create(ctx,
+				new User() {
+					FirstName = firstName,
+					LastName = lastName,
+					Role = Role,
+					LastVisitedUtc = DateTime.UtcNow.Date
+				}, 
+				DataOptions.IgnorePermissions);
 		}
 
 		/// <summary>

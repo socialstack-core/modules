@@ -4,12 +4,11 @@ using Api.Startup;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using CsvHelper;
 using System.IO;
 using System.Globalization;
-using CsvHelper.Configuration;
 using System.Reflection;
 using Newtonsoft.Json;
+using Api.SocketServerLibrary;
 
 namespace Api.CsvExport;
 
@@ -58,75 +57,81 @@ public class CsvMapping<T, ID>
 	}
 
 	/// <summary>
-	/// The GB culture, primarily for date formatting in DD/MM/YYYY
-	/// </summary>
-	private static CsvConfiguration _defaultConfig;
-
-	/// <summary>
-	/// Gets the default culture.
-	/// </summary>
-	public CultureInfo Culture
-	{
-		get
-		{
-			return CultureInfo.GetCultureInfo("en-GB");
-		}
-	}
-
-	/// <summary>
 	/// Use when not expecting a large CSV.
 	/// </summary>
 	/// <param name="results"></param>
-	/// <param name="config"></param>
 	/// <returns></returns>
-	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results, CsvConfiguration config = null)
+	public async ValueTask<MemoryStream> OutputStream(IEnumerable<T> results)
 	{
 		var ms = new MemoryStream();
-		var writer = new StreamWriter(ms, System.Text.Encoding.UTF8, -1, true);
-
-		if (_defaultConfig == null)
-		{
-			_defaultConfig = new CsvConfiguration(Culture);
-		}
-
-		if (config == null)
-		{
-			config = _defaultConfig;
-		}
-
-		using (var csv = new CsvWriter(writer, config))
-		{
-			foreach (var field in Entries)
-			{
-				csv.WriteField(field.Name);
-			}
-
-			foreach (var row in results)
-			{
-				csv.NextRecord();
-
-				foreach (var field in Entries)
-				{
-					await field.WriteValue(row, csv);
-				}
-			}
-		}
-
+		await OutputStream(results, ms);
 		return ms;
 	}
 
 	/// <summary>
-	/// Adds a dynamic field to the CSV set
+	/// Outputs a streaming CSV in to the given target stream.
 	/// </summary>
-	/// <param name="name"></param>
-	/// <param name="onWrite"></param>
-	public void Add(string name, Func<T, CsvWriter, ValueTask> onWrite)
+	/// <param name="results"></param>
+	/// <param name="targetStream"></param>
+	/// <returns></returns>
+	public async ValueTask OutputStream(IEnumerable<T> results, Stream targetStream)
 	{
-		Entries.Add(new CsvFieldMap<T>()
+		var writer = Writer.GetPooled();
+		writer.Start(null);
+
+		var first = true;
+
+		foreach (var field in Entries)
 		{
-			Name = name,
-			AdvancedHandler = onWrite
-		});
+			if (first)
+			{
+				first = false;
+			}
+			else
+			{
+				writer.Write((byte)',');
+			}
+			writer.WriteASCII(field.Name);
+		}
+		
+		foreach (var row in results)
+		{
+			await writer.CopyToAsync(targetStream);
+			writer.Reset(null);
+			writer.WriteASCII("\r\n");
+			first = true;
+
+			foreach (var field in Entries)
+			{
+				var val = field.GetValue(row);
+
+				if (first)
+				{
+					first = false;
+				}
+				else
+				{
+					writer.Write((byte)',');
+				}
+
+				if (val != null)
+				{
+					if (field.TargetType == typeof(string))
+					{
+						// strings are escaped
+						writer.WriteEscaped((string)val);
+					}
+					else
+					{
+						// Numbers, bools etc.
+						writer.WriteS(val.ToString());
+					}
+				}
+			}
+		}
+
+		await writer.CopyToAsync(targetStream);
+		writer.Release();
 	}
 
 	/// <summary>
@@ -144,8 +149,10 @@ public class CsvMapping<T, ID>
 	/// <param name="beforeGettable"></param>
 	public async ValueTask BuildFrom(Context context, JsonStructure<T, ID> jsonStructure, Api.Eventing.EventHandler<CsvFieldMap<T>> beforeGettable)
 	{
-		foreach (var field in jsonStructure.ReadableFields)
+		foreach (var entry in jsonStructure.Fields)
 		{
+			var field = entry.Value;
+			
 			CsvFieldMap<T> toAdd;
 
 			if (field.FieldInfo != null)

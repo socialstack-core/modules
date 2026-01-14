@@ -1,0 +1,30 @@
+// ref: https://docs.fontawesome.com/web/style/size
+.ui-icon {
+
+	&.fa-xxs,
+	&.fa-2xs {
+		font-size: .625em;
+	}
+
+	&.fa-xs {
+		font-size: .75em;
+	}
+
+	&.fa-sm {
+		font-size: .875em;
+	}
+
+	&.fa-lg {
+		font-size: 1.25em;
+	}
+
+	&.fa-xl {
+		font-size: 1.5em;
+	}
+
+	&.fa-xxl,
+	&.fa-2xl {
+		font-size: 2em;
+	}
+
+}

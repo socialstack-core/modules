@@ -102,7 +102,7 @@ public struct FieldData
 	/// <returns></returns>
 	public byte[] GetBytes()
 	{
-		if (IsNull)
+		if (IsNull || FirstBuffer == null)
 		{
 			return null;
 		}

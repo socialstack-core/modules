@@ -1,0 +1,35 @@
+// default values
+$default-link-color: var(--primary);
+$default-link-hover: var(--primary-hover);
+$default-link-text-decoration: none;
+$default-link-text-decoration-hover: underline;
+
+// extra small (xs)
+$default-link-xs-font-size: 13;
+$default-link-xs-font-weight: 400;
+$default-link-xs-icon: 10;
+$default-link-xs-gap: 10;
+
+// small (sm)
+$default-link-sm-font-size: 15;
+$default-link-sm-font-weight: 400;
+$default-link-sm-icon: 20;
+$default-link-sm-gap: 10;
+
+// regular (md)
+$default-link-md-font-size: 16;
+$default-link-md-font-weight: 700;
+$default-link-md-icon: 22;
+$default-link-md-gap: 10;
+
+// large (lg)
+$default-link-lg-font-size: 18;
+$default-link-lg-font-weight: 700;
+$default-link-lg-icon: 24;
+$default-link-lg-gap: 10;
+
+// extra large (xl)
+$default-link-xl-font-size: 20;
+$default-link-xl-font-weight: 700;
+$default-link-xl-icon: 26;
+$default-link-xl-gap: 12;

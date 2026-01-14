@@ -1,0 +1,16 @@
+{
+	"extends": "./TypeScript/tsconfig.generated.json",
+  "include": [
+    "UI/Source/**/*", 
+    "Admin/Source/**/*", 
+    "Email/Source/**/*",
+	  "TypeScript/**/*"
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "jsx": "react-jsx",
+    "lib": [ "es2016", "DOM", "es2017", "es2019", "ES2020", "es2021" ],
+    "strict": true,
+    "noImplicitAny": true
+  }
+}

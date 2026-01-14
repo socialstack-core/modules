@@ -19,16 +19,12 @@ namespace Api.Translate
 		/// Sets locale by its ID.
 		/// </summary>
 		[HttpGet("set/{id}")]
-		public virtual async ValueTask Set([FromRoute] uint id)
+		public virtual async ValueTask<Context> Set(Context context, [FromRoute] uint id)
 		{
-			var context = await Request.GetContext();
-			
 			// Set locale ID:
 			context.LocaleId = id;
-
 			await Events.Locale.SetLocale.Dispatch(context, id);
-
-			await OutputContext(context);
+			return context;
 		}
 
     }
