@@ -38,7 +38,7 @@ export class TranslationApi extends AutoController<Translation,uint, Translation
      * @see {TranslationController::PrePopulate}
      * @url /prepopulate
      * @debug - method.ReturnType System.Object
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      prePopulate = (): Promise<Object> => {
         return getJson<Object>(this.apiUrl + '/prepopulate', undefined, { method: 'GET' } )
@@ -50,7 +50,7 @@ export class TranslationApi extends AutoController<Translation,uint, Translation
      * @see {TranslationController::LoadPotFiles}
      * @url /potfiles
      * @debug - method.ReturnType System.Object
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      loadPotFiles = (): Promise<Object> => {
         return getJson<Object>(this.apiUrl + '/potfiles', undefined, { method: 'GET' } )

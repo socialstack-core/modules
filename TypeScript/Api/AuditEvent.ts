@@ -327,8 +327,8 @@ export class AuditEventApi extends AutoController<AuditEvent,uint, AuditEventInc
      * Generated from a .NET type
      * @see {AuditEventController::Detailed}
      * @url /detailed
-     * @debug - method.ReturnType Api.Startup.ContentStream`2[[Api.AuditEvents.AuditEvent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.ContentStream`2[[Api.AuditEvents.AuditEvent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.ReturnType Api.Startup.ContentStream`2[[Api.AuditEvents.AuditEvent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.ContentStream`2[[Api.AuditEvents.AuditEvent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      detailed = (request: AuditLogSearchRequest, includes?: ApiIncludes[]): Promise<ApiList<AuditEvent>> => {
         return getList<AuditEvent>(this.apiUrl + '/detailed' + (Array.isArray(includes) ? '?includes=' + includes.join(',') : '') + '', request, { method: 'POST' } )
@@ -340,7 +340,7 @@ export class AuditEventApi extends AutoController<AuditEvent,uint, AuditEventInc
      * @see {AuditEventController::AvailableTypes}
      * @url /available-types
      * @debug - method.ReturnType Api.AuditEvents.AvailableAuditTypes
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.AuditEvents.AvailableAuditTypes, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.AuditEvents.AvailableAuditTypes, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      availableTypes = (): Promise<AvailableAuditTypes> => {
         return getJson<AvailableAuditTypes>(this.apiUrl + '/available-types', undefined, { method: 'GET' } )

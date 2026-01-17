@@ -44,8 +44,8 @@ export class DeliveryOptionApi extends AutoController<DeliveryOption,uint, Deliv
      * Generated from a .NET type
      * @see {DeliveryOptionController::Estimate}
      * @url /estimate/cart/{shoppingcartid}/by-key/{anonkey}
-     * @debug - method.ReturnType Api.Startup.ContentStream`2[[Api.Payments.DeliveryOption, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.ContentStream`2[[Api.Payments.DeliveryOption, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.ReturnType Api.Startup.ContentStream`2[[Api.Payments.DeliveryOption, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.ContentStream`2[[Api.Payments.DeliveryOption, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null],[System.UInt32, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]], SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      estimate = (shoppingCartId: uint, anonKey?: string, options: CartEstimation, includes?: ApiIncludes[]): Promise<ApiList<DeliveryOption>> => {
         return getList<DeliveryOption>(this.apiUrl + '/estimate/cart/' + shoppingCartId +'/by-key/' + anonKey  + (Array.isArray(includes) ? '?includes=' + includes.join(',') : '') + '', options, { method: 'POST' } )

@@ -45,7 +45,7 @@ export class StripeController {
      * @see {StripeController::Webhook}
      * @url /webhook
      * @debug - method.ReturnType Api.Startup.PublicMessage
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.PublicMessage, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.PublicMessage, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      webhook = (): Promise<PublicMessage> => {
         return getJson<PublicMessage>(this.apiUrl + '/webhook', undefined, { method: 'POST' } )

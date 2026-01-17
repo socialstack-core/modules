@@ -13,7 +13,6 @@ import { useRouter } from 'UI/Router';
 import Button from 'UI/Button';
 import ProductVariants from 'UI/Product/Variants';
 import Tabs from 'UI/Tabs';
-import { allApprovals } from 'UI/Business/Products/Approval';
 import { Upload } from "Api/Upload";
 
 const ROOT_CATEGORY_ID: uint = 1 as uint;
@@ -157,33 +156,6 @@ const View: React.FC<ViewProps> = (props) => {
 
 	const [selectedThumbnail, setSelectedThumbnail] = useState<CarouselItem>();
 
-	function renderApprovalStatus(content:Product) {
-		const approval = (content?.businessProductConfig?.approval || 0);
-		const isApproved = approval == 1 || approval == 2;
-
-		if (!isApproved) {
-			return;
-		}
-		
-		const currentApproval = approval ?
-			allApprovals.find(entry => entry.id == approval) :
-			undefined;
-
-		if (!currentApproval) {
-			return;
-		}
-
-		return <>
-			<div className="ui-product-view__price-info-approved">
-				{currentApproval.icon && 
-					<i className={`fr ${currentApproval.icon}`}></i>
-				}
-				{currentApproval.name}
-			</div>
-		</>;
-	}
-
-
 	useEffect(() => {
 		// here we reset the selected thumbnail and load the variant one in.
 		setSelectedThumbnail((prev) => currentVariant ?? prev);
@@ -267,8 +239,6 @@ const View: React.FC<ViewProps> = (props) => {
 
 			{/* price info */}
 			<div className="ui-product-view__price-info">
-
-				{renderApprovalStatus(product)}
 
 				{/* product variants */}
 				{hasVariants && <>

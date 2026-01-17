@@ -37,7 +37,7 @@ export class PurchaseTokenApi extends AutoController<PurchaseToken,uint, Purchas
      * @see {PurchaseTokenController::CheckTokenExists}
      * @url /token/{token}
      * @debug - method.ReturnType System.Object
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      checkTokenExists = (token?: string): Promise<Object> => {
         return getJson<Object>(this.apiUrl + '/token/' + token +'', undefined, { method: 'GET' } )

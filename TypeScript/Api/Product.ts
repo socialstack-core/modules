@@ -70,7 +70,7 @@ export class ProductApi extends AutoController<Product,uint, ProductIncludes>{
      * @see {ProductController::AdminTriggerPermalinkSync}
      * @url /permalink/sync
      * @debug - method.ReturnType System.String
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      adminTriggerPermalinkSync = (): Promise<string> => {
         return getText(this.apiUrl + '/permalink/sync', undefined, { method: 'GET' } )

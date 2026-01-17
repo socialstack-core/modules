@@ -1,0 +1,143 @@
+.ui-dual-range {
+	$ui-dual-range: &;
+	display: flex;
+	flex-direction: column;
+	gap: px_to_rem(10);
+
+	> label {
+		font-size: px_to_rem(15);
+		font-weight: 600;
+		margin: 0;
+	}
+
+	&__internal {
+		display: grid;
+		grid-template-columns: auto;
+		grid-template-rows: auto px_to_rem(40);
+		grid-template-areas: 
+			"values"
+			"range";
+	}
+
+	&__values {
+		grid-area: values;
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(4);
+
+		> * {
+			font-size: px_to_rem(15);
+			line-height: normal;
+			font-weight: 400;
+			margin: 0;
+		}
+
+	}
+
+	&__gradient,
+	&__from,
+	&__to {
+		grid-area: range;
+	}
+
+	&__gradient {
+		border-radius: px_to_rem(4);
+		margin-top: px_to_rem(18);
+		height: px_to_rem(6);
+		background: linear-gradient(
+      to right,
+      var(--range-track-background) 0%,
+      var(--range-track-background) 25%,
+      var(--range-track-fill) 25%,
+      var(--range-track-fill) 75%, 
+      var(--range-track-background) 75%, 
+      var(--range-track-background) 100%);
+	}
+
+	&__from-to {
+
+		&:has(#{$ui-dual-range}__update) {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			grid-template-rows: auto;
+			grid-template-areas: "range update";
+			gap: px_to_rem(6);
+
+			#{$ui-dual-range}__gradient,
+			#{$ui-dual-range}__from,
+			#{$ui-dual-range}__to {
+				grid-area: range;
+			}
+
+			#{$ui-dual-range}__update {
+				grid-area: update;
+                margin-left: px_to_rem(5);
+			}
+
+		}
+	}
+
+	&__from {
+		//height: 0;
+		//z-index: 1;
+	}
+
+	&__to {
+	}
+
+	&__reset {
+		margin-top: px_to_rem(6);
+	}
+
+	input[type=range] {
+		pointer-events: none;
+		background: none;
+
+		// track
+		&::-webkit-slider-runnable-track {
+			background: transparent;
+			border: 0;
+		}
+		&::-moz-range-track {
+			background: transparent;
+			border: 0;
+		}
+
+		// thumb
+		&::-webkit-slider-thumb {
+			pointer-events: all;
+		}
+		&::-moz-range-thumb {
+			pointer-events: all;
+		}
+
+		&:focus {
+
+			&::-webkit-slider-thumb {
+				box-shadow: none;
+			}
+			&::-moz-range-thumb {
+				box-shadow: none;
+			}
+
+		}
+
+		&:focus-visible {
+
+			&::-webkit-slider-thumb {
+				box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+			}
+			&::-moz-range-thumb {
+				box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+			}
+
+		}
+
+	}
+}
+.ui-dual-range__from,
+.ui-dual-range__to {
+    position: relative;
+    width: calc(100% + 1rem); /* expand beyond the gradient */
+    left: -0.5rem;            /* center the overhang */
+}

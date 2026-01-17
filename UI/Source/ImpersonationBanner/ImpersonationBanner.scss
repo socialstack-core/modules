@@ -1,0 +1,25 @@
+html.admin:has(.ui-impersonation-banner) {
+	--impersonation-banner-height: #{px_to_rem(45)};
+}
+
+.ui-impersonation-banner {
+	height: px_to_rem(45);
+	padding: 0 px_to_rem(20) 0 px_to_rem(15);
+	//background-color: var(--palette-light-yellow);
+	//color: var(--palette-yellow);
+
+	// increase contrast
+	background-color: #fcedb3;
+	color: var(--secondary);
+
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: px_to_rem(8);
+	font-size: px_to_rem(14);
+	font-weight: 400;
+
+	> strong {
+		font-weight: 700;
+	}
+}

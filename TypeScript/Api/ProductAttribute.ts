@@ -63,7 +63,7 @@ export class ProductAttributeApi extends AutoController<ProductAttribute,uint, P
      * @see {ProductAttributeController::GetTreeNode}
      * @url /tree
      * @debug - method.ReturnType Api.Pages.PageController+TreeNodeDetail
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Pages.PageController+TreeNodeDetail, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Pages.PageController+TreeNodeDetail, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getTreeNode = (location: AttributeTreeLocation): Promise<TreeNodeDetail> => {
         return getJson<TreeNodeDetail>(this.apiUrl + '/tree', location, { method: 'POST' } )
@@ -75,7 +75,7 @@ export class ProductAttributeApi extends AutoController<ProductAttribute,uint, P
      * @see {ProductAttributeController::GetTreeNodePath}
      * @url /tree
      * @debug - method.ReturnType Api.Pages.PageController+TreeNodeDetail
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Pages.PageController+TreeNodeDetail, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Pages.PageController+TreeNodeDetail, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getTreeNodePath = (path?: string): Promise<TreeNodeDetail> => {
         return getJson<TreeNodeDetail>(this.apiUrl + '/tree?path=' + path + '', undefined, { method: 'GET' } )

@@ -1,0 +1,32 @@
+.ui-help {
+
+	&__trigger {
+
+	}
+
+	&__wrapper {
+	}
+
+	&__content {
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(20);
+		position: absolute;
+		inset: px_to_rem(20);
+
+		.ui-page__header,
+		.ui-page__footer {
+			flex: 0 0 auto;
+		}
+
+		// HTML wrapper
+		> span {
+			overflow-y: auto;
+		}
+
+		.ui-page__footer {
+			margin-top: auto;
+		}
+
+	}
+}

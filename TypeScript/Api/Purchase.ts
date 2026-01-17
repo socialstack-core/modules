@@ -113,7 +113,7 @@ export class PurchaseApi extends AutoController<Purchase,uint, PurchaseIncludes>
      * @see {PurchaseController::ResendEmail}
      * @url /resend/email/{id}
      * @debug - method.ReturnType System.Boolean
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Boolean, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Boolean, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      resendEmail = (id: uint, key?: string): Promise<boolean> => {
         return getJson<boolean>(this.apiUrl + '/resend/email/' + id +'?key=' + key + '', undefined, { method: 'GET' } )

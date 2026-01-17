@@ -50,7 +50,7 @@ export class PasswordResetRequestApi extends AutoController<PasswordResetRequest
      * @see {PasswordResetRequestController::CheckTokenExists}
      * @url /token/{token}
      * @debug - method.ReturnType System.Object
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      checkTokenExists = (token?: string): Promise<Object> => {
         return getJson<Object>(this.apiUrl + '/token/' + token +'', undefined, { method: 'GET' } )
@@ -75,7 +75,7 @@ export class PasswordResetRequestApi extends AutoController<PasswordResetRequest
      * @see {PasswordResetRequestController::Generate}
      * @url /{id}/generate
      * @debug - method.ReturnType Api.PasswordResetRequests.ResetToken
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.PasswordResetRequests.ResetToken, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.PasswordResetRequests.ResetToken, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      generate = (id: uint): Promise<ResetToken> => {
         return getJson<ResetToken>(this.apiUrl + '/' + id +'/generate', undefined, { method: 'GET' } )

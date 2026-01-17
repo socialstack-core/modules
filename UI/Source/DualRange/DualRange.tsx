@@ -1,0 +1,157 @@
+import {useEffect, useId, useState } from "react";
+import Button from 'UI/Button';
+
+/**
+ * Props for the DualRange component.
+ */
+interface DualRangeProps {
+	label: string,
+	min?: number,
+	max?: number,
+	step?: number,
+	defaultFrom?: number,
+	defaultTo?: number,
+	numberFormat?: Intl.NumberFormat,
+
+	/**
+	 * set true to update values as drag handles are moved
+	 * set false to show an additional update button (as per Amazon)
+	 */
+	live?: boolean,
+
+	/**
+	 * function to call when values have changed
+	 * @param min
+	 * @param max
+	 * @returns
+	 */
+	onChange: (min: number, max: number) => void,
+
+	/**
+	 * label used for update button (only shown if live = false); defaults to "Go"
+	 * NB: keep this text short
+	 */
+	updateLabel?: string,
+
+	/**
+	 * label used for reset price range button; defaults to "Reset price range"
+	 */
+	resetLabel?: string,
+}
+
+const DEFAULT_MIN_RANGE = 0;
+const DEFAULT_MAX_RANGE = 100;
+
+/**
+ * The DualRange React component.
+ * @param props React props.
+ */
+const DualRange: React.FC<DualRangeProps> = (props) => {
+	const { label, min, max, step, defaultFrom, defaultTo, numberFormat, live, onChange } = props;
+	const updateLabel = props.updateLabel?.length ? props.updateLabel : `Go`;
+	const resetLabel = props.resetLabel?.length ? props.resetLabel : `Reset price range`;
+
+	const minValue = min || DEFAULT_MIN_RANGE;
+	const maxValue = max || DEFAULT_MAX_RANGE;
+	const stepValue = step || 1;
+
+	const [fromValue, setFromValue] = useState(defaultFrom || minValue);
+	const [toValue, setToValue] = useState(defaultTo || maxValue);
+	
+	useEffect(() => {
+		if (live) {
+			onChange(fromValue, toValue);
+		}
+	}, [fromValue, toValue]);
+
+	const id = useId();
+	const fromId = `from_${id}`;
+	const toId = `to_${id}`;
+	const labelFromId = `lfrom_${id}`;
+	const labelToId = `lto_${id}`;
+
+	const rangeDistance = maxValue - minValue;
+	const fromPosition = Number(fromValue) - minValue;
+	const toPosition = Number(toValue) - minValue;
+
+	const showReset = (fromValue > minValue) || (toValue < maxValue);
+
+	const rangeBackground = `linear-gradient(
+      to right,
+      var(--range-track-background) 0%,
+      var(--range-track-background) ${(fromPosition) / (rangeDistance) * 100}%,
+      var(--range-track-fill) ${((fromPosition) / (rangeDistance)) * 100}%,
+      var(--range-track-fill) ${(toPosition) / (rangeDistance) * 100}%, 
+      var(--range-track-background) ${(toPosition) / (rangeDistance) * 100}%, 
+      var(--range-track-background) 100%)`;
+
+	function changeFromSlider(e) {
+		const newValue = parseInt(e.target.value, 10);
+		setFromValue(newValue > toValue ? toValue : newValue);
+	}
+
+	function changeToSlider(e) {
+		const newValue = parseInt(e.target.value, 10);
+		setToValue(newValue < fromValue ? fromValue : newValue);
+	}
+
+	function resetRange() {
+		setFromValue(minValue);
+		setToValue(maxValue);
+		onChange(minValue, maxValue);
+	}
+
+	return (
+		<div className="ui-dual-range">
+			<label id={id} htmlFor={fromId}>
+				{label}
+			</label>
+			<div role="group" aria-labelledby={id} className="ui-dual-range__internal">
+				<div className="ui-dual-range__values">
+					<label htmlFor={fromId} id={labelFromId}>
+						{numberFormat ? numberFormat.format(fromValue) : fromValue}
+					</label>
+					<span>
+						&mdash;
+					</span>
+					<label id={labelToId}>
+						{numberFormat ? numberFormat.format(toValue) : toValue}
+					</label>
+				</div>
+
+				<div className="ui-dual-range__from-to">
+					<div className="ui-dual-range__gradient" style={{ 'background': rangeBackground }} />
+
+					<input type="range" className="ui-dual-range__from" id={fromId}
+						min={minValue} max={maxValue}
+						aria-valuemin={minValue} aria-valuemax={toValue} aria-valuenow={fromValue} aria-labelledby={`${id} ${labelFromId}`}
+						step={stepValue} value={fromValue} onInput={changeFromSlider} />
+
+					<input type="range" className="ui-dual-range__to" id={toId}
+						min={minValue} max={maxValue}
+						aria-valuemin={fromValue} aria-valuemax={maxValue} aria-valuenow={toValue} aria-labelledby={`${id} ${labelToId}`}
+						step={stepValue} value={toValue} onInput={changeToSlider} />
+
+					{!live && <>
+						<Button xs 
+							onClick={(ev) => {
+								onChange(fromValue, toValue);
+								(ev.target as HTMLButtonElement).blur();
+							}} 
+							className="ui-dual-range__update"
+						>
+							{updateLabel}
+						</Button>
+					</>}
+				</div>
+				{showReset && <>
+					<Button xs outlined asLink onClick={() => resetRange()} className="ui-dual-range__reset">
+						{resetLabel}
+					</Button>
+				</>}
+			</div>
+		</div>
+	);
+}
+
+export default DualRange;

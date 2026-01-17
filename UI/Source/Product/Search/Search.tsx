@@ -8,7 +8,6 @@ import useApi from "UI/Functions/UseApi";
 import Html from 'UI/Html';
 import Input from 'UI/Input';
 import DualRange from 'UI/DualRange';
-import Promotion from 'UI/Promotion';
 import { useSession } from 'UI/Session';
 import searchApi, {ProductSearchAppliedFacet, ProductSearchType, SortDirection} from "Api/ProductSearchController";
 import {ProductAttributeValue } from "Api/ProductAttributeValue";
@@ -38,7 +37,6 @@ interface SearchProps {
 	lazyLoad: boolean,
 	allowReset: boolean,
     showDebug: boolean,
-    showPromotions: boolean,
 	productCategory?: ProductCategory,
 	customParameters: Record<string,any>,
 	
@@ -92,8 +90,7 @@ const Search: React.FC<SearchProps> = (props) => {
 		customParameters,
 		lazyLoad = true,
 		allowReset = true,
-        showDebug = false,
-        showPromotions = false,        
+        showDebug = false,       
     } = props;
 
 	const { session } = useSession();
@@ -598,9 +595,6 @@ const Search: React.FC<SearchProps> = (props) => {
 								}
 							</>}
 						</div>
-						{showPromotions &&
-							<Promotion title={`Get 10% Off Our Bedroom Bestsellers`} description={`Save now on top-rated beds and accessories - Limited time offer`} url={`#`} />
-						}
 					</Popover>
 
 					<header className="ui-product-search__header">

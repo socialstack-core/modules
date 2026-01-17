@@ -284,7 +284,7 @@ export default function AutoForm(props) {
 
 		var prom; // :Promise<WhateverTheContentTypeIs>
 
-		if (supportsRevisions) {
+		if (props.isRevision) {
 			prom = api.deleteRevision(parsedId);
 		} else {
 			prom = api.delete(parsedId);
@@ -545,7 +545,7 @@ export default function AutoForm(props) {
 					AutoFormExtensions.getAutoFormButtons(props.contentType, 'create').map(extraButtonMapFunc)
 			}
 			{isEdit && <>
-				<button disabled={!!supportsRevisions} title={supportsRevisions ? `Can't delete revisions` : undefined} className="btn ui-btn btn-outline-danger" type="button" onClick={e => {
+				<button disabled={props.isRevision} title={props.isRevision ? `Can't delete revisions` : undefined} className="btn ui-btn btn-outline-danger" type="button" onClick={e => {
 					e.preventDefault();
 					setConfirmDelete(true);
 				}}>

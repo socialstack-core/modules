@@ -58,7 +58,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetStaticFileList}
      * @url /pack/static-assets/list.json
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.CanvasRenderer.StaticFileInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.CanvasRenderer.StaticFileInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.CanvasRenderer.StaticFileInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getStaticFileList = (): Promise<StaticFileInfo[]> => {
         return getJson<StaticFileInfo[]>(this.apiUrl + '/pack/static-assets/list.json', undefined, { method: 'ANY' } )
@@ -70,7 +70,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetTypeMeta}
      * @url /pack/type-meta.json
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getTypeMeta = (): Promise<string> => {
         return getText(this.apiUrl + '/pack/type-meta.json', undefined, { method: 'ANY' } )
@@ -82,7 +82,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetEmailMainJs}
      * @url /pack/email-static/main.js
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getEmailMainJs = (localeId: uint): Promise<string> => {
         return getText(this.apiUrl + '/pack/email-static/main.js?localeId=' + localeId + '', undefined, { method: 'ANY' } )
@@ -106,7 +106,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetMainJs}
      * @url /pack/main.js
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getMainJs = (localeId: uint): Promise<string> => {
         return getText(this.apiUrl + '/pack/main.js?localeId=' + localeId + '', undefined, { method: 'ANY' } )
@@ -118,7 +118,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetAdminMainJs}
      * @url /en-admin/pack/main.js
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getAdminMainJs = (localeId: uint): Promise<string> => {
         return getText(this.apiUrl + '/en-admin/pack/main.js?localeId=' + localeId + '', undefined, { method: 'ANY' } )
@@ -130,7 +130,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetMainCss}
      * @url /pack/main.css
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getMainCss = (): Promise<string> => {
         return getText(this.apiUrl + '/pack/main.css', undefined, { method: 'ANY' } )
@@ -142,7 +142,7 @@ export class FrontendCodeController {
      * @see {FrontendCodeController::GetAdminMainCss}
      * @url /en-admin/pack/main.css
      * @debug - method.ReturnType Api.Startup.Routing.FileContent
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Startup.Routing.FileContent, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getAdminMainCss = (): Promise<string> => {
         return getText(this.apiUrl + '/en-admin/pack/main.css', undefined, { method: 'ANY' } )

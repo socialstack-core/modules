@@ -6,7 +6,6 @@ import Quantity from 'UI/Product/Quantity';
 import ProductPrice, { CurrencyAmount } from 'UI/Product/Price';
 import ProductStock from 'UI/Product/Stock';
 import { useCart } from 'UI/Payments/CartSession';
-import { allApprovals } from 'UI/Business/Products/Approval';
 import ProductImage from 'UI/ProductImage';
 
 /**
@@ -105,35 +104,6 @@ const Signpost: React.FC<SignpostProps> = (props) => {
 	// TODO: determine when product has options
 	let hasOptions = false;
 
-	function renderApprovalStatus(content:Product) {
-		const approval = (content?.businessProductConfig?.approval || 0);
-		const isApproved = approval == 1 || approval == 2;
-
-		if (!isApproved) {
-			return;
-		}
-
-		const currentApproval = approval ?
-			allApprovals.find(entry => entry.id == approval) :
-			undefined;
-
-		if (!currentApproval) {
-			return;
-		}
-
-		return <>
-			<div className="ui-product-signpost__approved">
-				{currentApproval.icon && 
-					<i className={`fr ${currentApproval.icon}`}></i>
-				}
-				<span className="sr-only">
-					{currentApproval.name}
-				</span>
-			</div>
-		</>;
-	}
-
-
 	function renderInner() {
 		return <>
 			<div className="ui-product-signpost__image">
@@ -158,8 +128,6 @@ const Signpost: React.FC<SignpostProps> = (props) => {
 				  * an empty ref as that is the universal signal for "there isn't one"
 				  */}
 				<ProductImage size={512} fileRef={content.featureRef} />
-
-				{renderApprovalStatus(content)}
 			</div>
 
 			{/* category */}

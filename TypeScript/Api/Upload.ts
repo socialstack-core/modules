@@ -93,7 +93,7 @@ export class UploadApi extends AutoController<Upload,uint, UploadIncludes>{
      * @see {UploadController::Active}
      * @url /active
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.Uploader.Upload, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.Upload, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.Upload, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      active = (): Promise<Upload[]> => {
         return getJson<Upload[]>(this.apiUrl + '/active', undefined, { method: 'GET' } )
@@ -129,7 +129,7 @@ export class UploadApi extends AutoController<Upload,uint, UploadIncludes>{
      * @see {UploadController::Replace}
      * @url /replace
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      replace = (sourceRef?: string, targetRef?: string): Promise<MediaRef[]> => {
         return getJson<MediaRef[]>(this.apiUrl + '/replace?sourceRef=' + sourceRef + '&targetRef=' + targetRef + '', undefined, { method: 'GET' } )
@@ -153,7 +153,7 @@ export class UploadApi extends AutoController<Upload,uint, UploadIncludes>{
      * @see {UploadController::UpdateRefs}
      * @url /update-refs
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      updateRefs = (update: boolean): Promise<MediaRef[]> => {
         return getJson<MediaRef[]>(this.apiUrl + '/update-refs?update=' + update + '', undefined, { method: 'GET' } )
@@ -165,7 +165,7 @@ export class UploadApi extends AutoController<Upload,uint, UploadIncludes>{
      * @see {UploadController::Preview}
      * @url /replace/preview
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.Uploader.MediaRef, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      preview = (uploadRef?: string): Promise<MediaRef[]> => {
         return getJson<MediaRef[]>(this.apiUrl + '/replace/preview?uploadRef=' + uploadRef + '', undefined, { method: 'GET' } )

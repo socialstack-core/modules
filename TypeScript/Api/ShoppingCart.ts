@@ -176,7 +176,7 @@ export class ShoppingCartApi extends AutoController<ShoppingCart,uint, ShoppingC
      * @see {ShoppingCartController::Checkout}
      * @url /checkout
      * @debug - method.ReturnType Api.Payments.PurchaseAndAction
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.PurchaseAndAction, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.PurchaseAndAction, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      checkout = (checkout: CheckoutInfo): Promise<PurchaseAndAction> => {
         return getJson<PurchaseAndAction>(this.apiUrl + '/checkout', checkout, { method: 'POST' } )
@@ -200,7 +200,7 @@ export class ShoppingCartApi extends AutoController<ShoppingCart,uint, ShoppingC
      * @see {ShoppingCartController::CheckoutGuestCart}
      * @url /checkout-guest-cart
      * @debug - method.ReturnType Api.Payments.PurchaseAndAction
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.PurchaseAndAction, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.PurchaseAndAction, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      checkoutGuestCart = (checkoutInfo: CheckoutInfo): Promise<PurchaseAndAction> => {
         return getJson<PurchaseAndAction>(this.apiUrl + '/checkout-guest-cart', checkoutInfo, { method: 'POST' } )

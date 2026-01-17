@@ -47,8 +47,8 @@ export class CustomContentTypeApi extends AutoController<CustomContentType,uint,
      * Generated from a .NET type
      * @see {CustomContentTypeController::GetAllTypes}
      * @url /alltypes
-     * @debug - method.ReturnType System.Collections.Generic.List`1[[System.String, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
-     * @debug - method.TrueReturnType System.Collections.Generic.List`1[[System.String, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.ReturnType System.Collections.Generic.List`1[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Collections.Generic.List`1[[System.String, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getAllTypes = (): Promise<string[]> => {
         return getJson<string[]>(this.apiUrl + '/alltypes', undefined, { method: 'GET' } )
@@ -60,7 +60,7 @@ export class CustomContentTypeApi extends AutoController<CustomContentType,uint,
      * @see {CustomContentTypeController::GetAllTypesPlus}
      * @url /allcustomtypesplus
      * @debug - method.ReturnType System.Collections.Generic.List`1[[Api.CustomContentTypes.CustomContentTypeController+CustomTypeInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.CustomContentTypes.CustomContentTypeController+CustomTypeInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Collections.Generic.List`1[[Api.CustomContentTypes.CustomContentTypeController+CustomTypeInfo, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      getAllTypesPlus = (): Promise<CustomTypeInfo[]> => {
         return getJson<CustomTypeInfo[]>(this.apiUrl + '/allcustomtypesplus', undefined, { method: 'GET' } )

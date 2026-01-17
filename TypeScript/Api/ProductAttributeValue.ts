@@ -50,7 +50,7 @@ export class ProductAttributeValueApi extends AutoController<ProductAttributeVal
      * @see {ProductAttributeValueController::DeleteOrphanedAttributeValues}
      * @url /cleanup
      * @debug - method.ReturnType Api.Payments.OrphanedAttributeCleanupResponse
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.OrphanedAttributeCleanupResponse, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Nullable`1[[Api.Payments.OrphanedAttributeCleanupResponse, SocialStack.Api, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]], System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      deleteOrphanedAttributeValues = (): Promise<OrphanedAttributeCleanupResponse> => {
         return getJson<OrphanedAttributeCleanupResponse>(this.apiUrl + '/cleanup', undefined, { method: 'GET' } )

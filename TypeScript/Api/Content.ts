@@ -514,7 +514,7 @@ export class AutoController<T extends Content<uint>, ID, Includes extends ApiInc
      * @see {AutoController<T, ID>::ListPOTUpdate}
      * @url /list.pot
      * @debug - method.ReturnType System.Object
-     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=10.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
+     * @debug - method.TrueReturnType System.Threading.Tasks.ValueTask`1[[System.Object, System.Private.CoreLib, Version=9.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e]]
       */
      listPOTUpdate = (includes?: ApiIncludes[]): Promise<Object> => {
         return getJson<Object>(this.apiUrl + '/list.pot' + (Array.isArray(includes) ? '?includes=' + includes.join(',') : '') + '', undefined, { method: 'PUT' } )

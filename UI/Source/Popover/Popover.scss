@@ -1,0 +1,265 @@
+:root {
+	--ui-popover-min-width: 90vw;
+	--ui-popover-min-height: 75vh;
+	--ui-popover-min-height: 75dvh;
+	
+	--ui-popover-max-width: #{px_to_rem(340)};
+	--ui-popover-max-height: #{px_to_rem(600)};
+}
+
+@mixin popoverOpen() {
+	box-shadow: px_to_rem(-16) 0 px_to_rem(16) 0 rgba(#210818, 25%);
+	transform: none;
+	visibility: visible;
+
+	&:not(.ui-popover--bg-active)::backdrop {
+		background-color: rgba(#210818, 25%);
+	}
+
+}
+
+.ui-popover {
+	position: fixed;
+	inset: 0;
+	padding: px_to_rem(20);
+	border: 0;
+	box-shadow: none;
+	transition-property: transform, box-shadow, overlay, display, visibility;
+	transition-duration: .3s;
+	transition-timing-function: ease-in-out;
+	transition-behavior: allow-discrete;
+	visibility: hidden;
+	pointer-events: auto !important;
+	color: var(--site-fg, #000);
+	background: var(--site-bg, #fff);
+
+	&--left {
+		right: auto;
+		width: 100vw;
+		max-width: var(--ui-popover-max-width);
+		height: 100vh;
+		height: 100dvh;
+		transform: translateX(-100%);
+
+		&.ui-popover--under-header {
+			top: var(--site-header-height, 0);
+			height: auto;
+		}
+	}
+
+	&--right {
+		left: auto;
+		width: 100vw;
+		max-width: var(--ui-popover-max-width);
+		height: 100vh;
+		height: 100dvh;
+		transform: translateX(100%);
+
+		&.ui-popover--under-header {
+			top: var(--site-header-height, 0);
+			height: auto;
+		}
+	}
+
+	&--top {
+		bottom: auto;
+		height: 100vh;
+		height: 100dvh;
+		max-height: var(--ui-popover-max-height);
+		width: 100vw;
+		transform: translateY(-100%);
+
+		&.ui-popover--under-header {
+			transform: translateY(calc(-1 * (var(--site-header-height, 0) + 100%)));
+			top: var(--site-header-height, 0);
+			height: auto;
+		}
+
+	}
+
+	&--bottom {
+		top: auto;
+		height: 100vh;
+		height: 100dvh;
+		max-height: var(--ui-popover-max-height);
+		width: 100vw;
+		transform: translateY(100%);
+	}
+
+	&--center {
+		max-width: 100vw;
+		max-height: 100vh;
+		max-height: 100dvh;
+		min-width: var(--ui-popover-min-width);
+		min-height: var(--ui-popover-min-height);
+	}
+
+	&--maximize {
+		width: 100vw;
+		height: 100vh;
+		height: 100dvh;
+	}
+
+	&::backdrop {
+		background-color: transparent;
+		transition-property: background-color, overlay, display, visibility;
+		transition-duration: .3s;
+		transition-timing-function: ease-in-out;
+		transition-behavior: allow-discrete;
+	}
+
+	// NB: for polyfill support
+	// (do not combine with following rule)
+	&.\:popover-open {
+		@include popoverOpen();
+	}
+
+	&:popover-open {
+		@include popoverOpen();
+	}
+
+	&--under-header {
+
+		&::backdrop {
+			top: var(--site-header-height, 0);
+		}
+	}
+}
+
+@starting-style {
+
+	.ui-popover {
+
+		&.\:popover-open {
+			box-shadow: none;
+
+			&::backdrop {
+				background-color: transparent;
+			}
+		}
+
+		&:popover-open {
+			box-shadow: none;
+
+			&::backdrop {
+				background-color: transparent;
+			}
+		}
+
+		&--left {
+
+			&.\:popover-open {
+				transform: translateX(-100%);
+			}
+
+			&:popover-open {
+				transform: translateX(-100%);
+			}
+
+		}
+
+		&--right {
+
+			&.\:popover-open {
+				transform: translateX(100%);
+			}
+
+			&:popover-open {
+				transform: translateX(100%);
+			}
+
+		}
+
+		&--top {
+
+			&.\:popover-open {
+				transform: translateY(-100%);
+			}
+
+			&:popover-open {
+				transform: translateY(-100%);
+			}
+
+		}
+
+		&--bottom {
+
+			&.\:popover-open {
+				transform: translateY(100%);
+			}
+
+			&:popover-open {
+				transform: translateY(100%);
+			}
+
+		}
+
+		&--center {
+
+			&.\:popover-open {
+				transform: scale(.85);
+			}
+
+			&:popover-open {
+				transform: scale(.85);
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (orientation: landscape) and (max-height: 599px) {
+
+	.ui-popover {
+		--ui-popover-min-width: 80vw;
+		--ui-popover-min-height: 85vh;
+		--ui-popover-min-height: 85dvh;
+	}
+
+}
+
+@media only screen and (orientation: portrait) and (min-width: 600px) {
+
+	.ui-popover {
+		--ui-popover-min-width: #{px_to_rem(400)};
+		--ui-popover-min-height: #{px_to_rem(400)};
+	}
+
+}
+
+@media only screen and (orientation: landscape) and (min-height: 600px) {
+
+	.ui-popover {
+		--ui-popover-min-width: min(90vw, #{px_to_rem(800)});
+		--ui-popover-min-height: min(80vh, #{px_to_rem(600)});
+		--ui-popover-min-height: min(80dvh, #{px_to_rem(600)});
+	}
+
+}
+
+#wrapper > header,
+#content,
+#content ~ footer {
+	transition: filter .2s ease;
+}
+
+body[data-scroll-fixed="true"] {
+	position: fixed;
+	top: calc(-1 * var(--page-scroll-y));
+	width: 100%;
+}
+
+// opening popovers and docking scrolling potentially causes the header to appear off-screen on Firefox
+@include mq_firefox {
+
+	body[data-scroll-fixed="true"] {
+
+		#react-root > #wrapper > header {
+			transform: translateY(var(--page-scroll-y));
+		}
+
+	}
+
+}
