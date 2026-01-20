@@ -12,7 +12,7 @@ import Col from 'UI/Column';
 import Input from 'UI/Input';
 import Search from 'UI/Search';
 import uploadApi from 'Api/Upload';
-import {useEffect, useState} from "react";
+import { useEffect, useState, useRef } from "react";
 
 var inputTypes = global.inputTypes = global.inputTypes || {};
 let lastId = 0;
@@ -23,580 +23,534 @@ const PREVIEW_SIZE = 512;
 var searchFields = ['originalName', 'alt', 'author', 'id'];
 
 window.inputTypes['file'] = window.inputTypes['image'] = function (props) {
-    const { field } = props;
-    return (
-        <FileSelector
-            {...field}
-            onInputRef={props.onInputRef}
-        />
-    );
+	const { field } = props;
+	return (
+		<FileSelector
+			{...field}
+			onInputRef={props.onInputRef}
+		/>
+	);
 };
 
 window.inputTypes['icon'] = function (props) {
-    const { field } = props;
-    
-    const [icon, setIcon] = useState(field.defaultValue);
-    const ref = React.useRef(null);
+	const { field } = props;
+	
+	const [icon, setIcon] = useState(field.defaultValue);
+	const ref = useRef(null);
 
-    useEffect(() => {
-        props.onInputRef && props.onInputRef(ref.current);
-    }, [ref.current]);
-    
-    return (
-        <>
-            <input required={props.required} type={'hidden'} name={field.name} ref={ref} value={icon} />
-            <FileSelector
-                iconOnly
-                {...props}
-                onChange={(value) => {
-                    setIcon(value.target.value);
-                    field.onChange && field.onChange(value);
-                }}
-                defaultValue={icon}
-            />
-        </>
-    );
+	useEffect(() => {
+		props.onInputRef && props.onInputRef(ref.current);
+	}, [ref.current]);
+	
+	return (
+		<>
+			<input required={props.required} type={'hidden'} name={field.name} ref={ref} value={icon} />
+			<FileSelector
+				iconOnly
+				{...props}
+				onChange={(value) => {
+					setIcon(value.target.value);
+					field.onChange && field.onChange(value);
+				}}
+				defaultValue={icon}
+			/>
+		</>
+	);
 };
 
 window.inputTypes['upload'] = function (props) {
-    const { field } = props;
-    return (
-        <FileSelector
-            browseOnly
-            {...field}
-            onInputRef={props.onInputRef}
-        />
-    );
+	const { field } = props;
+	return (
+		<FileSelector
+			browseOnly
+			{...field}
+			onInputRef={props.onInputRef}
+		/>
+	);
 };
 
 window.inputTypes['nopaging'] = function (props) {
-    const { field } = props;
-    return (
-        <FileSelector
-            disablePaging
-            {...field}
-            onInputRef={props.onInputRef}
-        />
-    );
+	const { field } = props;
+	return (
+		<FileSelector
+			disablePaging
+			{...field}
+			onInputRef={props.onInputRef}
+		/>
+	);
 };
 
 /**
  * Select a file from a users available uploads, outputting a ref.
  * You can use <Input type="file" .. /> to obtain one of these.
  */
-export default class FileSelector extends React.Component {
+const FileSelector = (props) => {
+	var ref = props.value || props.defaultValue;
+	const [updatedRef, setUpdatedRef] = useState(ref);
+	const [editedRefData, setEditedRefData] = useState();
+	const [showUploadModal, setShowUploadModal] = useState();
+	const [searchFilter, setSearchFilter] = useState();
+	const [filterTagId, setFilterTagId] = useState();
+	const [showIconModal, setShowIconModal] = useState(false);
+	const [originalName, setOriginalName] = useState('');
+	const currentRef = updatedRef !== undefined ? updatedRef : ref;
+	
+	const newId = () => {
+		lastId++;
+		return `fileselector${lastId}`;
+	}
 
-    constructor(props) {
-        super(props);
+	const showRef = (ref, size) => {
+		var parsedRef = fileRef.parse(ref);
+		var size = size || 256;
+		var targetSize = size;
+		//var minSize = size == 256 ? 238 : size;
 
-        var ref = props.value || props.defaultValue;
+		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a placeholder icon.
+		var canShowImage = parsedRef.isImage();
 
-        this.state = {
-            ref: ref
-        };
-        
-        this.inputRef = React.createRef();
+		if (canShowImage) {
+			var argW = parsedRef.getNumericArg('w', 0);
+			var argH = parsedRef.getNumericArg('h', 0);
+			if ((argW && argW < size) && (argH && argH < size)) {
+				targetSize = undefined;
+			}
 
-        this.closeUploadModal = this.closeUploadModal.bind(this);
-        this.closeEditModal = this.closeEditModal.bind(this);
-        this.renderTag = this.renderTag.bind(this);
-    }
+		}
 
-    newId() {
-        lastId++;
-        return `fileselector${lastId}`;
-    }
+		return canShowImage ?
+			<Image fileRef={ref} size={targetSize} portraitCheck /> :
+			<span className="fal fa-4x fa-file"></span>;
+	}
 
-    showRef(ref, size) {
-        var parsedRef = fileRef.parse(ref);
-        var size = size || 256;
-        var targetSize = size;
-        //var minSize = size == 256 ? 238 : size;
+	const updateValue = (e, newRef) => {
+		if (e) {
+			e.preventDefault();
+		}
 
-        // Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a placeholder icon.
-        var canShowImage = parsedRef.isImage();
+		var originalName = newRef ? newRef.originalName : '';
 
-        if (canShowImage) {
-            var argW = parsedRef.getNumericArg('w', 0);
-            var argH = parsedRef.getNumericArg('h', 0);
-            if ((argW && argW < size) && (argH && argH < size)) {
-                targetSize = undefined;
-            }
-
-        }
-
-        return canShowImage ?
-            <Image fileRef={ref} size={targetSize} portraitCheck /> :
-            <span className="fal fa-4x fa-file"></span>;
-    }
-
-    updateValue(e, newRef) {
-        if (e) {
-            e.preventDefault();
-        }
-
-        var originalName = newRef ? newRef.originalName : '';
-
-        if (!newRef) {
-            newRef = '';
-        }
-        
-        if (newRef.result && newRef.result.ref) {
-            // Accept upload objects also.
-            newRef = newRef.result.ref;
-        } else if (newRef.ref) {
-            newRef = newRef.ref;
-        }
-
-        this.setState({
-            value: newRef,
-            originalName: originalName,
-            uploadModalOpen: false,
-            editModalOpen:false
-        }, () => {
-            this.props.onChange && this.props.onChange({ target: { value: newRef } });
-        });
-    }
-
-    saveUpdates(e) {
-
-        var currentRef = this.props.value || this.props.defaultValue;
-
-        if (this.state.value !== undefined) {
-            currentRef = this.state.value;
-        }
+		if (!newRef) {
+			newRef = '';
+		}
 		
+		if (newRef.result && newRef.result.ref) {
+			// Accept upload objects also.
+			newRef = newRef.result.ref;
+		} else if (newRef.ref) {
+			newRef = newRef.ref;
+		}
+
+		setEditedRefData(null);
+		setUpdatedRef(newRef);
+		setShowUploadModal(false);
+		setOriginalName(originalName);
+		props.onChange && props.onChange({ target: { value: newRef } });
+	}
+
+	const saveUpdates = (e) => {
 		var pr = fileRef.parse(currentRef);
-		pr.setNumericArg('fx', this.state.focalX);
-		pr.setNumericArg('fy', this.state.focalY);
-		pr.setArg('au', this.state.author);
-		pr.setArg('al', this.state.alt);
+		pr.setNumericArg('fx', editedRefData.focalX);
+		pr.setNumericArg('fy', editedRefData.focalY);
+		pr.setArg('au', editedRefData.author);
+		pr.setArg('al', editedRefData.alt);
 		
-        var newRef = pr.toString();
-		
-        this.setState({ value: newRef , editModalOpen : false});
-    }
+		var newRef = pr.toString();
+		setUpdatedRef(newRef);
+		setEditedRefData(null);
+	}
 
-    showUploadModal() {
-        this.setState({ uploadModalOpen: true });
-    }
+	const closeUploadModal = () => {
+		setShowUploadModal(false);
+	}
 
-    closeUploadModal() {
-        this.setState({ uploadModalOpen: false });
-    }
+	const showEditModal = () => {
+		var refInfo = fileRef.parse(currentRef);
 
-    showEditModal() {
-        var currentRef = this.props.value || this.props.defaultValue;
+		setEditedRefData({
+			author: refInfo.author,
+			alt: refInfo.altText,
+			focalX: refInfo.focalX,
+			focalY: refInfo.focalY
+		});
+	}
 
-        if (this.state.value !== undefined) {
-            currentRef = this.state.value;
-        }
+	const closeEditModal = () => {
+		setEditedRefData(null);
+	}
 
-        var refInfo = fileRef.parse(currentRef);
-
-        this.setState({
-            editModalOpen: true,
-            author: refInfo.author,
-            alt: refInfo.altText,
-            focalX: refInfo.focalX,
-            focalY: refInfo.focalY
-        });
-    }
-
-    closeEditModal() {
-        this.setState({ editModalOpen: false });
-    }
-
-    renderEditModal() {
-        var currentRef = this.props.value || this.props.defaultValue;
-
-        if (this.state.value !== undefined) {
-            currentRef = this.state.value;
-        }
-		
+	const renderEditModal = () => {
 		var parsedRef = fileRef.parse(currentRef);
-        var isImage = parsedRef.isImage();
-        var isVideo = parsedRef.isVideo();
-        var title = `Edit`;
+		var isImage = parsedRef.isImage();
+		var isVideo = parsedRef.isVideo();
+		var title = `Edit`;
 
-        return <>
-            <Modal isExtraLarge title={title}
-                buttons={[
-                    {
-                        label: `Close`,
-                        onClick: this.closeEditModal
-                    }
-                ]}
-                onClose={this.closeEditModal}
-                visible={this.state.editModalOpen}
-                className="media-center__upload-modal">
-                <div className="media-center__upload-modal-internal">
-                    <Container>
-                        <Row>
-                                <Col sizeMd='9'>
+		return <>
+			<Modal isExtraLarge title={title}
+				buttons={[
+					{
+						label: `Close`,
+						onClick: closeEditModal
+					}
+				]}
+				onClose={closeEditModal}
+				visible={!!editedRefData}
+				className="media-center__upload-modal">
+				<div className="media-center__upload-modal-internal">
+					<Container>
+						<Row>
+								<Col sizeMd='9'>
 									<Alert type='info'>
 										{`Click the image to set its focal point.`}
 									</Alert>
-                                    <div className='media-center__preview-wrapper'>
-                                        <div className="media-center__preview"
-                                            onClick={(e) => {
-                                                var imagePreviewRect = e.target.getBoundingClientRect();
-                                                this.setState({
-                                                    focalX: CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
-                                                    focalY: CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
-                                                });
-                                            }}>
-                                            {this.showRef(currentRef, PREVIEW_SIZE)}
-                                            {isImage && !isVideo && <>
-                                                <div className="media-center__preview-crosshair" style={{
-                                                    left: this.state.focalX + '%',
-                                                    top: this.state.focalY + '%'
-                                                }}></div>
-                                            </>}
-                                        </div>
-                                    </div>
-                                </Col>
+									<div className='media-center__preview-wrapper'>
+										<div className="media-center__preview"
+											onClick={(e) => {
+												var imagePreviewRect = e.target.getBoundingClientRect();
+												setEditedRefData({
+													...editedRefData,
+													focalX: CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
+													focalY: CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
+												});
+											}}>
+											{showRef(currentRef, PREVIEW_SIZE)}
+											{isImage && !isVideo && <>
+												<div className="media-center__preview-crosshair" style={{
+												left: editedRefData?.focalX + '%',
+												top: editedRefData?.focalY + '%'
+												}}></div>
+											</>}
+										</div>
+									</div>
+								</Col>
 
-                                <Col sizeMd='3'>
-                                    <div className="media-center__metadata">
+								<Col sizeMd='3'>
+									<div className="media-center__metadata">
 
-                                        <div className="form-text media-center__alt">
-                                            <Input type="text" label={`Author/Photographer`} value={this.state.author} onChange={e => {
-                                                this.setState({
-                                                    author: e.target.value
-                                                });
-                                            }} />
-                                        </div>
+										<div className="form-text media-center__alt">
+										<Input type="text" label={`Author/Photographer`} value={editedRefData?.author} onChange={e => {
+												setEditedRefData({
+													...editedRefData,
+													author: e.target.value
+												});
+											}} />
+										</div>
 
-                                        <div className="form-text media-center__alt">
-                                            <Input type="text" label={`Alternative Text`} value={this.state.alt} onChange={e => {
-                                                this.setState({
-                                                    alt: e.target.value
-                                                });
-                                            }} />
-                                    </div>
+										<div className="form-text media-center__alt">
+										<Input type="text" label={`Alternative Text`} value={editedRefData?.alt} onChange={e => {
+											setEditedRefData({
+												...editedRefData,
+												alt: e.target.value
+											});
+										}} />
+									</div>
 
-                                        {isImage && !isVideo &&
-                                            <div className="form-text media-center__focal-point">
-                                                <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
-                                                    this.setState({
-                                                        focalX: 50,
-                                                        focalY: 50
-                                                    });
-                                                }}>
-                                                    <i className="fal fa-fw fa-sync"></i>{` Reset focal point to center`}
-                                                </button>
-                                            </div>
-                                        }
+										{isImage && !isVideo &&
+											<div className="form-text media-center__focal-point">
+												<button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
+													setEditedRefData({
+														...editedRefData,
+														focalX: 50,
+														focalY: 50
+													});
+												}}>
+													<i className="fal fa-fw fa-sync"></i>{` Reset focal point to center`}
+												</button>
+											</div>
+										}
 
-                                    </div>
-                                </Col>
-                        </Row>
-                    </Container>
-                </div>
+									</div>
+								</Col>
+						</Row>
+					</Container>
+				</div>
 
-                <footer className="media-center__upload-modal-footer">
-                    <div className="media-center__upload-modal-footer-options">
-                        <button type="button" className="btn btn-outline-primary" onClick={() => this.closeEditModal()}>
-                            {`Cancel`}
-                        </button>
-                        <button type="button" className="btn btn-primary" onClick={() => this.saveUpdates()}>
-                            {`Save`}
-                        </button>
-                    </div>
-                </footer>
-            </Modal>
-        </>;
-    }
+				<footer className="media-center__upload-modal-footer">
+					<div className="media-center__upload-modal-footer-options">
+						<button type="button" className="btn btn-outline-primary" onClick={() => closeEditModal()}>
+							{`Cancel`}
+						</button>
+						<button type="button" className="btn btn-primary" onClick={() => saveUpdates()}>
+							{`Save`}
+						</button>
+					</div>
+				</footer>
+			</Modal>
+		</>;
+	}
 
-    renderTags(combinedFilter) {
-        var tagids = [];
-        var tags = [];
-		
-        return (
-            <ul className='file-selector__tags'>
-                <Loop over={uploadApi} filter={combinedFilter} includes={[uploadApi.includes.tags]} onResults={results => {
-                    results.map(media => {
-                        media.tags?.map(tag => {
-                            if (!tagids.includes(tag.id)) {
-                                tagids.push(tag.id);
-                                tags.push(tag);
-                            }
-                        });
-                    });
-
-                    return tags;
-                }}>
-                    {this.renderTag}
-                </Loop>
-            </ul>
-        )
-    }
-
-    renderTag(tag) {
-        if (!tag || !tag.name || tag.name.length == 0) {
-            return ('');
-        }
-
-        var tagClassName = (this.state.filterTagId && this.state.filterTagId == tag.id) ? "file-selector__tag file-selector__tag-selected" : "file-selector__tag"
-
-        return (
-            <li className={tagClassName} onClick={() => {
-                if (this.state.filterTagId && this.state.filterTagId == tag.id) {
-                    this.setState({ filterTagId: null });
-                } else {
-                    this.setState({ filterTagId: tag.id });
-                }
-            }}>
-                {tag.name}
-            </li>
-        );
-    }
-
-
-
-    renderHeader() {
-        return <div className="row header-container file-selector__search">
-            {searchFields && <>
-                <Search className="admin-page__search" placeholder={`Search`}
-                    onQuery={(where, query) => {
-                        this.setState({
-                            searchFilter: query
-                        });
-                    }} />
-            </>}
-        </div>;
-    }
-
-    render() {
-        
-        this.props.onInputRef && this.props.onInputRef(this.inputRef.current);
-        
-        var { searchFilter } = this.state;
-
-        var currentRef = this.props.value || this.props.defaultValue;
-
-        if (this.state.value !== undefined) {
-            currentRef = this.state.value;
-        }
-
-        var hasRef = currentRef && currentRef.length;
-        var filename = hasRef ? fileRef.parse(currentRef).ref : "";
-        var originalName = this.state.originalName && this.state.originalName.length ? this.state.originalName : '';
-
-        if (originalName) {
-            filename = originalName;
-        }
-
-        var source;
-        if (this.props.showActive) {
-            source = (filter, includes) => uploadApi.active(filter, includes);
-        }else{
-			source = (filter, includes) => uploadApi.list(filter, includes);
+	const renderTag = (tag) => {
+		if (!tag || !tag.name || tag.name.length == 0) {
+			return ('');
 		}
 
-        // do we need to search ?
-        var combinedFilter = { sort: { field: 'CreatedUtc', direction: 'desc' } };;
+		var tagClassName = (filterTagId == tag.id) ? "file-selector__tag file-selector__tag-selected" : "file-selector__tag"
 
-        if (this.state.filterTagId) {
-            combinedFilter.query = "Tags contains ?"
-            combinedFilter.args = [];
-            combinedFilter.args.push(this.state.filterTagId);
-        }
+		return (
+			<li className={tagClassName} onClick={() => {
+				
+				if (filterTagId && filterTagId == tag.id) {
+					setFilterTagId(null);
+				} else {
+					setFilterTagId(tag.id);
+				}
+			}}>
+				{tag.name}
+			</li>
+		);
+	}
 
-        if (searchFilter && searchFilter.length > 0 && searchFields) {
-            var searchQuery = '';
-            var searchQueryArgs = [];
-            var searchDelimiter = '';
+	const renderTags = (combinedFilter) => {
+		var tagids = [];
+		var tags = [];
+		
+		return (
+			<ul className='file-selector__tags'>
+				<Loop over={uploadApi} filter={combinedFilter} includes={[uploadApi.includes.tags]} onResults={results => {
+					results.map(media => {
+						media.tags?.map(tag => {
+							if (!tagids.includes(tag.id)) {
+								tagids.push(tag.id);
+								tags.push(tag);
+							}
+						});
+					});
 
-            for (var i = 0; i < searchFields.length; i++) {
+					return tags;
+				}}>
+					{renderTag}
+				</Loop>
+			</ul>
+		)
+	}
 
-                var field = searchFields[i];
-                var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
+	const renderHeader = () => {
+		return <div className="row header-container file-selector__search">
+			{searchFields && <>
+				<Search className="admin-page__search" placeholder={`Search`}
+					onQuery={(where, query) => {
+						setSearchFilter(query);
+					}} />
+			</>}
+		</div>;
+	}
+	
+	var hasRef = currentRef && currentRef.length;
+	var filename = hasRef ? fileRef.parse(currentRef).ref : "";
+	
+	if (originalName) {
+		filename = originalName;
+	}
 
-                if (fieldNameUcFirst == "Id") {
-                    if (/^\d+$/.test(searchFilter)) {
+	var source;
+	if (props.showActive) {
+		source = (filter, includes) => uploadApi.active(filter, includes);
+	}else{
+		source = (filter, includes) => uploadApi.list(filter, includes);
+	}
 
-                        searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " =?"
-                        searchQueryArgs.push(searchFilter);
-                        searchDelimiter = ' OR ';
-                    }
-                } else {
-                    searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " contains ?"
-                    searchQueryArgs.push(searchFilter);
+	// do we need to search ?
+	var combinedFilter = { sort: { field: 'CreatedUtc', direction: 'desc' } };;
 
-                    searchDelimiter = ' OR ';
-                }
-            }
+	if (filterTagId) {
+		combinedFilter.query = "Tags contains ?"
+		combinedFilter.args = [];
+		combinedFilter.args.push(filterTagId);
+	}
 
-            if (searchQuery.length > 0) {
-                if (!combinedFilter.query) {
-                    combinedFilter.query = searchQuery;
-                    combinedFilter.args = searchQueryArgs;
-                } else {
-                    combinedFilter.query = combinedFilter.query + ' AND (' + searchQuery + ')';
-                    searchQueryArgs.forEach(arg => combinedFilter.args.push(arg));
-                }
-            }
+	if (searchFilter && searchFilter.length > 0 && searchFields) {
+		var searchQuery = '';
+		var searchQueryArgs = [];
+		var searchDelimiter = '';
 
-        }
+		for (var i = 0; i < searchFields.length; i++) {
 
-        var tags = this.renderTags(combinedFilter);
+			var field = searchFields[i];
+			var fieldNameUcFirst = field.charAt(0).toUpperCase() + field.slice(1);
 
-        return <div className="file-selector">
+			if (fieldNameUcFirst == "Id") {
+				if (/^\d+$/.test(searchFilter)) {
 
-            {/* upload browser */}
-            <Modal
-                isExtraLarge
-                title={`Select an Upload`}
-                className={"image-select-modal"}
-                buttons={[
-                    {
-                        label: `Close`,
-                        onClick: this.closeUploadModal
-                    }
-                ]}
-                onClose={this.closeUploadModal}
-                visible={this.state.uploadModalOpen}
-            >
-                {this.renderHeader()}
+					searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " =?"
+					searchQueryArgs.push(searchFilter);
+					searchDelimiter = ' OR ';
+				}
+			} else {
+				searchQuery = searchQuery + searchDelimiter + fieldNameUcFirst + " contains ?"
+				searchQueryArgs.push(searchFilter);
 
-                {tags && <>
-                    {tags}
-                </>}
+				searchDelimiter = ' OR ';
+			}
+		}
 
-                <div className="file-selector__grid">
-                    <Loop source={source} filter={combinedFilter} paged={this.props.disablePaging ? undefined : true}>
-                        {
-                            entry => {
+		if (searchQuery.length > 0) {
+			if (!combinedFilter.query) {
+				combinedFilter.query = searchQuery;
+				combinedFilter.args = searchQueryArgs;
+			} else {
+				combinedFilter.query = combinedFilter.query + ' AND (' + searchQuery + ')';
+				searchQueryArgs.forEach(arg => combinedFilter.args.push(arg));
+			}
+		}
 
-                                // NB: API has been seen to report valid images with isImage=false
-                                //var isImage = entry.isImage;
-                                var isImage = fileRef.isImage(entry.ref);
+	}
 
-                                // default to 256px preview
-                                var renderedSize = 256;
-                                var imageWidth = parseInt(entry.width, 10);
-                                var imageHeight = parseInt(entry.height, 10);
-                                var previewClass = "file-selector__preview ";
+	var tags = renderTags(combinedFilter);
 
-                                // render image < 256px if original image size was smaller
-                                if (!isNaN(imageWidth) && !isNaN(imageHeight) &&
-                                    imageWidth < renderedSize && imageHeight < renderedSize) {
-                                    renderedSize = undefined;
-                                    previewClass += "file-selector__preview--auto";
-                                }
+	return <div className="file-selector">
 
-                                return <>
-                                    <div class="loop-item">
-                                        <button title={entry.originalName} type="button" className="btn file-selector__item" onClick={(e) => this.updateValue(e, entry)}>
-                                            <div className={previewClass}>
-                                                {isImage && <Image fileRef={entry.ref} size={renderedSize} />}
-                                                {!isImage && (
-                                                    <i className="fal fa-4x fa-file"></i>
-                                                )}
-                                            </div>
-                                            <span className="file-selector__name">
-                                                {entry.originalName}
-                                            </span>
-                                        </button>
-                                    </div>
-                                </>;
-                            }
+		{/* upload browser */}
+		<Modal
+			isExtraLarge
+			title={`Select an Upload`}
+			className={"image-select-modal"}
+			buttons={[
+				{
+					label: `Close`,
+					onClick: closeUploadModal
+				}
+			]}
+			onClose={closeUploadModal}
+			visible={showUploadModal}
+		>
+			{renderHeader()}
 
-                        }
-                    </Loop>
-                </div>
-            </Modal>
+			{tags && <>
+				{tags}
+			</>}
 
-            {/* Edit Image Modal */}
-            {this.state.editModalOpen && this.renderEditModal()}
+			<div className="file-selector__grid">
+				<Loop source={source} filter={combinedFilter} paged={props.disablePaging ? undefined : true}>
+					{
+						entry => {
 
-            {/* icon browser */}
-            <IconSelector
-                visible={this.state.iconModalOpen}
-                onClose={() => {
-                    this.setState({ iconModalOpen: false })
-                }}
-                onSelected={
-                    icon => {
-                        this.updateValue(null, icon);
-                    }
-                }
-            />
+							// NB: API has been seen to report valid images with isImage=false
+							//var isImage = entry.isImage;
+							var isImage = fileRef.isImage(entry.ref);
 
-            {/* upload */}
-            <Uploader
-                compact={this.props.compact}
-                currentRef={currentRef}
-                originalName={this.props.iconOnly ? currentRef : originalName}
-                id={this.props.id || this.newId()}
-                isPrivate={this.props.isPrivate}
-                url={this.props.url}
-                requestOpts={this.props.requestOpts}
-                maxSize={this.props.maxSize}
-                iconOnly={this.props.iconOnly}
-                onUploaded={
-                    file => this.updateValue(null, file)
-                } />
+							// default to 256px preview
+							var renderedSize = 256;
+							var imageWidth = parseInt(entry.width, 10);
+							var imageHeight = parseInt(entry.height, 10);
+							var previewClass = "file-selector__preview ";
 
-            {/* options (browse, preview, remove) */}
-            <div className="file-selector__options">
-                {!this.props.browseOnly && <>
+							// render image < 256px if original image size was smaller
+							if (!isNaN(imageWidth) && !isNaN(imageHeight) &&
+								imageWidth < renderedSize && imageHeight < renderedSize) {
+								renderedSize = undefined;
+								previewClass += "file-selector__preview--auto";
+							}
 
-                    {this.props.uploadOnly &&
-                        <button type="button" className="btn btn-primary file-selector__select" onClick={() => this.showUploadModal()}>
-                            {`Select upload`}
-                        </button>
-                    }
+							return <>
+								<div class="loop-item">
+									<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={(e) => updateValue(e, entry)}>
+										<div className={previewClass}>
+											{isImage && <Image fileRef={entry.ref} size={renderedSize} />}
+											{!isImage && (
+												<i className="fal fa-4x fa-file"></i>
+											)}
+										</div>
+										<span className="file-selector__name">
+											{entry.originalName}
+										</span>
+									</button>
+								</div>
+							</>;
+						}
 
-                    {this.props.iconOnly &&
-                        <button type="button" className="btn btn-primary file-selector__select" onClick={() => this.setState({ iconModalOpen: true })}>
-                            {`Select icon`}
-                        </button>
-                    }
+					}
+				</Loop>
+			</div>
+		</Modal>
 
-                    {!this.props.uploadOnly && !this.props.iconOnly &&
-                        <Dropdown label={`Change file`} variant="primary" className="file-selector__select" items={
-							[
-								{
-									onClick: () => this.showUploadModal(),
-									text: `Select from uploads`
-								},
-								hasRef ? {
-									onClick: () => this.updateValue(null, null),
-									text: `Remove`
-								} : null,
-								(hasRef && !this.props.iconOnly) ? {
-									onClick: () => this.showEditModal(),
-									text: `Edit file`
-								} : null
-								/*
-								Icons are not dedicated refs anymore. The modal has been fixed such 
-								that it at least displays icons, but selecting one will error due to its ref output.
-								{
-									onClick: () => this.setState({ iconModalOpen: true }),
-									text: `From icons`
-								}*/
-							]
-						} />
-                    }
+		{/* Edit Image Modal */}
+		{!!editedRefData && renderEditModal()}
 
-                </>}
-                {hasRef && <>
-                    {!this.props.iconOnly && <>
-                        <a href={fileRef.getUrl(currentRef)} alt={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
-                            {`View file`}
-                        </a>
-                    </>}
-                </>}
-            </div>
+		{/* icon browser */}
+		<IconSelector
+			visible={showIconModal}
+			onClose={() => {
+				setShowIconModal(false)
+			}}
+			onSelected={
+				icon => {
+					updateValue(null, icon);
+				}
+			}
+		/>
 
-            {this.props.name && (
-                // Also contains a hidden input field containing the value
-                <input ref={this.inputRef} type="hidden" value={currentRef} name={this.props.name} id={this.props.id} />
-            )}
-        </div>;
-    }
+		{/* upload */}
+		<Uploader
+			compact={props.compact}
+			currentRef={currentRef}
+			originalName={props.iconOnly ? currentRef : originalName}
+			id={props.id || newId()}
+			isPrivate={props.isPrivate}
+			url={props.url}
+			requestOpts={props.requestOpts}
+			maxSize={props.maxSize}
+			iconOnly={props.iconOnly}
+			onUploaded={
+				file => updateValue(null, file)
+			} />
 
+		{/* options (browse, preview, remove) */}
+		<div className="file-selector__options">
+			{!props.browseOnly && <>
+
+				{props.uploadOnly &&
+					<button type="button" className="btn btn-primary file-selector__select" onClick={() => setShowUploadModal(true)}>
+						{`Select upload`}
+					</button>
+				}
+
+				{props.iconOnly &&
+					<button type="button" className="btn btn-primary file-selector__select" onClick={() => setShowIconModal(true)}>
+						{`Select icon`}
+					</button>
+				}
+
+				{!props.uploadOnly && !props.iconOnly &&
+					<Dropdown label={`Change file`} variant="primary" className="file-selector__select" items={
+						[
+							{
+								onClick: () => setShowUploadModal(true),
+								text: `Select from uploads`
+							},
+							hasRef ? {
+								onClick: () => updateValue(null, null),
+								text: `Remove`
+							} : null,
+							(hasRef && !props.iconOnly) ? {
+								onClick: () => showEditModal(),
+								text: `Edit file`
+							} : null
+							/*
+							Icons are not dedicated refs anymore. The modal has been fixed such 
+							that it at least displays icons, but selecting one will error due to its ref output.
+							{
+								onClick: () => setShowIconModal(true),
+								text: `From icons`
+							}*/
+						]
+					} />
+				}
+
+			</>}
+			{hasRef && <>
+				{!props.iconOnly && <>
+					<a href={fileRef.getUrl(currentRef)} alt={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
+						{`View file`}
+					</a>
+				</>}
+			</>}
+		</div>
+
+		{props.name && (
+			// Also contains a hidden input field containing the value
+			<input ref={props.onInputRef} type="hidden" value={currentRef} name={props.name} id={props.id} />
+		)}
+	</div>;
 }
+
+export default FileSelector;
