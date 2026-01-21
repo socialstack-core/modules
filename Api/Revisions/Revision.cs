@@ -22,6 +22,11 @@ public partial class Revision<T, ID> : UserCreatedContent<ID>
 	public string ContentJson;
 
 	/// <summary>
+	/// The revision number (incremental for a given contentId).
+	/// </summary>
+	public int RevisionNumber;
+
+	/// <summary>
 	/// The ID of the content.
 	/// </summary>
 	public ID ContentId;

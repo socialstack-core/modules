@@ -226,6 +226,7 @@ namespace Api.Revisions
 					EditedUtc = now,
 					ContentId = content.Id,
 					ContentJson = contentJson,
+					RevisionNumber = content.Revision,
 					ImpersonatorUserId = context.RealUserId,
 					ActionType = 1
 				};
@@ -251,6 +252,7 @@ namespace Api.Revisions
 					CreatedUtc = now,
 					EditedUtc = now,
 					ContentId = content.Id,
+					RevisionNumber = content.Revision,
 					ImpersonatorUserId = context.RealUserId,
 					ContentJson = contentJson,
 					ActionType = 2
@@ -276,6 +278,7 @@ namespace Api.Revisions
 				{
 					UserId = content.UserId,
 					ImpersonatorUserId = context.RealUserId,
+					RevisionNumber = content.Revision,
 					CreatedUtc = now,
 					EditedUtc = now,
 					ContentId = content.Id,

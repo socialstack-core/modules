@@ -175,6 +175,9 @@ public partial class AutoController<T, ID>
 			userCreated.UserId = context.UserId;
 		}
 
+		// Often zero.
+		var revNumber = (entity as VersionedContent<ID>)?.Revision;
+
 		// Set the fields now:
 		await _service.SetFieldsOnObject(entity, context, body);
 
@@ -189,6 +192,7 @@ public partial class AutoController<T, ID>
 			ImpersonatorUserId = context.RealUserId,
 			ContentJson = contentJson,
 			IsDraft = true,
+			RevisionNumber = revNumber.GetValueOrDefault(),
 			ContentId = entity.Id, // Often zero
 			ActionType = 1
 		});
