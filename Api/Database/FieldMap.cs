@@ -96,8 +96,10 @@ namespace Api.Database
 		/// <param name="field"></param>
 		public void Add(Field field)
 		{
+			var index = Fields.Count;
 			Fields.Add(field);
 			Lookup[field.Name] = field;
+			field.FieldMapIndex = index;
 		}
 
 		/// <summary>

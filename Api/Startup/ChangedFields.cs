@@ -56,6 +56,23 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
+		/// True if the given named field has changed
+		/// </summary>
+		/// <param name="fieldName"></param>
+		/// <returns></returns>
+		public bool HasChanged(string fieldName)
+		{
+			var field = Fields.Find(fieldName);
+
+			if (field == null)
+			{
+				return false;
+			}
+
+			return (FieldDiff & (((ulong)1) << field.FieldMapIndex)) != 0;
+		}
+
+		/// <summary>
 		/// Start iterating over the changed field set.
 		/// </summary>
 		/// <returns></returns>

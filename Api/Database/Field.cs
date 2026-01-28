@@ -24,6 +24,10 @@ namespace Api.Database
 	public class Field
 	{
 		/// <summary>
+		/// The index in a FieldMap if this field is present in one.
+		/// </summary>
+		public int FieldMapIndex;
+		/// <summary>
 		/// The type that this field is part of.
 		/// This isn't the same as TargetField.DeclaringType (specifically because Id is declared elsewhere, but is "owned" by the row type).
 		/// </summary>
