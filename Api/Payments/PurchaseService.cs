@@ -308,7 +308,7 @@ namespace Api.Payments
 					};
 				}
 
-				await _emails.SendAsync(userRecipient, key);
+				_emails.Send(userRecipient, key);
 
 				// processed so return null
 				return true;
@@ -376,7 +376,7 @@ namespace Api.Payments
 
 				userRecipient.CustomData = token;
 
-				await _emails.SendAsync(userRecipient, key);
+				_emails.Send(userRecipient, key);
 
 				// processed so return null
 				return true;

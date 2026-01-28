@@ -128,7 +128,7 @@ namespace Api.PasswordResetRequests
 
 				var resetUser = await users.Get(context, reset.UserId, DataOptions.IgnorePermissions);
 				
-				await emails.SendAsync(
+				emails.Send(
 					new Recipient(resetUser, reset),
 					"forgot_password"
 				);

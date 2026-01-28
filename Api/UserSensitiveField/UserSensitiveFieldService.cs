@@ -231,7 +231,7 @@ namespace Api.UserSensitiveField
 
 			var recipient = new Emails.Recipient(recipientUser, sensitiveFieldData);
 
-            await _emails.SendAsync(
+            _emails.Send(
                 recipient,
                 "recover_account"
             );

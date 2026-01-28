@@ -109,7 +109,7 @@ namespace Api.Users
 
 			_emails ??= Services.Get<EmailTemplateService>();
 
-			await _emails.SendAsync(
+			_emails.Send(
 				recipient,
 				"verify_email"
 			);

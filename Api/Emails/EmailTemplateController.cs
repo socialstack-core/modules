@@ -34,7 +34,7 @@ namespace Api.Emails
 				CustomData = mailTest.CustomData == null ? null : Newtonsoft.Json.JsonConvert.DeserializeObject(mailTest.CustomData)
 			};
 
-			var state = await emailService.SendAsync(recipient, mailTest.TemplateKey);
+			var state = await emailService.SendAndWaitForSuccess(recipient, mailTest.TemplateKey);
 
 			return new EmailTestResponse()
 			{

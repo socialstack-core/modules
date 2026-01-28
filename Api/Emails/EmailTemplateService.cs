@@ -652,7 +652,7 @@ namespace Api.Emails
 			{
 				try
 				{
-					await SendAsync(recipient, key, messageId, attachments);
+					await SendAndWaitForSuccess(recipient, key, messageId, attachments);
 				}
 				catch (Exception e)
 				{
@@ -675,7 +675,7 @@ namespace Api.Emails
 			{
 				try
 				{
-					await SendAsync(recipients, key, messageId, attachments);
+					await SendAndWaitForSuccess(recipients, key, messageId, attachments);
 				}
 				catch (Exception e)
 				{
@@ -686,21 +686,21 @@ namespace Api.Emails
 		}
 
 		/// <summary>
-		/// Sends the given email to the given recipient.
+		/// Sends the given email to the given recipient. Generally avoid this: use send instead.
 		/// </summary>
 		/// <param name="recipient"></param>
 		/// <param name="key"></param>
 		/// <param name="messageId"></param>
 		/// <param name="attachments">Optional attachments.</param>
 		/// <returns></returns>
-		public async Task<bool> SendAsync(
+		public async Task<bool> SendAndWaitForSuccess(
 			Recipient recipient,
 			string key,
 			string messageId = null,
 			IEnumerable<Attachment> attachments = null
 		)
 		{
-			return await SendAsync(
+			return await SendAndWaitForSuccess(
 				new List<Recipient>() { recipient },
 				key,
 				messageId,
@@ -709,14 +709,15 @@ namespace Api.Emails
 		}
 
 		/// <summary>
-		/// Sends the given email to the given list of recipients.
+		/// Sends the given email to the given list of recipients, waiting for it to succeed. 
+		/// Generally avoid this: use fire and forget Send instead.
 		/// </summary>
 		/// <param name="recipients"></param>
 		/// <param name="key"></param>
 		/// <param name="messageId"></param>
 		/// <param name="attachments">Optional attachments.</param>
 		/// <returns></returns>
-		public async Task<bool> SendAsync(
+		public async Task<bool> SendAndWaitForSuccess(
 			IList<Recipient> recipients,
 			string key,
 			string messageId = null,
