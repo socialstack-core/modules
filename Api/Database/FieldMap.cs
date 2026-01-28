@@ -47,7 +47,7 @@ namespace Api.Database
 					continue;
 				}
 
-				var fld = new Field(type, field, typeName);
+				var fld = new Field(type, field, typeName) { FieldMapIndex = fieldSet.Count };
 				fieldSet.Add(fld);
 				Lookup[fld.Name] = fld;
 			}
