@@ -77,6 +77,11 @@ namespace Api.Database
 			{
 				Lookup[field.Name] = field;
 			}
+			for (var i = 0; i < Fields.Count; i++)
+			{
+				// Correct the index:
+				Fields[i].FieldMapIndex = i;
+			}
 		}
 
 		/// <summary>
@@ -109,6 +114,9 @@ namespace Api.Database
 		/// <returns></returns>
 		public Field Remove(string name)
 		{
+			Field foundField = null;
+			var foundAtIndex = -1;
+
 			for (var i = 0; i < Fields.Count; i++)
 			{
 				var fld = Fields[i];
@@ -117,11 +125,27 @@ namespace Api.Database
 				{
 					// Pop it now:
 					Fields.RemoveAt(i);
-					return fld;
+					foundField = fld;
+					foundAtIndex = i;
+					break;
 				}
 			}
 
-			return null;
+			if (foundAtIndex == -1)
+			{
+				return null;
+			}
+
+			// The removed slot itself is now populated with the thing that was previously after it
+			// so we start at that index.
+
+			for (var i = foundAtIndex; i < Fields.Count; i++)
+			{
+				// Correct the index:
+				Fields[i].FieldMapIndex = i;
+			}
+
+			return foundField;
 		}
 
 		/// <summary>
