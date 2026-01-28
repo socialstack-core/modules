@@ -181,7 +181,7 @@ namespace Api.Permissions
 				return role;
 			});
 
-			Events.Role.AfterUpdate.AddEventListener(async (Context context, Role role) =>
+			Events.Role.AfterUpdate.AddEventListener(async (Context context, Role role, ChangedFields diff) =>
 			{
 				if (role == null)
 				{

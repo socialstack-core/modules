@@ -52,7 +52,7 @@ namespace Api.Translate
 				return new ValueTask<Locale>(locale);
 			});
 
-			Events.Locale.AfterUpdate.AddEventListener(async (Context context, Locale locale) => {
+			Events.Locale.AfterUpdate.AddEventListener(async (Context context, Locale locale, ChangedFields diff) => {
 				await UpdateMaps();
 				return locale;
 			});

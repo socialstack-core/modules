@@ -128,7 +128,7 @@ namespace Api.Eventing
 		/// <summary>
 		/// Just after updating an entity.
 		/// </summary>
-		public EventHandler<T> AfterUpdate;
+		public EventHandler<T, ChangedFields> AfterUpdate;
 
 		/// <summary>
 		/// Just before an entity is loaded.

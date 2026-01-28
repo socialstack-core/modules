@@ -146,7 +146,7 @@ namespace Api.CustomContentTypes
                 return type;
             });
 
-            Events.CustomContentType.AfterUpdate.AddEventListener(async (Context ctx, CustomContentType type) =>
+            Events.CustomContentType.AfterUpdate.AddEventListener(async (Context ctx, CustomContentType type, ChangedFields diff) =>
             {
 
                 if (type == null)
@@ -226,7 +226,7 @@ namespace Api.CustomContentTypes
                 return field;
             });
 
-            Events.CustomContentTypeField.AfterUpdate.AddEventListener(async (Context ctx, CustomContentTypeField field) =>
+            Events.CustomContentTypeField.AfterUpdate.AddEventListener(async (Context ctx, CustomContentTypeField field, ChangedFields diff) =>
             {
 
                 if (field == null)

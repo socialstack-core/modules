@@ -41,7 +41,7 @@ namespace Api.CanvasRenderer
             _configService = config;
             _config = GetConfig<CanvasRendererServiceConfig>();
 
-            Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation) =>
+            Events.Translation.AfterUpdate.AddEventListener((Context context, Translation translation, ChangedFields diff) =>
             {
 
                 if (translation == null)
@@ -499,7 +499,7 @@ namespace Api.CanvasRenderer
 
             string sourceContent;
 
-            sourceContent = _frontendService.ReadModuleFileText("inline_header.js");
+            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/inline_header.js");
             engine.Execute(new DocumentInfo(new Uri("file://inline_header.js")), sourceContent);
 
             // If instancing a new engine, always read the file.
@@ -515,7 +515,7 @@ namespace Api.CanvasRenderer
             sourceContent = System.Text.Encoding.UTF8.GetString(jsFileData.FileContent);
             engine.Execute(new DocumentInfo(new Uri("file://email/main.js")), sourceContent);
 
-            sourceContent = _frontendService.ReadModuleFileText("renderer.js");
+            sourceContent = File.ReadAllText(dllPath + "/Api/ThirdParty/CanvasRenderer/renderer.js");
             engine.Execute(new DocumentInfo(new Uri("file://renderer.js")), sourceContent);
 
             // Add engine to locale lookup. This happens last to avoid 2 simultaneous 

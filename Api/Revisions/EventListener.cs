@@ -236,7 +236,7 @@ namespace Api.Revisions
 				return content;
 			}, 11);
 
-			evtGroup.AfterUpdate.AddEventListener(async (Context context, T content) => 
+			evtGroup.AfterUpdate.AddEventListener(async (Context context, T content, ChangedFields diff) => 
 			{
 				if (content == null)
 				{

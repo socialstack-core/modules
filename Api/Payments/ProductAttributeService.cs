@@ -618,10 +618,27 @@ namespace Api.Payments
 			return ValueTask.FromResult(attrib);
 		}
 
+		private ValueTask<ProductAttribute> ClearCache(Context ctx, ProductAttribute attrib, ChangedFields diff)
+		{
+			_attributeTree = null;
+			return ValueTask.FromResult(attrib);
+		}
+
 		private ValueTask<ProductAttributeGroup> ClearCache(Context ctx, ProductAttributeGroup group)
 		{
 			_attributeTree = null;
 			return ValueTask.FromResult(group);
+		}
+
+		private ValueTask<ProductAttributeGroup> ClearCache(Context ctx, ProductAttributeGroup group, ChangedFields diff)
+		{
+			_attributeTree = null;
+			return ValueTask.FromResult(group);
+		}
+
+		private ValueTask<Role> OnRoleMutate(Context ctx, Role role, ChangedFields diff)
+		{
+			return OnRoleMutate(ctx, role);
 		}
 
 		private ValueTask<Role> OnRoleMutate(Context ctx, Role role)

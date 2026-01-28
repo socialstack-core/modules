@@ -439,7 +439,7 @@ namespace Api.CanvasRenderer
 			};
 
 			// Handling translation updates:
-			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation updated) => {
+			Events.Translation.AfterUpdate.AddEventListener((Context context, Translation updated, ChangedFields diff) => {
 				ClearCaches();
 				return new ValueTask<Translation>(updated);
 			});

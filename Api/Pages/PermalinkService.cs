@@ -106,7 +106,7 @@ namespace Api.Pages
 				return page;
 			});
 
-			Events.Page.AfterUpdate.AddEventListener((Context context, Page page) =>
+			Events.Page.AfterUpdate.AddEventListener((Context context, Page page, ChangedFields diff) =>
 			{
 				// Need to update the two caches. We'll just wipe them for now:
 				Router.RequestRebuild();

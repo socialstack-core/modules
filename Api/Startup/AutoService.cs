@@ -1290,7 +1290,7 @@ public partial class AutoService<T, ID> : AutoService, ContentStreamSource<T, ID
 		// OriginalEntity at this point is likely to have fields matching the original entity.
 		// That's because Update internally updates the cache, resulting in the original (often from a cache) object therefore being updated.
 
-		entityToUpdate = await EventGroup.AfterUpdate.Dispatch(context, entityToUpdate);
+		entityToUpdate = await EventGroup.AfterUpdate.Dispatch(context, entityToUpdate, changes);
 		return entityToUpdate;
 	}
 	

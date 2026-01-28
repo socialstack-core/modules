@@ -2,6 +2,7 @@ using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Pages;
+using Api.Startup;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -73,7 +74,7 @@ namespace Api.Payments
 				return new ValueTask<ProductTemplate>(template);
 			});
 
-			Events.ProductTemplate.AfterUpdate.AddEventListener((Context ctx, ProductTemplate template) =>
+			Events.ProductTemplate.AfterUpdate.AddEventListener((Context ctx, ProductTemplate template, ChangedFields diff) =>
 			{
 				// clear the cache
 				_categoryTree = null;
