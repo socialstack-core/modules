@@ -1,4 +1,3 @@
-using Api.Database;
 using System;
 using System.Collections.Generic;
 
@@ -10,6 +9,12 @@ namespace Api.Database
 	/// </summary>
 	public partial class Schema
 	{
+
+		/// <summary>
+		/// Keep track of when the schema was last generated
+		/// </summary>
+		public readonly DateTime CreatedUtc = DateTime.UtcNow;
+
 		/// <summary>
 		/// The tables in this schema.
 		/// </summary>

@@ -8,9 +8,7 @@ using System.Collections.Generic;
 using System.Text;
 using MySql.Data.MySqlClient;
 using Api.Permissions;
-using Api.Users;
 using Api.CanvasRenderer;
-using System.Reflection.Metadata;
 using Api.Database;
 
 namespace Api.DatabaseMySQL
@@ -32,6 +30,11 @@ namespace Api.DatabaseMySQL
 		/// </summary>
 		// TODO: In a cluster this will gradually diverge.
 		private Schema CurrentDbSchema;
+
+		/// <summary>
+		/// Cache expiry time in minutes.
+		/// </summary>
+		private const int SchemaCacheExpiryMinutes = 10;        
 
 		/// <summary>
 		/// Database version text.
@@ -497,7 +500,13 @@ namespace Api.DatabaseMySQL
 		{
 			if (CurrentDbSchema != null)
 			{
-				return CurrentDbSchema;
+				var age = DateTime.UtcNow - CurrentDbSchema.CreatedUtc;
+				if (age.TotalMinutes < SchemaCacheExpiryMinutes)
+				{
+					return CurrentDbSchema;
+				}
+
+				Log.Info("databasediff", "Reloading database schema");
 			}
 
 			var existingSchema = new MySQLSchema();
@@ -580,11 +589,17 @@ namespace Api.DatabaseMySQL
 			var tableDiff = existingSchema.Diff(newSchema);
 			var altersToRun = new StringBuilder();
 
+			var tablesToAddToSchema = new List<DatabaseTableDefinition>();
+			var columnsToAddToSchema = new List<DatabaseColumnDefinition>();
+			var columnChangesToApply = new List<(DatabaseColumnDefinition From, DatabaseColumnDefinition To)>();            
+
 			foreach (var table in tableDiff.Added)
 			{
 				Log.Info("databasediff", "Creating table " + table.TableName);
 				altersToRun.Append(table.CreateTableSql());
 				altersToRun.Append(';');
+
+				tablesToAddToSchema.Add(table);                
 			}
 
 			foreach (var tableDiffs in tableDiff.Changed)
@@ -651,8 +666,7 @@ namespace Api.DatabaseMySQL
 					altersToRun.Append(((MySQLDatabaseColumnDefinition)newColumn).AlterTableSql());
 					altersToRun.Append(';');
 
-					// Add to existingSchema object:
-					existingSchema.Add(newColumn);
+					columnsToAddToSchema.Add(newColumn);
 				}
 
 				// Changed columns that can't be automatically upgraded must be handled via manually specified upgrade objects.
@@ -676,9 +690,7 @@ namespace Api.DatabaseMySQL
 						Log.Info("databasediff", "Manual column change required: '" + to.AlterTableSql(true) + "'");
 					}
 
-					// Update in the existing schema by performing a remove and then a re-add:
-					existingSchema.Remove(changedColumn.FromColumn);
-					existingSchema.Add(changedColumn.ToColumn);
+					columnChangesToApply.Add((changedColumn.FromColumn, changedColumn.ToColumn));
 				}
 
 				foreach (var removedColumn in tableDiffs.Removed)
@@ -697,6 +709,22 @@ namespace Api.DatabaseMySQL
 				try
 				{
 					await _database.Run(queryToRun);
+
+					foreach (var table in tablesToAddToSchema)
+					{
+						existingSchema.Tables[table.TableName.ToLower()] = table;
+					}
+
+					foreach (var column in columnsToAddToSchema)
+					{
+						existingSchema.Add(column);
+					}
+
+					foreach (var change in columnChangesToApply)
+					{
+						existingSchema.Remove(change.From);
+						existingSchema.Add(change.To);
+					}                    
 				}
 				catch (MySqlException e)
 				{
