@@ -1,6 +1,0 @@
-{
-  "dependencies": [
-    "Api/Currency",
-    "Admin/CustomFieldEditor"
-  ]
-}

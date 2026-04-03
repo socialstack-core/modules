@@ -1,6 +1,0 @@
-{
-	"dependencies":[
-		"Api/UserFullNames",
-		"Api/UserLastVisited"
-	]
-}
