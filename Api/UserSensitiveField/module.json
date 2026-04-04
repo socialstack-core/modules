@@ -1,0 +1,6 @@
+{
+	"name": "Sensitive fields",
+	"description": "Enforces reauthentication when editing sensitive fields such as email address on a user account.",
+	"modules": [
+	]
+}

@@ -1,5 +1,6 @@
 
 using System;
+using Api.Permissions;
 using Newtonsoft.Json;
 
 namespace Api.Users
@@ -9,14 +10,13 @@ namespace Api.Users
         /// <summary>
         /// The User's current password, which is required to update a sensitive field. 
         /// </summary>
-        [JsonIgnore]
         public string SensitiveFieldPassword { get; set; }
 
-        /// <summary>
-        /// The recovery key provided in the email, used to circumvent the sensitive field
-        /// change when setting the new email and password for account recovery.
-        /// </summary>
-        [JsonIgnore]
+		/// <summary>
+		/// The recovery key provided in the email, used to circumvent the sensitive field
+		/// change when setting the new email and password for account recovery.
+		/// </summary>
+		[JsonIgnore]
         public string EmailRecovery { get; set; }
 
         /// <summary>

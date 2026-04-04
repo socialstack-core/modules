@@ -1,13 +1,14 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Contexts;
+﻿using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
-using Api.Users;
 using Api.PasswordAuth;
-using Api.Startup;
-using System;
 using Api.PasswordResetRequests;
+using Api.Startup;
+using Api.Users;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Api.UserSensitiveField
 {
@@ -64,6 +65,27 @@ namespace Api.UserSensitiveField
                     // Not settable.
                     field = null;
                 }
+				else if (field.Name == "SensitiveFieldPassword")
+				{
+                    field.Hide = true;
+                    field.Writeable = true;
+				}
+
+				return new ValueTask<JsonField<User, uint>>(field);
+			});
+
+			Events.User.BeforeGettable.AddEventListener((Context ctx, JsonField<User, uint> field) => {
+
+				if (field == null)
+				{
+					return new ValueTask<JsonField<User, uint>>(field);
+				}
+
+				if (field.Name == "SensitiveFieldPassword")
+				{
+					// Not gettable.
+					field = null;
+				}
 
 				return new ValueTask<JsonField<User, uint>>(field);
 			});
