@@ -1,0 +1,11 @@
+{
+	"name": "Categories",
+	"description": "A standard taxonomy module for adding categories to any other content type on a site. Appears on all other types unless explicitly excluded as 'categories'.",
+	"modules": [
+		{
+			"optional": true,
+			"key": "Api/Tags",
+			"reason": "Usually used with tags as well."
+		}
+	]
+}

@@ -1,0 +1,6 @@
+{
+	"name": "Available endpoints",
+	"description": "Tracks and provides information about the endpoints available on a site. It is 'tracked' because it is not actually static; if the 'Custom content types' module is used then a content type can appear or dissappear at runtime along with associated endpoints coming or going.",
+	"modules": [
+	]
+}

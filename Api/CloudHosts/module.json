@@ -1,0 +1,6 @@
+{
+	"name": "Cloud host support",
+	"description": "A collection of features for supporting tight integration with various cloud platforms. This module is not mandatory for cloud hosts; rather just highly recommended. Those platforms include AWS, DigitalOcean and Azure. For example, file storage through S3.",
+	"modules": [
+	]
+}

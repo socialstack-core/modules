@@ -8,12 +8,12 @@ namespace Api.CloudHosts
 {
 	/// <summary>
 	/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
-	/// Handles configuring the webserver which is currently always NGINX.
+	/// Handles configuring the webserver which is currently Kestrel only (no reverse proxy necessary).
 	/// </summary>
 	public partial class WebServerService : AutoService
     {
 		/// <summary>
-		/// Underlying platform. Currently it's always NGINX.
+		/// Underlying platform. Currently it's Kestrel (no reverse proxy necessary).
 		/// </summary>
 		private WebServer platform;
 		private DomainCertificateService _certs;
@@ -24,7 +24,7 @@ namespace Api.CloudHosts
 		public WebServerService(DomainCertificateService certs)
         {
 			_certs = certs;
-			platform = new NGINX(this);
+			platform = new Kestrel(this);
 
 			// future: Ensure webserver is initted with basic config (Apply has been called at least once).
 			// Note that on startup the WebSecurityService checks certs and indirectly calls apply currently.

@@ -143,7 +143,7 @@ namespace Api.AvailableEndpoints
 
 			foreach (var method in methods)
 			{
-				// For it to be an endpoint, it must have at least 1 HttpGet/ HttpPost/ HttpPut/ HttpDelete attribute.
+				// For it to be an endpoint, it must have at least 1 HttpGet/ HttpPost/ HttpPut/ HttpDelete/ HttpMethod(custom) attribute.
 				var methodAttribs = method.GetCustomAttributes();
 
 				var routeSet = GetHttpRoutes(methodAttribs, baseRoute);
