@@ -39,8 +39,8 @@ namespace Api.TypeScript.Objects
         /// other return types and Web API methods. It scans controller method signatures to prepare metadata
         /// for TypeScript output.
         /// </remarks>
-        public EntityController(Type controllerType, Type entityType, ESModule container)
-        {
+        public EntityController(Type controllerType, Type entityType, ESModule container) : base(container)
+		{
             container.AddType(entityType);
             container.MarkAsEntityModule();
 

@@ -40,8 +40,8 @@ namespace Api.TypeScript.Objects
         /// other return types and Web API methods. It scans controller method signatures to prepare metadata
         /// for TypeScript output.
         /// </remarks>
-        public NonEntityController(Type controllerType, ESModule container, ESModule includes)
-        {
+        public NonEntityController(Type controllerType, ESModule container, ESModule includes) : base(container)
+		{
 
             _container = container;
             _referenceType = controllerType;

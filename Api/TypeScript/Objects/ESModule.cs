@@ -60,7 +60,7 @@ namespace Api.TypeScript.Objects
             typeof(ContentStream<,>),
             typeof(Filter<,>),
             typeof(FilterAst<,>),
-            typeof(Api.Eventing.EventHandler<,>),
+            typeof(EventHandler<,>),
             typeof(EndpointEventHandler<,>),
             typeof(JToken),
             typeof(JContainer),
@@ -71,6 +71,21 @@ namespace Api.TypeScript.Objects
         ];
 
         private EntityController _entityController;
+        private TypeScriptService _tsService;
+
+        /// <summary>
+        /// The TS Service.
+        /// </summary>
+        public TypeScriptService TypeScriptService => _tsService;
+
+		 /// <summary>
+		 /// Creates a new ESModule running with the given TSService.
+		 /// </summary>
+		 /// <param name="tsService"></param>
+		public ESModule(TypeScriptService tsService)
+        {
+            _tsService = tsService;
+        }
 
         // === File and Import Metadata ===
 
@@ -91,10 +106,10 @@ namespace Api.TypeScript.Objects
         public bool IsEntityModule() => _isEntityModule;
 
         /// <summary>
-        /// Gets the full TypeScript file path for this module.
+        /// Gets the full TypeScript file name for this module.
         /// </summary>
         public string GetFileName() =>
-            "TypeScript/Api/" + _fileName + (!_fileName.EndsWith(".ts") && !_fileName.EndsWith(".tsx") ? ".ts" : "");
+            _fileName + (!_fileName.EndsWith(".ts") && !_fileName.EndsWith(".tsx") ? ".ts" : "");
 
         /// <summary>
         /// Gets the import path (relative to other TypeScript modules).
@@ -444,9 +459,9 @@ namespace Api.TypeScript.Objects
         /// <summary>
         /// Creates a new empty module for a given entity and adds it to the given list.
         /// </summary>
-        public static ESModule Empty(Type entityType, List<ESModule> modules)
+        public static ESModule Empty(Type entityType, List<ESModule> modules, TypeScriptService tsService)
         {
-            var module = new ESModule();
+            var module = new ESModule(tsService);
             module.SetFileName(entityType.Name);
             modules.Add(module);
             return module;

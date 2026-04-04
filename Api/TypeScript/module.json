@@ -1,0 +1,6 @@
+{
+	"name": "Typescript bindings",
+	"description": "A developer facing feature which generates typescript API bindings.",
+	"modules": [
+	]
+}

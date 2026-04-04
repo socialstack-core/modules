@@ -1,14 +1,16 @@
 ﻿using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading.Tasks;
 using Api.CanvasRenderer;
+using Api.Contexts;
 using Api.Eventing;
 
 namespace Api.TypeScript
 {
 	public partial class TypeScriptService : AutoService
 	{
-		private void BuildTypescriptAliases(List<UIBundle> sourceBuilders)
+		private async ValueTask BuildTypescriptAliases(Context context, List<UIBundle> sourceBuilders)
 		{
 			// Do any builders have typescript files in them?
 			var ts = false;
@@ -73,7 +75,7 @@ namespace Api.TypeScript
 				}
 			}
 
-			output = Events.TypeScript.TSConfigPaths.Dispatch(output);
+			output = await Events.TypeScript.TSConfigPaths.Dispatch(context, output);
 
 			output.Append(", \"Api/*\": [\"TypeScript/Api/*\"]");
 

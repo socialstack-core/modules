@@ -33,7 +33,7 @@ namespace Api.TypeScript.Objects
         /// <remarks>
         /// This constructor scans endpoint methods for required Web API types and registers them with the container.
         /// </remarks>
-        public AutoController(ESModule container)
+        public AutoController(ESModule container) : base(container)
         {
             // Ensure the generic controller type exists.
             // container.AddType(typeof(AutoController<,>));

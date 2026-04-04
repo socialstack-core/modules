@@ -18,15 +18,20 @@ namespace Api.TypeScript.Objects
         private readonly List<Type> _requiredImports = [];
 
         private ESModule _container;
-        
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="container"></param>
-        public GenericTypeList(ESModule container)
+
+        private TypeScriptService _tsService;
+
+		/// <summary>
+		/// Constructor
+		/// </summary>
+		/// <param name="container"></param>
+		/// <param name="tsService"></param>
+		public GenericTypeList(ESModule container, TypeScriptService tsService)
         {
             _container = container;
-        }
+            _tsService = tsService;
+
+		}
 
         /// <summary>
         /// Adds a .NET type to the list of types to be emitted as TypeScript types.
@@ -35,7 +40,6 @@ namespace Api.TypeScript.Objects
         public void AddContentType(Type type)
         {
             _contentTypes.Add(type);
-            var svc = Services.Get<TypeScriptService>();
     
             if (type == typeof(Content<>))
             {
@@ -69,7 +73,7 @@ namespace Api.TypeScript.Objects
                         )
                     )
                     {
-                        var existingModule = svc.modules.FirstOrDefault(m => m.IsEntity(virtualType));
+                        var existingModule = _tsService.modules.FirstOrDefault(m => m.IsEntity(virtualType));
 
                         if (existingModule is not null)
                         {

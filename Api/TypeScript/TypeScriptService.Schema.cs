@@ -17,17 +17,14 @@ namespace Api.TypeScript
     public partial class TypeScriptService : AutoService
     {
         internal List<ESModule> modules = [];
-        
-        /// <summary>
-        /// Creates the schema in to the given container.
-        /// </summary>
-        /// <param name="container"></param>
-        public void CreateApiSchema(SourceFileContainer container)
-        {
-            // kept in as to not break anything.
-            ContextGenerator.SaveToFile("TypeScript/Config/Session.tsx");
-            GlobalGenerator.GenerateGlobals();
-            
+
+		/// <summary>
+		/// Creates the schema in to the given container.
+		/// </summary>
+		/// <param name="container"></param>
+		/// <param name="toFileSystem">True if it should also be written to the fs.</param>
+		public void CreateApiSchema(SourceFileContainer container, bool toFileSystem)
+        {   
             var allContent = _aes.ListByModule();
 
             foreach (var module in allContent)
@@ -46,20 +43,20 @@ namespace Api.TypeScript
                 }
             }
             
-            var includesScript = ESModule.Empty(typeof(void), modules);
+            var includesScript = ESModule.Empty(typeof(void), modules, this);
             includesScript.SetFileName("Includes");
 
             var includes = new ApiIncludes();
             
             includesScript.AddInclude(includes);
             
-            var content = ESModule.Empty(typeof(Content<>), modules);
+            var content = ESModule.Empty(typeof(Content<>), modules, this);
             
             // this can then be imported via:
             // Api/Content.
             content.SetFileName("Content");
 
-            var generics = new GenericTypeList(content);
+            var generics = new GenericTypeList(content, this);
             content.AddGenericTypes(generics);
             
             content.RequireWebApi(WebApis.GetList);
@@ -89,7 +86,7 @@ namespace Api.TypeScript
                 {
                     if (IsEntityController(type, out var entityType))
                     {
-                        var module = modules.FirstOrDefault(mod => mod.HasTypeDefinition(type, out _)) ?? ESModule.Empty(type, modules);
+                        var module = modules.FirstOrDefault(mod => mod.HasTypeDefinition(type, out _)) ?? ESModule.Empty(type, modules, this);
                         module.SetFileName(entityType.Name);
                         
                         
@@ -133,7 +130,7 @@ namespace Api.TypeScript
                         {
                             if (type.BaseType == typeof(ControllerBase) || type.BaseType == typeof(AutoController))
                             {
-                                var module = ESModule.Empty(type, modules);
+                                var module = ESModule.Empty(type, modules, this);
                                 module.SetFileName(type.Name);
                                 module.AddNonEntityController(type, includesScript);
                             }
@@ -181,8 +178,12 @@ namespace Api.TypeScript
 
                 var src = builder.ToString();
                 var path = module.GetFileName();
-				container.Add(path, src);
-                File.WriteAllText(path, src);
+				var file = container.Add(path, src);
+
+                if (toFileSystem)
+                {
+                    File.WriteAllText(file.Path, src);
+                }
             });
 
 

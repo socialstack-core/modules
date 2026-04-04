@@ -21,7 +21,17 @@ public abstract class MethodCollector : AbstractTypeScriptObject
     /// caching mechanism
     /// </summary>
     private readonly List<ControllerMethod> _methods = [];
-    
+    private ESModule _module;
+
+    /// <summary>
+    /// Creates a new MethodCollector using the given ESModule.
+    /// </summary>
+    /// <param name="module"></param>
+    public MethodCollector(ESModule module)
+    {
+        _module = module;
+    }
+
     /// <summary>
     /// Collects an array of valid endpoints for said controller.
     /// </summary>
@@ -34,8 +44,6 @@ public abstract class MethodCollector : AbstractTypeScriptObject
         {
             return _methods;
         }
-        
-        var ts = Services.Get<TypeScriptService>();
         
         // gets all instanced & public methods within a type
         // we ignore constructors
@@ -184,7 +192,7 @@ public abstract class MethodCollector : AbstractTypeScriptObject
                 var isFromQuery = param.GetCustomAttribute<FromQueryAttribute>() != null;
                 var isFromBody = param.GetCustomAttribute<FromBodyAttribute>() != null;
                 
-                if (isFromRoute || isFromQuery || isFromBody || ts.GetTypeOverwrite(param.ParameterType) != null)
+                if (isFromRoute || isFromQuery || isFromBody || _module.TypeScriptService.GetTypeOverwrite(param.ParameterType) != null)
                 {
                      webSafeParams.Add(param);
                 }
