@@ -51,6 +51,16 @@ namespace Api.Configuration
 
         }
 
+        /// <summary>
+        /// True if the application is running in edge mode (no reverse proxy).
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsEdgeMode()
+		{
+			var localReverseProxy = AppSettings.GetString("LocalReverseProxy", null);
+			return localReverseProxy == null && !Services.IsDevelopment();
+		}
+
         private static AppSettingsFile LoadFromJsonFile(string path)
         {
 	        // the case of
@@ -239,6 +249,22 @@ namespace Api.Configuration
             var textValue = Configuration[name];
 
             return string.IsNullOrEmpty(textValue) ? defaultValue : textValue;
+        }
+
+        /// <summary>
+        /// Gets a bool from the settings.
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="defaultValue"></param>
+        /// <returns></returns>
+        public static bool GetBool(string name, bool defaultValue)
+        {
+            if(bool.TryParse(GetString(name, null), out var result))
+            {
+                return result;
+            }
+            
+            return defaultValue;
         }
 
         /// <summary>

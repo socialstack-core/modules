@@ -1,0 +1,6 @@
+{
+	"name": "Configuration",
+	"description": "The essential configuration mechanism for socialstack. Provides modules with the ability to define config either in appsettings.json, environment variables or in the database otherwise. Modules can then make use of their config through UseConfig typically in their service constructor.",
+	"modules": [
+	]
+}

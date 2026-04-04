@@ -27,7 +27,7 @@ namespace Api.Configuration
 		public ConfigurationService(AutoFormService autoForms) : base(Events.Configuration)
         {
 			// Example admin page install:
-			InstallAdminPages("Configuration", "fa:fa-cogs", ["id", "name"]);
+			InstallAdminPages("Configuration", "fa:fa-cogs", ["id", "name", "environments"]);
 
 			Cache();
 
@@ -288,7 +288,7 @@ namespace Api.Configuration
 			});
 
 			// Register the autoforms for config entries:
-			autoForms.RegisterCustomFormType("config", (Context context, Dictionary<string, AutoFormInfo> cache) => {
+			autoForms.RegisterCustomFormType("config", async (Context context, Dictionary<string, AutoFormInfo> cache) => {
 				
 				// Populate the given cache now.
 				// Do this by discovering all :Config classes in the code, then constructing the form for them.
@@ -376,16 +376,13 @@ namespace Api.Configuration
 
 						field.SetDefaultDisplayModule();
 
-						fields.Add(autoForms.BuildFieldInfo(field));
+						fields.Add(await autoForms.BuildFieldInfo(context, field, autoForms));
 
 						fields = fields.OrderBy(f => f.Order).ToList();
 					}
 
 				}
-
-				return new ValueTask();
 			});
-			
 		}
 
 		/// <summary>
