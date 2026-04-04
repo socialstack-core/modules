@@ -1,0 +1,6 @@
+{
+	"name": "Counters (MongoDB)",
+	"description": "Creates sequential IDs (the Id field) for all content types when running on MongoDB.",
+	"modules": [
+	]
+}

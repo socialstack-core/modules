@@ -1,0 +1,6 @@
+{
+	"name": "CSV Exporting",
+	"description": "Creates .csv endpoints for all content types such that you can emit csv's of your data. Supports list filters as well so you can e.g. get a subset of a particular content type - a csv of User's created after a specific date, for example.",
+	"modules": [
+	]
+}

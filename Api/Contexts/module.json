@@ -1,0 +1,6 @@
+{
+	"name": "Server contexts",
+	"description": "The essential server context module. Each time a request happens, a context represents the requesting User, their Role, locale and so on. These contexts are then passed around almost everywhere. Designed to be highly extensible so you can add additional things as necessary. ",
+	"modules": [
+	]
+}

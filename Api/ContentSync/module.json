@@ -1,0 +1,6 @@
+{
+	"name": "ContentSync",
+	"description": "Services can cache content as they need to however it is very common in a cluster for changes to cached content to happen on another server. ContentSync is the module for handling these cache invalidations cluster wide. It does this by also tracking nodes in a cluster which can be useful for other use cases, such as network rooms.",
+	"modules": [
+	]
+}

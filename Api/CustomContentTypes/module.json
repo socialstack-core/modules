@@ -1,0 +1,11 @@
+{
+	"name": "Dynamic custom content types",
+	"description": "Most content types are created in C# - these are called built in ones - however, this module allows them to be defined dynamically at runtime as well. These dynamic custom content types are first class citizens; they use generated C# types such that they have the same performance and functionality as any other built in type. Major modules such as revisions are all designed to automatically mount any content type including ones defined at runtime.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Admin/CustomFieldEditor",
+			"reason": "An admin UI for creating and editing these types. Whilst you could define them without it, it would be unnecessarily awkward!"
+		}
+	]
+}

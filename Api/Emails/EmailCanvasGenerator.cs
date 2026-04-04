@@ -111,7 +111,7 @@ public class EmailCanvasGenerator
 		if (generator == null)
 		{
 			// Create the generator:
-			generator = new CanvasGenerator(latest.BodyJson.Get(localeId).ValueOf(), PrimaryType);
+			generator = new CanvasGenerator(latest.BodyJson.Get(localeId).ValueOf(), PrimaryType, null);
 			gens[localeId] = generator;
 		}
 

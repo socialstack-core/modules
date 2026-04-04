@@ -1,0 +1,6 @@
+{
+	"name": "Database bindings (MySQL)",
+	"description": "A database binding specifically for MySQL. See the Api/Database module for more information.",
+	"modules": [
+	]
+}

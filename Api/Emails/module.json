@@ -1,0 +1,11 @@
+{
+	"name": "Emailer",
+	"description": "Handles the construction and sending of emails. It is a template based system using email templates which are editable in the admin panel or installed by C# code. Uses SMTP to actually send the email unless otherwise defined.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Api/CanvasRenderer",
+			"reason": "Renders the email template to HTML."
+		}
+	]
+}

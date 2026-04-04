@@ -73,20 +73,18 @@ namespace Api.Emails
 			});
 
 			// Install the base email template.
-			templates.Install(new Template()
+			templates.InstallContent(new TemplateBuilder()
 			{
 				Title = "Email default",
 				Key = "email_default",
-				TemplateType = 2, // Email
-				BodyJson = new JsonString(@"{
-					""t"": ""Email/Templates/BaseEmailTemplate"",
-					""r"": {
-						""children"": {
-							""t"": ""Admin/Template/Slot"",
-							""d"": {""name"": ""body""}
-						}
-					}
-				}")
+				TemplateType = TemplateType.Email,
+				BuildBody = (TemplateBuilder builder) => {
+					return new CanvasNode("Email/Templates/BaseEmailTemplate")
+						.AddRoot("children",
+							new CanvasNode("Admin/Template/Slot")
+								.With("name", "body")
+						);
+				}
 			});
 
 			Events.Page.BeforePageInstall.AddEventListener((ctx, pageBuilder) =>

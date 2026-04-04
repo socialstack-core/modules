@@ -79,10 +79,12 @@ namespace Api.Emails{
 		/// </summary>
 		/// <param name="emailAddress"></param>
 		/// <param name="localeContext"></param>
-		public Recipient(string emailAddress, Context localeContext)
+		/// <param name="customData">Optional custom data which appears as the primary content type.</param>
+		public Recipient(string emailAddress, Context localeContext, object customData = null)
 		{
 			EmailAddress = emailAddress;
 			Context = localeContext;
+			CustomData = customData;
 		}
 
 		/// <summary>
@@ -90,13 +92,15 @@ namespace Api.Emails{
 		/// </summary>
 		/// <param name="emailAddress"></param>
 		/// <param name="localeId"></param>
-		public Recipient(string emailAddress, uint localeId = 0)
+		/// <param name="customData">Optional custom data which appears as the primary content type.</param>
+		public Recipient(string emailAddress, uint localeId = 0, object customData = null)
 		{
 			EmailAddress = emailAddress;
 			Context = new Context()
 			{
 				LocaleId = localeId
 			};
+			CustomData = customData;
 		}
 
 	}

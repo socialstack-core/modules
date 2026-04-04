@@ -1,0 +1,6 @@
+{
+	"name": "Database bindings (MongoDB)",
+	"description": "A database binding specifically for MongoDB. See the Api/Database module for more information.",
+	"modules": [
+	]
+}

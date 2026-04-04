@@ -41,6 +41,7 @@ namespace Api.Emails
 		[Data("required", true)]
 		[Data("validate", "Required")]
 		[Data("tab", "design")]
+		[Data("componentGroups", "email_authoring")]
 		public Localized<JsonString> BodyJson;
 
 		/// <summary>
