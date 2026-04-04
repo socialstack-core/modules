@@ -1,16 +1,16 @@
-using Api.Contexts;
-using Api.Eventing;
 using Api.Addresses;
-using Api.Pages;
-using Api.Startup;
-using System.Net.Mail;
-using System;
-using Api.Permissions;
-using Api.Payments;
 using Api.CanvasRenderer;
-using System.Threading.Tasks;
+using Api.Contexts;
 using Api.Emails;
-using Newtonsoft.Json;
+using Api.Eventing;
+using Api.Pages;
+using Api.Payments;
+using Api.Permissions;
+using Api.Startup;
+using System;
+using System.Collections.Generic;
+using System.Net.Mail;
+using System.Threading.Tasks;
 
 namespace Api.GuestUsers
 {
@@ -89,28 +89,68 @@ namespace Api.GuestUsers
 				}
 			);
 
+			HashSet<string> hiddenFields = new HashSet<string>() { "FeatureRef", "Feature", "Categories", "Tags" };
+
+			Events.GuestUser.BeforeSettable.AddEventListener((Context ctx, JsonField<GuestUser, uint> field) =>
+			{
+				if (field == null)
+				{
+					return new ValueTask<JsonField<GuestUser, uint>>(field);
+				}
+
+				if (hiddenFields.Contains(field.Name))
+				{
+					field.Writeable = false;
+					field.Hide = true;
+				}
+
+				return new ValueTask<JsonField<GuestUser, uint>>(field);
+			});
+
 			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
 			{
 				if (builder.ContentType == typeof(GuestUser) && builder.PageType == CommonPageType.AdminList)
 				{
 					builder.GetContentRoot()
 						.Empty()
-						.AppendChild(new CanvasNode("UI/Guest/Details"));
+						.AppendChild(new CanvasNode("Admin/Guest/Details"));
 				}
 
 				return new ValueTask<PageBuilder>(builder);
 			});
 
-			Events.GuestUser.BeforeCreate.AddEventListener((Context ctx, GuestUser guestUser) =>
+
+			Events.GuestUser.BeforeCreate.AddEventListener(async (Context ctx, GuestUser guestUser) =>
 			{
 				if (!_config.IsEnabled)
 				{
-					throw new PublicException("Guest users are unavailable on this site.", "guest/disabled");
+					throw new PublicException("The guest system is not active on this website.", "guest/disabled");
 				}
 
-				return new ValueTask<GuestUser>(guestUser);
-			}, 15);
+				return guestUser;
+			});
 
+			Events.GuestUser.BeforeCreate.AddEventListener(async (Context ctx, GuestUser guestUser) =>
+			{
+				// guest has already been processed/ignored 
+				if (guestUser == null)
+				{
+					return guestUser;
+				}
+
+				MailAddress email;
+				try
+				{
+					email = new MailAddress(guestUser.Email);
+				}
+				catch (Exception)
+				{
+					throw new PublicException("The email domain cannot be verified. Please contact us for assistance", "email_format");
+
+				}
+
+				return guestUser;
+			}, 50);
 		}
 	}
 }
