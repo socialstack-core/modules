@@ -1,14 +1,18 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
-using System.Linq;
-using Api.Eventing;
+﻿using Api.CanvasRenderer;
+using Api.Components;
 using Api.Contexts;
-using Api.Startup;
-using Api.CanvasRenderer;
-using System;
+using Api.Database;
+using Api.Eventing;
 using Api.Pages;
+using Api.Permissions;
+using Api.Startup;
+using Api.Translate;
+using Api.Users;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.NavMenus
 {
@@ -25,30 +29,38 @@ namespace Api.NavMenus
         {
 			InstallAdminPages("Nav menus", "fa:fa-map-signs", ["id", "name", "key"]);
 
-			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) => {
+			Events.NavMenu.BeforeCreate.AddEventListener((Context context, NavMenu menu) => {
 
-				if (builder == null)
+				if (string.IsNullOrEmpty(menu.Name))
 				{
-					return new ValueTask<PageBuilder>(builder);
+					throw new PublicException("Name is required", "navmenu/name_required");
 				}
 
-				if (builder.ContentType == typeof(NavMenu) && builder.PageType == CommonPageType.AdminEdit)
+				if (string.IsNullOrEmpty(menu.Key))
 				{
-					// This is likely obsoleted: favour more customised pages instead.
-					builder.GetContentRoot().AppendChild(
-						new CanvasNode("Admin/AutoList")
-						.With("contentType", "NavMenuItem")
-						.With("filterField", "NavMenuId")
-						.With("create", true)
-						.With("searchFields", null)
-						.With("filterValue", "${primary.id}")
-						.With("fields", new string[] { "bodyJson" })
-					);
+					menu.Key = menu.Name.ToLower().Trim().Replace(" ", "_");
 				}
 
-				return new ValueTask<PageBuilder>(builder);
+				return new ValueTask<NavMenu>(menu);
+
 			});
+
+#if !DEBUG
+			Cache();
+#endif
+		}
+
+		/// <summary>
+		/// Populates a NavMenu from a MenuBuilder.
+		/// </summary>
+		protected override ValueTask PopulateContent(Context context, NavMenu content, ContentBuilder builder)
+		{
+			if (builder is MenuBuilder menuBuilder)
+			{
+				content.Name = menuBuilder.Name;
+				content.ContentJson = new Localized<JsonString>(menuBuilder.ContentJson);
+			}
+			return new ValueTask();
 		}
 	}
-    
 }

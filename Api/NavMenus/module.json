@@ -1,0 +1,11 @@
+{
+	"name": "Navigation menus",
+	"description": "Editable navigation menus, including the automatic generation of the admin menu.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Admin/NavMenu/Editor",
+			"reason": "An admin UI for creating and editing these menus. Whilst you could define them without it, it would be unnecessarily awkward!"
+		}
+	]
+}
