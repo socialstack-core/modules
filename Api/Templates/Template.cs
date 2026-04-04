@@ -9,17 +9,12 @@ namespace Api.Templates
 	/// <summary>
 	/// A template.
 	/// </summary>
-	public partial class Template : VersionedContent<uint>
+	public partial class Template : InstallableContent<uint>
 	{
-		/// <summary>
-		/// A key used to identify a template by its purpose.
-		/// E.g. "default" or "admin_default"
-		/// </summary>
-		public string Key;
-
 		/// <summary>
 		/// The default title for this template.
 		/// </summary>
+		[Data("required", true)]
 		public string Title;
 
 		/// <summary>

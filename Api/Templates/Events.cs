@@ -1,5 +1,6 @@
-using Api.Templates;
+using Api.Pages;
 using Api.Permissions;
+using Api.Templates;
 using System.Collections.Generic;
 
 namespace Api.Eventing
@@ -13,6 +14,18 @@ namespace Api.Eventing
 		/// <summary>
 		/// All template entity events.
 		/// </summary>
-		public static EventGroup<Template> Template;
+		public static TemplateEventGroup Template;
+	}
+
+	/// <summary>
+	/// Events for a template.
+	/// </summary>
+	public class TemplateEventGroup : EventGroup<Template> {
+
+		/// <summary>
+		/// On template install.
+		/// </summary>
+		public EventHandler<TemplateBuilder> BeforeTemplateInstall;
+
 	}
 }

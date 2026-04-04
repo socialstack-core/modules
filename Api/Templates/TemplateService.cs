@@ -1,18 +1,21 @@
-﻿using Api.Contexts;
+﻿using Api.CanvasRenderer;
+using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
-using Api.Permissions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using System;
-using Api.CanvasRenderer;
 using Api.NavMenus;
-using Newtonsoft.Json.Linq;
-using Api.Templates;
-using Api.Startup;
 using Api.Pages;
+using Api.Permissions;
+using Api.Startup;
+using Api.Startup.Routing;
+using Api.Templates;
+using Api.Translate;
 using Api.Uploader;
+using Api.Users;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.Templates
 {
@@ -34,34 +37,30 @@ namespace Api.Templates
 			Cache();
 
 			// Install the two default templates (referenced by AddTemplate inside PageBuilder):
-			Install(new Template()
+			InstallContent(new TemplateBuilder()
 			{
 				Title = "Site default",
 				Key = "site_default",
-				BodyJson = new JsonString(@"{
-					""t"": ""UI/Templates/BaseWebTemplate"",
-					""r"": {
-						""body"": {
-							""t"": ""Admin/Template/Slot"",
-							""d"": {""name"": ""body""}
-						}
-					}
-				}")
+				BuildBody = (TemplateBuilder builder) => {
+					return new CanvasNode("UI/Templates/BaseWebTemplate")
+						.AddRoot("body",
+							new CanvasNode("Admin/Template/Slot")
+							.With("name", "body")
+						);
+				}
 			});
 
-			Install(new Template()
+			InstallContent(new TemplateBuilder()
 			{
 				Title = "Admin default",
 				Key = "admin_default",
-				BodyJson = new JsonString(@"{
-					""t"": ""Admin/Templates/BaseAdminTemplate"",
-					""r"": {
-						""children"": {
-							""t"": ""Admin/Template/Slot"",
-							""d"": {""name"": ""body""}
-						}
-					}
-				}")
+				BuildBody = (TemplateBuilder builder) => {
+					return new CanvasNode("Admin/Templates/BaseAdminTemplate")
+						.AddRoot("children", 
+							new CanvasNode("Admin/Template/Slot")
+							.With("name", "body")
+						);
+				}
 			});
 
 			Events.Page.TransformCanvasNode.AddEventListener(async (Context context, CanvasNode node) => {
@@ -89,22 +88,37 @@ namespace Api.Templates
 						{
 							// Load the template:
 							template = await Get(context, (uint)(templateId.Value), DataOptions.IgnorePermissions);
+
+							if (template == null)
+							{
+								// Can't load this node as the template was deleted.
+								Log.Warn(LogTag, $"A template was missing Admin/Template :: {templateId.Value} ");
+								return null;
+							}
 						}
 					}
 					else if (node.Data.TryGetValue("templateKey", out CanvasNode.CanvasAttribute templateKeyObj))
 					{
 						var templateKey = templateKeyObj.Value as string;
 						template = await Where("Key=?").Bind(templateKey).First(context);
+
+						if (template == null)
+						{
+							// Can't load this node as the template was deleted.
+							Log.Warn(LogTag, $"A template was missing Admin/Template :: {templateKey} ");
+							return null;
+						}
 					}
 
 					if (template == null)
 					{
 						// Can't load this node as the template was deleted.
+						Log.Warn(LogTag, $"Unable to locate admin template.");
 						return null;
 					}
 
 					// Load the template body (which can cause further substition if needed):
-					var templateInfo = await LoadTemplate(context, template, node);
+					var templateInfo = await LoadTemplate(context, template, node, node.Canvas);
 
 					return templateInfo.LoadedTemplate;
 				}
@@ -147,9 +161,55 @@ namespace Api.Templates
 				return node;
 			});
 
+			Events.Template.AfterUpdate.AddEventListener((Context context, Template template, ChangedFields diff) =>
+			{
+				// Need to update the two caches. We'll just wipe them for now:
+				Router.RequestRebuild();
+
+				return new ValueTask<Template>(template);
+			});
+
+			Events.Template.AfterCreate.AddEventListener((Context context, Template template) =>
+			{
+				// Need to update the two caches. We'll just wipe them for now:
+				Router.RequestRebuild();
+
+				return new ValueTask<Template>(template);
+			});
+
+			Events.Template.BeforeCreate.AddEventListener((Context context, Template template) => {
+
+				if (string.IsNullOrEmpty(template.Title))
+				{
+					throw new PublicException("Title is required", "template/title_required");
+				}
+
+				if (string.IsNullOrEmpty(template.Key))
+				{
+					template.Key = template.Title.ToLower().Trim().Replace(" ", "_");
+				}
+
+				return new ValueTask<Template>(template);
+
+			});
+
 		}
 
-        private void InitEvents()
+		/// <summary>
+		/// Populates a Template from a TemplateBuilder.
+		/// </summary>
+		protected override async ValueTask PopulateContent(Context context, Template content, ContentBuilder builder)
+		{
+			if (builder is TemplateBuilder templateBuilder)
+			{
+				content.Title = templateBuilder.Title;
+				content.TemplateType = (uint)templateBuilder.TemplateType;
+				var json = await templateBuilder.Build(context);
+				content.BodyJson = new JsonString(json.ToJson());
+			}
+		}
+
+		private void InitEvents()
         {
 
 			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
@@ -181,105 +241,6 @@ namespace Api.Templates
 			
         }
 
-		/// <summary>
-		/// The built up list of templates to install when services have started.
-		/// </summary>
-		private List<Template> _toInstall;
-		private object _installLocker = new object();
-
-		/// <summary>
-		/// Installs the given templates. It checks if they exist by their key, and if not, creates them.
-		/// </summary>
-		/// <param name="builders">
-		/// </param>
-		public void Install(params Template[] builders)
-		{
-			bool scheduleStart = false;
-
-			lock (_installLocker)
-			{
-				if (_toInstall == null)
-				{
-					_toInstall = new List<Template>();
-					scheduleStart = true;
-				}
-
-				_toInstall.AddRange(builders);
-			}
-
-			if (scheduleStart)
-			{
-				if (Services.Started)
-				{
-					Task.Run(async () =>
-					{
-						List<Template> set;
-
-						lock (_installLocker)
-						{
-							set = _toInstall;
-							_toInstall = null;
-						}
-						await InstallInternal(new Context(), set);
-					});
-				}
-				else
-				{
-					Events.Service.AfterStart.AddEventListener(async (Context ctx, object src) =>
-					{
-						List<Template> set;
-
-						lock (_installLocker)
-						{
-							set = _toInstall;
-							_toInstall = null;
-						}
-						await InstallInternal(ctx, set);
-						return src;
-					}, 5);
-				}
-			}
-		}
-
-		private async ValueTask InstallInternal(Context context, List<Template> set)
-		{
-			if (set == null)
-			{
-				return;
-			}
-
-			foreach (var template in set)
-			{
-				if (string.IsNullOrEmpty(template.Key))
-				{
-					throw new ArgumentException("A Key is required when installing a template.");
-				}
-			}
-
-			// Get the templates by those keys:
-			var existingTemplates = (await Where("Key=[?]", DataOptions.NoCacheIgnorePermissions)
-					.Bind(set.Select(temp => temp.Key))
-					.ListAll(context));
-
-			var existingTemplateLookup = new Dictionary<string, Template>();
-
-			foreach (var pg in existingTemplates)
-			{
-				existingTemplateLookup[pg.Key] = pg;
-			}
-
-			foreach (var template in set)
-			{
-				// If it doesn't already exist, create it.
-				if (existingTemplateLookup.ContainsKey(template.Key))
-				{
-					continue;
-				}
-
-				await Create(context, template, DataOptions.IgnorePermissions);
-			}
-		}
-
 		// protected void InstallAdminPages(string navMenuLabel, string navMenuIconRef, string[] fields, ChildAdminPageOptions childAdminPage = null, string visibilityJson = null)
 		// {
 
@@ -291,8 +252,9 @@ namespace Api.Templates
 		/// <param name="context"></param>
 		/// <param name="template"></param>
 		/// <param name="templateConfig"></param>
+		/// <param name="canvDetails"></param>
 		/// <returns></returns>
-		public async ValueTask<TemplateDetails> LoadTemplate(Context context, Template template, CanvasNode templateConfig)
+		public async ValueTask<TemplateDetails> LoadTemplate(Context context, Template template, CanvasNode templateConfig, CanvasDetails canvDetails)
 		{
 			// Load the JSON.
 			var json = Newtonsoft.Json.JsonConvert.DeserializeObject(template.BodyJson.ValueOf()) as JToken;
@@ -303,11 +265,10 @@ namespace Api.Templates
 				Config = templateConfig
 			};
 
-			var templateBody = await CanvasNode.LoadCanvasNode(context, json, new CanvasDetails()
-			{
-				Template = details
-			});
-
+			var prevTemplate = canvDetails.Template;
+			canvDetails.Template = details;
+			var templateBody = await CanvasNode.LoadCanvasNode(context, json, canvDetails);
+			canvDetails.Template = prevTemplate;
 			details.LoadedTemplate = templateBody;
 			return details;
 		}

@@ -1,0 +1,6 @@
+{
+	"name": "Templates",
+	"description": "Templates for page/ email content, such that things like a header and footer are defined once.",
+	"modules": [
+	]
+}
