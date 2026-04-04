@@ -24,11 +24,12 @@ namespace Api.Addresses
 				Roles.Guest.Revoke("address_load", "address_list");
 				Roles.Public.Revoke("address_load", "address_list");
 				Roles.Member.Revoke("address_load", "address_list");
-				Roles.Member.If("IsSelf() or IsIncluded()").ThenGrant("address_load", "address_list");
+				Roles.Member.If("IsSelf()").ThenGrant("address_load", "address_list");
 
-				// Enable public creation:
+				// Enable public creation
+				Roles.Public.Grant("address_create");
+
 				Roles.Guest.Revoke("address_create");
-				Roles.Public.Revoke("address_create");
 				Roles.Member.Revoke("address_create");
 				return new ValueTask<object>(source);
 			}, 20);

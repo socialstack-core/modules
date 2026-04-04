@@ -22,7 +22,8 @@ namespace Api.Addresses
 				return false;
 			}
 
-			return x.Line1 == y.Line1 &&
+			return x.Name == y.Name &&
+				   x.Line1 == y.Line1 &&
 				   x.Line2 == y.Line2 &&
 				   x.City == y.City &&
 				   x.County == y.County &&
@@ -39,6 +40,7 @@ namespace Api.Addresses
 		public int GetHashCode(Address obj)
 		{
 			return HashCode.Combine(
+				obj.Name,
 				obj.Line1,
 				obj.Line2,
 				obj.City,

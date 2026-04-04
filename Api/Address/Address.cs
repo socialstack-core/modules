@@ -18,12 +18,7 @@ public partial class Address : VersionedContent<uint>
     /// The type of address payment/business (0 = payment/1 = business)
     /// </summary>
     [Module("Admin/Address/AddressTypes")]
-    public uint AddressType;
-
-	/// <summary>
-	/// A key used for anon loading of guest addresses.
-	/// </summary>
-	public string AnonKey;
+    public uint AddressType; 
 
 	/// <summary>
 	/// Resolved UPRN of this address, if known.

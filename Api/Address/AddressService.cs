@@ -3,6 +3,7 @@ using Api.Contexts;
 using Api.Eventing;
 using Api.Pages;
 using Api.PasswordResetRequests;
+using Api.Startup;
 using System.Threading.Tasks;
 
 namespace Api.Addresses;
@@ -18,21 +19,40 @@ public partial class AddressService : AutoService<Address>
 	/// </summary>
 	public AddressService(PageService pages) : base(Events.Address)
 	{
+		InstallAdminPages(new AdminPageOptions()
+		{
+			NavMenuLabel = new Translate.Localized<string>("Addresses"),
+			NavMenuIcon = "fa:fa-address-book",
+			ListColumns = [
+				new AutoListColumn
+					{
+						Field = "id"
+					},
+					new AutoListColumn
+					{
+						Field = "name"
+					},
+					new AutoListColumn
+					{
+						Field = "line1",
+						Label = "Line 1",
+						IsSearchable = true
+					}
+				]
+		});
 
-        InstallAdminPages("Addresses", "fa:fa-address-book", ["id", "name", "line1"]);
-
-        pages.Install(
+		pages.Install(
 			new PageBuilder()
 			{
-				Url="/address_book",
+				Url = "/address_book",
 				Key = "address_book",
 				Title = "My addresses",
 				BuildBody = (PageBuilder builder) =>
 				{
 					return builder.AddTemplate(
 						new CanvasRenderer.CanvasNode("UI/Address/Book")
-                        .With("addressType", 0)
-                    );
+						.With("addressType", 0)
+					);
 				}
 			}
 		);
@@ -41,10 +61,15 @@ public partial class AddressService : AutoService<Address>
 		{
 			//Add an anonymous key to the address
 			Address matchingAddress = null;
-			while(address.AnonKey == null || matchingAddress != null)
+			while (address.AnonKey == null || matchingAddress != null)
 			{
 				address.AnonKey = RandomToken.Generate(16);
 				matchingAddress = await Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(address.AnonKey).First(context);
+			}
+
+			if (!string.IsNullOrWhiteSpace(address.Postcode))
+			{
+				address.Postcode = address.Postcode.Trim().ToUpper();
 			}
 
 			return address;
@@ -72,13 +97,29 @@ public partial class AddressService : AutoService<Address>
 	/// <returns></returns>
 	public async ValueTask<string> GetTaxJurisdiction(Context context, Address address)
 	{
-		if (address == null)
+		if (address == null || string.IsNullOrEmpty(address.CountryCode))
 		{
 			var locale = await context.GetLocale();
 			return locale.DefaultTaxJurisdiction;
 		}
-
-		// Todo! Can be e.g. specific US states etc.
-		return "GB";
+		
+		var countryCode = address.CountryCode.ToUpper();
+		
+		switch(countryCode){
+			case "US":
+				return GetUSTaxJurisdiction(address);
+			default:
+				return countryCode;
+		}
+	}
+	
+	private string GetUSTaxJurisdiction(Address address)
+	{
+		if (!string.IsNullOrWhiteSpace(address.County))
+		{
+			return $"US-{address.County.ToUpper()}";
+		}
+		
+		return "US-FED"; 
 	}
 }
