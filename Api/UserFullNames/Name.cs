@@ -16,6 +16,8 @@ namespace Api.Users
         /// The first name of the user. 
         /// </summary>
         [DatabaseField(Length = 40)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string FirstName;
 
@@ -23,6 +25,8 @@ namespace Api.Users
         /// The last name(s) of the user. 
         /// </summary>
         [DatabaseField(Length = 40)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string LastName;
 		
@@ -30,7 +34,7 @@ namespace Api.Users
 		/// First + last concatted with a space.
         /// </summary>
         [DatabaseField(Length = 90)]
-        [Data("hidden", true)] // It's writeable but hidden from the admin UI
+        [Module(Hide = true)] // It's writeable but hidden from the admin UI
 		public string FullName;
     }
     
