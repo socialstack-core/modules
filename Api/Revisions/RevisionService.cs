@@ -70,6 +70,18 @@ namespace Api.Revisions
 		{
 			return this;
 		}
+		
+		/// <summary>
+		/// Gets a revision by a revision
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="contentId"></param>
+		/// <param name="revisionNumber"></param>
+		/// <returns></returns>
+		public async ValueTask<Revision<T,ID>> GetByRevisionNumber(Context context, ID contentId, uint revisionNumber)
+		{
+			return await Where("ContentId=? and RevisionNumber=?", DataOptions.IgnorePermissions).Bind(contentId).Bind(revisionNumber).First(context);
+		}
 
 		/// <summary>
 		/// Gets the latest draft (or null if none) of the given content ID, newer than the specified date.

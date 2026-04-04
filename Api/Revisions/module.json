@@ -1,0 +1,6 @@
+{
+	"name": "Revisions",
+	"description": "Automatically mounts all VersionedContent types and adds revisions to them. Also supports draft content.",
+	"modules": [
+	]
+}
