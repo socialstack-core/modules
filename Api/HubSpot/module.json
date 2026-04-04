@@ -1,0 +1,6 @@
+{
+	"name": "HubSpot integration",
+	"description": "Handles hubspot integration. Add IHaveHubSpotId to any content type for it to be synced to HubSpot.",
+	"modules": [
+	]
+}

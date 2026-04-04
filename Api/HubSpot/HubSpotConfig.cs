@@ -21,8 +21,20 @@ public class HubSpotConfig : Config
 
 	/*
     "DefaultMappings" : {
-        "lifecyclestage": "Website Contact",
+        "lifecyclestage": "111111111",
         }
+	*/
+
+	/*
+	to get the lifecycle stage 
+
+	. goto contacts 
+	. click on settings
+	. click on lkifecycle stage 
+	. find the relevant entry such as "Website contact"
+	. open the entry and ignore any popups
+	. click on the tag icon </> 
+	. use the internal id to replace "111111111" above
 	*/
 
 
@@ -44,12 +56,12 @@ public class HubSpotConfig : Config
 	/// <summary>
 	/// List of content type mappings from ss to hubspot
 	/// </summary>		
-	public List<MappingEntity> Mappings { get; set; }
+	public List<MappingEntity> Mappings;
 
 	/// <summary>
 	/// Add any default values to assigned when creating an account 
 	/// </summary>
-	public IDictionary<string,string> DefaultMappings { get; set; }	
+	public IDictionary<string, string> DefaultMappings;	
 
 	/// <summary>
 	/// Config item to store the mapping between a content type and hubspot
@@ -59,11 +71,11 @@ public class HubSpotConfig : Config
 		/// <summary>
 		/// The name of the content type e.g. User/Event etc
 		/// </summary>
-		public string Entity { get; set; }
+		public string Entity;
 
 		/// <summary>
 		/// Mapped field names which are passed to hubspot
 		/// </summary>
-		public IDictionary<string,string> FieldNames { get; set; }
+		public IDictionary<string, string> FieldNames;
 	}
 }

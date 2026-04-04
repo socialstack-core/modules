@@ -1,17 +1,17 @@
-﻿using System.Threading.Tasks;
-using System.Net.Http;
+﻿using Api.Automations;
+using Api.Contexts;
+using Api.Database;
+using Api.Eventing;
+using Api.Startup;
+using Api.Users;
 using Newtonsoft.Json;
 using System;
-using Api.Contexts;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Net.Http;
 using System.Net.Http.Headers;
-using Api.Users;
-using Api.Startup;
-using Api.Automations;
-using Api.Eventing;
-using Api.Database;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Api.HubSpot
 {
@@ -460,10 +460,7 @@ namespace Api.HubSpot
 			}
 
 			// now check if there are any additional handlers to add extra values
-			if ((targetSvc as AutoService<T, ID>).EventGroup.HubSpotProperties.HasListeners())
-			{
-				hubspotProperties = await (targetSvc as AutoService<T, ID>).EventGroup.HubSpotProperties.Dispatch(ctx, hubspotProperties, entity);
-			}
+			hubspotProperties = await (targetSvc as AutoService<T, ID>).EventGroup.HubSpotProperties.Dispatch(ctx, hubspotProperties, entity);
 
 			// finally add any defaults 
 			if (_config.DefaultMappings != null && _config.DefaultMappings.Any())
