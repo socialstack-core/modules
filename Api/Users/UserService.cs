@@ -3,6 +3,7 @@ using Api.Eventing;
 using Api.Pages;
 using Api.Permissions;
 using Api.Startup;
+using Api.Translate;
 using Org.BouncyCastle.Security;
 using System;
 using System.Reflection;
@@ -184,7 +185,22 @@ namespace Api.Users
 
 			SetupCookieName();
 
-			InstallAdminPages("Users", "fa:fa-user", ["id", "email", "username", "role"], null, "security");
+			InstallAdminPages(new AdminPageOptions()
+		{
+			NavMenuLabel = new Localized<string>("Users"),
+			NavMenuIcon = "fa:fa-user",
+			ListColumns = [
+				new AutoListColumn { Field = "id" },
+				new AutoListColumn { Field = "email" },
+				new AutoListColumn { Field = "username" },
+				new AutoListColumn
+				{
+					Field = "role",
+					Module = "Admin/UserRoleDisplay"
+				}
+			],
+			ListIncludes = "userRole"
+		});
 		}
 
 		/// <summary>

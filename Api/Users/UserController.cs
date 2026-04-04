@@ -191,6 +191,10 @@ namespace Api.Users
 
 			// Update the context to the new user:
 			context.User = targetUser;
+
+			// Allow modules to set context for the impersonated user:
+			await Events.User.OnImpersonate.Dispatch(context, targetUser);
+
 			return context;
 		}
 

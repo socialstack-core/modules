@@ -1,0 +1,6 @@
+{
+	"name": "User accounts",
+	"description": "The main module for handling logged in user accounts.",
+	"modules": [
+	]
+}

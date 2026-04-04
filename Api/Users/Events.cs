@@ -63,6 +63,11 @@ namespace Api.Eventing
 		/// An event which runs when the verify email is sent. Make it return null to block the verify email.
 		/// </summary>
 		public EventHandler<User> OnSendVerificationEmail;
+
+		/// <summary>
+		/// During impersonation. This is where you can set the current business context for the impersonated user.
+		/// </summary>
+		public EventHandler<User> OnImpersonate;
 	}
 
 }
