@@ -37,7 +37,7 @@ public class MongoSearchEventListener
 			if (eventCollection == null)
 			{
 				var dbService = Services.Get<MongoDBService>();
-				var db = dbService.GetConnection();
+				var db = dbService.GetInitConnection();
 				eventCollection = db.GetCollection<AuditEvent>(eventCollectionName);
 			}
 
