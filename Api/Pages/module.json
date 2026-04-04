@@ -1,0 +1,6 @@
+{
+	"name": "Pages",
+	"description": "The primary module for pages of a website. Includes a serverside rendering mechanism.",
+	"modules": [
+	]
+}

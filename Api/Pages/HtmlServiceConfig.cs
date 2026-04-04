@@ -295,6 +295,10 @@ namespace Api.Pages
 		/// </summary>
 		public Dictionary<string, string> Attributes { get; set; }
 
+		/// <summary>
+		/// Emit on admin panel pages as well.
+		/// </summary>
+		public bool Admin { get; set; } = true;
 
 		private string _html;
 		private bool _remote;

@@ -548,7 +548,7 @@ namespace Api.Pages
 			HandleCustomHeadList(_config.StartHeadTags, writer);
 
 			// Handle all Start Head Scripts in the config.
-			HandleCustomScriptList(_config.StartHeadScripts, writer);
+			HandleCustomScriptList(_config.StartHeadScripts, writer, isAdmin);
 
 			if (_config.EnableCanonicalTag && page != null)
 			{
@@ -713,7 +713,7 @@ namespace Api.Pages
 			HandleCustomHeadList(_config.EndHeadTags, writer);
 
 			// Handle all End Head Scripts in the config.
-			HandleCustomScriptList(_config.EndHeadScripts, writer);
+			HandleCustomScriptList(_config.EndHeadScripts, writer, isAdmin);
 
 			// Any custom head bits:
 			await Events.Page.OnWriteHeadEnd.Dispatch(context, writer, pageWithTokens);
@@ -877,10 +877,10 @@ namespace Api.Pages
 			}
 
 			// Handle all start body JS scripts
-			HandleCustomScriptList(_config.StartBodyJs, writer);
+			HandleCustomScriptList(_config.StartBodyJs, writer, isAdmin);
 
 			// Handle all Before Main JS scripts
-			HandleCustomScriptList(_config.BeforeMainJs, writer);
+			HandleCustomScriptList(_config.BeforeMainJs, writer, isAdmin);
 
 			writer.WriteASCII("<script>");
 			writer.Write(_configJson, 0, _configJson.Length);
@@ -908,10 +908,10 @@ namespace Api.Pages
 			WriteScriptTag(writer, _config.FullyQualifyUrls ? mainJsFile.FqPublicUrl : mainJsFile.PublicUrl, _config.DeferMainJs);
 
 			// Handle all After Main JS scripts
-			HandleCustomScriptList(_config.AfterMainJs, writer);
+			HandleCustomScriptList(_config.AfterMainJs, writer, isAdmin);
 
 			// Handle all End Body JS scripts
-			HandleCustomScriptList(_config.EndBodyJs, writer);
+			HandleCustomScriptList(_config.EndBodyJs, writer, isAdmin);
 
 			// Closing body and html:
 			writer.WriteASCII("</body></html>");
@@ -1134,7 +1134,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Handles adding a custom script list (if there even is one set) into the given node. They'll be appended.
 		/// </summary>
-		private void HandleCustomScriptList(List<BodyScript> list, Writer writer, bool permitRemote = true)
+		private void HandleCustomScriptList(List<BodyScript> list, Writer writer, bool isAdmin, bool permitRemote = true)
 		{
 			if (list == null)
 			{
@@ -1143,6 +1143,11 @@ namespace Api.Pages
 
 			foreach (var bodyScript in list)
 			{
+				if (isAdmin && !bodyScript.Admin)
+				{
+					continue;
+				}
+
 				//Does this script have content?
 				var htmlStr = bodyScript.GetHtml(out bool isRemote);
 

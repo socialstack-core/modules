@@ -1,15 +1,15 @@
-﻿using Api.Contexts;
-using Api.Eventing;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using System;
-using Api.Startup;
-using Api.CanvasRenderer;
-using Api.Translate;
+﻿using Api.CanvasRenderer;
+using Api.Contexts;
 using Api.Database;
+using Api.Eventing;
 using Api.NavMenus;
+using Api.Startup;
+using Api.Translate;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.Pages
 {
@@ -215,7 +215,6 @@ namespace Api.Pages
 		/// </param>
 		public void InstallAdminPagesInt(Type type, AdminPageOptions options)
 		{
-			var fields = options.ListFields;
 			var navMenuLabel = options.NavMenuLabel;
 			var navMenuIcon = options.NavMenuIcon;
 			var typeName = type.Name;
@@ -258,9 +257,9 @@ namespace Api.Pages
 					return builder.AddTemplate(
 						new CanvasNode("Admin/Layouts/List")
 						.With("contentType", typeName)
-						.With("fields", fields)
 						.With("singular", tidySingularName)
 						.With("plural", tidyPluralName)
+						.With("columns", options.ListColumns)
 					);
 				}
 			});
@@ -297,6 +296,11 @@ namespace Api.Pages
 						.With("contentType", typeName)
 						.With("singular", tidySingularName)
 						.With("plural", tidyPluralName);
+
+					if (!string.IsNullOrEmpty(options.EditTitleToken))
+					{
+						singlePageCanvas.With("editTitleToken", options.EditTitleToken);
+					}
 
 					if (options.Tabs != null && options.Tabs.Count > 0)
 					{
@@ -578,5 +582,17 @@ namespace Api.Pages
 			}
 		}
 
+	}
+}
+
+
+namespace Api.CanvasRenderer
+{
+	public partial class CanvasDetails
+	{
+		/// <summary>
+		/// The page it is a part of.
+		/// </summary>
+		public Api.Pages.Page Page;
 	}
 }
