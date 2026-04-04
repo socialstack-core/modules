@@ -1,0 +1,6 @@
+{
+	"name": "Socket Servers",
+	"description": "A module for creating non-allocating socket servers, including realtime gaming servers. Includes support for the websocket protocol.",
+	"modules": [
+	]
+}

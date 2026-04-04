@@ -368,15 +368,10 @@ namespace Api.SocketServerLibrary {
 		}
 
 		/// <summary>
-		/// Start the server.
+		/// Call this if you're using this server as an opcode mapper only.
 		/// </summary>
-		public void Start()
+		public void StartOpcodes()
 		{
-			if (ServerSocket != null)
-			{
-				throw new Exception("Server already started.");
-			}
-
 			if (MaxOpCode <= 5000)
 			{
 				FastOpCodeMap = new OpCode[MaxOpCode + 1];
@@ -390,46 +385,46 @@ namespace Api.SocketServerLibrary {
 			{
 				FastOpCodeMap = null;
 			}
-			
+		}
+
+		/// <summary>
+		/// Start the server.
+		/// </summary>
+		public void Start()
+		{
+			if (ServerSocket != null)
+			{
+				throw new Exception("Server already started.");
+			}
+
+			StartOpcodes();
+
 			string apiSocketFile = null;
 			
-			if (UnixSocketFileName != null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+			if(UnixSocketFileName != null && RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
 			{
-				try
-				{
-					// Listen on a Unix socket too.
-					// NOTE: Some Docker bind-mount filesystems don't support Unix socket files; using the OS temp dir
-					// by default avoids "Operation not supported" on bind.
-					apiSocketFile = UnixSocketFileName;
-					if (!System.IO.Path.IsPathRooted(apiSocketFile))
-					{
-						apiSocketFile = System.IO.Path.Combine(System.IO.Path.GetTempPath(), apiSocketFile);
-					}
-					apiSocketFile = System.IO.Path.GetFullPath(apiSocketFile);
-					
-					try
-					{
-						// Delete if exists:
-						System.IO.File.Delete(apiSocketFile);
-					}
-					catch { }
-					
-					ServerSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-					ServerSocket.Bind(new UnixDomainSocketEndPoint(apiSocketFile));
-				}
-				catch
-				{
-					// Fall back to TCP if Unix socket bind is not supported on this filesystem/environment.
-					try { ServerSocket?.Close(); } catch { }
-					ServerSocket = null;
-					apiSocketFile = null;
-				}
+				// Listen on a Unix socket too:
+				apiSocketFile = System.IO.Path.GetFullPath(UnixSocketFileName);
+				
+				try{
+					// Delete if exists:
+					System.IO.File.Delete(apiSocketFile);
+				}catch{}
+				
+				ServerSocket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
+				
+				ServerSocket.Bind(
+					new UnixDomainSocketEndPoint(apiSocketFile)
+				);
+
 			}
-			
-			if (ServerSocket == null)
+			else
 			{
 				ServerSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-				ServerSocket.Bind(new IPEndPoint(BindAddress, Port));
+				
+				ServerSocket.Bind(
+					new IPEndPoint(BindAddress, Port)
+				);
 			}
 
 			ServerSocket.Blocking = false;
