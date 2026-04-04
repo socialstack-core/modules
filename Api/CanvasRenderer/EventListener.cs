@@ -10,6 +10,8 @@ using Api.Signatures;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Api.Eventing;
+using Api.Contexts;
 
 namespace Api.CanvasRenderer
 {
@@ -25,14 +27,15 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		public EventListener()
 		{
-			// Also hook up the configure app method:
-			Api.Startup.WebServerStartupInfo.OnConfigureApplication += (IApplicationBuilder app) => {
-				
+			// Hook up the configure app method:
+			Events.WebServerStartup.BeforeConfigureApplication.AddEventListener((Context context,IApplicationBuilder app) => {
+
 				// Hook up the static dirs:
-				
+
 				var pubPath = Path.GetFullPath("UI/Source");
-				
-				if(Directory.Exists(pubPath)){
+
+				if (Directory.Exists(pubPath))
+				{
 					app.UseStaticFiles(new StaticFileOptions()
 					{
 						FileProvider = new PhysicalFileProvider(pubPath),
@@ -40,10 +43,11 @@ namespace Api.CanvasRenderer
 						ServeUnknownFileTypes = true
 					});
 				}
-				
+
 				pubPath = Path.GetFullPath("Admin/Source");
-				
-				if(Directory.Exists(pubPath)){
+
+				if (Directory.Exists(pubPath))
+				{
 					app.UseStaticFiles(new StaticFileOptions()
 					{
 						FileProvider = new PhysicalFileProvider(pubPath),
@@ -51,8 +55,9 @@ namespace Api.CanvasRenderer
 						ServeUnknownFileTypes = true
 					});
 				}
-			};
 
+				return new ValueTask<IApplicationBuilder>(app);
+			});
 		}
 	}
 }

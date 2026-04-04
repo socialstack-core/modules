@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace Api.CanvasRenderer;
@@ -188,12 +187,8 @@ public class UIBuildCache
 
 		Directory.CreateDirectory(_cacheDir);
 
-		var options = new JsonSerializerOptions
-		{
-			WriteIndented = true
-		};
-
-		string json = JsonSerializer.Serialize(_data, options);
+		// Use Newtonsoft.Json to be consistent with DeserializeObject usage
+		string json = Newtonsoft.Json.JsonConvert.SerializeObject(_data, Newtonsoft.Json.Formatting.Indented);
 		await File.WriteAllTextAsync(_path, json, Encoding.UTF8);
 	}
 

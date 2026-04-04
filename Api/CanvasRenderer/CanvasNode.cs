@@ -1,4 +1,5 @@
 ﻿using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
 using Api.SocketServerLibrary;
 using HtmlAgilityPack;
@@ -150,9 +151,21 @@ namespace Api.CanvasRenderer
 				set
 				{
 					_value = value;
-					_json = System.Text.Encoding.UTF8.GetBytes(
-						value == null ? "null" : Newtonsoft.Json.JsonConvert.SerializeObject(value, jsonSettings)
-					);
+
+					if (value is JsonString jsString)
+					{
+						var jsonString = jsString.ValueOf();
+
+						_json = System.Text.Encoding.UTF8.GetBytes(
+							jsonString == null ? "null" : jsonString
+						);
+					}
+					else
+					{
+						_json = System.Text.Encoding.UTF8.GetBytes(
+							value == null ? "null" : Newtonsoft.Json.JsonConvert.SerializeObject(value, jsonSettings)
+						);
+					}
 				}
 			}
 		}
@@ -765,6 +778,23 @@ namespace Api.CanvasRenderer
 			{
 				writer.Write((byte)'}');
 			}
+		}
+
+		/// <summary>
+		/// Adds a root with the given name and content, returning the original node.
+		/// </summary>
+		/// <param name="name"></param>
+		/// <param name="content"></param>
+		/// <returns></returns>
+		public CanvasNode AddRoot(string name, CanvasNode content)
+		{
+			if (Roots == null)
+			{
+				Roots = new Dictionary<string, CanvasNode>();
+			}
+
+			Roots[name] = content;
+			return this;
 		}
 
 		/// <summary>

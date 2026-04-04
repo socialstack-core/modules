@@ -82,13 +82,14 @@ public class SourceFileContainer {
 	/// <summary>
 	/// Adds the given in memory file.
 	/// </summary>
-	/// <param name="rootRelativePath">File path relative to the project root.</param>
+	/// <param name="sourceRelativePath">File path relative to the container source root.</param>
 	/// <param name="content">The file content.</param>
-	public void Add(string rootRelativePath, string content)
+	public SourceFile Add(string sourceRelativePath, string content)
 	{
-		var file = new SourceFile(Path.GetFullPath(rootRelativePath), RootName, SourcePath);
+		var file = new SourceFile(Path.Combine(SourcePath, sourceRelativePath), RootName, SourcePath);
 		file.RawSource = content;
 		Files.Add(file);
+		return file;
 	}
 
 }

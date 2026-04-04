@@ -389,7 +389,7 @@ namespace Api.CanvasRenderer
 			_config = GetConfig<FrontendCodeServiceConfig>();
 
 			#if DEBUG
-			Eventing.Events.FrontendAfterUpdate.AddEventListener((Context context, long buildNumber) => {
+			Eventing.Events.FrontendAfterUpdate.AddEventListener(async (Context context, long buildNumber) => {
 
 				if (_config.AutoReload)
 				{
@@ -402,22 +402,7 @@ namespace Api.CanvasRenderer
 						refreshMessage.WriteASCII(reloadMessage);
 
 						var wsService = Services.Get<WebSockets.WebSocketService>();
-
-						if (wsService.AllClients != null)
-						{
-							foreach (var kvp in wsService.AllClients)
-							{
-								var client = kvp.Value;
-								if (client != null)
-								{
-									client.Send(refreshMessage);
-								}
-							}
-						}
-						else
-						{
-							Log.Warn(LogTag, "AutoReload is on but you've specifically disabled TrackAllClients on websocket service. Unable to send the reload message.");
-						}
+						await wsService.SendToAll(refreshMessage);
 					}
 					catch (Exception ex)
 					{
@@ -425,7 +410,7 @@ namespace Api.CanvasRenderer
 					}
 				}
 
-				return new ValueTask<long>(buildNumber);
+				return buildNumber;
 			});
 #endif
 

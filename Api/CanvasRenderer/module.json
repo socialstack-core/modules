@@ -1,0 +1,6 @@
+{
+	"name": "Canvas renderer",
+	"description": "See https://wiki.socialstack.dev/index.php?title=Canvas for information about Canvas. In short it is a JSON tree of React components and HTML elements with their props/ attributes. It is used for things like a page or an email. This module provides a serverside rendering mechanism which is used to render this canvas JSON in to html for purposes such as pre-rendering webpages or emails.",
+	"modules": [
+	]
+}

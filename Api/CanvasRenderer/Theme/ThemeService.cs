@@ -288,7 +288,7 @@ namespace Api.Themes
 
             builder.Append("[data-theme=\"");
             builder.Append(id);
-            builder.Append("\"]{");
+            builder.Append("\"], html:where(:has(body.mce-content-body)) {");
 
             if (config.Variables != null)
             {

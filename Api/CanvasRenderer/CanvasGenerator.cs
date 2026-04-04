@@ -39,6 +39,8 @@ public class CanvasGenerator
 	/// </summary>
 	private Type _stateType;
 
+	private Action<CanvasDetails> _onInitDetails;
+
 	/// <summary>
 	/// Assigned datamap entries.
 	/// </summary>
@@ -65,10 +67,12 @@ public class CanvasGenerator
 	/// </summary>
 	/// <param name="canvas"></param>
 	/// <param name="primaryContentType"></param>
-	public CanvasGenerator(string canvas, Type primaryContentType)
+	/// <param name="onInitDetails"></param>
+	public CanvasGenerator(string canvas, Type primaryContentType, Action<CanvasDetails> onInitDetails)
 	{
 		_canvas = canvas;
 		_graphNodeLoader = new NodeLoader(primaryContentType);
+		_onInitDetails = onInitDetails;
 	}
 
 	/// <summary>
@@ -134,10 +138,18 @@ public class CanvasGenerator
 	/// <returns></returns>
 	public async ValueTask<CanvasNode> LoadCanvasNode(Context context, JToken node)
 	{
-		return await CanvasNode.LoadCanvasNode(context, node, new CanvasDetails() {
+		var details = new CanvasDetails()
+		{
 			DataMap = DataMap,
 			GraphNodeLoader = _graphNodeLoader
-		});
+		};
+
+		if (_onInitDetails != null)
+		{
+			_onInitDetails(details);
+		}
+
+		return await CanvasNode.LoadCanvasNode(context, node, details);
 	}
 
 	private object genLocker = new object();
