@@ -1,0 +1,16 @@
+{
+	"name": "Component groups",
+	"description": "An admin panel feature used to create simple lists of react components. These can then go on to be used by e.g. templates to declare a specific set of components are able to be used in to a template slot.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Admin/ComponentGroup",
+			"reason": "The editor for component groups."
+		},
+		{
+			"optional": true,
+			"key": "Api/Templates",
+			"reason": "The primary use case of component groups is template slots."
+		}
+	]
+}

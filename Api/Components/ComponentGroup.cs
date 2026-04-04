@@ -12,13 +12,13 @@ namespace Api.Components
 	/// <summary>
 	/// A ComponentGroup
 	/// </summary>
-	[HasVirtualField("Role", typeof(Role), "RoleId")]
-	public partial class ComponentGroup : VersionedContent<uint>
+	public partial class ComponentGroup : InstallableContent<uint>
 	{
         /// <summary>
         /// The name of the component group
         /// </summary>
         [DatabaseField(Length = 200)]
+		[Data("required", true)]
 		public Localized<string> Name;
 
 		/// <summary>
@@ -26,11 +26,6 @@ namespace Api.Components
 		/// </summary>
 		[Module("Admin/ComponentGroup")]
 		public string AllowedComponents;
-
-		/// <summary>
-		/// The role this component group belongs to.
-		/// </summary>
-		public uint RoleId;
 	}
 
 }
