@@ -1,11 +1,12 @@
-
 /**
- * A centered segment of an email. 
- * Centering things in emails across all platforms remains not as simple as you might expect!
- * @param props
- * @returns
+ * Props for the Centered component.
+ * @icon fal fa-align-center
+ * @description Centers content horizontally within an email.
  */
-const Centered: React.FC<React.PropsWithChildren> = props => {
+interface CenteredProps {
+}
+
+const Centered: React.FC<React.PropsWithChildren<CenteredProps>> = props => {
 	
 	return <table border={0} cellPadding={0} cellSpacing={0} className="content" style={{
 		width: "100%",

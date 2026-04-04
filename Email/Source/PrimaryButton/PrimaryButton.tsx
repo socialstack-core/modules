@@ -2,6 +2,8 @@ import { useTokens } from 'UI/Token';
 
 /**
  * Props for PrimaryButton
+ * @icon fal fa-hand-pointer
+ * @description A large, centered call-to-action button.
  */
 interface PrimaryButtonProps {
 	/**
@@ -21,7 +23,7 @@ interface PrimaryButtonProps {
 const PrimaryButton: React.FC<PrimaryButtonProps> = ({ label, target }) => {
 	var href = useTokens(target, {});
 	
-	return <table role="presentation" cellSpacing={0} style={{ margin: "auto" }} cellPadding={0} border={0} align="center">
+	return <table role="presentation" cellSpacing={0} style={{ padding: "8px;", margin: "auto" }} cellPadding={0} border={0} align="center">
 		<tbody>
 			<tr>
 				<td className="button-td button-td-primary" style={{borderRadius: "4px", background: "#222222"}}>

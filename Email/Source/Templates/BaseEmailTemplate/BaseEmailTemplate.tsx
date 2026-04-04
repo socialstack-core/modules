@@ -2,6 +2,8 @@ import { useSession } from 'UI/Session';
 
 /**
  * Props for the default template.
+ * @icon fal fa-envelope
+ * @description The main email wrapper with logo, greeting, and footer.
  */
 interface DefaultProps {
 	/**
@@ -65,7 +67,7 @@ const Default: React.FC<React.PropsWithChildren<DefaultProps>> = (props) => {
 					color: "#5c5c5c",
 					padding: "25px 0"
 				}}>
-					{!hideLogo && (customLogo || <img alt="" src={origin + "/email_logo.png"} width="55" height="50" />)}
+					{!hideLogo && (customLogo || <img alt="" src={origin + "/email_logo.png?v=1"} width="55" height="50" />)}
 				</td>
 			</tr>
 			<tr>
@@ -87,7 +89,7 @@ const Default: React.FC<React.PropsWithChildren<DefaultProps>> = (props) => {
 								}}>
 									{!hideGreeting && user && (
 										<p>
-											Hi {user?.username},
+											Hello {user?.firstName || user?.username},
 										</p>
 									)}
 									{children}
@@ -106,10 +108,7 @@ const Default: React.FC<React.PropsWithChildren<DefaultProps>> = (props) => {
 					padding: "25px 0"
 				}}>
 					<div>
-						You're receiving this email because of your account with us. <a className="mng-notif-link" href={origin + "/email/preferences"} style={{
-							color: "#3777b0",
-							textDecoration: "none"
-						}}>Change preferences here</a>
+						You're receiving this email because of your account with us.
 					</div>
 				</td>
 			</tr>}
