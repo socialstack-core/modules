@@ -1,0 +1,11 @@
+{
+	"name": "SendGrid Email Handler",
+	"description": "An optional but highly recommended module when using SendGrid as your email service. This module accelerates email sending using SendGrid's web API rather than SMTP. When using this module, use its specific configuration rather than the Api/Email base SMTP configuration.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Api/Emails",
+			"reason": "Actually handles the construction and send of the email; this module just accelerates specifically the send via SendGrid."
+		}
+	]
+}

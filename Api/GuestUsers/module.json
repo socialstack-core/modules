@@ -1,0 +1,6 @@
+{
+	"name": "Guest users",
+	"description": "Creates a special variant of user accounts which exist as a guest. Typically used by the payments module such that a temporary guest account can checkout and still have orders associated to it.",
+	"modules": [
+	]
+}

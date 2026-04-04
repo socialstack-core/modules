@@ -1,0 +1,6 @@
+{
+	"name": "ESLint",
+	"description": "Developer facing feature. This module runs ESLint (must be installed and available via the command line) on your UI code each time it builds.",
+	"modules": [
+	]
+}

@@ -20,13 +20,14 @@ namespace Api.GuestUsers
 	// A guest can have a billing address
 	[HasVirtualField("BillingAddress", typeof(Address), "BillingAddressId")]
 
-
 	public partial class GuestUser : VersionedContent<uint>
 	{
 		/// <summary>
 		/// The guest user's email address.
 		/// </summary>
 		[DatabaseField(Length = 80)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string Email;
 
@@ -34,6 +35,8 @@ namespace Api.GuestUsers
 		/// The first name of the guest user. 
 		/// </summary>
 		[DatabaseField(Length = 40)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string FirstName;
 
@@ -41,6 +44,8 @@ namespace Api.GuestUsers
 		/// The last name(s) of the guest user. 
 		/// </summary>
 		[DatabaseField(Length = 40)]
+		[Data("required", true)]
+		[Data("validate", "Required")]
 		[Permissions(Rule = "IsSelf()", Roles = "*,!admins")] /* Admins can always see the field */
 		public string LastName;
 

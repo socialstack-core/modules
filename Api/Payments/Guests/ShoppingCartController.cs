@@ -1,5 +1,6 @@
 using Api.Addresses;
 using Api.Contexts;
+using Api.Eventing;
 using Api.GuestUsers;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;

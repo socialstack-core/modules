@@ -2,7 +2,9 @@
 using Api.Configuration;
 using Api.Contexts;
 using Api.Database;
+#if PAYMENTS_GUEST_USERS
 using Api.GuestUsers;
+#endif
 using Api.Payments.Opayo.Request;
 using Api.Startup;
 using Api.Users;

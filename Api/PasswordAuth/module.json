@@ -1,0 +1,6 @@
+{
+	"name": "Password Authentication",
+	"description": "A standard password based authentication module. You can uninstall this if you want users to authenticate in other ways (such as oAuth)",
+	"modules": [
+	]
+}
