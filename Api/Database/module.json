@@ -1,0 +1,6 @@
+{
+	"name": "Database bindings",
+	"description": "The essential bindings to zero or more database engines. Designed to be agnostic to which database it actually is; including having more than one mounted at once. That is a key feature for the 'migration framework' (https://wiki.socialstack.dev/index.php?title=Migration_Framework) which is also present in this module and enables you to port your data between e.g. MySQL and MongoDB by connecting to them both at the same time. Note that if you do not have any database engines installed, the application runs in cache only mode.",
+	"modules": [
+	]
+}

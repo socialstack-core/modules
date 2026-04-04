@@ -206,6 +206,26 @@ public struct MappingData
 	}
 
 	/// <summary>
+	/// True if there is a mapping with the given name in here.
+	/// </summary>
+	/// <param name="mappingName"></param>
+	public bool HasMapping(string mappingName)
+	{
+		if (_values == null)
+		{
+			return false;
+		}
+
+		mappingName = mappingName.ToLower();
+
+		if (!_values.TryGetValue(mappingName, out List<ulong> set))
+		{
+			return false;
+		}
+
+		return set.Count > 0;
+	}
+	/// <summary>
 	/// Checks if the given mapping contains the specified ID.
 	/// </summary>
 	/// <param name="mappingName"></param>
