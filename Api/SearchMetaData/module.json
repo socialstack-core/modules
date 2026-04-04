@@ -1,0 +1,6 @@
+{
+	"name": "Search Metadata",
+	"description": "A module which generates textual metadata fields on specified content types such that it can be indexed for search.",
+	"modules": [
+	]
+}

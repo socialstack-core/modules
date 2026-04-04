@@ -98,14 +98,16 @@ namespace Api.SearchMetaData
             }
 
             // Content types that are configured for additional metaddata indexing processed here.    
-            service.EventGroup.SearchMetaData.AddEventListener(async (Context ctx, HashSet<string> metadataText, T po) =>
+            service.EventGroup.SearchMetaData.AddEventListener(async (Context ctx2, HashSet<string> metadataText, T po) =>
             {
                 if (_cfg == null || _cfg.Mappings == null || po == null)
                 {
                     return metadataText;
                 }
 
-                if (metadataText == null)
+				var anonContext = new Context();
+
+				if (metadataText == null)
                 {
                     metadataText = new HashSet<string>();
                 }
@@ -118,7 +120,7 @@ namespace Api.SearchMetaData
                 }
 
                 // inject the primary object into the metadata 
-                metadataText.UnionWith(ExtractMetaDataStrings(ctx, mapping.FieldNames, po));
+                metadataText.UnionWith(ExtractMetaDataStrings(anonContext, mapping.FieldNames, po));
 
                 if (mapping.Includes != null && mapping.Includes.Count > 0)
                 {
@@ -132,7 +134,7 @@ namespace Api.SearchMetaData
                         .Distinct();
 
                     // get the includes (as per front end calls we get json back initially)
-                    var jsonString = await service.ToJson(ctx, po, string.Join(",", uniqueIncludeNames));
+                    var jsonString = await service.ToJson(anonContext, po, string.Join(",", uniqueIncludeNames));
                     var searchMetaData = JsonConvert.DeserializeObject<SearchMetaData>("{\"primaryObject\" : " + jsonString + "}");
 
                     dynamic includedService = null;
@@ -148,7 +150,46 @@ namespace Api.SearchMetaData
 
                             if (!string.IsNullOrWhiteSpace(typeName) && !string.IsNullOrWhiteSpace(id))
                             {
-                                if (typeName != includeType)
+								var fieldNames = mapping.Includes.FirstOrDefault(i => i.Name.Equals(include.Name, StringComparison.InvariantCultureIgnoreCase))?.FieldNames;
+
+								if (fieldNames == null || fieldNames.Count() == 0)
+								{
+									continue;
+								}
+
+								// if multiple depth include, find the correct fields and extract the field names
+								/*
+								{
+									"Name" : "productQuantities.product",
+									"FieldNames" : [
+										"product.name",
+										"product.sku",
+										"productQuantities.quantity"
+									]
+								}
+								or for simple mappings
+								{
+									"Name" : "attributes",
+									"FieldNames" : [
+										"Value"
+									]
+								}
+								*/
+
+								if (include.Name.Contains('.'))
+								{
+									fieldNames = fieldNames.
+									Where(a => a.StartsWith(include.Field + ".", StringComparison.InvariantCultureIgnoreCase))
+									.Select(a => a.Split('.').Last())
+									.ToList();
+
+									if (fieldNames == null || fieldNames.Count() == 0)
+									{
+										continue;
+									}
+								}
+
+								if (typeName != includeType)
                                 {
                                     // get the relevant service
                                     includeType = typeName;
@@ -156,11 +197,10 @@ namespace Api.SearchMetaData
                                 }
 
                                 // map into real object so that use field definitions etc 
-                                var dataItem = await includedService.Where("Id=?", DataOptions.IgnorePermissions).Bind(Convert.ChangeType(id, TypeCode.UInt32)).First(ctx);
+                                var dataItem = await includedService.Where("Id=?", DataOptions.IgnorePermissions).Bind(Convert.ChangeType(id, TypeCode.UInt32)).First(anonContext);
                                 if (dataItem != null)
                                 {
-                                    var fieldNames = mapping.Includes.FirstOrDefault(i => i.Name.Equals(include.Field,StringComparison.InvariantCultureIgnoreCase))?.FieldNames;
-                                    metadataText.UnionWith(ExtractMetaDataStrings(ctx, fieldNames, dataItem));
+									metadataText.UnionWith(ExtractMetaDataStrings(anonContext, fieldNames, dataItem));
                                 }
                             }
                         }
@@ -170,19 +210,18 @@ namespace Api.SearchMetaData
                 return metadataText;
             }, 5);
 
-
             service.EventGroup.BeforeCreate.AddEventListener(async (ctx, entity) =>
             {
                 return await HandleSearchMetaData(ctx, entity, service);
-            }, 20);
+            }, 99);
 
             service.EventGroup.BeforeUpdate.AddEventListener(async (Context ctx, T updated, T orig) =>
             {
                 return await HandleSearchMetaData(ctx, updated, service);
-            }, 20);
+            }, 99);
         }
 
-        private async Task<T> HandleSearchMetaData<T, ID>(Context ctx, T entity, AutoService<T, ID> service)
+        private async Task<T> HandleSearchMetaData<T, ID>(Context ctx2, T entity, AutoService<T, ID> service)
             where T : Content<ID>, new()
             where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
         {
@@ -191,7 +230,9 @@ namespace Api.SearchMetaData
                 return entity;
             }
 
-            var fieldInfo = await service.GetJsonStructure(ctx);
+			var anonContext = new Context();
+
+			var fieldInfo = await service.GetJsonStructure(anonContext);
             var metadataField = fieldInfo.AllFields
                 .FirstOrDefault(s => s.Key.Equals("descriptionraw", StringComparison.OrdinalIgnoreCase))
                 .Value;
@@ -199,7 +240,7 @@ namespace Api.SearchMetaData
             if (metadataField != null)
             {
                 var metaData = new HashSet<string>();
-                metaData = await service.EventGroup.SearchMetaData.Dispatch(ctx, metaData, entity);
+                metaData = await service.EventGroup.SearchMetaData.Dispatch(anonContext, metaData, entity);
                 metadataField.FieldInfo.SetValue(entity, string.Join(" ", metaData));
             }
 
@@ -243,8 +284,16 @@ namespace Api.SearchMetaData
                     value = ((Localized<string>)field.GetValue(entity)).Get(ctx);
 					value = CheckForHtml(value);
 				}
-                else
-                {
+				else if (field.FieldType == typeof(uint))
+				{
+					var fieldValue = field.GetValue(entity) as uint?;
+					if (fieldValue.GetValueOrDefault(0) != 0)
+					{
+						value = fieldValue == null ? null : fieldValue.ToString();
+					}
+				}
+				else
+				{
                     var fieldValue = field.GetValue(entity);
 					value = fieldValue == null ? null : fieldValue.ToString();
                 }
