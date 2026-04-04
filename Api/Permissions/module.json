@@ -1,0 +1,6 @@
+{
+	"name": "Permissions - roles and capabilities",
+	"description": "The essential roles and capabilities system which drives security through all modules by automatically mounting them with event listeners.",
+	"modules": [
+	]
+}

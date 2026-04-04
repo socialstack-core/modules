@@ -111,8 +111,18 @@ namespace Api.Permissions
 						await Events.Role.Register.Dispatch(ctx, role);
 					}
 
-					// Construct the default grants:
-					await Events.CapabilityOnSetup.Dispatch(ctx, null);
+					try
+					{
+
+						// Construct the default grants:
+						await Events.CapabilityOnSetup.Dispatch(ctx, null);
+					}
+					catch (Exception)
+					{
+						Log.Warn(LogTag, "Your code permission grant rules errored. This means a random selection of permissions will not have initialised as intended (any which happen to be after the one which errored) and will be denied by default. The error itself is below.");
+
+						throw;
+					}
 
 					// Override:
 					foreach (var role in all)
