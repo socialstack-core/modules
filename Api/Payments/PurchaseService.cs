@@ -14,6 +14,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+#if PAYMENTS_GUEST_USERS
+using Api.GuestUsers;
+#endif
 
 namespace Api.Payments
 {
@@ -32,6 +35,9 @@ namespace Api.Payments
 		private UserService _users;
 		private EmailTemplateService _emails;
 		private CounterService _counters;
+#if PAYMENTS_GUEST_USERS
+		private GuestUserService _guestUsers;
+#endif
 
 		// removed any similar chars like 1/ I 5/S 0/O etc 
 		private const string refPattern = "ACEFHJKMNPRTUVWXY23456789";
@@ -338,7 +344,76 @@ namespace Api.Payments
 				// processed so return null
 				return true;
 			});
+			
+#if PAYMENTS_GUEST_USERS
+			// link the purchase to the guest user
+			Events.Purchase.Checkout.AddEventListener(async (Context context, Purchase purchase, CheckoutInfo checkoutInfo) =>
+			{
+				// only anon users should be checking out as a quest
+				if (context.UserId != 0 || context.RoleId != 6)
+				{
+					return purchase;
+				}
 
+				if (purchase == null || checkoutInfo.GuestUserId == 0)
+				{
+					return purchase;
+				}
+
+				purchase.GuestUserId = checkoutInfo.GuestUserId;
+
+				return purchase;
+			}, 20);
+
+			// send any emails to the guest user 
+			Events.Purchase.SendConfirmationEmail.AddEventListener(async (Context context, bool processed, string key, Purchase purchase) => {
+
+				if (processed || string.IsNullOrWhiteSpace(key) || purchase == null || purchase.GuestUserId == 0)
+				{
+					return processed;
+				}
+
+				//for guest users only send order confirmation
+				if (key != "payment_order_details" && key != "payment_fault")
+				{
+					return true;
+				}
+
+				_guestUsers ??= Services.Get<GuestUserService>();
+
+				var guestUser = await _guestUsers.Get(context, purchase.GuestUserId.GetValueOrDefault(), DataOptions.IgnorePermissions);
+
+				if (guestUser == null || string.IsNullOrWhiteSpace(guestUser.Email))
+				{
+					return processed;
+				}
+
+				// send email to guest passing token to allow for lookup/retrieval
+				var userRecipient = new Recipient(guestUser.Email);
+
+				var token = await _purchaseTokens.Create(context,
+					new PurchaseToken()
+					{
+						PurchaseId = purchase.Id,
+						Scope = "View",
+						IsSingleUse = false,
+						CreatedUtc = DateTime.UtcNow,
+						ExpiresUtc = DateTime.UtcNow.AddDays(14)
+					}, DataOptions.IgnorePermissions);
+
+				if (token == null)
+				{
+					throw new PublicException("Could not create session token.", "Purchase_session_token");
+				}
+
+				userRecipient.CustomData = token;
+
+				_emails.Send(userRecipient, key);
+
+				// processed so return null
+				return true;
+			}, 5); // run before any stock listeners and sets processed to block others 
+#endif
 		}
 
 		/// <summary>
