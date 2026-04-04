@@ -1,0 +1,6 @@
+{
+	"name": "Password Resetting",
+	"description": "Handles password reset requests.",
+	"modules": [
+	]
+}

@@ -101,16 +101,7 @@ namespace Api.PasswordResetRequests
 
 			// allow other services to handle the password storage/update
 			var updatedPassword = false;
-			if (Events.UserOnPasswordUpdate.HasListeners())
-			{
-				updatedPassword = await Events.UserOnPasswordUpdate.Dispatch(context, updatedPassword, targetUser, request, newPassword);
-
-				if (targetUser == null)
-				{
-					// API forced a halt:
-					return null;
-				}
-			}
+			updatedPassword = await Events.UserOnPasswordUpdate.Dispatch(context, updatedPassword, targetUser, request, newPassword);
 			
 			if (!updatedPassword)
 			{
