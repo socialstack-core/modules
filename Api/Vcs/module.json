@@ -1,0 +1,6 @@
+{
+	"name": "Version control tools",
+	"description": "Some tools for interacting with git, such as installing hooks in to the project.",
+	"modules": [
+	]
+}

@@ -1,5 +1,6 @@
 using Api.AutoForms;
 using Api.Database;
+using Api.Startup;
 using Api.Users;
 
 
@@ -11,9 +12,10 @@ namespace Api.Translate
 	/// </summary>
 	public partial class Translation : VersionedContent<uint>
 	{
-        /// <summary>
-        /// E.g. "UI/AboutUs" - the exact JS module name that this translation is for.
-        /// </summary>
+		/// <summary>
+		/// E.g. "UI/AboutUs" - the exact JS module name that this translation is for.
+		/// </summary>
+		[Meta("title")]
         [DatabaseField(Length = 200)]
         [Data("hint", "The ux module exposing the value (where it exposed within the site)")]
         [Data("required", true)]

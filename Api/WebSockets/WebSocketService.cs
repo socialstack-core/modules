@@ -1,15 +1,16 @@
+using Api.Configuration;
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Api.SocketServerLibrary;
+using Api.Startup;
 using Api.Users;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Api.Startup;
-using Api.SocketServerLibrary;
-using Api.Configuration;
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Api.WebSockets
 {
@@ -70,6 +71,11 @@ namespace Api.WebSockets
 			return _clientCount;
 		}
 
+		/// <summary>
+		/// True if all connected clients are being retained in a lookup.
+		/// </summary>
+		public bool TrackingAllClients => _allClients != null;
+
 		private Server<WebSocketClient> wsServer;
 
 		private ConcurrentDictionary<uint, WebSocketClient> _allClients;
@@ -80,23 +86,60 @@ namespace Api.WebSockets
 		public ConcurrentDictionary<uint, WebSocketClient> AllClients => _allClients;
 
 		/// <summary>
+		/// The current websocket server.
+		/// </summary>
+		public Server<WebSocketClient> Server => wsServer;
+
+		/// <summary>
+		/// Sends the given message to all clients (requires track all to be enabled).
+		/// </summary>
+		/// <param name="message"></param>
+		public async ValueTask SendToAll(Writer message)
+		{
+			var clients = AllClients;
+
+			if (clients == null)
+			{
+				Log.Warn(LogTag, "You've specifically disabled TrackAllClients on websocket service. Unable to send a given message to all WS clients.");
+				return;
+			}
+
+			foreach (var kvp in clients)
+			{
+				var client = kvp.Value;
+				if (client != null)
+				{
+					await client.SendAsync(message);
+				}
+			}
+		}
+
+		/// <summary>
 		/// Starts the ws service.
 		/// </summary>
 		public async ValueTask Start(UserService userService)
 		{
-			// Start public bolt server:
-			var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
+			// In Edge mode, the ws server only acts as an opcode container.
+			// It does not actually listen for requests itself - kestrel does that.
+			var edgeMode = AppSettings.IsEdgeMode();
 
 			wsServer = new Server<WebSocketClient>();
 
-			var unixFileIsActive = AppSettings.GetInt32("WebSocketUnixFileActive", 1);
-			var wsFileName = AppSettings.GetString("WebSocketUnixFileName", "ws.sock");
-			wsServer.UnixSocketFileName = unixFileIsActive == 0 || string.IsNullOrEmpty(wsFileName) ? null : wsFileName;
-			wsServer.Port = portNumber;
+			if (!edgeMode)
+			{
+				// Otherwise start a public bolt server:
+				var portNumber = AppSettings.GetInt32("WebsocketPort", AppSettings.GetInt32("Port", 5000) + 1);
 
-			wsServer.AcceptWebsockets(false);
+				var unixFileIsActive = AppSettings.GetInt32("WebSocketUnixFileActive", 1);
+				var wsFileName = AppSettings.GetString("WebSocketUnixFileName", "ws.sock");
+				wsServer.UnixSocketFileName = unixFileIsActive == 0 || string.IsNullOrEmpty(wsFileName) ? null : wsFileName;
+				wsServer.Port = portNumber;
 
-			wsServer.OnConnected += async (WebSocketClient client) => {
+				wsServer.AcceptWebsockets(false);
+			}
+
+			wsServer.OnConnected += async (WebSocketClient client) =>
+			{
 
 				if (_allClients != null)
 				{
@@ -197,8 +240,16 @@ namespace Api.WebSockets
 			// Add any other events:
 			await Events.WebSocket.BeforeStart.Dispatch(new Context(), wsServer);
 
-			// Start it:
-			wsServer.Start();
+			if (edgeMode)
+			{
+				// Opcodes only.
+				wsServer.StartOpcodes();
+			}
+			else
+			{
+				// Start it:
+				wsServer.Start();
+			}
 		}
 
 	}

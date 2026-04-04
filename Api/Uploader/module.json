@@ -1,0 +1,6 @@
+{
+	"name": "File Uploads",
+	"description": "Handles file access - both uploading and retrieval.",
+	"modules": [
+	]
+}

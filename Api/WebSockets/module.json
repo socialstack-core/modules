@@ -1,0 +1,6 @@
+{
+	"name": "WebSocket server",
+	"description": "Handles traffic over websockets. Primarily used for refreshing the page for developers.",
+	"modules": [
+	]
+}

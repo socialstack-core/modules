@@ -109,7 +109,23 @@ namespace Api.WebSockets
 			base.Close();
 		}
 
-		private async ValueTask ClientDisconnectedEvent()
+		/// <summary>
+		/// Sends the given writer async to this WS client.
+		/// Due to network latency these tasks can be slow to complete.
+		/// </summary>
+		/// <param name="writer"></param>
+		/// <returns></returns>
+		public virtual ValueTask SendAsync(Writer writer)
+		{
+			Send(writer);
+			return new ValueTask();
+		}
+
+		/// <summary>
+		/// Called when the socket has disconnected.
+		/// </summary>
+		/// <returns></returns>
+		protected async ValueTask ClientDisconnectedEvent()
 		{
 			if (Context != null)
 			{
