@@ -38,7 +38,29 @@ namespace Api.Startup
 		/// <summary>
 		/// The fields which are used on the list page.
 		/// </summary>
-		public string[] ListFields;
+		public string[] ListFields
+		{
+			set
+			{
+				List<AutoListColumn> columns = [];
+
+				foreach (var item in value)
+				{
+					columns.Add(new AutoListColumn
+					{
+						Field = item
+					});
+				}
+
+				ListColumns = columns;
+			}
+		}
+
+		/// <summary>
+		/// Overwrite the field names in list field, the key is the list field name, the value
+		/// is the desired output, this also allows a you to specify a sort field. 
+		/// </summary>
+		public List<AutoListColumn> ListColumns;
 
 		/// <summary>
 		/// Used to define tabs on the admin edit/ create page. Use Data("tab", "key_here") to tell a particular field 
@@ -58,6 +80,11 @@ namespace Api.Startup
 		/// The service requesting the admin page installation. Don't set this unless you intentionally want to mislead it.
 		/// </summary>
 		public AutoService ContentService;
+
+		/// <summary>
+		/// A token supporting string to use for the edit page title, e.g. "${content.customName}" to display the specified field.
+		/// </summary>
+		public string EditTitleToken;
 
 
 		/// <summary>
@@ -86,6 +113,38 @@ namespace Api.Startup
 
 			return tab;
 		}
+	}
+
+	/// <summary>
+	/// Specifies a custom column in
+	/// AutoList.
+	/// </summary>
+	public class AutoListColumn
+	{
+		/// <summary>
+		/// The header display name
+		/// </summary>
+		public string Label;
+		
+		/// <summary>
+		/// What field does it need to sort on?
+		/// </summary>
+		public string Field;
+
+		/// <summary>
+		/// Optional module to output a certain module.
+		/// </summary>
+		public string Module;
+
+		/// <summary>
+		/// Indicate if the field is safe to search
+		/// </summary>
+		public bool IsSearchable;
+
+		/// <summary>
+		/// True if this is the title field (used for default sorting).
+		/// </summary>
+		public bool Title;
 	}
 
 	/// <summary>

@@ -352,6 +352,14 @@ namespace Api.Startup {
 		}
 
 		/// <summary>
+		/// Ensures [ListAs] is globally registered. 
+		/// Currently happens in all the constructors anyway so this is implied by just constructing the object.
+		/// </summary>
+		public void RegisterListAs() {
+			
+		}
+
+		/// <summary>
 		/// Gets a local virtual field of the given type, or null if it doesn't exist.
 		/// </summary>
 		/// <param name="ofType"></param>
@@ -779,7 +787,8 @@ namespace Api.Startup {
 						Type = InstanceType,
 						ImplicitTypes = implicitTypes,
 						IsList = true,
-						IdSourceField = "Id"
+						IdSourceField = "Id",
+						Module = listAs.Module
 					});
 
 					if (!string.IsNullOrEmpty(listAs.Tab))
@@ -1748,6 +1757,12 @@ namespace Api.Startup {
 		/// True if list
 		/// </summary>
 		public bool IsList;
+
+		/// <summary>
+		/// The custom admin module to use for this field in the admin panel.
+		/// If not set, the default MultiSelect component will be used.
+		/// </summary>
+		public string Module;
 
 		/// <summary>
 		/// The type of the content in this field. T[] indicates an array.

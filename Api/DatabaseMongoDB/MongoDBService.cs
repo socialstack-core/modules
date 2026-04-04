@@ -1,5 +1,6 @@
 ﻿using Api.Configuration;
 using Api.Contexts;
+using Api.Eventing;
 using Api.Permissions;
 using Api.Startup;
 using MongoDB.Driver;
@@ -64,6 +65,34 @@ public partial class MongoDBService : AutoService
 		AppSettings.OnChange += () => {
 			LoadFromAppSettings();
 		};
+
+		Events.Healthz.RunChecks.AddEventListener(async (Context context, HealthzChecks checks) => {
+
+			var mongoOk = false;
+			string mongoMessage = null;
+
+			if (string.IsNullOrWhiteSpace(ConnectionString))
+			{
+				mongoMessage = "Mongo connection string not configured";
+			}
+			else
+			{
+				mongoOk = await PingAsync();
+				if (!mongoOk)
+				{
+					mongoMessage = "MongoDB ping failed";
+				}
+			}
+
+			checks.mongo = new { ok = mongoOk, message = mongoMessage };
+
+			if (!mongoOk)
+			{
+				checks.Ok = false;
+			}
+
+			return checks;
+		});
 	}
 
 	/// <summary>

@@ -1,0 +1,6 @@
+{
+	"name": "Socialstack tools",
+	"description": "A convenience module for running the socialstack tools commands via node.js. Rarely used.",
+	"modules": [
+	]
+}

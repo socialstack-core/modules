@@ -13,6 +13,7 @@ using System.IO;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Threading.Tasks;
+using Api.AutoForms;
 
 /// <summary>
 /// A general use service which manipulates an entity type. In the global namespace due to its common use.
@@ -1723,6 +1724,63 @@ public partial class AutoService
 			if (options.ContentService == null)
 			{
 				options.ContentService = this;
+			}
+
+			if (options.ListColumns is not null)
+			{
+				var contentFields = GetContentFields();
+				contentFields.MetaFieldMap.TryGetValue("title", out var titleField);
+
+				var titleColumn = (AutoListColumn)null;
+				var nameColumn = (AutoListColumn)null;
+				var idColumn = (AutoListColumn)null;
+
+				foreach (var item in options.ListColumns)
+				{
+					if (string.IsNullOrEmpty(item.Label))
+					{
+						item.Label = AutoFormService.SpaceCamelCase(item.Field);
+					}
+
+					if (titleField != null && item.Field.Equals(titleField.Name, StringComparison.OrdinalIgnoreCase))
+					{
+						item.Title = true;
+						titleColumn = item;
+					}
+
+					if (item.Field.Equals("name", StringComparison.OrdinalIgnoreCase))
+					{
+						nameColumn = item;
+					}
+
+					if (item.Field.Equals("id", StringComparison.OrdinalIgnoreCase))
+					{
+						idColumn = item;
+					}
+				}
+
+				var reorderedColumns = new List<AutoListColumn>();
+
+				var firstColumn = titleColumn ?? nameColumn;
+				if (firstColumn != null)
+				{
+					reorderedColumns.Add(firstColumn);
+				}
+
+				foreach (var col in options.ListColumns)
+				{
+					if (col != firstColumn && col != idColumn)
+					{
+						reorderedColumns.Add(col);
+					}
+				}
+
+				if (idColumn != null)
+				{
+					reorderedColumns.Add(idColumn);
+				}
+
+				options.ListColumns = reorderedColumns;
 			}
 
 			// InstallAdminPages(string typeName, string[] fields)

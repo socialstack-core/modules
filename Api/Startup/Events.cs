@@ -31,6 +31,11 @@ namespace Api.Startup
 		/// Instead, handle the Create and Delete events.
 		/// </summary>
 		public Api.Eventing.EventHandler<object> AfterStart;
+
+		/// <summary>
+		/// Called when at least 1 cmd arg has been given. The main binary won't start unless instructed otherwise.
+		/// </summary>
+		public Api.Eventing.EventHandler<CommandArgs> CommandLine;
 	}
 
 }

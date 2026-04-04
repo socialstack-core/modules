@@ -35,7 +35,7 @@ public class RouterBuilder
 	private RouterBuilder(RouterBuilder copyFrom)
 	{
 		// Create the nbv set:
-		NodesByVerb = new BuilderNode[4];
+		NodesByVerb = new BuilderNode[5];
 
 		for (var i = 0; i < NodesByVerb.Length; i++)
 		{
@@ -53,6 +53,7 @@ public class RouterBuilder
 		NodesByVerb[1].HttpVerb = "POST";
 		NodesByVerb[2].HttpVerb = "DELETE";
 		NodesByVerb[3].HttpVerb = "PUT";
+		NodesByVerb[4].HttpVerb = "CONNECT";
 	}
 
 	private static bool _rebuildRequested = false;
@@ -160,6 +161,9 @@ public class RouterBuilder
 				break;
 			case "PUT":
 				verbIndex = 3;
+				break;
+			case "CONNECT":
+				verbIndex = 4;
 				break;
 			default:
 				verbIndex = -1;
@@ -993,7 +997,7 @@ public class BuilderNode
 	
 	private Type GetBodyType(MethodInfo method)
 	{
-		if (HttpVerb == "GET" || HttpVerb == "DELETE")
+		if (HttpVerb == "GET" || HttpVerb == "DELETE" || HttpVerb == "CONNECT")
 		{
 			return typeof(EmptyTerminalState);
 		}

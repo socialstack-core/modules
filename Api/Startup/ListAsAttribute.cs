@@ -32,6 +32,12 @@ namespace Api.Startup
 		/// </summary>
 		public bool Explicit;
 
+		/// <summary>
+		/// The custom admin module to use for this field in the admin panel. 
+		/// If not set, the default MultiSelect component will be used.
+		/// </summary>
+		public string Module;
+
 		public ListAsAttribute(string fieldName){
 			FieldName = fieldName;
 		}

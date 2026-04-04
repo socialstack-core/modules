@@ -1,6 +1,4 @@
-﻿using Api.CanvasRenderer;
-using Api.Configuration;
-using Api.Eventing;
+﻿using Api.Eventing;
 using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Concurrent;
@@ -9,7 +7,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using System.Transactions;
 
 namespace Api.Startup
 {
@@ -186,66 +183,84 @@ namespace Api.Startup
         }
 
         /// <summary>
-        /// Registers services into the given collection and applies the types to AllServiceTypes.
-        /// At this point they are not sorted or instanced.
+        /// Collects service types without instancing them. Note that this ignores the host type configuration.
         /// </summary>
-        /// <param name="services"></param>
-        public static void RegisterInto(IServiceCollection services)
-        {
-            // Start checking types:
-            var allTypes = typeof(Services).Assembly.DefinedTypes;
+        public static List<Type> CollectServiceTypes(bool handleHostTypeConfig = true)
+		{
+			// Start checking types:
+			var allTypes = typeof(Services).Assembly.DefinedTypes;
 
-            var _serviceTypes = new List<Type>();
+			var serviceTypes = new List<Type>();
 
-            if (HostTypes != null)
-            {
-                Log.Info("services", "Hosting services [" + string.Join(",", HostTypes) + "]");
-            }
+			if (HostTypes != null)
+			{
+				Log.Info("services", "Hosting services [" + string.Join(",", HostTypes) + "]");
+			}
 
-            foreach (var typeInfo in allTypes)
-            {
-                // If it:
-                // - Is a class
-                // - Ends with *Service, with a specific exclusion for AutoService.
-                // Then we register it as a singleton.
+			foreach (var typeInfo in allTypes)
+			{
+				// If it:
+				// - Is a class
+				// - Ends with *Service, with a specific exclusion for AutoService.
+				// Then we register it as a singleton.
 
-                var typeName = typeInfo.Name;
+				var typeName = typeInfo.Name;
 
-                if (!typeInfo.IsClass || !typeName.EndsWith("Service") || typeName == "AutoService")
+				if (!typeInfo.IsClass || !typeName.EndsWith("Service") || typeName == "AutoService")
+				{
+					continue;
+				}
+
+				// Must also be in the Api.* namespace:
+				if (typeInfo.Namespace == null || !typeInfo.Namespace.StartsWith("Api."))
+				{
+					continue;
+				}
+
+                if (handleHostTypeConfig)
                 {
-                    continue;
-                }
-
-                // Must also be in the Api.* namespace:
-                if (typeInfo.Namespace == null || !typeInfo.Namespace.StartsWith("Api."))
-                {
-                    continue;
-                }
-
-                // check if the app host type supports the service
-                var serviceHosts = string.Empty;
-                var hostTypes = typeInfo.GetCustomAttributes<HostTypeAttribute>();
-                if (hostTypes != null && hostTypes.Any())
-                {
-                    var serviceHostTypes = hostTypes.Select(s => s.HostType).ToList();
-                    serviceHosts = " [" + string.Join(",", serviceHostTypes) + "]";
-                    
-                    // only load services with matching types 
-                    if (!HasHostType(serviceHostTypes))
+                    // check if the app host type supports the service
+                    var serviceHosts = string.Empty;
+                    var hostTypes = typeInfo.GetCustomAttributes<HostTypeAttribute>();
+                    if (hostTypes != null && hostTypes.Any())
                     {
-                        Log.Info("services", "Ignoring service: " + typeName + " " + serviceHosts);
-                        continue;
+                        var serviceHostTypes = hostTypes.Select(s => s.HostType).ToList();
+                        serviceHosts = " [" + string.Join(",", serviceHostTypes) + "]";
+
+                        // only load services with matching types 
+                        if (!HasHostType(serviceHostTypes))
+                        {
+                            Log.Info("services", "Ignoring service: " + typeName + " " + serviceHosts);
+                            continue;
+                        }
                     }
                 }
 
-                // Ok! Got a valid service. We can now register it:
-                services.AddSingleton(typeInfo.AsType());
-                _serviceTypes.Add(typeInfo.AsType());
+				// Ok! Got a valid service.
+				serviceTypes.Add(typeInfo.AsType());
+			}
 
-                Log.Info("services", "Registered service: " + typeName + serviceHosts);
-            }
+            return serviceTypes;
+		}
 
-            AllServiceTypes = _serviceTypes;
+		/// <summary>
+		/// Registers services into the given collection and applies the types to AllServiceTypes.
+		/// At this point they are not sorted or instanced.
+		/// </summary>
+		/// <param name="services"></param>
+		public static void RegisterInto(IServiceCollection services)
+        {
+            var serviceTypes = CollectServiceTypes(true);
+
+            foreach (var serviceType in serviceTypes)
+            {
+                // Register it:
+				services.AddSingleton(serviceType);
+
+				Log.Info("services", "Registered service: " + serviceType.Name);
+			}
+
+            AllServiceTypes = serviceTypes;
         }
 
         /// <summary>

@@ -344,6 +344,9 @@ public class Router
 			case "PUT":
 				verbIndex = 3;
 				break;
+			case "CONNECT":
+				verbIndex = 4;
+				break;
 			default:
 				return null;
 		}

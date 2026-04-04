@@ -1,0 +1,6 @@
+{
+	"name": "Startup",
+	"description": "Provides the entrypoint and some essential functionality for caching, routing and webserver startup.",
+	"modules": [
+	]
+}
