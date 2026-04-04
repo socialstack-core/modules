@@ -1,0 +1,16 @@
+{
+	"name": "Anonymous user accounts",
+	"description": "All anonymous users are given a generated User account set to the public role. The account is given a randomised animal name such as 'Incognito Bear'. Useful for tracking users through a site, but note that it will result in a substantial amount of User accounts over time.",
+	"modules": [
+		{
+			"optional": false,
+			"key": "Api/UserFullNames",
+			"reason": "The fields used for the animal name."
+		},
+		{
+			"optional": false,
+			"key": "Api/UserLastVisited",
+			"reason": "Used as part of the tracking mechanism."
+		}
+	]
+}

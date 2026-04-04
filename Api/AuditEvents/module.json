@@ -1,0 +1,6 @@
+{
+	"name": "Audit events",
+	"description": "Handles generic audit events. This is for tracking general use events which are admin searchable such as logging in, password changes, impersonation and so on. It is combined with revisions to create a broad picture of activity.",
+	"modules": [
+	]
+}

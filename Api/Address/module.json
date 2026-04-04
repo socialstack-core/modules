@@ -1,0 +1,11 @@
+{
+	"name": "Physical Addresses",
+	"description": "Store physical property addresses. Useful for e.g. delivery and billing addresses. Optionally includes a simple address book component for end users to manage their addresses.",
+	"modules": [
+		{
+			"optional": true,
+			"key": "UI/Address/Book",
+			"reason": "End users can manage their addresses using this module."
+		}
+	]
+}

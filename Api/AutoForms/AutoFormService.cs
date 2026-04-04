@@ -165,7 +165,7 @@ namespace Api.AutoForms
 					var fieldStructure = await serviceKvp.Value.GetJsonStructure(context);
 
 					var formType = serviceKvp.Value.InstanceType;
-					var formMeta = GetFormInfo(fieldStructure, formType);
+					var formMeta = await GetFormInfo(context, fieldStructure, formType, serviceKvp.Value);
 
 					// Trigger generic event - this is where revisions can connect up.
 					await Events.AutoForm.BuildMeta.Dispatch(context, formMeta, serviceKvp.Value);
@@ -205,8 +205,10 @@ namespace Api.AutoForms
 		/// </summary>
 		/// <param name="jsonStructure"></param>
 		/// <param name="type"></param>
+		/// <param name="context"></param>
+		/// <param name="service"></param>
 		/// <returns></returns>
-		public AutoFormInfo GetFormInfo(JsonStructure jsonStructure, Type type)
+		public async ValueTask<AutoFormInfo> GetFormInfo(Context context, JsonStructure jsonStructure, Type type, AutoService service)
 		{
 			var info = new AutoFormInfo
 			{
@@ -250,7 +252,7 @@ namespace Api.AutoForms
 				{
 					continue;
 				}
-				var formField = BuildFieldInfo(field.Value);
+				var formField = await BuildFieldInfo(context, field.Value, service);
 
 				if (formField != null)
 				{
@@ -285,8 +287,10 @@ namespace Api.AutoForms
 		/// Converts a Json field into an AutoForm field.
 		/// </summary>
 		/// <param name="jsonField"></param>
+		/// <param name="context"></param>
+		/// <param name="service"></param>
 		/// <returns></returns>
-		public AutoFormField BuildFieldInfo(JsonField jsonField)
+		public async ValueTask<AutoFormField> BuildFieldInfo(Context context, JsonField jsonField, AutoService service)
 		{
 			var fieldType = jsonField.TargetType;
 			var customAttributes = jsonField.Attributes;
@@ -313,6 +317,12 @@ namespace Api.AutoForms
 				isIncludable = true;
 
 				valueType = virtualInfo.Type.Name + "[]";
+
+				// Use custom module from VirtualInfo if set, otherwise use the default from jsonField
+				if (!string.IsNullOrEmpty(virtualInfo.Module))
+				{
+					jsonField.Module = virtualInfo.Module;
+				}
 			}
 			else
 			{
@@ -389,9 +399,10 @@ namespace Api.AutoForms
 
 				// Remove "Ref" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 3);
-				
+
 				// If the remaining name is exactly "Icon", then use type="icon" instead:
-				if(labelName.ToLower() == "icon"){
+				if (labelName.ToLower() == "icon")
+				{
 					type = "icon";
 				}
 			}
@@ -403,10 +414,10 @@ namespace Api.AutoForms
 			}
 			else if ((fieldType == typeof(int) || fieldType == typeof(int?) || fieldType == typeof(uint) || fieldType == typeof(uint?)) && labelName != "Id" && labelName.EndsWith("Id") && Api.Database.ContentTypes.GetType(labelName.Substring(0, labelName.Length - 2).ToLower()) != null)
 			{
-				
+
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
-				
+
 				field.Data["contentType"] = labelName;
 				field.Module = "Admin/ContentSelect";
 
@@ -416,6 +427,8 @@ namespace Api.AutoForms
 				// User selection:
 				field.Module = "Admin/User/Select";
 
+				field.SearchMode = AdminSearchMode.Equal;
+
 				// Remove "Id" from the end of the label:
 				labelName = labelName.Substring(0, labelName.Length - 2);
 				field.Tokeniseable = false;
@@ -423,16 +436,18 @@ namespace Api.AutoForms
 			else if (fieldType == typeof(bool) || fieldType == typeof(bool?))
 			{
 				type = "checkbox";
+				field.SearchMode = AdminSearchMode.Equal;
 			}
 			else if (fieldType == typeof(DateTime) || fieldType == typeof(DateTime?))
 			{
 				type = "datetime";
-				
-				if(labelName.EndsWith("Utc")){
+
+				if (labelName.EndsWith("Utc"))
+				{
 					// Remove "Utc" from the end of the label:
 					labelName = labelName.Substring(0, labelName.Length - 3);
 				}
-				
+
 				field.Data["hint"] = "All dates should be entered as UTC";
 			}
 			else if (fieldType == typeof(int) || fieldType == typeof(int?)
@@ -442,20 +457,40 @@ namespace Api.AutoForms
 				|| fieldType == typeof(float) || fieldType == typeof(float?)
 				|| fieldType == typeof(double) || fieldType == typeof(double?)
 			)
-            {
+			{
 				type = "number";
+				field.SearchMode = AdminSearchMode.Equal;
 
 				if (!field.Data.ContainsKey("step"))
-                {
+				{
 					if (fieldType == typeof(float) || fieldType == typeof(float?)
 						|| fieldType == typeof(double) || fieldType == typeof(double?)
 					)
-                    {
+					{
 						field.Data["step"] = "any";
-					} else
-                    {
+					}
+					else
+					{
 						field.Data["step"] = "1";
 					}
+				}
+			}
+			else if (fieldType == typeof(string))
+			{
+				// All other string fields are searchable by default and use contains, unless it is explicitly setting itself as a textarea.
+				var textarea = false;
+
+				if (field.Data.TryGetValue("type", out object dataFieldType))
+				{
+					if (dataFieldType is string && ((string)dataFieldType == "textarea"))
+					{
+						textarea = true;
+					}
+				}
+
+				if (!textarea)
+				{
+					field.SearchMode = AdminSearchMode.Contains;
 				}
 			}
 
@@ -471,6 +506,13 @@ namespace Api.AutoForms
 			if (isLocalized)
 			{
 				field.Data["localized"] = true;
+			}
+
+			// If a field is searchable but marked as readonly or disabled, then it is no longer searchable by default.
+			// Note that a field may explicitly override this behaviour with the [AdminSearchable] attribute.
+			if (field.SearchMode != AdminSearchMode.None && (field.Data.ContainsKey("readonly") || field.Data.ContainsKey("disabled")))
+			{
+				field.SearchMode = AdminSearchMode.None;
 			}
 
 			// Any of these [Module] or inheritors?
@@ -518,6 +560,19 @@ namespace Api.AutoForms
 				{
 					field.Data["divider"] = true;
 				}
+				else if (attrib is AdminSearchableAttribute)
+				{
+					var asa = attrib as AdminSearchableAttribute;
+
+					if (asa.Searchable)
+					{
+						field.SearchMode = fieldType == typeof(string) ? AdminSearchMode.Contains : AdminSearchMode.Equal;
+					}
+					else
+					{
+						field.SearchMode = AdminSearchMode.None;
+					}
+				}
 				else if (attrib.GetType().ToString().Contains("PriceAttribute"))
                 {
 					field.Data["isPrice"] = true;
@@ -528,6 +583,8 @@ namespace Api.AutoForms
             {
 				field.Order = 0;
             }
+
+			field = await Events.AutoForm.GetFieldModule.Dispatch(context, field, service);
 
 			return field;
 		}

@@ -54,6 +54,11 @@ namespace Api.AutoForms
 		public string Module;
 
 		/// <summary>
+		/// Set if this field is searchable
+		/// </summary>
+		public AdminSearchMode SearchMode = AdminSearchMode.None;
+
+		/// <summary>
 		/// The fields order
 		/// </summary>
 		public uint Order = uint.MaxValue;

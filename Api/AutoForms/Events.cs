@@ -27,6 +27,11 @@ namespace Api.Eventing
 		/// Called when the metadata for an autoform is being constructed.
 		/// </summary>
 		public EventHandler<AutoFormInfo, AutoService> BuildMeta;
+
+		/// <summary>
+		/// Called when building an autoform field. Use this to override the module used for a field based on its contentType.
+		/// </summary>
+		public EventHandler<AutoFormField, AutoService> GetFieldModule;
 		
 	}
 

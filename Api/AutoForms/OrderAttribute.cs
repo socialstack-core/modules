@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace Api.AutoForms
 {
 	/// <summary>
-	/// Use this to define a fields order when rendering the field inside an autofrom.
+	/// Use this to define a fields order when rendering the field inside an autoform.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
 	internal class OrderAttribute : Attribute

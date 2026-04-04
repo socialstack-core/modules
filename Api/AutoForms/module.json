@@ -1,0 +1,6 @@
+{
+	"name": "Automatically generated form data",
+	"description": "Primarily used by the admin panel, this module generates form information for the content types on a site. For example, for the User type it would generate a list of fields for username, email address and so on. The field types (checkbox, text, ..) is primarily derived from the C# type of the field on the content type itself, but you can override this by adding [Module('Admin/SomethingElse')] the module attribute to your fields. You can also pass props to those components using the [Data('field', 'value')] attributes. Module is effectively UI/Input by default, which is a thin wrapper over <input> which ultimately means you can set common HTML attributes via the Data prop as well, such as readonly.",
+	"modules": [
+	]
+}
