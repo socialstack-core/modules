@@ -1,0 +1,6 @@
+{
+	"name": "Logging",
+	"description": "A fast searchable in-memory chunk based tagged logging module. Errors, warnings, information namespaced by service etc. Can also write pretty printed logging to stdout. Emits events for other modules (such as the CloudHosts one) to upload the chunks to some shared storage for cluster logging support.",
+	"modules": [
+	]
+}

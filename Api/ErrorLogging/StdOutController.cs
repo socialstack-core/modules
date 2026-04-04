@@ -107,7 +107,18 @@ public partial class StdOutController : AutoController
 			{
 				return;
 			}
-			
+
+			if (filtering.OmitWhere is not null && filtering.OmitWhere.Length != 0)
+			{
+				foreach (var keyword in filtering.OmitWhere)
+				{
+					if (FieldContainsMessage(keyword, reader.Fields))
+					{
+						return;
+					}
+				}
+			}
+
 			// allows a fulltext search
 			if (!string.IsNullOrEmpty(filtering.QueryFilter) &&
 			    !FieldContainsMessage(filtering.QueryFilter, reader.Fields))
@@ -236,20 +247,20 @@ public partial class StdOutController : AutoController
 	/// <returns></returns>
 	private static bool FieldContainsMessage(string compare, FieldData[] fields)
 	{
+		if (fields is null)
+		{
+			return false;
+		}
 		foreach (var field in fields)
 		{
 			if (field.Field is not null && field.Field.Id == Schema.MessageFieldDefId)
 			{
-				try
-				{
-					var messageText = field.GetNativeString()?.ToLower();
+				var messageText = field.GetNativeString()?.ToLower();
 
-					if (messageText is not null && messageText.Contains(compare, StringComparison.OrdinalIgnoreCase))
-					{
-						return true; // Skip this log entry
-					}
+				if (messageText is not null && messageText.Contains(compare, StringComparison.OrdinalIgnoreCase))
+				{
+					return true; // Skip this log entry
 				}
-				catch (NullReferenceException) {}
 			}
 		}
 
@@ -321,4 +332,10 @@ public class LogFilteringModel
 	/// "TSParenthesizedType"
 	/// </summary>
 	public bool DisableTypeScriptInfo = false;
+
+	/// <summary>
+	/// If the message contains any of these characters
+	/// they wont match.
+	/// </summary>
+	public string[] OmitWhere = null;
 }

@@ -2,6 +2,7 @@ using Api.ErrorLogging;
 using Api.Eventing;
 using Api.SocketServerLibrary;
 using Api.Startup;
+using Newtonsoft.Json.Linq;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -22,6 +23,24 @@ public static class Log
 	/// Max file length before a file rotation occurs.
 	/// </summary>
 	public static long MaxFileLength = 50000000; // 50MB (~100MB of logs total)
+	
+	/// <summary>
+	/// Whether stdout logging is enabled. Controlled by the StdOutLoggingEnabled app setting.
+	/// Updated on AppSettings.OnChange.
+	/// </summary>
+	private static bool _stdOutLoggingEnabled;
+
+	static Log()
+	{		
+		if(bool.TryParse(Environment.GetEnvironmentVariable("SOCIALSTACK_StdOutLoggingEnabled"), out var state))
+		{
+			_stdOutLoggingEnabled = state;
+		}
+
+#if DEBUG
+		_stdOutLoggingEnabled = true; 	
+#endif
+	}
 
 	/// <summary>
 	/// Logs an informational success message for the given tag.
@@ -36,16 +55,17 @@ public static class Log
 	/// <summary>
 	/// Logs an informational message for the given tag.
 	/// The tag SHOULD be lowercase separated with hypens or underscores and represents a subset of logs.
-	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.
+	/// It is suggested to use Service.LogTag: the lowercase type name, or the lowercase service name if you don't have a type.xa
 	/// </summary>
 	public static void Ok(string tag, Exception error, string message = null)
 	{
 		var ts = Write(Api.ErrorLogging.Schema.OkId, tag, error, message, false);
 
-#if DEBUG
-		// Write to console as well.
-		LogToConsole("\u001b[42;1m OK    " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
-#endif
+		if (_stdOutLoggingEnabled)
+		{
+			// Write to console as well.
+			LogToConsole("\u001b[42;1m OK    " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
+		}
 	}
 
 	/// <summary>
@@ -67,10 +87,11 @@ public static class Log
 	{
 		var ts = Write(Api.ErrorLogging.Schema.InfoId, tag, error, message, false);
 
-#if DEBUG
-		// Write to console as well.
-		LogToConsole("\u001b[44;1m INFO  " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
-#endif
+		if (_stdOutLoggingEnabled)
+		{
+			// Write to console as well.
+			LogToConsole("\u001b[44;1m INFO  " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
+		}
 	}
 
 	/// <summary>
@@ -92,10 +113,11 @@ public static class Log
 	{
 		var ts = Write(Api.ErrorLogging.Schema.WarnId, tag, error, message, false);
 
-#if DEBUG
-		// Write to console as well.
-		LogToConsole("\u001b[43;1m WARN  " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
-#endif
+		if (_stdOutLoggingEnabled)
+		{
+			// Write to console as well.
+			LogToConsole("\u001b[43;1m WARN  " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
+		}
 	}
 
 	/// <summary>
@@ -117,10 +139,11 @@ public static class Log
 	{
 		var ts = Write(Api.ErrorLogging.Schema.ErrorId, tag, error, message, false);
 
-#if DEBUG
-		// Write to console as well.
-		LogToConsole("\u001b[41;1m ERROR " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
-#endif
+		if (_stdOutLoggingEnabled)
+		{
+			// Write to console as well.
+			LogToConsole("\u001b[41;1m ERROR " + ts.ToLocalTime().ToString("T") + " \u001b[0m ", message, error);
+		}
 	}
 
 	/// <summary>
@@ -148,10 +171,11 @@ public static class Log
 	{
 		var ts = Write(Api.ErrorLogging.Schema.FatalId, tag, error, message, true);
 
-#if DEBUG
-		// Write to console as well.
-		LogToConsole("\u001b[41;1m FATAL " + ts.ToLocalTime().ToString("T") + " /!\\ /!\\ /!\\ /!\\ \u001b[0m ", message, error);
-#endif
+		if (_stdOutLoggingEnabled)
+		{
+			// Write to console as well.
+			LogToConsole("\u001b[41;1m FATAL " + ts.ToLocalTime().ToString("T") + " /!\\ /!\\ /!\\ /!\\ \u001b[0m ", message, error);
+		}
 	}
 
 	/// <summary>
