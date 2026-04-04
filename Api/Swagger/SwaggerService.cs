@@ -118,7 +118,7 @@ namespace Api.Swagger
 
 			foreach (var epInfo in allEndpoints)
             {
-                if (epInfo.Method == null)
+                if (epInfo.Method == null || epInfo.HttpMethod == "CONNECT")
                 {
                     continue;
                 }
@@ -157,7 +157,7 @@ namespace Api.Swagger
                 {
                     type = OperationType.Trace;
                 }
-                else
+				else
                 {
                     throw new Exception("Unrecognised http method: " + epInfo.HttpMethod);
                 }

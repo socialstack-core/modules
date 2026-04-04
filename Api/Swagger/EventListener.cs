@@ -1,4 +1,5 @@
 ﻿using Api.Contexts;
+using Api.Eventing;
 using Api.Startup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -25,24 +26,23 @@ namespace Api.Swagger
             var title = SwaggerService.GetAssemblyAttribute<AssemblyTitleAttribute>().Title;
             var version = "v1"; // Assembly.GetExecutingAssembly().GetName().Version?.ToString();
 
-            WebServerStartupInfo.OnConfigureServices +=
-                (IServiceCollection builder) =>
-                {
-					builder.AddRouting();
-
-					builder.AddEndpointsApiExplorer();
-                    builder.AddSwaggerGen(options =>
-                    {
-                        options.SwaggerDoc(version, new OpenApiInfo { Title = title, Version = version });
-                        options.DocumentFilter<SwaggerDocumentFilter>();
-                    });
-                };
-
-            // Also hook up the after app configuration
-            WebServerStartupInfo.OnConfigureApplication += (IApplicationBuilder app) =>
+            Events.WebServerStartup.ConfigureServices.AddEventListener((Context context, IServiceCollection builder) =>
             {
-                //restrict access to admin panel users 
-                app.UseMiddleware<SwaggerAuthenticationMiddleware>();
+				builder.AddRouting();
+
+				builder.AddEndpointsApiExplorer();
+				builder.AddSwaggerGen(options =>
+				{
+					options.SwaggerDoc(version, new OpenApiInfo { Title = title, Version = version });
+					options.DocumentFilter<SwaggerDocumentFilter>();
+				});
+				return new ValueTask<IServiceCollection>(builder);
+            });
+
+			// Also hook up the after app configuration
+			Events.WebServerStartup.BeforeConfigureApplication.AddEventListener((Context context, IApplicationBuilder app) => {
+				//restrict access to admin panel users 
+				app.UseMiddleware<SwaggerAuthenticationMiddleware>();
 
                 // if we get a 500 error from /swagger/v1/swagger.json
                 // try moving the calls below directly into WebServerStartupInfo
@@ -57,8 +57,9 @@ namespace Api.Swagger
                     // auto shows try it out when chosing an endpoint
                     //c.EnableTryItOutByDefault();
                 });
-            };
-        }
+				return new ValueTask<IApplicationBuilder>(app);
+			});
+		}
 
         /// <summary>
         /// 
