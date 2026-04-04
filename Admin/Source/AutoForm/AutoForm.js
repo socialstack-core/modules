@@ -3,22 +3,22 @@ import Input from 'UI/Input';
 import Canvas from 'UI/Canvas';
 import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
-import SubHeader from 'Admin/SubHeader';
+import AdminPage from 'Admin/AdminPage';
+import Footer from 'Admin/Footer';
 import Modal from 'UI/Modal';
 import Html from 'UI/Html';
-import ConfirmModal from 'UI/Modal/ConfirmModal';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import formatTime from "Admin/Functions/FormatTime";
 import CanvasEditor from "Admin/CanvasEditor";
-import getBuildDate from 'UI/Functions/GetBuildDate';
 import { useSession } from 'UI/Session';
 import { useRouter, routerCtx } from 'UI/Router';
-import pageApi from 'Api/Page';
-import localeApi from 'Api/Locale';
 import AutoFormExtensions from "Admin/AutoForm/AutoFormExtensions";
 import Link from "UI/Link";
+import Button from "UI/Button";
 import { TabsWrapper, TabsLinksWrapper, TabsLinkWrapper, TabsPanelsWrapper, TabsPanelWrapper } from "UI/Tabs";
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { handleString } from 'UI/Token';
 
 /**
  * Used to automatically generate forms used by the admin area based on fields from your entity declarations in the API.
@@ -146,6 +146,27 @@ export default function AutoForm(props) {
 				const { form } = formData;
 				const { fields } = form;
 
+				// In create mode, check URL for initial field values
+				if (!parsedId && fields) {
+					const initialValues = {};
+					let hasInitialValues = false;
+
+					fields.forEach(field => {
+						const fieldName = field.data?.name;
+						if (fieldName) {
+							const urlValue = query.get(`initial-${fieldName}`);
+							if (urlValue !== null) {
+								initialValues[fieldName] = urlValue;
+								hasInitialValues = true;
+							}
+						}
+					});
+
+					if (hasInitialValues) {
+						setFieldData(prev => ({ ...prev, ...initialValues }));
+					}
+				}
+
 				// Does any field specify a sort order?
 				var usesSorting = fields?.find(fld => fld.data.sortOrder);
 
@@ -212,7 +233,7 @@ export default function AutoForm(props) {
 				});
 
 				// remove any empty tabs
-				_tabCanvases = _tabCanvases.filter(tab => tab?.canvas?.c?.length > 0);
+				_tabCanvases = _tabCanvases.filter(tab => tab?.canvas?.c?.length > 0 || tab?.contentJson);
 
 				if (form.supportsRevisions && !props.isRevision && parsedId) {
 					_tabCanvases.push(
@@ -259,7 +280,7 @@ export default function AutoForm(props) {
 	if (failed) {
 		var ep = props.contentType || '';
 		return (
-			<Alert type='danger'>
+			<Alert variant='danger'>
 				{'Oh no! It Looks like this type doesn\'t support the admin panel. Ask a developer to make sure the type name ("' + ep + '") is spelt correctly. The value comes from the page config of this page, and the type name should match the name of the entity in the API. Case doesn\'t matter.'}
 			</Alert>
 		);
@@ -290,7 +311,7 @@ export default function AutoForm(props) {
 			prom = api.delete(parsedId);
 		}
 
-		prom.then(response => {
+		return prom.then(response => {
 			if (props.onActionComplete) {
 				props.onActionComplete(null);
 				return;
@@ -323,25 +344,27 @@ export default function AutoForm(props) {
 
 	const renderConfirmDelete = () => {
 		return <>
-			<ConfirmModal
-				confirmCallback={() => doConfirmDelete()} confirmVariant="danger" confirmText={`Yes, delete the ${props.singular}`}
-				cancelCallback={() => setConfirmDelete(false)}>
+			<ConfirmDialog variant="danger" isOpen={confirmDelete} onClose={() => setConfirmDelete(false)}
+				confirmText={`Yes, delete the ${props.singular}`}
+				confirmCallback={() => {
+					return doConfirmDelete();
+				}}>
 				<p>
 					{`Are you sure you wish to delete this ${props.singular}?`}
 				</p>
-			</ConfirmModal>
+			</ConfirmDialog>
 		</>;
 	}
 
 	const renderConfirmSaveAs = () => {
 		return <>
-			<ConfirmModal
-				confirmCallback={() => doConfirmSaveAs()} confirmVariant="danger" confirmText={`Yes, save this as a new ${props.singular}`}
-				cancelCallback={() => setConfirmSaveAs(false)}>
+			<ConfirmDialog variant="danger" isOpen={confirmSaveAs} onClose={() => setConfirmSaveAs(false)}
+				confirmText={`Yes, save this as a new ${props.singular}`}
+				confirmCallback={() => doConfirmSaveAs()}>
 				<p>
 					{`You are about to the save this as a new ${props.singular}. Any changes will be saved in the new ${props.singular} and the existing ${props.singular} will be not be updated. Continue?`}
 				</p>
-			</ConfirmModal>
+			</ConfirmDialog>
 		</>;
 	}
 
@@ -377,7 +400,7 @@ export default function AutoForm(props) {
 
 		breadcrumbs.push({ title: editTitle });
 	} else {
-		breadcrumbs.push({ title: `Add new` });
+		breadcrumbs.push({ title: `Add New` });
 	}
 
 	var pageUrl = fieldData ? fieldData.primaryUrl : null;
@@ -481,36 +504,28 @@ export default function AutoForm(props) {
 	}
 	
 	const renderForm = () => {
-		const feedback = <>
-			{
-				editFailure && (
-					<Alert variant='danger'>
-						{editFailure.message || `Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.`}
-					</Alert>
-				)
-			}
-			{
-				editSuccess && (
-					<Alert variant='success'>
-						{`Your changes have been saved`}
-					</Alert>
-				)
-			}
-			{
-				createSuccess && (
-					<Alert variant='success'>
-						{`Created successfully`}
-					</Alert>
-				)
-			}
-			{
-				deleteFailure && (
-					<Alert variant='danger'>
-						{`Something went wrong whilst trying to delete this - your device might be offline, so check your internet connection and try again.`}
-					</Alert>
-				)
-			}
-		</>;
+		var feedback = null;
+		var feedbackStyle = 'info';
+
+		if (editFailure) {
+			feedback = editFailure.message || `Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.`;
+			feedbackStyle = 'danger';
+		}
+
+		if (editSuccess) {
+			feedback = `Your changes have been saved`;
+			feedbackStyle = 'success';
+		}
+
+		if (createSuccess) {
+			feedback = `Created successfully`;
+			feedbackStyle = 'success';
+		}
+
+		if (deleteFailure) {
+			feedback = `Something went wrong whilst trying to delete this - your device might be offline, so check your internet connection and try again.`;
+			feedbackStyle = 'danger';
+		}
 
 		const extraButtonMapFunc = (button) => {
 
@@ -538,45 +553,44 @@ export default function AutoForm(props) {
 			);
 		}
 
-		var controls = <>
-			{
-				isEdit ?
-					AutoFormExtensions.getAutoFormButtons(props.contentType, 'update').map(extraButtonMapFunc) :
-					AutoFormExtensions.getAutoFormButtons(props.contentType, 'create').map(extraButtonMapFunc)
-			}
-			{isEdit && <>
-				<button disabled={props.isRevision} title={props.isRevision ? `Can't delete revisions` : undefined} className="btn ui-btn btn-outline-danger" type="button" onClick={e => {
-					e.preventDefault();
-					setConfirmDelete(true);
-				}}>
-					<i className="fal fa-trash"></i> {`Delete this ${props.singular}`}
-				</button>
-			</>}
-			<div className="save-group">
-				{supportsRevisions && (
-					<Input inline type="submit" name="form_submitMode" value="draft" className="btn ui-btn btn-secondary" onClick={e => {
-						submitForm(e.target);
-					}} disabled={submitting}>
-						{isEdit ? `Save Draft` : `Create Draft`}
-					</Input>
-				)}
+		var bulkActions = isEdit ? <>
+			<Button disabled={props.isRevision} variant="danger" outlined onClick={e => {
+				e.preventDefault();
+				setConfirmDelete(true);
+			}}>
+				<i className="fal fa-trash"></i> {`Delete this ${props.singular}`}
+			</Button>
+		</> : null;
 
-				{/* todo - check for content type and do more ?? */}
-				{isEdit &&
-					<button className="btn ui-btn btn-secondary" name="form_submitMode" value="copy" type="button" onClick={e => {
-						e.preventDefault();
-						setConfirmSaveAs(true);
-					}}>
-						{`Save as a copy..`}
-					</button>
-				}
+		var callsToAction = <>
+			{isEdit ?
+				AutoFormExtensions.getAutoFormButtons(props.contentType, 'update').map(extraButtonMapFunc) : 
+				AutoFormExtensions.getAutoFormButtons(props.contentType, 'create').map(extraButtonMapFunc)}
 
-				<Input inline type="submit" name="form_submitMode" value="save" disabled={submitting} onClick={e => {
+			{supportsRevisions && (
+				<Input inline type="submit" name="form_submitMode" value="draft" className="btn ui-btn btn-secondary" onClick={e => {
 					submitForm(e.target);
-				}}>
-					{isEdit ? `Save and Publish` : `Create`}
+				}} disabled={submitting}>
+					{isEdit ? `Save Draft` : `Create Draft`}
 				</Input>
-			</div>
+			)}
+
+			{/* todo - check for content type and do more ?? */}
+			{isEdit &&
+				<button className="btn ui-btn btn-secondary" name="form_submitMode" value="copy" type="button" onClick={e => {
+					e.preventDefault();
+					setConfirmSaveAs(true);
+				}}>
+					{`Save as a copy..`}
+				</button>
+			}
+
+			<Input inline type="submit" name="form_submitMode" value="save" disabled={submitting} onClick={e => {
+				submitForm(e.target);
+			}}>
+				{isEdit ? `Save and Publish` : `Create`}
+			</Input>
+
 		</>;
 
 		var onValues = (values, setAction) => {
@@ -681,50 +695,81 @@ export default function AutoForm(props) {
 		
 		var title = isEdit ? `Edit ${props.singular}` : `Create New ${props.singular}`;
 
-		if (isEdit && fieldData?.name && fieldData.name.trim().length) {
+		if (isEdit && props.editTitleToken && fieldData) {
+			var tokenValue = handleString(props.editTitleToken, session, fieldData);
+			if (tokenValue) {
+				title = `Edit ${props.singular} "${tokenValue}"`;
+			}
+		} else if (isEdit && fieldData?.name && fieldData.name.trim().length) {
 			title = `Edit ${props.singular} "${fieldData.name}"`;
 		}
 		
 		var originalUrl = props.isRevision ? parentUrl + '/' + parsedId : '';
 		
-		return <Form formRef={formRef} autoComplete="off" action={
-			isEdit ? values => api.update(parsedId, values, includes) :
+		return <Form className="ui-form--auto" formRef={formRef} autoComplete="off"
+			action={isEdit ?
+				values => api.update(parsedId, values, includes) :
 				values => api.create(values, includes)}
-			onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}>
-				<div className="admin-page">
-					<SubHeader title={title} breadcrumbs={breadcrumbs} primaryUrl={qualifiedUrl} />
-					{!props.isRevision && currentTab != 'revisions' && props.content?.recentDraft>0 && <Alert type='info'>
-						{`There is a more recent draft of this content. Click the drafts tab below to view.`}
-					</Alert>}
-					{props.isRevision && <Alert type='info'>
-						<Html>
-						{parsedId ? `You are viewing a revision of <a href='${originalUrl}'>${props.singular} #${parsedId}</a>.` : `You are viewing a draft.`}
-						</Html>
-					</Alert>}
-					<div className="admin-page__content">
-						<div className="admin-page__internal">
-							{
-								props.onBeforeForm && props.onBeforeForm(isEdit)
-							}
-							{props.renderFormFields ? props.renderFormFields({
-								formData,
-								tabCanvases,
-								formFields
-							}, isEdit) : renderFormTabs()}
-						</div>
-						{feedback && <>
-							<footer className="admin-page__feedback">
-								{feedback}
-							</footer>
-						</>}
-						<footer className="admin-page__footer">
-							{controls}
-						</footer>
-					</div>
-				</div>
-				{confirmDelete && renderConfirmDelete()}
-				{confirmSaveAs && renderConfirmSaveAs()}
-			</Form>;
+			onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}
+			onInvalidCapture={(e) => {
+				// check: if we're about to focus an invalid field, first ensure it's not on a hidden tab
+				const parentTab = e.target.closest(".ui-page__tab-panel");
+
+				if (parentTab) {
+					const tabId = parentTab.id;
+					const tabLink = document.querySelector(`input[type='radio'][aria-controls='${tabId}']`);
+
+					if (tabLink) {
+						tabLink.click();
+					}
+				}
+
+			}}
+		>
+			<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs} primaryUrl={qualifiedUrl} isRevision={props.isRevision} />
+			<AdminPage.ContentWrapper>
+				<AdminPage.Content>
+
+					{!props.isRevision && currentTab != 'revisions' && props.content?.recentDraft > 0 && <>
+						<Alert type='info'>
+							{`There is a more recent draft of this content. Click the Drafts and History tab below to view.`}
+						</Alert>
+					</>}
+
+					{props.isRevision && <>
+						<Alert type='info'>
+							<Html>
+								{parsedId ? `You are viewing a revision of <a href='${originalUrl}'>${props.singular} #${parsedId}</a>.` : `You are viewing a draft.`}
+							</Html>
+						</Alert>
+					</>}
+
+					{props.onBeforeForm && props.onBeforeForm(isEdit)}
+
+					{props.renderFormFields ? props.renderFormFields({
+						formData,
+						tabCanvases,
+						formFields
+					}, isEdit) : renderFormTabs()}
+
+					{confirmDelete && renderConfirmDelete()}
+					{confirmSaveAs && renderConfirmSaveAs()}
+				</AdminPage.Content>
+			</AdminPage.ContentWrapper>
+			{feedback && <>
+				<AdminPage.Feedback variant={feedbackStyle}>
+					{feedback}
+				</AdminPage.Feedback>
+			</>}
+			<Footer>
+				<Footer.BulkActions>
+					{bulkActions}
+				</Footer.BulkActions>
+				<Footer.CallsToAction>
+					{callsToAction}
+				</Footer.CallsToAction>
+			</Footer>
+		</Form>;
 	};
 
 	return <routerCtx.Provider

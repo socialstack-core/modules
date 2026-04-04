@@ -1,16 +1,32 @@
-.dashboards-database{
-	.db-run {
+.admin-dashboard--database {
+
+	textarea, .aceeditor > div{
+		height: px_to_rem(150);
+	}
+
+	.form-response {
+
+		.spacer-container {
+			display: none;
+		}
+
+	}
+
+}
+
+.admin-dashboard__database {
+
+	&-run {
 		overflow-x: auto;
 	}
-	
-	textarea, .aceeditor > div{
-		height: 150px;
-	}
-	
-	.result-set{
+
+	&-resultset {
+
 		th {
 			border: 1px solid lightgray;
 			padding: 1rem;
 		}
+
 	}
+
 }

@@ -1,22 +1,24 @@
-import Canvas from 'UI/Canvas';
-import Search from 'UI/Search';
 import Table from 'UI/Table';
-import SubHeader from 'Admin/SubHeader';
 import {Content, ListFilter} from 'Api/Content';
-import ConfirmModal from 'UI/Modal/ConfirmModal';
-import { isoConvert } from "UI/Functions/DateTools";
-import { useState, useEffect, useRef } from 'react';
-import Icon, {IconRef} from "UI/Icon";
+import {useState, useEffect, useRef, useMemo} from 'react';
+import Icon from "UI/Icon";
 import Link from "UI/Link";
 import {useRouter} from "UI/Router";
 import Button from "UI/Button";
 import Input from "UI/Input";
 import Alert from "UI/Alert";
+import Canvas from "UI/Canvas";
+import Loading from "UI/Loading";
+import Form from "UI/Form";
 import Debounce from "UI/Functions/Debounce";
-import Modal from "UI/Modal";
+import ConfirmDialog from "UI/Dialog/ConfirmDialog";
 import AutoFormExtensions from "Admin/AutoForm/AutoFormExtensions";
 import { TabsWrapper, TabsLinksWrapper, TabsLinkWrapper, TabsPanelsWrapper, TabsPanelWrapper } from "UI/Tabs";
 import Drafts from 'Admin/Revisions/Drafts';
+import AdminPage from 'Admin/AdminPage';
+import Footer from 'Admin/Footer';
+import getAutoForm from 'Admin/Functions/GetAutoForm';
+
 
 const capitalise = (name? : string) => {
 	return name && name.length ? name.charAt(0).toUpperCase() + name.slice(1) : "";
@@ -36,6 +38,15 @@ export interface AutoListProps {
 	create?: boolean;
 	beforeList?: React.ReactNode;
 	afterList?: React.ReactNode;
+	columns: AutoListColumn[],
+}
+
+export interface AutoListColumn {
+	label: string;
+	field: string;
+	module: string;
+    isSearchable: boolean;
+	title?: boolean;
 }
 
 export interface SortField {
@@ -43,14 +54,20 @@ export interface SortField {
 	direction: 'asc' | 'desc';
 }
 
+export interface AutoListCellRenderer
+{
+	entity: Content<uint>,
+	field: string,
+	value: any
+}
 
 const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	
 	// ====================
 	// Props 
 	// ====================
-	const { contentType } = props;
-	
+	const { contentType, fieldHeaders } = props;
+	const { getPageIncludes } = useRouter();	
 	// ====================
 	// Hooks
 	// ====================
@@ -70,8 +87,16 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	 * Sorting
 	 */
 	const [sort, setSort] = useState<SortField | null>(() => {
-		// If an id field is specified, that's the default sort
-		return props.fields.find(field => field == 'id') ? { field: 'id', direction: 'desc' } : null;
+		const titleColumn = props.columns.find(column => column.title);
+		if (titleColumn) {
+			return { field: titleColumn.field, direction: 'asc' };
+		}
+
+		return props.columns.find(column => column.field === 'name')
+			? { field: 'name', direction: 'asc' }
+			: props.columns.find(column => column.field === 'id')
+				? { field: 'id', direction: 'desc' }
+				: null;
 	});
 
 	const updateQueryRef = useRef(updateQuery);
@@ -85,7 +110,87 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 				q: value
 			});
 		})
-	})
+	});
+
+	const [formData, setFormData] = useState<any>(null);
+	const [searchForm, setSearchForm] = useState<any>(null);
+
+	// Load the form fields - the initial content itself is provided via props.content
+	useEffect(() => {
+		setFormData(null);
+		setSearchForm(null);
+		getAutoForm('content', contentType.toLowerCase())
+			.then(formData => {
+				const { form } = formData;
+				const { fields } = form;
+
+				const searchFormCanvas = {
+					c: formData.form.fields?.filter(field => {
+						// Searchable?
+						return !!field.searchMode;
+					}).map(field => {
+
+						// Note that some fields may be readonly/ disabled
+						// but are explicitly overriding their searchability.
+						// Due to this, we're explicitly removing disabled/readonly from the data.
+
+						// also strip "Required" from validation
+						let cleanValidate = field.data?.validate;
+
+						if (Array.isArray(cleanValidate)) {
+							cleanValidate = cleanValidate.filter(v => v !== "Required");
+							if (cleanValidate.length === 0) cleanValidate = undefined;
+						} else if (cleanValidate === "Required") {
+							cleanValidate = undefined;
+						}
+
+						// Check if this is a checkbox/boolean field - swap to custom CheckboxFilter
+						const isCheckbox = field.data?.type === "checkbox";
+
+						if (isCheckbox) {
+							return {
+								t: 'Admin/AutoList/CheckboxFilter',
+								c: field.content,
+								__key: 'sf_' + (field.data?.name || 'unnamed_field'),
+								d: field.data ? {
+									...field.data,
+									disabled: undefined,
+									readonly: undefined,
+									required: undefined,
+									validate: cleanValidate,
+									_isAdminSearch: true,
+									type: "select",
+									noSelection: "Please select..."
+								} : null
+							};
+						}
+
+						return {
+							t: field.module,
+							c: field.content,
+							__key: 'sf_' + (field.data?.name || 'unnamed_field'),
+							d: field.data ? {
+								...field.data,
+								disabled: undefined,
+								readonly: undefined,
+								required: undefined,
+								validate: cleanValidate,
+								_isAdminSearch: true
+							} : null
+						};
+
+					})
+				};
+
+				setFormData(formData);
+				setSearchForm(searchFormCanvas);
+			})
+			.catch(e => {
+				console.error(e);
+			});
+	}, [props.contentType]);
+
+	const includes = useMemo(() => (getPageIncludes() ?? '').split(','), [props.contentType]);
 
 	updateQueryRef.current = updateQuery;
 
@@ -100,7 +205,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 		});
 	};
 
-	console.log(currentTab);
+	//console.log(currentTab);
 
 	/**
 	 * Has an error occured.
@@ -113,6 +218,13 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	const [currentList, setCurrentList] = useState<Content<uint>[]>([]);
 
 	/**
+	 * Clear bulk selections when page changes (currentList updates on pagination)
+	 */
+	useEffect(() => {
+		setBulkSelections({});
+	}, [currentList]);
+
+	/**
 	 * How many items are pending deletion
 	 */
 	const [pendingDelete, setPendingDelete] = useState<number>(0);
@@ -122,6 +234,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	 */
 	const [needsConfirmDelete, setNeedsConfirmDelete] = useState<boolean>(false);
 
+	const [searchFilter, setSearchFilter] = useState<any>(null);
 
 	// ====================
 	// Derived state
@@ -136,14 +249,26 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	}
 
 	if (searchText) {
-		let query = props.searchFields?.map((field) => field + ' contains ?').join(' or ');
+		const isNumeric = /^\d+$/.test(searchText);
+
+		let query = props.searchFields
+			?.filter((field) => field !== 'id' || isNumeric) // Skip 'id' field if not numeric
+			?.map((field) => field + (field == 'id' ? ' = ?' : ' contains ?'))
+			.join(' or ');
 
 		if (query) {
 			listFilter.query = query;
-			listFilter.args = props.searchFields?.map(() => searchText);
+			listFilter.args = props.searchFields
+				?.filter((field) => field !== 'id' || isNumeric)
+				?.map(() => searchText);
 		}
 	}
-	
+
+	if (searchFilter) {
+		listFilter.query = searchFilter.query;
+		listFilter.args = searchFilter.args;
+	}
+
 	// =================
 	// useEffects
 	// =================
@@ -152,13 +277,15 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	 * When the sort field is invalid, reset it back to ID.
 	 */
 	useEffect(() => {
+		if (!sort) return;
 
-		if (sort && !props.fields.find(field => field == sort.field)) {
-			// Restore to id sort:
-			setSort(props.fields.find(field => field == 'id') ? { field: 'id', direction: 'desc' } : null);
+		const validFields = props.columns?.map((column) => column.field);
+
+		if (!validFields.includes(sort.field)) {
+			const defaultSortField = props.columns?.find(field => field.field === 'id') ? 'id' : (props.columns[0]?.field ?? 'id');
+			setSort(defaultSortField ? { field: defaultSortField, direction: 'desc' } : null);
 		}
-
-	}, [props.fields, sort, searchText, pendingDelete]);
+	}, [sort, props.columns, fieldHeaders]);
 	
 	const selected = Object.values(bulkSelections).filter(Boolean);
 	
@@ -183,13 +310,15 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 
 	// Api is expected to be an ApiEndpoints object.
 	const api = require('Api/' + props.contentType).default;
-	
+
 	// ===================
 	// Guards
 	// ===================
 	if (!props.contentType) {
 		return (
-			<Alert variant={'warning'}>{`Old page identified: please delete your en-admin pages and restart the API to regenerate them.`}</Alert>
+			<Alert variant="warning">
+				{`Old page identified: please delete your en-admin pages and restart the API to regenerate them.`}
+			</Alert>
 		)
 	}
 
@@ -198,6 +327,24 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 		: '/en-admin/' + props.contentType.toLowerCase() + '/' + 'add';
 	
 	const title = capitalise(props.plural);
+	
+	// iterates a "." chain to resolve a property on an entity
+	const accessInclude = (path: string, target: Content<uint>) => {
+		
+		const parts = path.split('.');
+		
+		let current = target;
+		
+		for(let i = 0; i < parts.length; i++) {
+			if (!Boolean(current[parts[i]]))
+			{
+				return "None specified";
+			}
+			current = current[parts[i]];
+		}
+		
+		return current;
+	}
 
 	const renderMainTableContent = () => {
 		return <div className={'table-container'}>
@@ -206,15 +353,17 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 			{/* main area */}
 			<Table
 				over={api}
-				paged
-				className={'autolist-table'}
+				paged paginatorOnly dockBottom
+				className="autolist-table"
 				filter={listFilter}
+				includes={includes}
 				onHeader={() => {
-					return (
+					return <>
 						<tr>
 							{/* select / deselect all */}
-							<th>
-								<Input type="checkbox" sm noWrapper label={`Select all`} 
+							<th colSpan={props.columns.length + 1}>
+								<Input type="checkbox" sm noWrapper label={`Select all`}
+									checked={currentList.length > 0 && currentList.every(item => bulkSelections[item.id])}
 									onChange={(ev) => {
 										currentList.forEach(item => {
 											bulkSelections[item.id] = (ev.target as HTMLInputElement).checked;
@@ -223,34 +372,40 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 									}}
 								/>
 							</th>
-							{props.fields.map((field) => {
+						</tr>
+						<tr>
+							{props.columns.map((field) => {
 								return (
 									<th>
 										<Button sm variant="link" onClick={() => {
-											if (sort?.field != field) {
-												setSort({ field, direction: 'asc' })
+											if (sort?.field != field.field) {
+												setSort({ field: field.field, direction: 'asc' })
 											} else {
 												setSort({ field: sort.field, direction: sort.direction === 'asc' ? 'desc' : 'asc' });
 											}
 										}}>
 											<span>
-												{capitalise(field)}
+												{capitalise(field.label || field.field)}
 											</span>
-											{sort?.field === field && (
+											{sort?.field === field.field && (
 												<i className={'fr fr-chevron-' + (sort?.direction === 'asc' ? 'down' : 'up')} />
 											)}
 										</Button>
 									</th>
 								)
 							})}
-							<th>&nbsp;</th>
+							<th>
+								<span className="sr-only">
+									{`Actions`}
+								</span>
+							</th>
 						</tr>
-					)
+					</>;
 				}}
 				orNone={() => {
 					return (
 						<tr>
-							<td colSpan={2 + props.fields.length}>
+							<td colSpan={props.columns.length + 1}>
 								<Alert variant={'info'}>{`No results found`}</Alert>
 							</td>
 						</tr>
@@ -269,58 +424,65 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 
 					return (
 						<tr className="autolist-table__row">
-							<td className="col--select">
-								<Input type="checkbox" sm noWrapper label={`Select`}
-									defaultChecked={bulkSelections[entry.id]}
-									onChange={(ev) => {
-										bulkSelections[entry.id] = (ev.target as HTMLInputElement).checked;
-										setBulkSelections({ ...bulkSelections })
-									}}
-								/>
-							</td>
-							{props.fields.map((field) => {
-								// debugger;
-								const colClass = field == "id" ? "col--id" : undefined;
+							{props.columns.map((field, index) => {
+								const colClasses = ["autolist-table__col"];
 
+								if (field.field == "id") {
+									colClasses.push("autolist-table__col--id");
+								}
+
+								if (index == 0) {
+									colClasses.push("autolist-table__col--select");
+								}
+
+								const isInclude = field.field.includes('.');
+								const value = isInclude ? accessInclude(field.field, entry) : entry[field.field];
+								const hasValue = typeof value === 'string' ? value.trim().length > 0 : value;
+								const CustomRenderer: React.FC<AutoListCellRenderer> = field.module ? require(field.module).default : null;
+
+								// assumes at least 2 columns (first gains a selection checkbox, second renders the link for the entire row)
 								return (
-									<td className={colClass}>
-										{/*
-										<span className="autotable__field-contents">
-											{entry[field]}
-										</span>
-										*/}
-										<Button className="btn-action--edit" sm variant="link" onClick={() => setPage(path + entry.id)}>
-											{entry[field]}
-										</Button>
+									<td className={colClasses.join(' ')}>
+										{/* first column - selection */}
+										{index == 0 && <>
+											<Input type="checkbox" sm noWrapper label={hasValue ? value : `[No ${field.label || field.field}]`}
+												checked={!!bulkSelections[entry.id]}
+												onChange={(ev) => {
+													bulkSelections[entry.id] = (ev.target as HTMLInputElement).checked;
+													setBulkSelections({ ...bulkSelections })
+												}}
+											/>
+										</>}
+										{/* second column - link (utilises pseudo element to cover entire row) */}
+										{index == 1 && <>
+											<Link sm href={`${path}${entry.id}`} className="autolist-table__link">
+												{CustomRenderer ? <CustomRenderer entity={entry} field={field.field} value={value} /> : value}
+											</Link>
+										</>}
+										{/* remaining columns */}
+										{index > 1 && <>
+											{CustomRenderer ? <CustomRenderer entity={entry} field={field.field} value={value} /> : value}
+										</>}
 									</td>
 								)
 							})}
-							<td className="col--actions">
-								{/* Actions */}
-								{/*
-								<Button className="btn-action--edit" sm variant="link" onClick={() => setPage(path + entry.id)}>
-									{`Edit`}
-								</Button>
-								*/}
-
-								{AutoFormExtensions.getAutoFormButtons(contentType, 'list').map((item) => {
-									return (
-										<Button
-											className={item.className}
-											onClick={() => {
-												if (item.href) {
-													setPage(item.href);
-												} else {
-													if (item.onClick) {
-														item.onClick(item, setPage);
-													}
-												}
-											}}
-										>
-											{item.label}
-										</Button>
-									)
-								})}
+							<td className="autolist-table__col autolist-table__col--actions">
+								<span className="autolist-table__actions">
+									{AutoFormExtensions.getAutoFormButtons(contentType, 'list').map((item) => {
+										return <>
+											{item.href && <>
+												<Link xs outlined href={item.href} className={item.className}>
+													{item.label}
+												</Link>
+											</>}
+											{item.onClick && <>
+												<Button xs outlined onClick={item.onClick(item, setPage)}>
+													{item.label}
+												</Button>
+											</>}
+										</>;
+									})}
+								</span>
 							</td>
 						</tr>
 					)
@@ -381,98 +543,154 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 
 		bulkActionLabel = `${bulkAction} ${selected.length} selected ${bulkSuffix}`;
 	}
-	
-	return (
-		<div className={'autolist'}>
-			<section className={'autolist-header'}>
-				<h2>
-					{/*<Icon type={'fa-rocket'}/>*/}
-					{title}
-					{/*
-					{props.create && (<div className={'right-items'}>
-						<Link
-							href={addUrl}
-						>
-							<Button variant={'primary'}>{`Create ${props.singular}`}</Button>
-						</Link>
-					</div>)}
-					*/}
-				</h2>
-			</section>
-			<section className={'autolist-body'}>
-				<aside>
-					{/* sidebar */}
-					<div className={'search-filter'}>
-						<input 
-							type={'text'}
-							className={'filter-field'}
-							placeholder={'Search'}
-							defaultValue={searchText}
-							onInput={(ev) => {
-								debounce?.handle((ev.target as HTMLInputElement).value.trim())
-							}}
-							onChange={(ev) => {
-								debounce?.handle((ev.target as HTMLInputElement).value.trim())								
-							}}
-						/>
-						<Icon
-							type={'fa-search'}
-						/>
-					</div>
-				</aside>
-				<main>
-					{needsConfirmDelete && (
-						<Modal 
-							visible={true}
-							noFooter
-							title={`Delete ${selected.length} items`}
-							onClose={() => {
-								setNeedsConfirmDelete(false);
-								setPendingDelete(0)
-							}}
-						>
-							{`Deleting these items means they will disappear forever. Are you sure?`}
-							<Button 
-								variant={'danger'}
-								onClick={() => {
-									deleteSelected().then(() => {
-										location.reload();
-									})
-									.catch((e: PublicError) => {
-										setError(e);
-									})	
-								}}
-							>
-								{`Delete Selected`}
-							</Button>
-						</Modal>
-					)}
-					{renderTabs()}
-				</main>
-			</section>
-			<section className={'autolist-footer'}>
-				<div className={'left-items'}>
-					{selected && selected.length != 0 && <>
-						<Button
-							disabled={pendingDelete != 0}
-							onClick={() => {
-								setPendingDelete(selected.length);
-								setNeedsConfirmDelete(true);
-							}}>
-							<Icon type={'fr fr-trash-alt'} /> {bulkActionLabel}
+
+/*
+	// check for overriding "parent" property
+	// can be used to override the default parent breadcrumb link in the event the parent page is not available
+	// (e.g. /navmenu lists all nested menus, /navmenuitem/[id] describes a submenu, but /navmenuitem does not exist)
+	let parentUrl = props.parent && props.parent.trim().length ?
+		`/en-admin/${props.parent.toLowerCase()}` :
+		`/en-admin/${props.contentType.toLowerCase()}`;
+*/
+
+	var breadcrumbs = [];
+
+	if (props.previousPageUrl && props.previousPageName) {
+		breadcrumbs.push({
+			url: props.previousPageUrl,
+			title: props.previousPageName
+		});
+	}
+
+	if (!props.hideEndpointUrl) {
+		breadcrumbs.push({
+			title: title
+		});
+	}
+
+	return <>
+		<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs} />
+		<AdminPage.ContentWrapper>
+			<AdminPage.Filters
+				searchText={searchText}
+				open={true}
+				onInput={(ev) => {
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				}}
+				onChange={(ev) => {
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				}}>
+				{searchForm ? <Form xs onReset={() => {
+					setSearchFilter({ query: '', args: [] });
+				}} action={(vals) => {
+					return new Promise((s, r) => {
+						var query = '';
+						var args = [];
+
+						for (var k in vals) {
+							var val = vals[k];
+
+							if (val === "") {
+								continue;
+							}
+
+							if (query) {
+								query += ' and ';
+							}
+							query += k;
+
+							var isArray = val && Array.isArray(val);
+
+							// eq or contains
+							var fieldInfo = formData?.form?.fields?.find(field => field.data?.name == k);
+
+							var isContains = fieldInfo?.searchMode == 2 || isArray;
+
+							if (isContains) {
+								query += " contains ";
+							} else {
+								query += " = ";
+							}
+
+							if (isArray) {
+								// tags etc - arrays of includes
+								query += "[?]";
+							} else {
+								query += "?";
+							}
+
+							args.push(vals[k]);
+						}
+
+						setSearchFilter({
+							query,
+							args
+						});
+
+						s({});
+					});
+				}}>
+					<Canvas bodyJson={searchForm} />
+					<footer className="admin-page__filters-footer">
+						<Button sm outlined type="reset">
+							{`Clear Filters`}
 						</Button>
-					</>}
-				</div>
-				<div className={'right-items'}>
-					{props.create && (
-						<Link href={addUrl}>
-							<Button variant={'primary'}>{`Create ${props.singular}`}</Button>
-						</Link>
-					)}
-				</div>
-			</section>
-		</div>
-	)
+						<Button sm type="submit">
+							{`Search`}
+						</Button>
+					</footer>
+				</Form> : <Loading />}
+			</AdminPage.Filters>
+			<AdminPage.Content>
+				{renderTabs()}
+				{needsConfirmDelete && <>
+					<ConfirmDialog variant="danger" title={`Delete ${selected.length} Items`} isOpen={needsConfirmDelete}
+						onClose={() => {
+							setNeedsConfirmDelete(false);
+							setPendingDelete(0);
+						}}
+						confirmText={`Delete selected`}
+						confirmCallback={() => {
+							return deleteSelected()
+								.then(() => {
+									setNeedsConfirmDelete(false);
+									setPendingDelete(0);
+									location.reload();
+								})
+								.catch((e: PublicError) => {
+									setError(e);
+								});
+						}}>
+						<p>
+							{`Deleting these items means they will disappear forever. Are you sure?`}
+						</p>
+					</ConfirmDialog>
+				</>}
+			</AdminPage.Content>
+		</AdminPage.ContentWrapper>
+		<Footer>
+			<Footer.BulkActions>
+				{selected?.length > 0 && <>
+					<Button
+						variant="danger" outlined
+						disabled={pendingDelete != 0}
+						onClick={() => {
+							setPendingDelete(selected.length);
+							setNeedsConfirmDelete(true);
+						}}>
+						<Icon type={'fr fr-trash-alt'} /> {bulkActionLabel}
+					</Button>
+				</>}
+			</Footer.BulkActions>
+			<Footer.CallsToAction>
+				{props.create && (
+					<Link href={addUrl}>
+						<Button variant={'primary'}>{`Create ${props.singular}`}</Button>
+					</Link>
+				)}
+			</Footer.CallsToAction>
+		</Footer>
+	</>;
 }
 
 export default AutoList;

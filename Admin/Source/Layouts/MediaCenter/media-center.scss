@@ -1,9 +1,3 @@
-$focal_reticle_size: 24px;
-$focal_reticle_half: $focal_reticle_size * .5;
-$focal_reticle_border: 2px;
-$focal_reticle_color: #fff;
-$preview_size: 512px;
-
 .media-center {
 
 	&__tags {
@@ -17,7 +11,7 @@ $preview_size: 512px;
 		padding : 3px;
 		background-color: #555;
 		display: inline;
-		color: $focal_reticle_color;
+		color: var(--focal-target-color);
 		margin: 3px;
 
 		&-selected {
@@ -80,8 +74,8 @@ $preview_size: 512px;
 						top: 0;
 						width: 100%;
 						height: 100%;
-						background: var(--admin-bg, var(--fallback__admin-bg));
-						color: var(--secondary);
+						background: var(--admin-page-background, #EFF1FA);
+						color: var(--admin-page-fg, #222);
 					}
 
 					&::after {
@@ -91,7 +85,7 @@ $preview_size: 512px;
 						top: calc(50% + 2rem);
 						left: 0;
 						right: 0;
-						color: var(--secondary);
+						color: var(--admin-page-fg, #222);
 					}
 				}
 
@@ -188,34 +182,11 @@ $preview_size: 512px;
 		padding: 0;
 	}
 
-	&__upload-modal {
+	&__upload-dialog {
 
-		&.modal {
-			.modal-body {
-				overflow: scroll;
-				height: fit-content;
-			}
+		&-preview {
+			margin-right: auto;
 		}
-
-		&-footer {
-			display: flex;
-			gap: .75rem;
-			justify-content: space-between;
-			margin-top: 1.5rem;
-			padding: 1rem;
-
-			&-options {
-				display: flex;
-				gap: .75rem;
-			}
-		}
-
-
-		.modal-footer {
-			display: none;
-		}
-
-
 
 		.uploader__internal {
 			aspect-ratio: initial;
@@ -231,8 +202,26 @@ $preview_size: 512px;
 
 	&__preview {
 	    $media-center__preview: &;
+		--focal-target-color: #fff;
+		--focal-target-size: #{px_to_rem(48)};
+		--focal-target-size-half: #{px_to_rem(-24)};
+		--focal-target-size-quarter: #{px_to_rem(12)};
+		--focal-target-border-width: #{px_to_rem(2)};
+
 		cursor: crosshair;
 		position: relative;
+		width: 100%;
+		border: 1px dotted rgba(0 0 0 / .5);
+		overflow: hidden;
+
+		.ui-image__wrapper {
+			width: 100%;
+			display: inline-block;
+
+			.ui-image {
+				width: 100%;
+			}
+		}
 
 		&-wrapper {
 			display: flex;
@@ -246,87 +235,90 @@ $preview_size: 512px;
 		
 		&-crosshair {
 			position: absolute;
-			width: $focal_reticle_size;
-			height: $focal_reticle_size;
-			border-radius: 100%;
-			border: $focal_reticle_border solid $focal_reticle_color;
-			box-shadow: 2px 2px 1px 0 rgba(0,0,0,.5);
-			transform: translate(-$focal_reticle_half, -$focal_reticle_half);
+			width: var(--focal-target-size);
+			height: var(--focal-target-size);
+			transform: translate(var(--focal-target-size-half), var(--focal-target-size-half));
 			pointer-events: none;
 			transition: all .2s ease-in-out;
 			animation-iteration-count: infinite;
-			animation-duration: .67s;
-        
-			&::before {
-				content: '';
-				position: absolute;
-				width: $focal_reticle_border;
-				height: $focal_reticle_border;
-				left: calc(50% - (#{$focal_reticle_border} / 2));
-				top: calc(50% - (#{$focal_reticle_border} / 2));
-				box-shadow: 
-				  0 calc(#{$focal_reticle_border} * -3) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -4) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -5) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -6) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -7) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -8) $focal_reticle_color,
-
-				  calc(#{$focal_reticle_border} * 3) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 4) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 5) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 6) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 7) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 8) 0 $focal_reticle_color,
-
-				  0 calc(#{$focal_reticle_border} * 3) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 4) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 5) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 6) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 7) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 8) $focal_reticle_color,
-
-				  calc(#{$focal_reticle_border} * -3) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -4) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -5) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -6) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -7) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -8) 0 $focal_reticle_color;
-			}
-        
+			animation-duration: 2.5s;
+			background:
+				linear-gradient(to right, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 0,
+				linear-gradient(to right, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 100%,
+				linear-gradient(to left, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 0,
+				linear-gradient(to left, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 100%,
+				linear-gradient(to bottom, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 0,
+				linear-gradient(to bottom, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 0,
+				linear-gradient(to top, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 100%,
+				linear-gradient(to top, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 100%;
+			background-size: var(--focal-target-size-quarter) var(--focal-target-size-quarter);
+			background-repeat: no-repeat;
+			filter: drop-shadow(2px 2px 1px rgba(0 0 0 / .5));
+			box-shadow: transparent 0 0 0 50vw;
+            z-index: 2;
 		}
 
 		&:hover {
 
 			#{$media-center__preview}-crosshair {
-				animation-name: reticle_pulse;
+				//filter: none;
+				//animation-name: focal_pulse;
+				box-shadow: rgba(0, 0, 0, 0.25) 0 0 0 50vw;
 			}
 
 		}
 
 		> img {
-			border: 1px solid var(--admin-field-border, var(--fallback__admin-field-border));
+			border: 1px solid var(--field-border);
 		}
 	}
 
 	&__focal-point {
-		margin-top: 1rem;
+
+		.input-group > input {
+			width: 1%;
+		}
+
 	}
+
+	&__metadata {
+
+		.input-group,
+		.form-select,
+		.form-control,
+		.ui-divider {
+			max-width: none;
+			min-width: 0;
+			width: 100%;
+		}
+
+	}
+
 }
 
-@keyframes reticle_pulse {
+@media only screen and (min-width: #{px_to_rem(768)}) {
+
+	.media-center {
+
+		&__metadata {
+			position: sticky;
+			top: px_to_rem(4);
+		}
+
+	}
+
+}
+
+@keyframes focal_pulse {
   0% {
-    opacity: 1;
-    filter: invert(0);
+	box-shadow: rgba(255, 255, 255, 0.5) 0 0 0 50vw;
   }
 
   50% {
-    opacity: .5;
-    filter: invert(100%);
+	box-shadow: rgba(0, 0, 0, 0.5) 0 0 0 50vw;
   }
 
   100% {
-    opacity: 1;
-    filter: invert(0);
+	box-shadow: rgba(255, 255, 255, 0.5) 0 0 0 50vw;
   }
 }

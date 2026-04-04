@@ -1,0 +1,39 @@
+.ui-product-lookup {
+
+	&__results {
+		margin: 0;
+		margin-top: 1rem;
+		padding: 0;
+		width:100%;
+	}
+
+	&__item {
+
+		td { 
+			padding: 0.25rem;
+		}
+
+		&-action {
+			margin-left:auto;
+		}
+
+		&-summary {
+			display: flex;
+			align-items: center;
+			gap: px_to_rem(12);
+		}
+    }
+
+	&__img {
+
+		.ui-image {
+			width: px_to_rem(32);
+			height: px_to_rem(32);
+			border-radius: px_to_rem(4);
+			object-fit: contain;
+		}
+
+	}
+
+}
+

@@ -3,10 +3,8 @@ import { useRouter } from 'UI/Router';
 import Icon from 'UI/Icon';
 import Link from 'UI/Link';
 import Input from 'UI/Input';
-import Form from 'UI/Form';
-import Table from 'UI/Table';
 import Loading from 'UI/Loading';
-import pageApi, { Page, RouterTreeNodeDetail } from 'Api/Page';
+import { RouterTreeNodeDetail } from 'Api/Page';
 
 /**
  * Props for the TreeView component
@@ -37,11 +35,9 @@ export type TreeViewProps = {
 
 const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, clickToEdit, onLoadData }) => {
 	const [currentNode, setCurrentNode] = useState<RouterTreeNodeDetail | null>(null);
-	const [showCloneModal, setShowCloneModal] = useState(false);
-	const [showConfirmModal, setShowConfirmModal] = useState(false);
 	const [sortColumn, setSortColumn] = useState("name");
 	const [sortDirection, setSortDirection] = useState("asc");
-	const { setPage, pageState } = useRouter();
+	const { pageState } = useRouter();
 
 	useEffect(() => {
 		const { query } = pageState;
@@ -114,7 +110,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 		var currentPath = window.location.pathname;
 		var baseUrl = currentPath + "?path=";
 
-		return <table className="table table-hover admin-treeview">
+		return <table className="table ui-table table-hover admin-treeview">
 			<thead>
 				<tr>
 					{allowSelection && <>
@@ -199,7 +195,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 								</>}
 								{title}
 							</NameTag>
-							<small>
+							<small className="admin-treeview__name-subtitle">
 								{subTitle}
 							</small>
 						</td>
@@ -208,19 +204,19 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 						</td>
 						<td className="admin-treeview__actions">
 							{clickToEdit && child.hasChildren && <>
-								<a href={browseUrl} className="btn btn-sm btn-outline-primary">
+								<Link href={browseUrl} xs variant="primary" outlined>
 									{`Browse`}
-								</a>
+								</Link>
 							</>}
 							{!clickToEdit && editUrl && editUrl.length > 0 && <>
-								<a href={editUrl} className="btn btn-sm btn-outline-primary">
+								<Link href={editUrl} xs variant="primary" outlined>
 									{`Edit`}
-								</a>
+								</Link>
 							</>}
 							{createUrl && createUrl.length > 0 && <>
-								<a href={createUrl} className="btn btn-sm btn-outline-primary">
+								<Link href={createUrl} xs variant="primary" outlined>
 									{`Create`}
-								</a>
+								</Link>
 							</>}
 						</td>
 					</tr>

@@ -291,18 +291,6 @@ $graph_anchor_mid_offset: 6px;
 		.module-group{
 			margin-bottom: 10px;
 		}
-	
-		.module-tile{
-			border: 1px solid lightgrey;
-			border-radius: 4px;
-			text-align: center;
-			padding: 20px;
-			margin-bottom: 10px;
-			
-			&:hover{
-				cursor:pointer;
-			}
-		}
 	}
 
 	.confirm-delete-modal, .cant-delete-modal {

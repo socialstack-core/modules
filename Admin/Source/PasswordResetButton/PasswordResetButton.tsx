@@ -43,8 +43,7 @@ const PasswordResetButton = (props: PasswordResetProps): React.ReactNode => {
 			{loading ? (
 				<Loading />
 			) : <>
-					<Button 
-						type="button"
+					<Button className="password-reset-button__generate"
 						variant="primary"
 						onClick={generate}
 						disabled={loading}
@@ -55,9 +54,27 @@ const PasswordResetButton = (props: PasswordResetProps): React.ReactNode => {
 						<Alert type="info">
 							{`Send this to the user - when they open it in a browser, they'll be able to set a password and login.`}
 						</Alert>
-						<p>
+						<pre className="password-reset-button__code">
 							{url}
-						</p>
+							<Button outlined onClick={() => {
+								navigator.clipboard
+										 .writeText(url)
+										 .then(() => {
+											 alert(`Copied text to clipboard!`)
+										 })
+										.catch((err) => {
+											alert(`Failed to copy text: ${err}`)
+										});
+							}}>
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+									<rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+									<path d="M4 16a2 2 0 01-2-2V4c0-1.1.9-2 2-2h10a2 2 0 012 2" />
+								</svg>
+								<span className="sr-only">
+									{`Copy code to clipboard`}
+								</span>
+							</Button>
+						</pre>
 					</>}
 				</>
 			}

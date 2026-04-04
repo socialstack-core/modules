@@ -1,6 +1,7 @@
 import Input from 'UI/Input';
 import Search from 'UI/Search';
 import Link from 'UI/Link';
+import Button from "UI/Button";
 
 /**
  * Dropdown to select a piece of content.
@@ -12,12 +13,41 @@ export default class ContentSelect extends React.Component {
 
 		this.state = {
 			searchSelected: null,
-			selected: this.getDefaultValue(props)
+			selected: this.getDefaultValue(props),
+			api: null
 		};
 		this.load(props, true);
+
+		this.handleFormReset = () => {
+			setTimeout(() => {
+				this.setState({ searchSelected: null });
+			}, 0);
+		};
+	}
+
+	componentDidMount() {
+		if (this.input && this.input.form) {
+			this.input.form.addEventListener('reset', this.handleFormReset);
+		}
+	}
+
+	componentWillUnmount() {
+		if (this.input && this.input.form) {
+			this.input.form.removeEventListener('reset', this.handleFormReset);
+		}
 	}
 
 	componentWillReceiveProps(props) {
+
+		if (props.search == this.props.search && props.contentType == this.props.contentType) {
+			var newValue = props.value || props.defaultValue;
+			var existingValue = this.props.value || this.props.defaultValue;
+
+			if (newValue == existingValue) {
+				return;
+			}
+		}
+
 		this.load(props);
 	}
 
@@ -57,6 +87,11 @@ export default class ContentSelect extends React.Component {
 
 	load(props, first) {
 		var api = require('Api/' + props.contentType).default;
+
+		// Store API for use in search endpoint
+		if (!this.state.api) {
+			this.setState({ api });
+		}
 
 		if (props.search) {
 			var value = props.value || props.defaultValue;
@@ -98,17 +133,25 @@ export default class ContentSelect extends React.Component {
 	}
 
 	render() {
-		const { contentType, ...props } = this.props;
+		const { contentType, _isAdminSearch, ...props } = this.props;
 
 		if (this.props.search) {
 			var { searchSelected } = this.state;
 			var title = '';
 
 			if (searchSelected) {
-				var titleField = this.props.titleField;
-				title = titleField && titleField.length && searchSelected[titleField]
-					? searchSelected[titleField]
-					: searchSelected.title || searchSelected.firstName || searchSelected.username || searchSelected.name || searchSelected.url;
+				if (this.props.onRender) {
+					var rendered = this.props.onRender(searchSelected);
+					if (rendered) {
+						title = rendered;
+					}
+				}
+				if (!title) {
+					var titleField = this.props.titleField;
+					title = titleField && titleField.length && searchSelected[titleField]
+						? searchSelected[titleField]
+						: searchSelected.title || searchSelected.firstName || searchSelected.username || searchSelected.name || searchSelected.url;
+				}
 			}
 
 			var value = this.props.defaultValue || this.props.value;
@@ -128,25 +171,49 @@ export default class ContentSelect extends React.Component {
 										return v;
 									}
 
-									return this.state.searchSelected ? this.state.searchSelected.id : '0';
+									return this.state.searchSelected ? this.state.searchSelected.id : '';
 								};
 							}
 						}}
 						name={this.props.name}
 					/>
 					<Search
+						name=""
 						for={contentType}
+						endpoint={this.state.api ? this.state.api.list : props.endpoint}
 						field={this.props.titleField || this.props.search}
 						limit={5}
 						placeholder={'Search for a ' + contentType + '..'}
+						inputClassName="ui-form-control"
+						onRender={this.props?.onRender}
+						onQuery={this.props?.onQuery}
 						onFind={entry => {
 							this.setState({
 								searchSelected: entry
 							});
+							if (this.props.onChange) {
+								this.props.onChange({ target: { value: entry ? entry.id : null, name: this.props.name } });
+							}
 						}}
 					/>
 					<div className="selected-content">
-						{searchSelected ? title : value ? 'Item #' + value : 'None selected'}
+						{searchSelected ? (
+							<div className="selected-content__value">
+								<span>{title}</span>
+								<Button 
+									sm 
+									variant="secondary" 
+									onClick={() => {
+										this.setState({ searchSelected: null });
+										if (this.props.onChange) {
+											this.props.onChange({ target: { value: null, name: this.props.name } });
+										}
+									}}
+								>
+									<i className="fal fa-times"></i> Remove
+								</Button>
+							</div>
+						) : value ? 'Item #' + value : 'None selected'}
 					</div>
 				</div>
 			);
@@ -226,23 +293,23 @@ export default class ContentSelect extends React.Component {
 						: []}
 				</Input>
 
-				<footer className="content-select__footer">
-					<Link
+				{!_isAdminSearch && <footer className="content-select__footer">
+					<Link variant="primary" outlined sm
 						href={'/en-admin/' + contentType.toLowerCase() + '/add'}
-						className="btn btn-sm btn-outline-primary btn-content-select-action btn-add-content"
+						className="btn-content-select-action btn-add-content"
 					>
 						<i className="fal fa-fw fa-plus"></i> {`New ${contentType}`}
 					</Link>
 
 					{this.state.selected && (
-						<Link
+						<Link variant="primary" outlined sm
 							href={'/en-admin/' + contentType.toLowerCase() + '/' + this.state.selected}
-							className="btn btn-sm btn-outline-primary btn-content-select-action btn-edit-content"
+							className="btn-content-select-action btn-edit-content"
 						>
 							<i className="fal fa-fw fa-edit"></i> {`Edit ${contentType}`}
 						</Link>
 					)}
-				</footer>
+				</footer>}
 			</div>
 		);
 	}

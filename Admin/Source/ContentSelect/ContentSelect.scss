@@ -4,6 +4,19 @@
 		padding: 10px;
 		margin: 10px 0;
 		background: lightgrey;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		width: 100%;
+		box-sizing: border-box;
+
+		&__value {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			width: 100%;
+			gap: 1rem;
+		}
 	}
 
 	&__footer {

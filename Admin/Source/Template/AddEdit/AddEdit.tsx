@@ -6,15 +6,16 @@ import TemplateApi, { Template } from "Api/Template";
 // ========================
 // Admin Imports
 // ========================
-import Tabs from "Admin/Tabs";
 import AddEditTemplateInfo from "Admin/Template/AddEdit/TemplateInfo";
+import AdminPage from "Admin/AdminPage";
+import Footer from "Admin/Footer";
 
 // ========================
 // UI Imports
 // ========================
+import Tabs from "UI/Tabs";
 import Form from "UI/Form";
 import Button from "UI/Button";
-import Alert from "UI/Alert";
 import AddEditTemplateConfig from "Admin/Template/AddEdit/TemplateConfig";
 import AddEditTemplateCanvasEditor from "Admin/Template/AddEdit/CanvasEditor";
 
@@ -42,6 +43,10 @@ export type CanvasNode = {
 	// roots children.
 	r: Record<string, CanvasNode>
 }
+enum TemplateTab {
+	Configuration = `Configuration`,
+	Design = `Design`,
+}
 
 /**
  * AddEditPage Component
@@ -63,6 +68,11 @@ const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
 		content = {} as Template;
 	}
 	
+	const isNewTemplate = !content.id;
+	const templateTabs = isNewTemplate 
+		? [TemplateTab.Configuration]
+		: Object.values(TemplateTab);
+	
     // ========================
     // Hooks
     // ========================
@@ -72,117 +82,91 @@ const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
 	// Load BodyJSON and add fallback guards
 	// ========================
 	
-	// defined as let as can be overriden by changing the parent. 
-	let [bodyJson, setBodyJson] = useState<CanvasNode>(JSON.parse(content?.bodyJson ?? '{}') ?? {});
-	
+	// tab handling
+	const currentTab = (pageState.query?.get("currentTab") || TemplateTab.Configuration).toLowerCase();
+
+	const setCurrentTab = (target: string) => {
+		updateQuery({ currentTab: target });
+	};
+
+	const renderTabPanel = (tab: TemplateTab) => {
+		switch (tab) {
+			case TemplateTab.Configuration:
+				return <>
+					<AddEditTemplateInfo
+						existing={content} />
+					<AddEditTemplateConfig
+						existing={content}
+					/>
+				</>;
+
+			case TemplateTab.Design:
+				return <>
+					<AddEditTemplateCanvasEditor
+						content={content} />
+				</>;
+		}
+	};
+
     // ========================
     // Render
-    // ========================
-    return (
-        <div className={'add-edit-template-page'}>
-            <Form 
-                action={
-                    (
-                        content?.id ?
-                            // if the content is existing, perform an update
-                            (payload: Template) => TemplateApi.update(content.id, payload) :
-                            // otherwise, create it.
-                            TemplateApi.create
-                    )
-                }
-                onSuccess={(response) => {
-                    const isNewlyCreated = content?.id != response.id;
-                    
-                    if (isNewlyCreated) {
-                        setPage('/en-admin/template/' + response.id + '?newlyCreated=true');
-                    } 
-                    else {
-                        updateQuery({
-                            saved: "true"
-                        })
-                    }
-                }}
-            >
-                {pageState.query.has("saved") && <Alert variant={'success'}>{`Successfully saved changes`}</Alert>}
-                {pageState.query.has("newlyCreated") && <Alert variant={'success'}>{`Successfully created new template #${content?.id}`}</Alert> }
-                <Tabs 
-                    tabs={[
-                        {
-                            label: `Configuration`,
-                            content: (
-								<div>
-									<AddEditTemplateInfo 
-										existing={content}/>
-									<AddEditTemplateConfig 
-										existing={content} 
-										onParentChange={(parent: Template | string) => {
-											if (typeof parent === 'string') {
-												// it's a string here, basic file based template
-												
-												// let's change the root component
-												bodyJson.t = parent;
-												
-												// reset the props.
-												bodyJson.d = {};
-												
-												// ignore the children though, 
-												// a user will probably expect the children to be the same
-												// and would probably find it rather annoying if the children are wiped.
-											} 
-											else {
-												// we gets a parent template.
-												
-												// assign it "Admin/Template" as its referencing
-												// another DB template.
-												bodyJson.t = "Admin/Template";
-												
-												// clear the props, and assign template key
-												bodyJson.d = {
-													templateKey: parent.key,
-												}
+	// ========================
+	return <>
+		<Form
+			action={(
+				content?.id ?
+					// if the content is existing, perform an update
+					(payload: Template) => TemplateApi.update(content.id, payload) :
+					// otherwise, create it.
+					TemplateApi.create
+			)}
+			onSuccess={(response) => {
+				const isNewlyCreated = content?.id != response.id;
 
-												// ignore the children though, 
-												// a user will probably expect the children to be the same
-												// and would probably find it rather annoying if the children are wiped.
-											}
+				if (isNewlyCreated) {
+					setPage('/en-admin/template/' + response.id + '?newlyCreated=true');
+				} else {
+					updateQuery({
+						saved: "true"
+					})
+				}
+			}}
+		>
+			<AdminPage.SubHeader title={`Add / Edit Template`} breadcrumbs={[
+				{
+					href: '/en-admin/template',
+					title: `Templates`
+				},
+				{
+					title: `Add / Edit Template`
+				}
+			]} />
+			<AdminPage.ContentWrapper>
+				<AdminPage.Content>
+					<Tabs currentTab={currentTab} tabs={templateTabs}
+						renderPanel={renderTabPanel} onChange={(tab: string) => setCurrentTab(tab.toLowerCase())} />
+				</AdminPage.Content>
+			</AdminPage.ContentWrapper>
 
-											// clear the roots, 
-											bodyJson.r = {};
-											
-											// update state, this allows the canvas editor to be
-											// reloaded "live" with the new template.
-											setBodyJson({...bodyJson});
-										}}
-									/>
-								</div>
-							)
-                        },
-                        {
-                            label: `Design`,
-							content: <AddEditTemplateCanvasEditor 
-								onCanvasChange={(source: string) => {
-									setBodyJson(JSON.parse(source));
-									
-									content.bodyJson = source;
-								}} 
-								content={{...content, bodyJson: JSON.stringify(bodyJson)}}/>
-                        }
-                    ]}
-					currentTab={pageState.query.get("currentTab")}
-					onTabChange={(newTab: string) => {
-						updateQuery({
-							currentTab: newTab,
-						})
-					}}
-                />
-                <footer className="admin-page__footer">
-					<Container style={{ justifyItems: "right" }}>
-                    	<Button type={'submit'}>{`Save template`}</Button>
-					</Container>
-                </footer>
-            </Form>
-        </div>
-    )
+			{pageState.query.has("saved") && <>
+				<AdminPage.Feedback variant="success">
+					{`Successfully saved changes`}
+				</AdminPage.Feedback>
+			</>}
+
+			{pageState.query.has("newlyCreated") && <>
+				<AdminPage.Feedback variant="success">
+					{`Successfully created new template #${content?.id}`}
+				</AdminPage.Feedback>
+			</>}
+
+			<Footer>
+				<Button type="submit">
+					{`Save template`}
+				</Button>
+			</Footer>
+		</Form>
+	</>;
 
 }
 

@@ -1,12 +1,15 @@
 import TreeView, { buildBreadcrumbs } from 'Admin/TreeView';
-import SubHeader from 'Admin/SubHeader';
 import { useRouter } from 'UI/Router';
-import { useState, useEffect } from 'react';
-import pageApi, { Page, RouterTreeNodeDetail } from 'Api/Page';
+import pageApi from 'Api/Page';
+import AdminPage from 'Admin/AdminPage';
+import Footer from 'Admin/Footer';
+import Link from 'UI/Link';
+//import { useState } from 'react';
+//import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 
 export default function Sitemap(props) {
-	const [ showCloneModal, setShowCloneModal] = useState(false);
-	const [ showConfirmModal, setShowConfirmModal ] = useState(false);
+	//const [ showCloneModal, setShowCloneModal] = useState(false);
+	//const [ showConfirmDialog, setShowConfirmDialog ] = useState(false);
 	const { pageState } = useRouter();
 	const { query } = pageState;
 	var path = query?.get("path") || "";
@@ -17,21 +20,22 @@ export default function Sitemap(props) {
 		path,
 		'/en-admin/page'
 	);
-
-	function removePage(page : Page) {
-		pageApi.delete(page.id).then(response => {
-			window.location.reload();
-		});
-	}
+	
+	// function removePage(page : Page) {
+	// 	return pageApi.delete(page.id).then(response => {
+	// 		window.location.reload();
+	// 	});
+	// }
 
 	var addUrl = window.location.pathname.replace(/\/+$/g, '') + '/add';
 
-	return (
-		<>
-			<SubHeader title={`Edit Site Pages`} breadcrumbs={breadcrumbs} />
-			<div className="sitemap__wrapper">
-				<div className="sitemap__internal">
-					{/*showCloneModal && <>
+	return <>
+		<AdminPage.SubHeader
+			title={`Edit Site Pages`}
+			breadcrumbs={breadcrumbs} />
+		<AdminPage.ContentWrapper>
+			<AdminPage.Content>
+				{/*showCloneModal && <>
 						<Modal visible onClose={() => setShowCloneModal(false)} title={`Save Page As`}>
 							<p>
 								<strong>{`Cloning from:`}</strong> <br />
@@ -65,35 +69,38 @@ export default function Sitemap(props) {
 							</Form>
 						</Modal>
 					</>}
-					{showConfirmModal && <>
-						<ConfirmModal confirmCallback={() => removePage(showConfirmModal)} confirmVariant="danger" cancelCallback={() => setShowConfirmModal(false)}>
+
+					{showConfirmDialog && <>
+						<ConfirmDialog variant="danger" isOpen={showConfirmDialog} onClose={() => setShowConfirmDialog(false)}
+							confirmCallback={() => {
+								return removePage(showConfirmDialog);
+							}}>
 							<p>
 								<strong>{`This will remove the following page:`}</strong> <br />
-								{getPageDescription(showConfirmModal)}
+								{getPageDescription(showConfirmDialog)}
 							</p>
 							<p>
 								{`Are you sure you wish to do this?`}
 							</p>
-						</ConfirmModal>
-					</>*/}
-					<TreeView onLoadData={(path) => {
+						</ConfirmDialog>
+					</>}
 
-						return pageApi
-							.getRouterTreeNodePath(path)
-							.then(resp => {
-								return resp;
-							});
-
-					}} />
-				</div>
-				{!props.noCreate && <>
-					<footer className="admin-page__footer">
-						<a href={addUrl} className="btn btn-primary">
-							{`Create new`}
-						</a>
-					</footer>
-				</>}
-			</div>
-		</>
-	);
+					*/}
+				<TreeView onLoadData={(path) => {
+					return pageApi
+						.getRouterTreeNodePath(path)
+						.then(resp => {
+							return resp;
+						});
+				}} />
+			</AdminPage.Content>
+		</AdminPage.ContentWrapper>
+		<Footer>
+			{!props.noCreate && <>
+				<Link href={addUrl} variant="primary">
+					{`Create new`}
+				</Link>
+			</>}
+		</Footer>
+	</>;
 }

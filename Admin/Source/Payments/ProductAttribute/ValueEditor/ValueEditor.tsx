@@ -143,7 +143,7 @@ const AttributeValueEditor: React.FC = () => {
     return (
         <>
             <SubHeader
-                title={`Manage values for '${attribute.name}'`}
+                title={`Manage Values for '${attribute.name}'`}
                 breadcrumbs={[
                     { url: "/en-admin/productattribute/", title: "Product Attributes" },
                     { url: `/en-admin/productattribute/${attribute.id}`, title: attribute.name! },

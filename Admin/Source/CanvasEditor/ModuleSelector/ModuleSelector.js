@@ -3,7 +3,11 @@ import Loop from 'UI/Loop';
 import Input from 'UI/Input';
 import Loading from 'UI/Loading';
 import { collectModules, groupByDirectory } from './Utils';
-import { useState, useEffect } from 'react'; 
+import { useState, useEffect } from 'react';
+
+function formatTitle(name) {
+	return name.replace(/([a-z])([A-Z])/g, '$1 $2');
+} 
 
 export default function ModuleSelector(props) {
 	const { selectOpenFor, componentGroups, onClose, onSelected } = props;
@@ -15,7 +19,7 @@ export default function ModuleSelector(props) {
 		collectModules(componentGroups).then(compSet => {
 			setComponentSet(compSet);
 		});
-	}, props.componentGroups);
+	}, [props.componentGroups]);
 	
 	function updateSort(event) {
 		setSortOrder(event.target.value);
@@ -28,7 +32,7 @@ export default function ModuleSelector(props) {
 		
 		if(filter){
 			filteredModules = filteredModules.filter(mod => {
-				return mod.publicName.toLowerCase().indexOf(filter) != -1;
+				return mod.publicName.replace(/\s+/g, '').toLowerCase().indexOf(filter) != -1;
 			});
 		}
 		
@@ -40,21 +44,19 @@ export default function ModuleSelector(props) {
 		var dirGroups = groupByDirectory(filteredModules);
 		
 		return <>
-			<div className="module-groups-filters">
-				<div className="row">
-					<div className="col-12 col-lg-8">
-						<Input type="search" autoFocus noWrapper onInput={el => {
-							var filterText = el.target.value;
-							setFilter(filterText.trim().toLowerCase());
-						}}
-							label={`Filter by module name and / or associated keywords`} placeholder={`e.g. "Text", "accordion", etc.`} />
-					</div>
-					<div className="col-12 col-lg-4">
-						<Input type="select" noWrapper onChange={updateSort} label={`Sort Order`}>
-							<option value={'alpha'}>{`Alphabetically`}</option>
-							<option value={'popularity'}>{`By popularity`}</option>
-						</Input>
-					</div>
+			<div className="module-groups-filters row">
+				<div className="col-6">
+					<Input type="search" autoFocus noWrapper onInput={el => {
+						var filterText = el.target.value.replace(/\s+/g, '').toLowerCase();
+						setFilter(filterText);
+					}}
+						placeholder={`Search components...`} />
+				</div>
+				<div className="col-6">
+					<Input type="select" noWrapper onChange={updateSort}>
+						<option value={'alpha'}>{`Alphabetical`}</option>
+						<option value={'popularity'}>{`Popularity`}</option>
+					</Input>
 				</div>
 			</div>
 			<div className="module-groups-wrapper">
@@ -66,21 +68,22 @@ export default function ModuleSelector(props) {
 						</h6>
 						<div className="module-group__internal">
 							{dir.modules.map(module => {
-									return <>
-										<button type="button" className="btn module-tile" onClick={() => {
-											onSelected && onSelected(module);
-											onClose && onClose();
-										}}>
-											{module.priority && <>
-												<i className="fa fa-star module-tile__popular" title={`Popular`}></i>
-											</>}
-											<div>
-												{<i className={"fa fa-" + (module.moduleClass.icon || "puzzle-piece")} />}
-											</div>
-											{module.name}
-										</button>
-									</>;
-								})}
+								var icon = module.meta?.icon || 'fa fa-puzzle-piece';
+								var description = module.meta?.description || '';
+								return <button type="button" className="btn module-tile" onClick={() => {
+									onSelected && onSelected(module);
+									onClose && onClose();
+								}}>
+									{module.priority && <i className="fa fa-star module-tile__popular" title={`Popular`}></i>}
+									<div className="module-tile__icon">
+										<i className={icon} />
+									</div>
+									<div className="module-tile__content">
+										<div className="module-tile__title">{formatTitle(module.name)}</div>
+										<div className="module-tile__subtitle">{description}</div>
+									</div>
+								</button>;
+							})}
 						</div>
 					</div>;
 				})}
@@ -98,7 +101,7 @@ export default function ModuleSelector(props) {
 				}
 			]}
 			isLarge
-			title={`Add something to your content`}
+			title={`Add Component`}
 			onClose={onClose}
 			visible={selectOpenFor}
 		>

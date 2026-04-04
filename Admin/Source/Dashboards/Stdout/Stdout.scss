@@ -1,48 +1,55 @@
-.dashboards-stdout{
+.admin-dashboard--stdout {
+
+}
+
+.admin-dashboard__stdout {
     background: #000;
-    max-height: calc(100vh - 120px);
     font-family: var(--font-mono);
+	font-size: px_to_rem(14);
     color: #fff;
-    padding: 40px;
-    overflow-y: scroll;
-    
+    padding: px_to_rem(20);
+	margin-bottom: px_to_rem(20);
     
 	p {
-		color: white;
+		color: #fff;
 	}
-	
-	.tag-ok {
-		background: green;
-		color: white;
-	}
-	
-	.tag-info {
-		background: darkblue;
-		color: white;
-	}
-	
-	.tag-warn {
-		background: orange;
-		color: black;
-	}
-	
-	.tag-error {
-		background: red;
-		color: white;
-	}
-	
-	.tag-fatal {
-		background: red;
-		color: white;
+
+	.stdout-tag {
+		display: inline-block;
+		padding: px_to_rem(6) px_to_rem(8);
+		border-radius: px_to_rem(4);
+		margin-bottom: px_to_rem(8);
+
+		&--ok {
+			background: green;
+			color: #fff;
+		}
+
+		&--info {
+			background: darkblue;
+			color: #fff;
+		}
+
+		&--warn {
+			background: orange;
+			color: #222;
+		}
+
+		&--error,
+		&--fatal {
+			background: red;
+			color: #fff;
+		}
+
 	}
 	
 	.file-highlight {
 		background:#0d6efd;
 		color:#fff;
-		border-radius: 4px;
+		border-radius: px_to_rem(4);
 		display: inline;
-		padding: 2px 4px;
-		margin-left:5px;
+		padding: px_to_rem(2) px_to_rem(4);
+		margin-left: px_to_rem(5);
 		cursor:pointer;
 
 		&:hover {
@@ -50,31 +57,28 @@
 		}
 
 		i {
-			margin-right:5px;
-			margin-left:5px;
+			margin-right: px_to_rem(5);
+			margin-left: px_to_rem(5);
 		}
 	}
-	.log-entry {
-		border-bottom:1px solid #222;
-		margin-bottom:40px;
-	}
-}
 
-.stdout-controls {
-	
-	&.scrolled {
-		position:fixed;
-		top: 50px;
+	.log-entry {
+		border-bottom: 1px solid #222;
+		margin-bottom: px_to_rem(20);
 	}
-	
-	.group {
-		width:fit-content;
-		display: inline-block;
-		vertical-align:top;
-		padding-left:10px;
-		padding-right:20px;
-		margin-right:10px;
-		border-right: 1px solid #cccccc;
-		height:232px;
+
+	&-filters {
+
+		.admin-page__filters-internal {
+			padding-top: px_to_rem(10);
+		}
+
+		.group {
+
+			> p:first-child {
+				font-weight: 700;
+			}
+
+		}
 	}
 }

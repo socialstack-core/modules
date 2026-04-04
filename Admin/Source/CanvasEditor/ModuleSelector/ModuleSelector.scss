@@ -16,16 +16,15 @@
         flex: 0 0 auto;
         padding: 1rem;
 
-        .col-lg-8 {
-            margin-bottom: 1rem;
+        .col-6 {
+            padding: 0 .25rem;
         }
 
-        @media (min-width: 992px) {
-
-            .col-lg-8 {
-                margin-bottom: 0;
-            }
-
+        .form-control,
+        .form-select {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
         }
     }
 
@@ -41,28 +40,57 @@
             position: sticky;
             top: 0;
             padding: .5rem 1rem;
-            background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
-            color: var(--admin-subheader-fg, var(--fallback__admin-subheader-fg));
+			background: var(--admin-page__subheader-background, #E0E4F5);
+			color: var(--admin-page__subheader-fg, #222);
             z-index: 1;
         }
 
         &__internal {
-            display: flex;
-            flex-wrap: wrap;
+            display: block;
             padding: .5rem 1rem 1rem 1rem;
-            gap: .5rem;
 
             .module-tile {
-                flex: 0 0 180px;
-                max-width: 180px;
+                display: flex;
+                align-items: center;
+                width: 100%;
                 position: relative;
+                border: 1px solid lightgrey;
+                border-radius: 4px;
+                padding: 1rem;
+                margin-bottom: .5rem;
+                text-align: left;
+
+                &:hover {
+                    cursor: pointer;
+                }
 
                 &__popular {
                     position: absolute;
-                    top: .25rem;
-                    right: .25rem;
+                    top: .5rem;
+                    right: .5rem;
                     font-size: .75rem;
                     color: var(--success);
+                }
+
+                &__icon {
+                    flex: 0 0 auto;
+                    margin-right: 1rem;
+                    font-size: 1.25rem;
+                    color: var(--admin-primary, #0066CC);
+                }
+
+                &__content {
+                    flex: 1 1 auto;
+                }
+
+                &__title {
+                    font-weight: 600;
+                    margin-bottom: .25rem;
+                }
+
+                &__subtitle {
+                    font-size: .875rem;
+                    color: #666;
                 }
             }
         }

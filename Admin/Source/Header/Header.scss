@@ -1,126 +1,214 @@
-// Variables for reuse
-$logo-size: 70px;
-$icon-size: 17.5px;
-$gradient: linear-gradient(87.4deg, #9d3fb6 0%, #320edb 42.7%, #1b1083 85.5%);
-$text-color: #fff;
-$padding-sm: 15px;
-
-header.admin-top-header {
+// NB: add project-specific overrides to Admin/GeneralStyle
+.admin-page__header {
+	grid-area: header;
     width: 100%;
-    height: $fallback__admin-header-height;
-    background: $gradient;
+	height: var(--admin-page__header-height, #{px_to_rem(60)});
+    background: var(--admin-page__header-background, transparent);
+	color: var(--admin-page__header-fg, #222);
+	border-bottom: 1px solid var(--admin-page__subheader-background, #E0E4F5);
     display: flex;
-    align-items: center; // keeps vertical alignment consistent
+    align-items: center;
+	justify-content: space-between;
+    gap: 1rem;
+    padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
     position: relative;
     z-index:999;
 
-    .logo,
-    .nav-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
+	&-nav.btn {
+		transition: all .3s ease;
+		background: transparent;
+		border-color: transparent;
+		color: inherit;
 
-        img {
-            display: block;
-        }
-    }
+		// transform icon lines to burger design by default
+		> svg {
+			height: px_to_rem(17);
+			width: auto;
 
-    .logo {
-        margin: 0 auto;
+			line {
+				transition: 0.3s ease-in-out, opacity .2s ease-in-out;
+				transform-origin: center;
 
-        img {
-            width: $logo-size;
-            height: $logo-size;
-        }
-    }
+				&:first-child {
+					transform: translateY(#{px_to_rem(7)});
+				}
 
-    .nav-toggle {
-        justify-content: flex-start;
-        padding-left: $padding-sm;
+				&:last-child {
+					transform: translateY(#{px_to_rem(-7)});
+				}
 
-        button {
-            background: transparent;
-            color: $text-color;
-            border: none;
-            cursor: pointer;
+			}
 
-            &:hover,
-            &:focus {
-                outline: none;
-                border:none;
-                background: none;
-                text-decoration: underline;
-            }
-        }
+		}
 
-        img {
-            width: $icon-size;
-            height: $icon-size;
-        }
-    }
-    
-    .right-items {
-        
-        padding-right: 20px;
-        
-        .dropdown {
-            
-            .btn {
-                background: transparent;
-                color: $text-color;
-                border:none;
-            }
-            
-            .dropdown-menu {
-                background: #fff;
-                
-                .dropdown-item {
-                    color:#000;
-                    text-align: left;
-                    justify-content: left;
-                    
-                    &:hover {
-                        background:#cccccc50;
-                    }
-                }
-                
-                .dropdown-divider {
-                    border-top-color: #aaa;
-                }
-            }
-        }
-    }
-    
-    .environments > span {
-        display: none;
-    }
+	}
+
+	&-logo {
+		height: var(--admin-page__logo-height, #{px_to_rem(40)});
+		width: auto;
+		display: none;
+
+		&--small {
+			height: var(--admin-page__logo-height--small, #{px_to_rem(50)});
+			display: block;
+		}
+
+	}
+
+	&-greeting {
+		display: none;
+	}
+
+	.dropdown-toggle {
+		transition: all .3s ease;
+		background: transparent;
+		border-color: transparent;
+		color: inherit;
+	}
+	
+	.dropdown__label {
+		gap: px_to_rem(8);
+	}
+
+	.dropdown__arrow {
+		margin-inline-start: 0;
+	}
+
+	.dropdown-item {
+		justify-content: flex-start;
+	}
+
+	&-actions {
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(16);
+	}
+
+}
+
+// switch from burger to close icon whenever popover is open
+.admin-page:has(.admin-page__menu:popover-open) {
+
+	.admin-page__header {
+
+		&-nav.btn {
+
+			> svg {
+
+				line {
+
+					&:first-child {
+						transform: rotate(225deg);
+					}
+
+					&:nth-child(2) {
+						opacity: 0;
+					}
+
+					&:last-child {
+						transform: rotate(-225deg);
+					}
+				}
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (min-width: #{px_to_rem(600)}) {
+
+	.admin-page__header {
+
+		&-logo {
+			display: block;
+
+			&--small {
+				display: none;
+			}
+
+		}
+
+		&-greeting {
+			display: block;
+		}
+
+	}
+
+}
+
+.admin-page__impersonation {
+
+	&-modal {
+
+	}
+
+	&-title {
+		font-size: px_to_rem(18);
+		font-weight: 700;
+		margin-bottom: px_to_rem(4);
+	}
+
+	&-userlist {
+
+	}
+
+}
+
+// environment badges
+.admin-page__badge {
+    display: none;
+	align-items: center;
+	justify-content: center;
+	gap: px_to_rem(8);
+    padding: .35em .65em;
+    font-size: .75em;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: .25rem;
+
+	> i {
+		flex-shrink: 0;
+	}
 }
 
 [data-env="dev"] {
 
     .admin-page__badge--dev {
-        display: block !important;
+        display: flex !important;
+		background: var(--success);
     }
 
 }
+
 [data-env="stage"] {
 
     .admin-page__badge--stage {
-        display: block !important;
+        display: flex !important;
+		background: var(--warning);
     }
 
 }
+
 [data-env="uat"] {
 
     .admin-page__badge--uat {
-        display: block !important;
+        display: flex !important;
+		background: var(--warning);
     }
 
 }
+
 [data-env="prod"] {
 
     .admin-page__badge--prod {
-        display: block !important;
+        display: flex !important;
+		background: var(--danger);
     }
 
 }

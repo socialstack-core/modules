@@ -27,40 +27,62 @@ const List: React.FC<ListProps> = (props) => {
 	// Api is expected to be an ApiEndpoints object.
 	var api = require('Api/' + props.contentType).default;
 
-	const renderEmpty = () => {
-		return <tr>
-			{`None found`}
-		</tr>;
+	const renderEmpty = (colspan) => {
+		return <>
+			<tr>
+				<td colspan={colspan}>
+					<span className="ui-not-found">
+						{`None found`}
+					</span>
+				</td>
+			</tr>
+		</>;
 	}
+
+	const renderDraftCaption = () => {
+		return <>
+			{`Drafts`}
+		</>;
+	};
 
 	const renderDraftHeader = () => {
 		return <>
-			<th>
-				{`Date created`}
-			</th>
-			<th>
-				{`Author`}
-			</th>
-			<th>
-				{`Actions`}
-			</th>
+			<tr>
+				<th>
+					{`Date created`}
+				</th>
+				<th>
+					{`Author`}
+				</th>
+				<th>
+					{`Actions`}
+				</th>
+			</tr>
+		</>;
+	};
+
+	const renderHistoryCaption = () => {
+		return <>
+			{`Edit history`}
 		</>;
 	};
 
 	const renderHistoryHeader = () => {
 		return <>
-			<th>
-				{`Date created`}
-			</th>
-			<th>
-				{`Action`}
-			</th>
-			<th>
-				{`Author`}
-			</th>
-			<th>
-				{`Actions`}
-			</th>
+			<tr>
+				<th>
+					{`Date created`}
+				</th>
+				<th>
+					{`Action`}
+				</th>
+				<th>
+					{`Author`}
+				</th>
+				<th>
+					{`Actions`}
+				</th>
+			</tr>
 		</>;
 	};
 
@@ -68,31 +90,34 @@ const List: React.FC<ListProps> = (props) => {
 		const createdBy = userLabel(entry.userId, entry.creatorUser);
 		const realUser = entry.impersonatorUserId ? userLabel(entry.impersonatorUserId, entry.realUser) : undefined;
 
-		return <tr>
-			<td><Time date={entry.createdUtc} /></td>
-			<td>
-				{entry.userId ? <Link href={'/en-admin/user/' + entry.userId}>
-					{createdBy}
-				</Link> : `System`}
-				{
-					realUser && <>
-						{` impersonated by `}
-						<Link href={'/en-admin/user/' + entry.impersonatorUserId}>
-							{realUser}
-						</Link>
-					</>
-				}
-			</td>
-			<td>
-				<Link href={'/en-admin/' + props.contentType.toLowerCase() + '/revision/' + entry.id}>
-					{`View`}
-				</Link>
-			</td>
-		</tr>
+		return <>
+			<tr className="drafts-table__row">
+				<td className="drafts-table__col">
+					<Time date={entry.createdUtc} />
+				</td>
+				<td className="drafts-table__col">
+					{entry.userId ? <Link href={`/en-admin/user/${entry.userId}`}>
+						{createdBy}
+					</Link> : `System`}
+					{
+						realUser && <>
+							{` impersonated by `}
+							<Link href={`/en-admin/user/${entry.impersonatorUserId}`}>
+								{realUser}
+							</Link>
+						</>
+					}
+				</td>
+				<td className="drafts-table__col drafts-table__col--actions">
+					<Link href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="drafts-table__link">
+						{`View`}
+					</Link>
+				</td>
+			</tr>
+		</>;
 	};
 
 	const renderHistoryEntry = (entry: any) => {
-
 		const createdBy = userLabel(entry.userId, entry.creatorUser);
 		const realUser = entry.impersonatorUserId ? userLabel(entry.impersonatorUserId, entry.realUser) : undefined;
 
@@ -110,39 +135,42 @@ const List: React.FC<ListProps> = (props) => {
 				break;
 		}
 
-		return <tr>
-			<td><Time date={entry.createdUtc} /></td>
-			<td>
-				{action}
-			</td>
-			<td>
-				{entry.userId ? <Link href={'/en-admin/user/' + entry.userId}>
-					{createdBy}
-				</Link> : `System`}
-				{
-					realUser && <>
-						{` impersonated by `}
-						<Link href={'/en-admin/user/' + entry.impersonatorUserId}>
-							{realUser}
-						</Link>
-					</>
-				}
-			</td>
-			<td>
-				<Link href={'/en-admin/' + props.contentType.toLowerCase() + '/revision/' + entry.id}>
-					{`View`}
-				</Link>
-			</td>
-		</tr>
+		return <>
+			<tr className="history-table__row">
+				<td className="history-table__col">
+					<Time date={entry.createdUtc} />
+				</td>
+				<td className="history-table__col">
+					{action}
+				</td>
+				<td className="history-table__col">
+					{entry.userId ? <Link href={`/en-admin/user/${entry.userId}`}>
+						{createdBy}
+					</Link> : `System`}
+					{
+						realUser && <>
+							{` impersonated by `}
+							<Link href={`/en-admin/user/${entry.impersonatorUserId}`}>
+								{realUser}
+							</Link>
+						</>
+					}
+				</td>
+				<td className="history-table__col history-table__col--actions">
+					<Link xs outlined href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="history-table__link">
+						{`View`}
+					</Link>
+				</td>
+			</tr>
+		</>;
+
 	};
 
 	return (
 		<div className="ui-revisions-list">
-			<h2 className="ui-page__subtitle">
-				{`Drafts`}
-			</h2>
 			<Table
 				source={api.revisionList}
+				className="drafts-table"
 				includes={['creatorUser', 'realUser']}
 				filter={{
 					query: 'ContentId=? and IsDraft=?',
@@ -152,17 +180,18 @@ const List: React.FC<ListProps> = (props) => {
 						direction: 'desc'
 					}
 				}}
-				orNone={() => renderEmpty()}
+				orNone={() => renderEmpty(3)}
+				onCaption={renderDraftCaption}
+				captionAbove
 				onHeader={renderDraftHeader}
 				paged
 			>
 				{renderDraftEntry}
 			</Table>
-			<h2 className="ui-page__subtitle">
-				{`Edit history`}
-			</h2>
+
 			<Table
 				source={api.revisionList}
+				className="history-table"
 				includes={['creatorUser', 'realUser']}
 				filter={{
 					query: 'ContentId=? and IsDraft=?',
@@ -172,7 +201,9 @@ const List: React.FC<ListProps> = (props) => {
 						direction: 'desc'
 					}
 				}}
-				orNone={() => renderEmpty()}
+				orNone={() => renderEmpty(4)}
+				onCaption={renderHistoryCaption}
+				captionAbove
 				onHeader={renderHistoryHeader}
 				paged
 			>

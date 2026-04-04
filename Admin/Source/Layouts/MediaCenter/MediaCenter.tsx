@@ -6,18 +6,23 @@ import Input from 'UI/Input';
 import Image from 'UI/Image';
 import Loading from 'UI/Loading';
 import Search from 'UI/Search';
-import SubHeader from 'Admin/SubHeader';
 import Uploader from 'UI/Uploader';
-import ConfirmModal from 'UI/Modal/ConfirmModal';
-import Modal from 'UI/Modal';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
+import Dialog from 'UI/Dialog';
 import * as fileRef from 'UI/FileRef';
 import MultiSelect from 'Admin/MultiSelect';
 import uploadApi, { Upload } from 'Api/Upload';
-import {useState, useMemo} from 'react';
+import {useState, useMemo, useRef} from 'react';
 import { Tag } from 'Api/Tag';
 import {useRouter} from "UI/Router";
 import Debounce from "UI/Functions/Debounce";
 import {ListFilter} from "Api/Content";
+import AdminPage from "Admin/AdminPage";
+import Footer from "Admin/Footer";
+import Button from 'UI/Button';
+import Link from 'UI/Link';
+import Icon from 'UI/Icon';
+import Alert from 'UI/Alert';
 
 var fields = ['id', 'originalName'];
 var searchFields = ['originalName', 'alt', 'author', 'id'];
@@ -57,6 +62,15 @@ const getIntegerSearchParam = (name: string, currentParams: URLSearchParams, fal
     return value;
 }
 
+const getStringSearchParam = (name: string, currentParams: URLSearchParams, fallback: string) => {
+
+	if (!currentParams.has(name)) {
+		return fallback;
+	}
+
+	return currentParams.get(name)!;
+}
+
 const MediaCenter = (props) => {
     
     // added in updateQuery and pageState to allow state hydration 
@@ -65,27 +79,29 @@ const MediaCenter = (props) => {
     // tracked, 
     const { updateQuery, pageState } = useRouter();
     
+    const updateQueryRef = useRef(updateQuery);
+    updateQueryRef.current = updateQuery;
+    
     // when searching, and going back the user doesn't want to go back
     // per character basis, so debounce essentially stops this
-    // happening and allows only intentional searches fromn being 
+    // happening and allows only intentional searches from being 
     // held in history.
     const debounce = useMemo(() => new Debounce((query: string) => {
-        
-        const newQParam = {
+        updateQueryRef.current({
             q: query,
             page: "1"
-        }
-        
-        updateQuery(newQParam)
-    }), [updateQuery])
-    
+        })
+    }), [])
     
     const [sorter, setSort] = useState({ field: 'id', direction: 'desc' });
     
     // page size is held in the URL too, under the param "limit" as seen below, it falls back to 20, the reason 
     // no mutating method has been declared here is it doesn't need to exist, when the param for this is changed,
     // the URL changes, which then in effect triggers the re-render needed to update this value. 
-    const [pageSize] = useState<uint>(getIntegerSearchParam('limit', pageState.query, 20) as uint);
+	const [pageSize, setPageSize] = useState<uint>(getIntegerSearchParam('limit', pageState.query, 20) as uint);
+
+	// fileType also held within URL
+	const [fileType, setFileType] = useState<string>(getStringSearchParam('fileType', pageState.query, 'all') as string);
     
     const [bulkSelections, setBulkSelections] = useState<Record<int, boolean> | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<boolean>(false);
@@ -258,6 +274,14 @@ const MediaCenter = (props) => {
     // when one isn't present, it defaults to 1
     const pageIndex = getIntegerSearchParam('page', pageState.query, props.defaultPage || 1) as uint;
 
+	const renderEmpty = () => {
+		return <>
+			<Alert variant="info">
+				{filter.query ? `No matching uploads found` : `No uploads found`}
+			</Alert>
+		</>;
+	}
+
     const renderEntry = (entry : Upload) => {
         var id = `upload_${entry.id}`;
         var parsedRef = fileRef.parse(entry.ref as string);
@@ -326,25 +350,21 @@ const MediaCenter = (props) => {
         </>;
     }
 
-    const renderBulkOptions = (selectedCount : number) => {
-        var message = (selectedCount > 1) ? `${selectedCount} items selected` : `1 item selected`;
+	const renderBulkOptions = (selectedCount: number) => {
 
-        return <div className="admin-page__footer-actions">
-            <span className="admin-page__footer-actions-label">
-                {message}
-            </span>
-            <button type="button" className="btn btn-danger" onClick={() => startDelete()}>
-                {`Delete selected`}
-            </button>
-        </div>;
+		if (selectedCount == 0) {
+			return;
+		}
+
+        return <>
+			<Button variant="danger" outlined onClick={() => startDelete()}>
+				<Icon type={'fr fr-trash-alt'} /> {`Delete ${selectedCount} selected ${selectedCount > 1 ? "items" : "item"}`}
+            </Button>
+        </>;
     }
 
     const startDelete = () => {
         setConfirmDelete(true);
-    }
-
-    const cancelDelete = () => {
-        setConfirmDelete(false);
     }
 
     const doConfirmDelete = () => {
@@ -357,7 +377,7 @@ const MediaCenter = (props) => {
 
         var deletes = ids.map(id => uploadApi.delete(parseInt(id) as uint));
 
-        Promise.all(deletes).then(response => {
+        return Promise.all(deletes).then(response => {
             setBulkSelections(null);
             setDeleteCount(deleteCount + 1);
         }).catch(e => {
@@ -367,12 +387,17 @@ const MediaCenter = (props) => {
         });
     }
 
-    const renderConfirmDelete = (count : number) => {
-        return <ConfirmModal confirmCallback={() => doConfirmDelete()} confirmVariant="danger" cancelCallback={() => cancelDelete()}>
-            <p>
-                {`Are you sure you want to delete ${count} item(s)?`}
-            </p>
-        </ConfirmModal>
+	const renderConfirmDelete = (count: number) => {
+		return <>
+			<ConfirmDialog variant="danger" title={`Order Again`} isOpen={confirmDelete} onClose={() => setConfirmDelete(false)}
+				confirmCallback={() => {
+					return doConfirmDelete();
+				}}>
+				<p>
+					{`Are you sure you want to delete ${count} item(s)?`}
+				</p>
+			</ConfirmDialog>
+		</>;
     }
 
     const showUploadModal = (uploadMode : number) => {
@@ -443,159 +468,169 @@ const MediaCenter = (props) => {
             title = `Bulk upload media`;
         }
 
-        return <>
-            <Modal visible isExtraLarge title={title}
-                onClose={() => {
-                    if (uploadMode == UPLOAD_MULTIPLE && bulkUploaded) {
-                        window.location.reload();
-                    } else {
-                        cancelUpload();
-                    }
-                }}
-                className="media-center__upload-modal">
-                <div className="media-center__upload-modal-internal">
-                    <Container>
-                        <Row>
-                            {!isNewMedia && <>
-                                <Column sizeMd='6'>
-                                    <div className='media-center__preview-wrapper'>
-                                        <div className="media-center__preview"
-                                            onClick={(e) => {
-                                                var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
-                                                const newFx = CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE);
-                                                const newFy = CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE);
+		return <>
+			<Dialog title={title} isOpen={!!uploadModal} onClose={() => {
+				if (uploadMode == UPLOAD_MULTIPLE && bulkUploaded) {
+					window.location.reload();
+				} else {
+					cancelUpload();
+				}
+			}} className="media-center__upload-dialog">
 
-                                                setUploadModal({...uploadModal, focalX: newFx, focalY: newFy});
-                                            }}>
-                                            {showRef(uploadModal.existingFileRef as string, PREVIEW_SIZE)}
-                                            {isImage && !isVideo && <>
-                                                <div className="media-center__preview-crosshair" style={{
-                                                    left: focalX + '%',
-                                                    top: focalY + '%'
-                                                }}></div>
-                                            </>}
-                                        </div>
-                                    </div>
-                                </Column>
-                            </>}
-                            {isNewMedia && <>
-                                <Uploader
-                                    multiple={uploadMode == UPLOAD_MULTIPLE ? true : undefined}
-                                    onUploaded={(e) => {
+				<div className="media-center__upload-dialog-internal">
+					<Container>
+						<Row>
+							{!isNewMedia && <>
+								<Column sizeMd='6'>
+									<div className='media-center__preview-wrapper'>
+										<div className="media-center__preview"
+											onClick={(e) => {
+												var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
+												const newFx = CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE);
+												const newFy = CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE);
 
-                                        if (uploadMode == UPLOAD_MULTIPLE) {
-                                            setUploadModal({
-                                                ...uploadModal, bulkUploaded: true
-                                            });
-                                            return;
-                                        }
+												setUploadModal({ ...uploadModal, focalX: newFx, focalY: newFy });
+											}}>
+											{showRef(uploadModal.existingFileRef as string, PREVIEW_SIZE)}
+											{isImage && !isVideo && <>
+												<div className="media-center__preview-crosshair" style={{
+													left: focalX + '%',
+													top: focalY + '%'
+												}}></div>
+											</>}
+										</div>
+									</div>
+								</Column>
+							</>}
+							{isNewMedia && <>
+								<Uploader
+									multiple={uploadMode == UPLOAD_MULTIPLE ? true : undefined}
+									onUploaded={(e) => {
 
-                                        if (!e.result.isImage) {
-                                            window.location.reload();
-                                            return;
-                                        }
-                                        setUploadModal({
-                                            ...uploadModal,
-                                            focalX: 50,
-                                            focalY: 50,
-                                            existingFileRef: e.result.ref,
-                                            uploadId: e.result.id,
-                                        });
-                                    }} />
-                            </>}
-                            {!isNewMedia && <>
-                                <Column sizeMd='6'>
-                                    <div className="media-center__metadata">
+										if (uploadMode == UPLOAD_MULTIPLE) {
+											setUploadModal({
+												...uploadModal, bulkUploaded: true
+											});
+											return;
+										}
 
-                                        {isImage &&
-                                            <>
-                                            <div className="media-center__transcode">
-                                                {`Transcode Status`}:{uploadModal.transcodeState}
-                                            </div>
+										if (!e.result.isImage) {
+											window.location.reload();
+											return;
+										}
+										setUploadModal({
+											...uploadModal,
+											focalX: 50,
+											focalY: 50,
+											existingFileRef: e.result.ref,
+											uploadId: e.result.id,
+										});
+									}} />
+							</>}
+							{!isNewMedia && <>
+								<Column sizeMd='6'>
+									<div className="media-center__metadata">
 
-                                        <div className="form-text media-center__alt">
-                                                <Input type="text" label={`Author/Photographer`} value={uploadModal.author} onChange={e => {
-                                                    const input = (e.target as HTMLInputElement);
-                                                    setUploadModal({ ...uploadModal, author: input.value });
-                                            }} />
-                                        </div>
+										{isImage &&
+											<>
+												<div className="media-center__transcode">
+													{`Transcode Status`}: {uploadModal.transcodeState}
+												</div>
 
-                                        <div className="form-text media-center__alt">
-                                                <Input type="text" label={`Alternative Text`} value={uploadModal.alt} onChange={e => {
-                                                    const input = (e.target as HTMLInputElement);
-                                                    setUploadModal({ ...uploadModal, alt: input.value });
-                                            }} />
-                                        </div>
-                                            </>
-                                        }
+												<div className="form-text media-center__alt">
+													<Input type="text" label={`Author/Photographer`} value={uploadModal.author} onChange={e => {
+														const input = (e.target as HTMLInputElement);
+														setUploadModal({ ...uploadModal, author: input.value });
+													}} />
+												</div>
 
-                                        {isVideo && 
-                                            <div className="form-text media-center__alt">
-                                                <Input type="image" label={`Cover image`} value={uploadModal.coverImageRef} onChange={e => {
-                                                    const input = (e.target as HTMLInputElement);
-                                                    setUploadModal({ ...uploadModal, coverImageRef: input.value });
-                                                }} />
-                                            </div>
-                                        }
+												<div className="form-text media-center__alt">
+													<Input type="text" label={`Alternative Text`} value={uploadModal.alt} onChange={e => {
+														const input = (e.target as HTMLInputElement);
+														setUploadModal({ ...uploadModal, alt: input.value });
+													}} />
+												</div>
+											</>
+										}
 
-                                        {isImage && !isVideo &&
-                                            <div className="form-text media-center__focal-point">
-                                                <button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
-                                                    setUploadModal({ ...uploadModal, focalX: 50, focalY: 50 });
-                                                }}>
-                                                    <i className="fal fa-fw fa-sync"></i>
-                                                </button>
-                                                {focalX}%, {focalY}%
-                                            </div>
-                                        }
+										{isVideo &&
+											<div className="form-text media-center__alt">
+												<Input type="image" label={`Cover image`} value={uploadModal.coverImageRef} onChange={e => {
+													const input = (e.target as HTMLInputElement);
+													setUploadModal({ ...uploadModal, coverImageRef: input.value });
+												}} />
+											</div>
+										}
 
-                                        <MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`} showCreateOrEditModal={true}
-                                            onChange={e => {
-                                                setUploadModal({ ...uploadModal, tags: e.fullValue });
-                                            }}>
-                                        </MultiSelect>
+										{isImage && !isVideo &&
+											<div className="form-text media-center__focal-point">
+												<div class="mb-3">
+													<label htmlFor="form-field-focal-point" className="form-label ui-form-label">
+														{`Focal Point`}
+													</label>
+													<div className="input-group">
+														<Input value={`${focalX}%, ${focalY}%`} readonly noWrapper />
+														<Button sm variant="secondary" outlined id="form-field-focal-point" onClick={() => {
+															setUploadModal({ ...uploadModal, focalX: 50, focalY: 50 });
+														}}>
+															<i className="fal fa-fw fa-sync"></i>
+															<span>
+																{`Reset`}
+															</span>
+														</Button>
+													</div>
+												</div>
+											</div>
+										}
 
-                                    </div>
+										<MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`} showCreateOrEditModal={true}
+											onChange={e => {
+												setUploadModal({ ...uploadModal, tags: e.fullValue });
+											}}>
+										</MultiSelect>
 
-                                </Column>
-                            </>}
-                        </Row>
-                    </Container>
-                </div>
+									</div>
 
-                <footer className="media-center__upload-modal-footer">
-                    {!isNewMedia && <>
-                        <a href={url} target="_blank" className="btn btn-secondary">
-                            <i className="fa-fw fal fa-external-link"></i> {`Preview`}
-                        </a>
-                    </>}
-                    {isNewMedia && <>&nbsp;</>}
-                    <div className="media-center__upload-modal-footer-options">
+								</Column>
+							</>}
+						</Row>
+					</Container>
+				</div>
 
-                        {isNewMedia && <>
-                            <button type="button" className="btn btn-primary" onClick={() => {
+				<Dialog.Footer>
+					{!isNewMedia && <>
+						<Link href={url} external variant="secondary" className="media-center__upload-dialog-preview">
+							<i className="fa-fw fal fa-external-link"></i>
+							<span>
+								{`Preview`}
+							</span>
+						</Link>
+					</>}
 
-                                if (uploadMode == UPLOAD_MULTIPLE && bulkUploaded) {
-                                    window.location.reload();
-                                } else {
-                                    cancelUpload();
-                                }
+					{isNewMedia && <>
+						<Button onClick={() => {
 
-                            }}>
-                                {`Close`}
-                            </button>
-                        </>}
-                        {!isNewMedia && <>
-                            <button type="button" className="btn btn-outline-primary" onClick={() => cancelUpload()}>
-                                {`Cancel`}
-                            </button>
-                            <button type="button" className="btn btn-primary" onClick={() => saveUpload()}>
-                                {`Save`}
-                            </button>
-                        </>}
-                    </div>
-                </footer>
-            </Modal>
+							if (uploadMode == UPLOAD_MULTIPLE && bulkUploaded) {
+								window.location.reload();
+							} else {
+								cancelUpload();
+							}
+
+						}}>
+							{`Close`}
+						</Button>
+					</>}
+
+					{!isNewMedia && <>
+						<Button outlined onClick={() => cancelUpload()}>
+							{`Cancel`}
+						</Button>
+						<Button onClick={() => saveUpload()}>
+							{`Save`}
+						</Button>
+					</>}
+				</Dialog.Footer>
+			</Dialog>
         </>;
     }
     
@@ -610,7 +645,8 @@ const MediaCenter = (props) => {
         sort: {
             field: 'id',
             direction: 'desc'
-        }
+		},
+		args: []
     } 
     
     // when a string is empty, in an if condition, it's executed as false, 
@@ -624,84 +660,150 @@ const MediaCenter = (props) => {
         // so when the query partially matches the alt or
         // author, results show for anything that matches. 
         filter.query = 'originalName contains ? or author contains ? or alt contains ?';
-        filter.args = [searchFilter, searchFilter, searchFilter]
-    }
-    
-    return <>
-		<SubHeader 
-            title={`Uploads`} 
-            breadcrumbs={[
-                {
-                    title: `Uploads`
-                }
-            ]} 
-            // altered this now to debounce. 
-            onQuery={(where, query) => {
-                
-            }}
-            onInput={(query) => {
-                debounce.handle(query);
-            }}
-            // made sure the current '?q=' value is held in here 
-            // should one exist.
-            defaultSearchValue={searchFilter || ''}
-        />
-		<div className="admin-page__content">
-			<div className="admin-page__internal">
-                <Input 
-                    // added an input to change the results per page value
-                    // this doesn't mutate any state, this causes a URL change
-                    // which then re-renders the page. 
-                    type={'select'}
-                    label={`Results per page`}
-                    onChange={(ev) => {
-                        
-                        const target: HTMLSelectElement = ev.target as HTMLSelectElement;
-                        updateQuery({ limit: target.value });
-                        
-                    }}
-                >
-                    <option selected={pageSize === 20} value={20}>20</option>
-                    <option selected={pageSize === 50} value={50}>50</option>
-                    <option selected={pageSize === 75} value={75}>75</option>
-                    <option selected={pageSize === 100} value={100}>100</option>
-                </Input>
-                {/*{renderTags(uploads)}*/}
-                <div className="media-center__list">
-                    <Loop
-                        // enables pagination
-                        paged
-                        // iterates over uploadApi.list 
-                        over={uploadApi}
-                        // set the key based off index
-                        key={'page-' + pageIndex}
-                        // pass the generated filter based off the current query string
-                        filter={filter}
-                        // specify a custom page change handler.
-                        customChangeHandler={(pageNumber: number) => {
-                            updateQuery({ page: pageNumber.toString() });
-                        }}
-                        includes={[
-                            uploadApi.includes.tags
-                        ]}
-                    >
-                        {renderEntry}
-                    </Loop>
+        filter.args.push(searchFilter, searchFilter, searchFilter)
+	}
+
+	if (fileType?.length && fileType != 'all') {
+		if (filter.query) {
+			filter.query += ` AND FileType ${fileType == 'other' ? "!=" : "="} [?]`;
+		} else {
+			filter.query = `FileType ${fileType == 'other' ? "!=" : "="} [?]`;
+		}
+
+		switch (fileType) {
+
+			case 'img':
+				filter.args.push(fileRef.allImageTypes);
+				break;
+
+			case 'vid':
+				filter.args.push(fileRef.allVideoTypes);
+				break;
+
+			case 'audio':
+				filter.args.push(fileRef.allAudioTypes);
+				break;
+
+			case 'doc':
+				filter.args.push(fileRef.allDocumentTypes);
+				break;
+
+			case 'other':
+				filter.args.push(fileRef.allImageTypes.concat(fileRef.allVideoTypes, fileRef.allAudioTypes, fileRef.allDocumentTypes));
+				break;
+		}
+
+	}
+
+	return <>
+		<AdminPage.SubHeader title={`Uploads`} breadcrumbs={[
+			{
+				title: `Uploads`
+			}
+		]} />
+		<AdminPage.ContentWrapper>
+			<AdminPage.Filters
+				searchText={searchFilter || ''}
+				onInput={(ev) => {
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				}}
+				onChange={(ev) => {
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				}}>
+
+				<Input type="select"
+					label={`File Type`}
+					value={fileType}
+					onChange={(ev) => {
+						const target: HTMLSelectElement = ev.target as HTMLSelectElement;
+						setFileType(target.value);
+						updateQuery({ fileType: target.value, page: 1 });
+					}}>
+					<option key="all" value="all">
+						{`All`}
+					</option>
+					<option key="img" value="img">
+						{`Image`}
+					</option>
+					<option key="vid" value="vid">
+						{`Video`}
+					</option>
+					<option key="audio" value="audio">
+						{`Audio`}
+					</option>
+					<option key="doc" value="doc">
+						{`Document`}
+					</option>
+					<option key="other" value="other">
+						{`Other`}
+					</option>
+				</Input>
+
+				<Input
+					// added an input to change the results per page value
+					// this doesn't mutate any state, this causes a URL change
+					// which then re-renders the page. 
+					type="select"
+					label={`Results per page`}
+					value={pageSize}
+					onChange={(ev) => {
+						const target: HTMLSelectElement = ev.target as HTMLSelectElement;
+						var val = parseInt(target.value, 10);
+						val = isNaN(val) ? 20 : val;
+
+						setPageSize(val);
+						updateQuery({ limit: val, page: 1 });
+					}}>
+					<option value={20}>20</option>
+					<option value={50}>50</option>
+					<option value={75}>75</option>
+					<option value={100}>100</option>
+				</Input>
+				{/*{renderTags(uploads)}*/}
+			</AdminPage.Filters>
+			<AdminPage.Content>
+				<div className="media-center__list">
+					<Loop
+						// enables pagination
+						paged paginatorOnly dockBottom
+						// iterates over uploadApi.list 
+						over={uploadApi}
+						// set the key based off index
+						key={'page-' + pageIndex}
+						// pass the generated filter based off the current query string
+						filter={filter}
+						// specify a custom page change handler.
+						customChangeHandler={(pageNumber: number) => {
+							updateQuery({ page: pageNumber.toString() });
+						}}
+						includes={[
+							uploadApi.includes.tags
+						]}
+						orNone={() => renderEmpty()}
+					>
+						{renderEntry}
+					</Loop>
 				</div>
 				{confirmDelete && renderConfirmDelete(selectedCount)}
 				{uploadModal && renderUploadModal()}
-			</div>
-			<footer className="admin-page__footer no-pad">
-				{selectedCount > 0 ? renderBulkOptions(selectedCount) : null}
-				<button type="button" className="btn btn-primary" onClick={() => showUploadModal(UPLOAD_SINGLE)}>
+			</AdminPage.Content>
+		</AdminPage.ContentWrapper>
+		<Footer>
+			<Footer.BulkActions>
+				{renderBulkOptions(selectedCount)}
+			</Footer.BulkActions>
+
+			<Footer.CallsToAction>
+				<Button onClick={() => showUploadModal(UPLOAD_SINGLE)}>
 					{`Upload`}
-				</button>
-				<button type="button" className="btn btn-primary" onClick={() => showUploadModal(UPLOAD_MULTIPLE)}>
+				</Button>
+				<Button onClick={() => showUploadModal(UPLOAD_MULTIPLE)}>
 					{`Bulk upload`}
-				</button>
-			</footer>
-		</div>
-    </>;
+				</Button>
+			</Footer.CallsToAction>
+		</Footer>
+	</>;
+
 }
 
 export default MediaCenter;

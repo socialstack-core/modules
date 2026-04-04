@@ -4,19 +4,9 @@
 interface TileProps {
 
     /**
-     * Optional column width for this tile.
-     */
-    row?: number;
-
-    /**
      * Optional title to display on the header.
      */
     title?: string;
-
-    /**
-     * True if the tile should have no base classname.
-     */
-    empty?: boolean;
 
     /**
      * True if the footer of the tile should be fixed positioned.
@@ -35,29 +25,27 @@ interface TileProps {
  * @returns
  */
 const Tile: React.FC<React.PropsWithChildren<TileProps>> = (props) => {
-	const { title, row, className, empty, children, fixedFooter } = props;
-    var tileClass = ['tile'];
-    tileClass.push('col-md-' + (12 / (row || 1)));
-    if (className) {
+	const { title, className, children, fixedFooter } = props;
+    var tileClass = ['admin-tile'];
+
+	if (className) {
         tileClass.push(className);
     }
 
     if (fixedFooter) {
-        tileClass.push('tile--fixed-footer');
+        tileClass.push('admin-tile--fixed-footer');
     }
 
 	return (
         <div className={tileClass.join(' ')}>
-            <div className={empty ? "" : "component-tile"}>
-                {!empty && title && (
-                    <h3 className="admin-heading">
-                        {title}
-                    </h3>
-                )}
-                <article>
-                    {children}
-                </article>
-            </div>
+            {title && (
+                <h2 className="admin-page__subtitle">
+                    {title}
+                </h2>
+			)}
+			<div className="admin-tile__content">
+				{children}
+			</div>
 		</div>
 	);
 }

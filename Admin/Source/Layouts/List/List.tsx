@@ -1,40 +1,40 @@
 import AutoList, { AutoListProps } from 'Admin/AutoList';
 
 export interface ListProps extends AutoListProps {
-    noCreate?: boolean;
+	noCreate?: boolean;
 }
 
 const List: React.FC<React.PropsWithChildren<ListProps>> = (props): React.ReactNode => {
 
-    let { contentType, singular, plural, children, ...listProps } = props;
+	let { contentType, singular, plural, children, ...listProps } = props;
 
-    let textPlural = plural;
+	let textPlural = plural;
 
-    if (!props.fields || !Array.isArray(props.fields)) {
-        return 'No fields to list';
-    }
+	if (!props.columns || !Array.isArray(props.columns)) {
+		return 'No fields to list';
+	}
 
-    const acceptedFields: string[] = ['title', 'name', 'email', 'username', 'description'];
+	const acceptedFields: string[] = ['id', 'title', 'name', 'email', 'username', 'description' , 'reference'];
 
-    const defSearchFields: string[] = props.fields.filter(
-        field => acceptedFields.includes(field)
-    )
+	const defSearchFields: string[] = props.columns
+		.filter(field => field.isSearchable || acceptedFields.includes(field.field))
+		.map(field => field.field);
 
-    if (!defSearchFields.length) {
-        defSearchFields.push('title');
-    }
+	if (!defSearchFields.length) {
+		defSearchFields.push('id');
+	}
 
-    return (
-        <AutoList 
-            contentType={contentType} 
-            singular={singular}
-            plural={plural}
-            {...listProps}
-            title={`Edit or create ${textPlural}`}
-            create={!props.noCreate}
-            searchFields={props.searchFields || defSearchFields} 
-        />
-    )
+	return (
+		<AutoList 
+			contentType={contentType} 
+			singular={singular}
+			plural={plural}
+			{...listProps}
+			title={`Edit or create ${textPlural}`}
+			create={!props.noCreate}
+			searchFields={props.searchFields || defSearchFields} 
+		/>
+	)
 
 }
 

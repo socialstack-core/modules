@@ -1,12 +1,12 @@
-import Tile from 'Admin/Tile';
 import Table from 'UI/Table';
 import { Filter } from 'UI/Loop';
 import Time from 'UI/Time';
-import SubHeader from 'Admin/SubHeader';
 import automationsApi, { Automation } from 'Api/AutomationController';
 import { useState } from 'react';
 import { ApiIncludes } from 'Api/Includes';
 import { ApiList } from 'UI/Functions/WebRequest';
+import AdminPage from "Admin/AdminPage";
+import Button from 'UI/Button';
 
 var _latest: Record<string, boolean> | null = null;
 
@@ -39,22 +39,20 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 	};
 	
 	var renderHeader = () => {
-		
-		return [
+		return <tr>
 			<th>
 				{`Name`}
-			</th>,
+			</th>
 			<th>
 				{`Schedule`}
-			</th>,
+			</th>
 			<th>
 				{`Last ran`}
-			</th>,
+			</th>
 			<th>
 				{`Actions`}
 			</th>
-		];
-		
+		</tr>;		
 	};
 
 	var renderColgroups = () => {
@@ -71,21 +69,19 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 			<td>{entry.cronDescription} ({entry.cron})</td>
 			<td>{entry.lastTrigger ? <Time date={entry.lastTrigger}/> : `None since startup`}</td>
 			<td>
-				<button disabled={running[entry.name]} className="btn btn-primary" onClick={() => {
-					
+				<Button disabled={running[entry.name]} sm outlined onClick={() => {
 					runAutomation(entry);
-					
-				}}>Run Now</button>
+				}}>
+					{`Run Now`}
+				</Button>
 			</td>
 		</tr>;
 	};
 	
 	var renderEmpty = () => {
-		return <table className="table">
+		return <table className="table ui-table ui-table--sm">
 			<thead>
-				<tr>
-					{renderHeader()}
-				</tr>
+				{renderHeader()}
 			</thead>
 			<colgroup>
 				{renderColgroups()}
@@ -101,13 +97,13 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 	}
 
 	return <>
-		<SubHeader breadcrumbs={[
+		<AdminPage.SubHeader title={`Automations`} breadcrumbs={[
 			{
 				title: `Automations`
 			}
-		]} title={`Automations`} />
-		<div className="admin-page__content">
-			<div className="admin-page__internal">
+		]} />
+		<AdminPage.ContentWrapper>
+			<AdminPage.Content>
 				<Table source={(filter?: Filter<Automation>, includes?: ApiIncludes[]) => {
 					return automationsApi.get() as Promise<ApiList<Automation>>;
 				}}
@@ -117,18 +113,8 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 					{renderEntry}
 				</Table>
 				{props.children}
-			</div>
-			{/*
-			<footer className="admin-page__footer">
-				{selectedCount > 0 ? this.renderBulkOptions(selectedCount) : null}
-				{this.props.create && <>
-					<a href={addUrl} className="btn btn-primary">
-						{`Create`}
-					</a>
-				</>}
-			</footer>
-			 */}
-		</div>
+			</AdminPage.Content>
+		</AdminPage.ContentWrapper>
 	</>;
 }
 

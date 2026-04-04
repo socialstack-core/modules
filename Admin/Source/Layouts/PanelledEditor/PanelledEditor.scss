@@ -27,11 +27,9 @@
 			- var(--admin-header-height, $fallback__admin-header-height)
 			- var(--admin-subheader-height, $fallback__admin-subheader-height)
 			- var(--admin-feedback-height, 0px)
-			- var(--impersonation-banner-height)
-			- var(--admin-footer-height, $fallback__admin-footer-height));
-		//background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
-		//color: var(--admin-subheader-fg, var(--fallback__admin-subheader-fg));
-		background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+			- var(--impersonation-banner-height, 0px)
+			- var(--admin-footer-height, 3.75rem));
+		background: var(--admin-page__subheader-background, #E0E4F5);
 		box-shadow: 0 0 0 100vmax rgba(255,255,255,.5) inset;
 
 		> form {
@@ -48,7 +46,7 @@
 	&__structure {
 		$panelled-editor__structure: &;
 		flex: 0 0 250px;
-		box-shadow: 6px 0 5px var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+		box-shadow: 6px 0 5px var(--admin-page__subheader-background, #E0E4F5);
 		padding: 0 0 .5rem 0;
 
 		&--hidden {
@@ -61,8 +59,8 @@
 			padding: 0 .25rem;
 			height: 100%;
 			border-radius: $input-border-radius;
-			border: 1px solid var(--admin-field-border, var(--fallback__admin-field-border));
-			background-color: var(--admin-field-bg, var(--fallback__admin-field-bg));
+			border: 1px solid var(--field-border);
+			background-color: var(--field-background);
 			overflow-y: auto;
 			overflow-x: hidden;
 		}
@@ -112,8 +110,8 @@
 					border: 0;
 
 					&__wrapper--selected {
-						background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
-						color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
+						background: var(--admin-selected-bg, #F5B70040);
+						color: var(--admin-selected-fg, #222);
 					}
 				}
 
@@ -131,8 +129,8 @@
 			}
 
 			&--selected {
-				background: var(--admin-selected-bg, var(--fallback__admin-selected-bg));
-				color: var(--admin-selected-fg, var(--fallback__admin-selected-fg));
+				background: var(--admin-selected-bg, #F5B70040);
+				color: var(--admin-selected-fg, #222);
 			}
 
 		}
@@ -143,11 +141,11 @@
 			font-weight: bold;
 			text-align: left;
 			flex: 1 1 auto;
-			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+			color: var(--field-color);
 		}
 
 		.collapsible-summary {
-			color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+			color: var(--field-color);
 		}
 
 	}
@@ -207,7 +205,7 @@
 	&__preview {
 		flex: 1 1 auto;
 		overflow-y: auto;
-		background: var(--admin-transparency-bg, var(--fallback__admin-transparency-bg));
+		background: var(--admin-transparency-bg, repeating-linear-gradient(135deg, rgba(255,255,255,.25), rgba(255,255,255,.25) 2rem, rgba(255,255,255,.1) 2rem, rgba(255,255,255,.1) 4rem));
 		padding: 2rem;
 		z-index: 1; // prevents left-hand box-shadow from __properties sidebar encroaching on vertical scrollbar
 
@@ -234,7 +232,7 @@
 
 	&__properties {
 		flex: 0 0 300px;
-		box-shadow: -6px 0 5px var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+		box-shadow: -6px 0 5px var(--admin-page__subheader-background, #E0E4F5);
 		padding: 0 0 .5rem 0;
 
 		&--hidden {
@@ -319,12 +317,12 @@
 			}
 
 			.graph-editor {
-				background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
+				background: var(--admin-page__subheader-background, #E0E4F5);
 				padding: .1px;
 				height: 100%;
 
 				.map-interaction {
-					background: var(--admin-grid-bg, var(--fallback__admin-grid-bg));
+					background: var(--admin-grid-bg, conic-gradient(from 90deg at 1px 1px, #0000 90deg, rgba(0,0,0,.125) 0) 0 0/4rem 4rem);
 				}
 			}
 

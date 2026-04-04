@@ -5,15 +5,13 @@ import Loading from "UI/Loading";
 import Alert from "UI/Alert";
 import Link from "UI/Link";
 import Button from "UI/Button";
-import {setCustomPropEditor} from "Admin/CanvasEditor/PropEditor";
-import {CustomComponentsInputProps} from "../types";
 import {useRouter} from "UI/Router";
 import Input from "UI/Input";
 
 /**
  * Props for `AdminTemplateSlot`.
  */
-export type AdminTemplateSlotProps = {
+export interface AdminTemplateSlotProps {
 	/**
 	 * The template roots object injected into Canvas nodes.
 	 * Typically contains all top-level templates/components keyed by name.
@@ -28,9 +26,10 @@ export type AdminTemplateSlotProps = {
 	name: string;
 
 	/**
-	 * What components are allowed inside this slot.
+	 * Optional component restrictions for components that can appear in this slot.
+	 * @module Admin/ComponentGroup
 	 */
-	chosenComponentGroup: string[];
+	componentGroups?: string[];
 };
 
 /**
@@ -54,80 +53,3 @@ const AdminTemplateSlot: React.FC<AdminTemplateSlotProps> = (props) => {
 };
 
 export default AdminTemplateSlot;
-
-
-
-setCustomPropEditor(
-	/**
-	 * This is for the slot component, it controls what components are and are not allowed
-	 */
-	'chosenComponentGroup',
-	/**
-	 * @param {CustomComponentsInputProps} props
-	 */
-	(props: CustomComponentsInputProps) => {
-
-		const [refreshCounter, setRefreshCounter] = useState(0);
-		
-		const { pageState } = useRouter();
-		
-		const q = pageState?.query?.get("q");
-
-		const [componentGroups] = useApi(() => {
-			return componentGroupApi.list()
-		}, [props.fieldName, refreshCounter])
-
-
-		if (!componentGroups) {
-			return (
-				<Loading />
-			)
-		}
-
-		if (componentGroups?.totalResults == 0 || componentGroups?.results?.length === 0) {
-			return (
-				<div className={'mb-3'}>
-					<label className={'form-label ui-form-label'}>{`Chosen component group`}</label>
-					<br />
-					<Alert variant={'warning'}>
-						{`No component groups defined `}
-						<Link
-							external
-							href={'/en-admin/componentgroup/add'}
-						>
-							{`Create new group`}
-						</Link>
-					</Alert>
-					<Button onClick={() => setRefreshCounter((prev) => prev + 1)}>&#128472; {`Refresh groups`}</Button>
-				</div>
-			)
-		}
-
-		return (
-			<div className={'prop-editor allowed-components'}>
-				<div className={'allowed-components-controls'}>
-					<Link external href={'/en-admin/componentgroup/add'}>
-						<Button>{`Create new group`}</Button>
-					</Link>
-					<Button onClick={() => setRefreshCounter((prev) => prev + 1)}>&#128472; {`Refresh groups`}</Button>
-				</div>
-				<Input 
-					type={'select'}
-					name={props.fieldName}
-					label={props.niceName}
-					defaultValue={props.value ?? ''}
-					onChange={(ev) => {
-						props.onChange(parseInt((ev.target as HTMLInputElement).value));
-					}}
-				>
-					<option value={''}>{`Choose component group`}</option>
-					{componentGroups?.results.map((componentGroup) => {
-						return (
-							<option value={componentGroup.id}>{componentGroup.name}</option>
-						)
-					})}
-				</Input>
-			</div>
-		)
-	}
-)

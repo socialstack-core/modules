@@ -8,6 +8,7 @@ import {niceName} from './Utils';
 import {getAllContentTypes} from 'Admin/Functions/GetAutoForm';
 import {getAll as getAllPropTypes} from 'Admin/Functions/GetPropTypes';
 import Modal from 'UI/Modal';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 
 var defaultNamespace = 'Admin/CanvasEditor/GraphEditor/NodeSet/';
 
@@ -73,7 +74,7 @@ function setRootNode(node, nodeSet){
 export default function GraphEditor(props){
 	var [nodes, setNodesIntl] = React.useState(null);
 	var [graph, setGraph] = React.useState(null);
-	var [showConfirmModal, setShowConfirmModal] = React.useState(false);
+	var [showConfirmDialog, setShowConfirmDialog] = React.useState(false);
 	var [cantDeleteModal, setCantDeleteModal] = React.useState(false);
 	
 	var setNodes = (nodes) => {
@@ -305,8 +306,8 @@ export default function GraphEditor(props){
 			newNodes.push(node);
 			changed(newNodes);*/
 		}} namespace={props.namespace || defaultNamespace}
-			showConfirmModal={showConfirmModal}
-			setShowConfirmModal={setShowConfirmModal}
+			showConfirmDialog={showConfirmDialog}
+			setShowConfirmDialog={setShowConfirmDialog}
 			cantDeleteModal={cantDeleteModal}
 			setCantDeleteModal={setCantDeleteModal}
 		/>
@@ -334,7 +335,7 @@ export default function GraphEditor(props){
 function DraggableItem(props) {
 	var { node, selected, setSelected, scale, editorProps, selectConnector, redrawLines,
 		nodes, updatedNodes,
-		showConfirmModal, setShowConfirmModal,
+		showConfirmDialog, setShowConfirmDialog,
 		cantDeleteModal, setCantDeleteModal
 	} = props;
 
@@ -518,7 +519,7 @@ function DraggableItem(props) {
 						<i className="fa fa-fw fa-sitemap"></i>
 					</button>
 				</>}
-				<button type="button" className="btn btn-outline-danger btn-sm" onClick={() => node.root ? setCantDeleteModal(true) : setShowConfirmModal(node)}
+				<button type="button" className="btn btn-outline-danger btn-sm" onClick={() => node.root ? setCantDeleteModal(true) : setShowConfirmDialog(node)}
 			title={`Remove node`}>
 					<i className="fa fa-fw fa-trash"></i>
 				</button>
@@ -727,7 +728,7 @@ export function GraphEditorCore(props){
 	var [selectNodeType, setSelectNodeType] = React.useState(false);
 	var hostElementRef = React.useRef();
 	var canvasRef = React.useRef();
-	var { showConfirmModal, setShowConfirmModal, cantDeleteModal, setCantDeleteModal, nodes } = props;
+	var { showConfirmDialog, setShowConfirmDialog, cantDeleteModal, setCantDeleteModal, nodes } = props;
 
 	React.useEffect(() => {
 		document.querySelector("html").classList.add("page-graph");
@@ -1120,7 +1121,7 @@ export function GraphEditorCore(props){
 							  scale={scale} selected={selected} setSelected={setSelected}
 							  editorProps={props} selectConnector={selectConnector}
 							  nodes={nodes} updatedNodes={props.updatedNodes}
-							  showConfirmModal={showConfirmModal} setShowConfirmModal={setShowConfirmModal}
+							  showConfirmDialog={showConfirmDialog} setShowConfirmDialog={setShowConfirmDialog}
 							  cantDeleteModal={cantDeleteModal} setCantDeleteModal={setCantDeleteModal}
 
 					/>)}
@@ -1139,25 +1140,23 @@ export function GraphEditorCore(props){
 			// Run the method:
 			selectNodeType.onSelected(nodeType);
 		}} />}
-		{showConfirmModal && <Modal visible className="confirm-delete-modal" onClose={() => setShowConfirmModal(false)}>
-			<p>
-				{`Are you sure you want to delete this?`}
-			</p>
-			<footer className="confirm-delete-modal__footer">
-				<button type="button" className="btn btn-danger" onClick={() => {
+
+		{showConfirmDialog && <>
+			<ConfirmDialog variant="danger" isOpen={showConfirmDialog} onClose={() => setShowConfirmDialog(false)}
+				confirmText={`Yes, delete it`}
+				confirmCallback={() => {
 					// Delete the node
-					var toDelete = showConfirmModal;
+					var toDelete = showConfirmDialog;
 					var newNodes = props.nodes.filter(i => i != toDelete);
 					props.updatedNodes(newNodes);
-					setShowConfirmModal(false);
-                }}>
-					{`Yes, delete it`}
-				</button>
-				<button type="button" className="btn btn-primary" onClick={() => setShowConfirmModal(false)}>
-					{`Cancel`}
-				</button>
-			</footer>
-		</Modal>}
+					setShowConfirmDialog(false);
+				}}>
+				<p>
+					{`Are you sure you want to delete this?`}
+				</p>
+			</ConfirmDialog>
+		</>}
+	
 		{cantDeleteModal && <Modal visible className="cant-delete-modal" onClose={() => setCantDeleteModal(false)}>
 			<p>
 				{`Unable to remove this node as it's currently set as the main output. Please first assign a different node as the main output to be able to delete this node.`}

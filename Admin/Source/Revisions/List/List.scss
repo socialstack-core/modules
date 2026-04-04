@@ -1,0 +1,63 @@
+.history-table {
+	font-size: px_to_rem(13);
+
+	&__row {
+		/*
+		position: relative;
+
+		&:has(.history-table__link:hover) {
+			
+			> td {
+				color: var(--primary);
+			}
+		}
+
+		&:has(.history-table__link:focus-visible) {
+			box-shadow: 0 0 0 .25rem inset var(--primary-shadow);
+
+			.history-table__link {
+				--ui-link-color: var(--primary);
+			}
+
+			> td {
+				color: var(--primary);
+				border-bottom-color: transparent;
+			}
+		}
+		*/
+
+	}
+
+	&__link {
+		--ui-link-font-size: 13;
+		--btn-min-height: 28;
+
+		/*
+		&:focus-visible {
+			outline: 0;
+		}
+
+		// extend link across row
+		&::after {
+			content: "";
+			width: 100%;
+			position: absolute;
+			height: 39.5px;
+			top: 0;
+			left: 0;
+		}
+		*/
+
+	}
+
+	&__col {
+		font-size: px_to_rem(13);
+
+		&--actions {
+			padding-top: 0;
+			padding-bottom: 0;
+		}
+
+	}
+
+}

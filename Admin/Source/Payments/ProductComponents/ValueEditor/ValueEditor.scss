@@ -1,0 +1,26 @@
+﻿.components-value-editor {
+	margin-bottom: 1rem;
+	
+	&__entries {
+		margin: 0;
+		padding: 0;
+		width:100%;
+	
+		&-item {
+			td { 
+				padding: 0.25rem;
+			}
+		}
+
+		&-qtyselector {
+			min-width: 100px !important;
+			max-width:100px !important;
+		}
+
+		&-actions {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+		}
+	}
+}

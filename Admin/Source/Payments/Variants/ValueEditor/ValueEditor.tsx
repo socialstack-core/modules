@@ -14,7 +14,7 @@ import Col from "UI/Column";
 import Row from "UI/Row";
 import AttributeSelect from "Admin/Payments/AttributeSelect";
 import Container from "UI/Container";
-import ConfirmModal from "UI/Modal/ConfirmModal";
+import ConfirmDialog from "UI/Dialog/ConfirmDialog";
 
 type VariantEditorProps = {
 	variant: Product,
@@ -132,14 +132,16 @@ const ValueEditor: React.FC = (props : any) => {
 				}
 			}
 		}} />
-		{deleting && <ConfirmModal confirmCallback={() => {
-			onRemove(deleting);
-			setDeleting(null);
-		}} cancelCallback={() => {
-			setDeleting(null);
-		}}>
-			{`Are you sure you want to remove the variant with SKU "${deleting.sku}"? This change isn't permanent until you save it.`}
-		</ConfirmModal>}
+
+		{deleting && <>
+			<ConfirmDialog variant="primary" isOpen={deleting} onClose={() => setDeleting(null)}
+				confirmCallback={() => {
+					onRemove(deleting);
+					setDeleting(null);
+				}}>
+				{`Are you sure you want to remove the variant with SKU "${deleting.sku}"? This change isn't permanent until you save it.`}
+			</ConfirmDialog>
+		</>}
     </div>;
 };
 

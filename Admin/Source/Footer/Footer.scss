@@ -1,0 +1,40 @@
+// NB: add project-specific overrides to Admin/GeneralStyle
+.admin-page__footer {
+	grid-area: footer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: px_to_rem(10);
+	background: var(--admin-page__footer-background, #E0E4F5);
+	min-height: var(--admin-page__footer-height, #{px_to_rem(60)});
+    padding: px_to_rem(10) var(--admin-page-padding, #{px_to_rem(20)});
+    box-shadow: rgba(255, 255, 255, 0.6) 0 2px 4px 0 inset;
+	anchor-name: --admin-footer;
+
+    > span {
+      display: flex;
+      align-items: center;
+      gap: px_to_rem(12);
+    }
+
+	&-bulk-actions {
+	}
+
+	&-cta {
+	}
+
+	&:has(.admin-page__footer-cta:first-child) {
+		justify-content: flex-end;
+	}
+
+}
+
+@media only screen and (min-width: #{px_to_rem(650)}) {
+
+	.admin-page__footer {
+		flex-direction: row;
+		align-items: center;
+	    justify-content: space-between;
+	}
+
+}

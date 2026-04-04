@@ -1,0 +1,134 @@
+.admin-page__menu {
+	--ui-popover-max-width: #{px_to_rem(350)};
+	background: var(--admin-page__menu-background, #E0E4F5);
+	color: var(--admin-page__menu-fg, inherit);
+	border-right: var(--admin-page__border, 1px solid rgba(0 0 0 / .075));
+    box-shadow: 0 px_to_rem(16) px_to_rem(16) rgba(0, 0, 0, .1) !important;
+	padding: 0;
+	overflow: hidden;
+	min-height: calc(100dvh - var(--admin-page__header-height, #{px_to_rem(60)}));
+	min-height: calc(100vh - var(--admin-page__header-height, #{px_to_rem(60)}));
+	display: grid;
+	grid-template-columns: 1fr;
+	grid-template-rows: auto auto 1fr;
+	grid-template-areas: 
+		"filter"
+		"nonefound"
+		"links";
+
+	&-none-found {
+		grid-area: nonefound;
+		margin: var(--admin-page-padding, #{px_to_rem(20)});
+	}
+
+	&:has(.admin-page__menu-link) {
+
+		.admin-page__menu-none-found {
+			display: none;
+		}
+
+	}
+
+	&-filter {
+		grid-area: filter;
+		border-bottom: var(--admin-page__border, 1px solid rgba(0 0 0 / .075));
+		padding: px_to_rem(8) var(--admin-page-padding, #{px_to_rem(20)});
+
+		input[type="search"] {
+
+		}
+
+	}
+
+	&-links {
+		grid-area: links;
+		padding: var(--admin-page-padding, #{px_to_rem(20)});
+		overflow-y: auto;
+	}
+
+	&-link-group {
+		margin-bottom: px_to_rem(16);
+
+		&:last-child {
+			margin: 0;
+		}
+
+		&-title {
+            font-size: px_to_rem(13);
+            font-weight: 600;
+			color: var(--admin-page__menu-title, #777);
+            text-transform: uppercase;
+            margin: 0;
+            letter-spacing: px_to_rem(.5);
+			background: var(--admin-page__menu-background, #E0E4F5);
+			position: sticky;
+			top: 0;
+
+			&::after {
+				content: "";
+				position: absolute;
+				display: block;
+				top: px_to_rem(-20);
+				width: 100%;
+				height: px_to_rem(20);
+				background: var(--admin-page__menu-background, #E0E4F5);
+			}
+		}
+
+		&:not(:has(.admin-page__menu-link)) {
+			display: none;
+		}
+
+	}
+
+	&-link {
+		--ui-link-font-weight: 400;
+		--ui-link-font-size: 15;
+		--ui-link-icon: 20;
+		display: flex;
+		border-radius: px_to_rem(8);
+		padding: px_to_rem(10) px_to_rem(14);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+		background: transparent;
+		transition: background 0.15s ease, color 0.15s ease;
+
+		> i {
+			flex-shrink: 0;
+		}
+
+		&:hover {
+			background: var(--admin-page-background, #EFF1FA);
+		}
+	}
+
+	&--list {
+
+	}
+
+	&--grid {
+
+	}
+}
+
+@media only screen and (min-width: #{px_to_rem(1024)}) {
+
+	// given sufficient room, we can mimic the popover menu
+	// pushing the background content across
+	html.admin:has(.admin-page__menu:popover-open) {
+
+		.admin-page__menu::backdrop {
+			background: transparent !important;
+		}
+
+		.admin-page__internal {
+			margin-left: px_to_rem(350);
+	        filter: none !important;
+			pointer-events: all !important;
+			user-select: auto !important;
+		}
+
+	}
+
+}

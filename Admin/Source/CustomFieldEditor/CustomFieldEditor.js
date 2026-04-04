@@ -1,6 +1,7 @@
 import Loop from 'UI/Loop';
 import CustomFieldForm from 'Admin/CustomFieldEditor/CustomFieldForm';
 import Modal from 'UI/Modal';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import customContentTypeFieldApi from 'Api/CustomContentTypeField';
 
 export default class CustomFieldEditor extends React.Component {
@@ -149,27 +150,21 @@ export default class CustomFieldEditor extends React.Component {
 					this.renderFooter
 				]}
 			</Loop>
+
 			{this.state.showConfirmDeleteModal && <>
-				<Modal
-					visible
-					className="custom-field-editor__modal"
+				<ConfirmDialog variant="primary"
+					isOpen={this.state.showConfirmDeleteModal}
 					title={`Delete Custom Content Type Field`}
 					onClose={() => this.setState({ showConfirmDeleteModal: false })}
-				>
+					confirmText={`Confirm`}
+					confirmCallback={() => {
+						this.deleteField(this.state.showConfirmDeleteModal.id), this.setState({ showConfirmDeleteModal: false });
+					}}>
 					<p>{`This will remove custom field "${this.state.showConfirmDeleteModal.name}".`}</p>
 					<p>{`Are you sure you wish to do this?`}</p>
-
-					<footer className="custom-field-editor__modal-footer">
-						<button type="button" className="btn btn-outline-primary cancelButton" onClick={() => { this.setState({ showConfirmDeleteModal: false }) }}>
-							{`Cancel`}
-						</button>
-						<button type="button" className="btn btn-danger confirmButton" onClick={() => { this.deleteField(this.state.showConfirmDeleteModal.id), this.setState({ showConfirmDeleteModal: false }) }}>
-							{`Confirm`}
-						</button>
-					</footer>
-
-				</Modal>
+				</ConfirmDialog>
 			</>}
+
 			{this.state.showFieldModal && <>
 				<Modal
 					visible

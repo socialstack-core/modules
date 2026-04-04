@@ -1,35 +1,16 @@
 import { CodeModuleMeta, isJsx } from 'Admin/Functions/GetPropTypes';
-import { createLinkDecorator } from 'Admin/CanvasEditor/Link';
-import { CanvasNode } from "UI/Functions/CanvasExpand";
-import Draft from 'Admin/CanvasEditor/DraftJs/Draft.min.js';
-const { EditorState } = Draft; // draftjs
 
-type RootProp = {
-	name: string
+export type RootProp = {
+	name: string,
+	componentGroups?: string[]
 };
-
-/**
- * Creates an empty root node.
- * @returns
- */
-export function createEmptyRoot() : CanvasNode {
-	var decorator = createLinkDecorator();
-	var rootObj = { content: [] } as CanvasNode;
-	var emptyPara = {
-		type: 'richtext',
-		editorState: EditorState.createEmpty(decorator),
-		parent: rootObj
-	} as CanvasNode;
-	rootObj.content.push(emptyPara);
-	return rootObj;
-}
 
 /**
  * Gets the list of props which are roots from the given prop type info.
  * @param type
  * @returns
  */
-export function getRootInfo(type: CodeModuleMeta): RootProp[] {
+export function getRootInfo(type: CodeModuleMeta | undefined): RootProp[] {
 
 	if (!type || !type.propTypes)
 	{

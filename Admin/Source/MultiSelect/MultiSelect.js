@@ -38,7 +38,9 @@ export default class MultiSelect extends React.Component {
 				args: [this.state.value.map(e => e.id)]
 			}
 			
-			var api = require('Api/' + this.props.contentType).default;
+			var contentType = this.props.contentType || '';
+			
+			var api = require('Api/' + contentType).default;
 			
 			api.list(filter, this.props.includes).then(response => {
 				
@@ -180,9 +182,9 @@ export default class MultiSelect extends React.Component {
 						this.state.value.map((entry, i) => (
 							<li key={entry.id} className="admin-multiselect__entry">
 								<div>
-									{
+									{this.props.renderEntry ? this.props.renderEntry(entry) : (
 										displayFieldName.indexOf("Json") != -1 ? <Canvas>{entry[displayFieldName]}</Canvas> : entry[displayFieldName]
-									}
+									)}
 								</div>
 
 								{metadataFields && metadataFields.length > 0 &&
@@ -205,8 +207,21 @@ export default class MultiSelect extends React.Component {
 										</div>
 									}
 
+									{this.props.showEntryActions && this.props.onEditEntry && (
+										<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
+											onClick={e => {
+												e.preventDefault();
+												this.props.onEditEntry(entry);
+											}}>
+											<i className="fal fa-fw fa-edit"></i> <span className="sr-only">{`Edit`}</span>
+										</button>
+									)}
+
 									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
-										onClick={() => this.remove(entry)}>
+										onClick={e => {
+											this.remove(entry);
+											e.preventDefault();
+										}}>
 										<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
 									</button>
 								</div>
@@ -231,6 +246,17 @@ export default class MultiSelect extends React.Component {
 					}
 				}} />
 				<footer className="admin-multiselect__footer">
+					{this.props.onCreateEntry && (
+						<button type="button" className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry"
+							disabled={atMax ? true : undefined}
+							onClick={e => {
+								e.preventDefault();
+								this.props.onCreateEntry();
+							}}
+						>
+							<i className="fal fa-fw fa-plus"></i> {`New`}
+						</button>
+					)}
 					<div className="admin-multiselect__search">
 						{atMax ?
 							<span className="admin-multiselect__search-max">
@@ -245,7 +271,10 @@ export default class MultiSelect extends React.Component {
 									var value = this.state.value;
 									value.push(entry);
 									this.runChange(value);
-								}} />
+								}}
+								onQuery={this.props.onQuery}
+								onRender={this.props.renderSearchResult}
+								/>
 						}
 					</div>
 				</footer>

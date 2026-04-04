@@ -1,0 +1,95 @@
+.admin-page__content {
+	grid-area: content;
+	min-height: 0;
+	overflow-y: auto;
+	transition: margin-left .15s ease;
+	anchor-name: --admin-content;
+
+	&:has(.ui-page__tabs) {
+		// ensure invalid fields are visible when the browser sets focus and scrolls
+		// (otherwise could be blocked by docked tab links)
+		scroll-padding-block: px_to_rem(100);
+	}
+
+	&:not(.admin-page__content--no-padding) {
+		padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
+	}
+
+	&:not(.admin-page__content--no-spacing) {
+		display: flex;
+		flex-direction: column;
+		gap: var(--admin-page-spacing, #{px_to_rem(20)});
+
+		> *:first-child:not(.ui-page__tabs, .admin-dashboard) {
+			margin-top: px_to_rem(10);
+		}
+
+		> .admin-dashboard:first-child {
+			margin-top: var(--admin-page-padding, #{px_to_rem(20)});
+		}
+
+	}
+
+	> .alert:first-child {
+		margin-bottom: 0;
+	}
+
+	// make table headers sticky
+	.ui-table > thead {
+		position: sticky;
+		top: px_to_rem(10);
+		background: var(--admin-page-background, #EFF1FA);
+		z-index: 2;
+
+		&::after {
+			content: "";
+			position: absolute;
+			left: 0;
+			width: 100%;
+			height: px_to_rem(16);
+			background: var(--admin-page-background, #EFF1FA);
+			top: px_to_rem(-16);
+		}
+
+	}
+
+	// make autoform tabset sticky
+	.ui-page__tab-links {
+		position: sticky;
+		top: px_to_rem(10);
+		background: var(--admin-page-background, #EFF1FA);
+		padding-bottom: px_to_rem(8);
+		z-index: 3;
+
+		&::before {
+			content: "";
+			position: absolute;
+			left: 0;
+			width: 100%;
+			height: px_to_rem(10);
+			background: var(--admin-page-background, #EFF1FA);
+			top: px_to_rem(-10);
+		}
+
+		&::after {
+			content: "";
+			position: absolute;
+			left: 0;
+			width: 100%;
+			height: px_to_rem(16);
+			background: var(--admin-page-background, #EFF1FA);
+			bottom: px_to_rem(-16);
+		}
+
+	}
+
+	.ui-page__tabs {
+
+		// offset sticky table headers nested within tabs
+		.ui-table > thead {
+			top: px_to_rem(84);
+		}
+
+	}
+
+}

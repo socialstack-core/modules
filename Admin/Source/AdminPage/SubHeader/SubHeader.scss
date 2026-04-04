@@ -1,0 +1,138 @@
+.admin-page__subheader {
+	grid-area: subheader;
+	min-height: var(--admin-page__subheader-height, #{px_to_rem(72)});
+	background: var(--admin-page__subheader-background, #E0E4F5);
+	color: var(--admin-page__subheader-fg, #222);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: px_to_rem(10);
+	padding: px_to_rem(8) var(--admin-page-padding, #{px_to_rem(20)});
+	z-index: 1;
+
+	&-breadcrumbs {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: none;
+		align-items: center;
+		gap: px_to_rem(8);
+		font-size: px_to_rem(12);
+		overflow-x: auto;
+
+		> li {
+			display: flex;
+			align-items: center;
+			white-space: nowrap;
+			// ensure the first and last breadcrumbs are shown in their entirety
+			&:first-child,
+			&:last-child {
+				flex: 0 0 auto;
+			}
+			// shrink other breadcrumbs where necessary
+			&:not(:first-child):not(:last-child) {
+				min-width: px_to_rem(50);
+				overflow: hidden;
+			}
+
+			> a {
+				--ui-link-font-size: 12;
+				display: block; // ensures text-overflow works
+				overflow: hidden;
+				white-space: nowrap;
+				text-overflow: ellipsis;
+			}
+
+			&::after {
+				padding-left: px_to_rem(4);
+				content: ">";
+			}
+
+			&:last-child::after {
+				content: none;
+			}
+		}
+	}
+
+	&-title {
+		font-size: px_to_rem(20);
+		font-weight: bold;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+		margin: 0;
+
+		> span {
+			display: flex;
+			align-items: center;
+		}
+
+		> small {
+			font-size: px_to_rem(18);
+			font-weight: 400;
+		}
+	}
+
+	&-filters {
+		--btn-min-height: 30;
+		--btn-padding: 10;
+		margin-left: px_to_rem(10);
+		display: none;
+		flex-shrink: 0;
+	}
+
+	&-link {
+		margin-left: px_to_rem(10);
+		flex-shrink: 0;
+	}
+
+	&-info {
+		display: flex;
+		flex-direction: column;
+		gap: px_to_rem(8);
+	}
+
+	&-additional {
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(8);
+
+		> fieldset,
+		> div,
+		> span {
+
+			&:only-child:not(.ui-btn-group) {
+				display: flex;
+				align-items: center;
+				gap: px_to_rem(8);
+			}
+		}
+	}
+}
+
+body:has(#admin_filters) {
+
+	.admin-page__subheader-filters {
+		display: inline-flex;
+	}
+
+}
+
+@media only screen and (min-width: #{px_to_rem(600)}) {
+
+	.admin-page__subheader {
+
+		&-breadcrumbs {
+			display: flex;
+		}
+
+		&-title {
+			font-size: px_to_rem(24);
+
+			> small {
+				font-size: px_to_rem(20);
+			}
+
+		}
+	}
+}

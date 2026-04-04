@@ -1,0 +1,8 @@
+.admin-page__content-wrapper {
+	grid-area: contentwrapper;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: 1fr;
+    grid-template-areas: "filters content";
+}

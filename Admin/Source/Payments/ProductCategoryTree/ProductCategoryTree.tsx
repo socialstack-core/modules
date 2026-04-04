@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "UI/Router";
 import { useSession } from 'UI/Session';
 
-import SubHeader from "Admin/SubHeader";
 import TreeView, { buildBreadcrumbs } from "Admin/TreeView";
 import Input from "UI/Input";
 import Image from "UI/Image";
@@ -21,7 +20,9 @@ import {SortField} from "Admin/AutoList";
 import Time from "UI/Time";
 import Debounce from "UI/Functions/Debounce";
 import Paginator from "UI/Paginator";
-import {ProductCategoryFacet} from "UI/Product/Search/Facets";
+import { ProductCategoryFacet } from "UI/Product/Search/Facets";
+import AdminPage from 'Admin/AdminPage';
+import Footer from 'Admin/Footer';
 
 /**
  * Props for the ProductCategoryTree component
@@ -71,78 +72,76 @@ export default function ProductCategoryTree({ noCreate }: ProductCategoryTreePro
 
 	return (
 		<>
-			<SubHeader title="Edit Products" breadcrumbs={breadcrumbs} />
+			<AdminPage.SubHeader
+				title={`Edit Products`}
+				className="admin-product-category-tree__subheader"
+				breadcrumbs={breadcrumbs}>
 
-			<div className="sitemap__wrapper product-category-tree">
-				<div className="page-controls">
-					<div className="product-search">
-						<Input
-							type="search" noWrapper
-							defaultValue={queryText}
-							onChange={(ev) => {
-								debounce.current.handle((ev.target as HTMLInputElement).value)
-								setViewType("list")
-							}}
-							onFocus={() => {
-								setViewType("list");
-							}}
-							placeholder={`Filter products`}
-						/>
-					</div>
-
-					<div className="btn-group btn-group-sm ui-btn-group view-toggle" role="group" aria-label={`Select view style`}>
-						<Input
-							type="radio"
-							noWrapper
-							label={`Tree`}
-							groupIcon="fr-grid"
-							groupVariant="primary"
-							value='tree'
-							checked={viewType == 'tree'}
-							onChange={() => setViewType('tree')}
-							name="view-style"
-						/>
-						<Input
-							type="radio"
-							noWrapper
-							label={`List`}
-							groupIcon="fr-th-list"
-							groupVariant="primary"
-							value='list'
-							checked={viewType == 'list'}
-							onChange={() => setViewType('list')}
-							name="view-style"
-						/>
-					</div>
-
+				<div className="product-search">
+					<Input
+						type="search" noWrapper
+						defaultValue={queryText}
+						onChange={(ev) => {
+							debounce.current.handle((ev.target as HTMLInputElement).value)
+							setViewType("list")
+						}}
+						onFocus={() => {
+							setViewType("list");
+						}}
+						placeholder={`Filter products`}
+					/>
 				</div>
-				<div className="sitemap__internal">
-					{viewType === "tree" ? (
-						<TreeView
-							onLoadData={(path) => productCategoryApi.getTreeNodePath(path).then((resp) => resp)}
-						/>
-					) : (
+
+				<div className="btn-group btn-group-sm ui-btn-group view-toggle" role="group" aria-label={`Select view style`}>
+					<Input
+						type="radio"
+						noWrapper
+						label={`Tree`}
+						groupIcon="fr-grid"
+						groupVariant="primary"
+						value='tree'
+						checked={viewType == 'tree'}
+						onChange={() => setViewType('tree')}
+						name="view-style"
+					/>
+					<Input
+						type="radio"
+						noWrapper
+						label={`List`}
+						groupIcon="fr-th-list"
+						groupVariant="primary"
+						value='list'
+						checked={viewType == 'list'}
+						onChange={() => setViewType('list')}
+						name="view-style"
+					/>
+				</div>
+
+			</AdminPage.SubHeader>
+
+			<AdminPage.ContentWrapper>
+				<AdminPage.Content className="admin-payments-product-list">
+					{viewType === "tree" ?
+						<TreeView onLoadData={(path) => productCategoryApi.getTreeNodePath(path).then((resp) => resp)} /> :
 						<ProductListView />
-					)}
-				</div>
+					}
+				</AdminPage.Content>
+			</AdminPage.ContentWrapper>
 
-				{!noCreate && (
-					<footer className="admin-page__footer">
-						<span></span>
-						<span className="admin-page__footer-actions">
-							<a href={addCategoryUrl} className="btn btn-primary">
-								{`New category`}
-							</a>
-							<a href={addProductTemplateUrl} className="btn btn-primary">
-								{`New product template`}
-							</a>
-							<a href={addProductUrl} className="btn btn-primary">
-								{`New product`}
-							</a>
-						</span>
-					</footer>
-				)}
-			</div>
+			{!noCreate && (
+				<Footer>
+					<Link href={addCategoryUrl} variant="primary" outlined>
+						{`New category`}
+					</Link>
+					<Link href={addProductTemplateUrl} variant="primary" outlined>
+						{`New product template`}
+					</Link>
+					<Link href={addProductUrl} variant="primary">
+						{`New product`}
+					</Link>
+				</Footer>
+			)}
+
 		</>
 	);
 }
@@ -270,99 +269,28 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 	let locale = session.locale ? session.locale.code : undefined;	
 	const resultCount = (searchResults?.totalResults || 0).toLocaleString(locale);
 
-	return (
-		<div className="admin-page__internal">
-			{loading ? (
-				<Loading />
-			) : (
-				<div className="product-collection">
-					{searchResults?.secondary && (
-						<SearchAttributeFilter
-							results={searchResults}
-							selectedAttributeValues={selectedAttributeValues}
-								setSelectedAttributeValues={setSelectedAttributeValues}
-							selectedCategories={selectedCategories}
-							setSelectedCategories={setSelectedCategories}
-						/>
-					)}
+	if (loading) {
+		return <Loading />;
+	}
 
-					{searchResults?.totalResults > 0 &&
-						<>
-						<div>
-							{`${resultCount} results`}
-						</div>
+	return <>
+		<div className="admin-payments-product-list__collection">
+			{searchResults?.secondary && (
+				<SearchAttributeFilter
+					results={searchResults}
+					selectedAttributeValues={selectedAttributeValues}
+					setSelectedAttributeValues={setSelectedAttributeValues}
+					selectedCategories={selectedCategories}
+					setSelectedCategories={setSelectedCategories}
+				/>
+			)}
 
-						<Paginator
-							totalResults={searchResults?.totalResults}
-							pageSize={pageSize}
-							pageIndex={currentPage}
-							onChange={(toPage: number) => {
-								updateQuery({ page: toPage.toString() })
-							}}
-						/>
-					</>
-					}
-					<table className="table products-table">
-						<thead>
-						<tr>
-							<th 
-								onClick={() => changeSortField('Id')}
-								className={sortOrder.field === 'Id' ? 'active' : ''}
-							>
-								Id
-								{sortOrder.field === 'Id' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')}/> : null}
-							</th>
-							<th>Image</th>
-							<th 
-								onClick={() => changeSortField('Name.en')}
-								className={sortOrder.field === 'Name.en' ? 'active' : ''}
-							>
-								Name
-								{sortOrder.field === 'Name.en' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')}/> : null}
-							</th>
-							<th 
-								onClick={() => changeSortField('Sku')}
-								className={sortOrder.field === 'Sku' ? 'active' : ''}
-							>
-								SKU
-								{sortOrder.field === 'Sku' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')}/> : null}
-							</th>
-							<th
-								onClick={() => changeSortField('CreatedUtc')}
-								className={sortOrder.field === 'CreatedUtc' ? 'active' : ''}
-							>
-								Created
-								{sortOrder.field === 'CreatedUtc' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')}/> : null}
-							</th>
-							<th
-								onClick={() => changeSortField('EditedUtc')}
-								className={sortOrder.field === 'EditedUtc' ? 'active' : ''}
-							>
-								Edited
-								{sortOrder.field === 'EditedUtc' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')}/> : null}
-							</th>
+			{searchResults?.totalResults > 0 &&
+				<>
+					<div>
+						{`${resultCount} results`}
+					</div>
 
-							<th>Actions</th>
-						</tr>
-						</thead>
-						<tbody>
-						{searchResults?.results.map((product) => (
-							<tr key={product.id}>
-								<td>{product.id}</td>
-								<td>{product.featureRef ? <Image fileRef={product.featureRef} /> : "No image available"}</td>
-								<td>{product.name}</td>
-								<td>{product.sku}</td>
-								<td><Time date={product.createdUtc} /></td>
-								<td><Time date={product.editedUtc} /></td>
-								<td>
-									<Link sm variant="primary" href={'/en-admin/product/' + product.id}>
-										{`Edit product`}
-									</Link>
-								</td>
-							</tr>
-						))}
-						</tbody>
-					</table>
 					<Paginator
 						totalResults={searchResults?.totalResults}
 						pageSize={pageSize}
@@ -371,10 +299,79 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 							updateQuery({ page: toPage.toString() })
 						}}
 					/>
-				</div>
-			)}
+				</>
+			}
+			<table className="table ui-table">
+				<thead>
+					<tr>
+						<th
+							onClick={() => changeSortField('Id')}
+							className={sortOrder.field === 'Id' ? 'active' : ''}
+						>
+							Id
+							{sortOrder.field === 'Id' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')} /> : null}
+						</th>
+						<th>Image</th>
+						<th
+							onClick={() => changeSortField('Name.en')}
+							className={sortOrder.field === 'Name.en' ? 'active' : ''}
+						>
+							Name
+							{sortOrder.field === 'Name.en' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')} /> : null}
+						</th>
+						<th
+							onClick={() => changeSortField('Sku')}
+							className={sortOrder.field === 'Sku' ? 'active' : ''}
+						>
+							SKU
+							{sortOrder.field === 'Sku' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')} /> : null}
+						</th>
+						<th
+							onClick={() => changeSortField('CreatedUtc')}
+							className={sortOrder.field === 'CreatedUtc' ? 'active' : ''}
+						>
+							Created
+							{sortOrder.field === 'CreatedUtc' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')} /> : null}
+						</th>
+						<th
+							onClick={() => changeSortField('EditedUtc')}
+							className={sortOrder.field === 'EditedUtc' ? 'active' : ''}
+						>
+							Edited
+							{sortOrder.field === 'EditedUtc' ? <i className={'fas fa-chevron-' + (sortOrder.direction == 'asc' ? 'up' : 'down')} /> : null}
+						</th>
+
+						<th>Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{searchResults?.results.map((product) => (
+						<tr key={product.id}>
+							<td>{product.id}</td>
+							<td>{product.featureRef ? <Image fileRef={product.featureRef} /> : `No image available`}</td>
+							<td>{product.name}</td>
+							<td>{product.sku}</td>
+							<td><Time date={product.createdUtc} /></td>
+							<td><Time date={product.editedUtc} /></td>
+							<td>
+								<Link xs outlined variant="primary" href={'/en-admin/product/' + product.id}>
+									{`Edit product`}
+								</Link>
+							</td>
+						</tr>
+					))}
+				</tbody>
+			</table>
+			<Paginator
+				totalResults={searchResults?.totalResults}
+				pageSize={pageSize}
+				pageIndex={currentPage}
+				onChange={(toPage: number) => {
+					updateQuery({ page: toPage.toString() })
+				}}
+			/>
 		</div>
-	);
+	</>;
 };
 
 /**
@@ -430,7 +427,7 @@ const SearchAttributeFilter: React.FC<ProductAttributeFilterProps> = (props: Pro
 	}
 
 	return (
-		<div className="attribute-filters">
+		<div className="admin-payments-product-list__attribute-filters">
 			<CategoryFilter 
 				results={results} 
 				value={selectedCategories} 
@@ -440,7 +437,7 @@ const SearchAttributeFilter: React.FC<ProductAttributeFilterProps> = (props: Pro
 				const values = attributeValues.filter((val) => val.productAttributeId == productAttribute.id);
 				
 				return (
-					<div key={productAttribute.id} className={`attribute-filter`}>
+					<div key={productAttribute.id} className="admin-payments-product-list__attribute-filter">
 						<MultiSelectBox
 							onSetValue={(valueId: int, added: boolean) => {
 								if (added) {
@@ -489,7 +486,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = (props) => {
 	}
 
 	return (
-		<div className={'attribute-filter'}>
+		<div className="admin-payments-product-list__attribute-filter">
 			<MultiSelectBox 
 				onSetValue={(valueId: int, added: boolean) => {
 					if (added) {
@@ -543,7 +540,6 @@ const uniqueAttributes = (attrs: ProductAttribute[]): ProductAttribute[] => {
 	});
 };
 
-
 /**
  * Filters and returns a list of unique categories.
  *
@@ -561,7 +557,6 @@ const uniqueCategories = (categories: ProductCategory[]): ProductCategory[] => {
 	})
 	return unique.sort((a, b) => a.name!.localeCompare(b.name!, undefined, { numeric: true }));;
 };
-
 
 /**
  * Filters and returns unique attribute values, sorted by value.

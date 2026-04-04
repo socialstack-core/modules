@@ -1,0 +1,10 @@
+.admin-dashboard {
+}
+
+.admin-page__content.admin-page__content--no-padding {
+
+	> .admin-dashboard {
+		padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
+	}
+
+}

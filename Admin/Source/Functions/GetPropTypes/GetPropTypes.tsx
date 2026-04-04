@@ -1,6 +1,7 @@
 
 // eslint-disable-next-line no-restricted-imports
 import { getJson } from 'UI/Functions/WebRequest';
+import templateApi from 'Api/Template';
 import autoformApi, {AutoFormField} from 'Api/AutoFormController'
 
 export interface TypeMeta {
@@ -57,7 +58,13 @@ export interface CodeModuleType {
      */
     value?: string;
 
-    elementType?: string
+    elementType?: string;
+
+    /**
+     * JSDoc metadata from the type definition. Keys are tag names (e.g. 'description', 'icon'),
+     * values are either a string or array of strings for repeated tags.
+     */
+    meta?: Record<string, string | string[]>;
 }
 
 export type UnionType = {
@@ -84,6 +91,11 @@ export interface CodeModuleTypeField {
      * The type of this field.
      */
     fieldType: CodeModuleType;
+
+    /**
+     * JSDoc metadata from the field definition.
+     */
+    meta?: Record<string, string | string[]>;
 }
 
 export interface CodeModuleMeta {
@@ -107,7 +119,12 @@ export interface PropTypeMeta {
     /**
      * The field type.
      */
-    type: CodeModuleType
+    type: CodeModuleType;
+
+    /**
+     * JSDoc metadata from the field definition.
+     */
+    meta?: Record<string, string | string[]>;
 }
 
 function expandVariable(type: CodeModuleType) {
@@ -139,11 +156,17 @@ export function isJsx(prop: PropTypeMeta) {
 export function isJsxType(type: CodeModuleType) {
     return containsIdentifier(type, 'React.reactNode') ||
         containsIdentifier(type, 'React.ReactNode') ||
+        containsIdentifier(type, 'React.ReactElement') ||
+        containsIdentifier(type, 'ReactElement') ||
         containsIdentifier(type, 'ReactNode') ||
         containsIdentifier(type, 'reactNode');
 }
 
 export function containsIdentifier(type: CodeModuleType, identifier: string) : boolean {
+    if (!type) {
+        return false;
+    }
+
     if (type.name == 'union') {
         return !!(type.types?.find(type => containsIdentifier(type, identifier)));
     }
@@ -278,6 +301,26 @@ export function getTypeName(propType: PropTypeMeta): string | undefined {
     }
 
     return undefined;
+}
+
+export function isFunctionPropType(propType: PropTypeMeta): boolean {
+    return isFunctionType(propType.type);
+}
+
+export function isFunctionType(type: CodeModuleType): boolean {
+    if(!type){
+        return false;
+    }
+    
+    if (type.name === 'function') {
+        return true;
+    }
+    
+    if (type.name === 'identifier' && type.instanceName && (type.instanceName.endsWith('EventHandler') || type.instanceName === 'Function' || type.instanceName === 'CallableFunction')) {
+        return true;
+    }
+
+    return false;
 }
 
 export function isNumericPropType(propType: PropTypeMeta): boolean {
@@ -465,7 +508,8 @@ function expandPropTypes(meta: TypeMeta, module: CodeModuleMeta, type: CodeModul
                 }
 
                 propTypes[field.name] = {
-                    type: fieldType
+                    type: fieldType,
+                    meta: field.meta
                 } as PropTypeMeta;
             }
         }
@@ -544,6 +588,87 @@ export type TemplateModule = {
     name:string,
     types: CodeModuleMeta
 }
+
+function collectSlots(canvas: any, target: any[]) {
+    if (!canvas) {
+        return;
+    }
+
+    if (Array.isArray(canvas)) {
+        canvas.forEach(node => collectSlots(node, target));
+        return;
+    }
+
+    if (canvas.t == 'Admin/Template/Slot') {
+        // Got a slot!
+        var data = canvas.d;
+
+        if (!data || !data.name) {
+            return; 
+        }
+
+        let componentGroups: string[] | undefined;
+        if (data.componentGroups) {
+            try {
+                componentGroups = typeof data.componentGroups === 'string' 
+                    ? JSON.parse(data.componentGroups) 
+                    : data.componentGroups;
+            } catch (e) {
+                componentGroups = undefined;
+            }
+        }
+
+        target.push({
+            name: data.name,
+            componentGroups
+        });
+        return;
+    }
+
+    if (canvas.r) {
+        // Iterate roots
+        for (var rootKey in canvas.r) {
+            collectSlots(canvas.r[rootKey], target);
+        }
+    }
+
+    if (canvas.c) {
+        collectSlots(canvas.c, target);
+    }
+}
+
+export const getEditableTemplates = async (): Promise<any> => {
+    return templateApi.listAll().then(templateData => {
+
+        // rotate each template in to its known slots as propTypes.
+        var loadedTemplates: any = {};
+
+        templateData.results.forEach(template => {
+
+            // Load template json:
+            if (!template.bodyJson || !template.key) {
+                return;
+            }
+
+            try {
+                var loadedBody = JSON.parse(template.bodyJson);
+
+                // Collect all its slots:
+                var slots : any[] = [];
+                collectSlots(loadedBody, slots);
+
+                loadedTemplates[template.key] = {
+                    rootInfo: slots
+                };
+
+            } catch {
+                console.warn(`Template ${template.id} has an invalid body`);
+            }
+        });
+
+        return loadedTemplates;
+    });
+};
 
 export const getTemplates = async (): Promise<TemplateModule[]> => {
     return new Promise((res, rej) => {

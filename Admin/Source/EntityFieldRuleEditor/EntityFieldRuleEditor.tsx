@@ -100,7 +100,7 @@ const EntityFieldRuleEditor: React.FC<EntityFieldRuleEditorProps> = ({ entity: i
       {currentEditField && (
         <Modal
           visible={true}
-          title={`Edit permissions for field '${currentEditField.name}'`}
+          title={`Edit Permissions for Field '${currentEditField.name}'`}
           onClose={() => setCurrentEditField(undefined)}
         >
           <Alert variant="info">{`This only affects the role ${role.name}`}</Alert>

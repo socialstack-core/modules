@@ -1,0 +1,75 @@
+.mce-content-body react-component {
+	max-height: 4000px;
+}
+
+html.admin {
+	// override background colour used by docked paginators
+	--paginator-background: var(--admin-page-background, #EFF1FA);
+
+	// prevent assumptions of the main site header taking up space
+	// (not the case on admin views)
+	--site-header-height: 0 !important;
+
+	> body {
+		background: var(--admin-page-background, #EFF1FA);
+	}
+
+}
+
+.admin-page {
+
+	&__title {
+		font-size: px_to_rem(28);
+		line-height: px_to_rem(36);
+		font-weight: 700;
+		margin: 0 0 px_to_rem(20) 0;
+		text-wrap: balance;
+	}
+
+	&__subtitle {
+		font-size: px_to_rem(20);
+		line-height: normal;
+		font-weight: 700;
+		margin: 0 0 px_to_rem(10) 0;
+		text-wrap: balance;
+	}
+
+}
+
+@media only screen and (min-width: 1360px) {
+
+	.admin-page {
+
+		&__title {
+			font-size: px_to_rem(32);
+			line-height: normal;
+		}
+
+		&__subtitle {
+			font-size: px_to_rem(26);
+		}
+
+	}
+
+}
+
+
+.admin {
+    .modal-header {
+        color:#000;
+    }
+}
+
+/*
+[data-theme-variant="dark"].admin {
+	.modal-body {
+		label {
+			color:#000;
+		}
+	}
+
+    .module-tile {
+        color:#000;
+    }
+}
+*/

@@ -1,10 +1,14 @@
 import {useEffect, useState, useCallback, useRef} from 'react';
-import Tile from 'Admin/Tile';
 import Alert from 'UI/Alert';
 import Input from 'UI/Input';
 import StdOutApi from 'Api/StdOutController';
 import { isoConvert } from 'UI/Functions/DateTools';
 import Debounce from "UI/Functions/Debounce";
+import Badge from "UI/Badge";
+import Button from "UI/Button";
+import Icon from "UI/Icon";
+import AdminPage from "Admin/AdminPage";
+import Footer from "Admin/Footer";
 
 declare global {
     var scrollMaxY: number;
@@ -62,6 +66,13 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
     // type that term into the search bar in the header area, and 
     // see a list of messages containing that. 
     const [filterQuery, setFilterQuery] = useState<string>('');
+	
+	// Ability to filter out messages that contain certain keywords, 
+	// if someone's been a naughty logger you can hide their log entries.
+	const [hideWhereContains, setHideWhereContains] = useState<string[]>([]);
+	
+	// look specifically for null errors.
+	const [nullPointersOnly, setNullPointersOnly] = useState<boolean>(false);
 
     // let's add a debounce, so we don't de-dos huh ;)
     const debounce = useRef(
@@ -110,8 +121,9 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
                 // pass the disable react warnings variable
                 disableReactWarnings,
                 
-                // pass a filter
-                queryFilter: filterQuery,
+                // pass a filter, if null pointers only is enabled, it uses a preset message
+				// and disables the query field 
+                queryFilter: nullPointersOnly ? 'Object reference not set to an instance of an object' : filterQuery,
                 
                 // pass the exceptions only bool
                 exceptionsOnly,
@@ -126,7 +138,10 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
                 levels: logLevelEnablement,
                 
                 // disable the typescript info
-                disableTypeScriptInfo
+                disableTypeScriptInfo,
+				
+				// omit certain keywords
+				omitWhere: hideWhereContains
             }).then((res: string) => {
                 
                 // parse the response
@@ -166,7 +181,9 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
         filterQuery,
         exceptionsOnly,
         pageSize,
-        disableTypeScriptInfo
+        disableTypeScriptInfo,
+		hideWhereContains,
+		nullPointersOnly
     ]);
     
     useEffect(() => {
@@ -212,7 +229,7 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
         };
 
         return (
-            <span className={'tag-' + msg.type}>
+            <span className={'stdout-tag stdout-tag--' + msg.type}>
                 {labelMap[msg.type] || msg.type.toUpperCase()} {msg.createdUtc.toLocaleString()}
             </span>
         );
@@ -326,122 +343,172 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
         });
     };
 
-    return (
-        <div>
-            <Tile>
-                <Alert type="info">
-                    The following log is partially realtime. It will poll the current server for its latest log entries every 3 seconds.
-                </Alert>
-            </Tile>
+	return <>
+		<AdminPage.SubHeader title={`API Output`} breadcrumbs={[
+			{
+				title: `API Output`
+			}
+		]} />
+		<AdminPage.ContentWrapper>
+			<AdminPage.Filters className="admin-dashboard__stdout-filters">
+				<div className="group">
+					<p>Log Level</p>
+					{['error', 'ok', 'warn', 'info'].map(level => (
+						<Input
+							key={level}
+							type="checkbox"
+							defaultChecked={logLevelEnablement.includes(level)}
+							label={level.charAt(0).toUpperCase() + level.slice(1)}
+							onChange={e => toggleLogEnablement(level, (e.target as HTMLInputElement).checked)}
+						/>
+					))}
+				</div>
 
-            <Tile className={"stdout-controls" + (isSticky ? ' scrolled' : '')}>
-                <div className="group">
-                    <p>Log Level</p>
-                    {['error', 'ok', 'warn', 'info'].map(level => (
-                        <Input
-                            key={level}
-                            type="checkbox"
-                            defaultChecked={logLevelEnablement.includes(level)}
-                            label={level.charAt(0).toUpperCase() + level.slice(1)}
-                            onChange={e => toggleLogEnablement(level, (e.target as HTMLInputElement).checked)}
-                        />
-                    ))}
-                </div>
+				<div className="group">
+					<p>JS/TS & Tooling</p>
+					<Input
+						type="checkbox"
+						defaultChecked={disableReactWarnings}
+						label="Hide react ESLint warnings"
+						onChange={e => setDisableReactWarnings((e.target as HTMLInputElement).checked)}
+					/>
+					<Input
+						type="checkbox"
+						defaultChecked={disableTypeScriptInfo}
+						label="Hide TypeScript Info logs"
+						onChange={e => setDisableTypeScriptInfo((e.target as HTMLInputElement).checked)}
+					/>
+				</div>
 
-                <div className="group">
-                    <p>JS/TS & Tooling</p>
-                    <Input
-                        type="checkbox"
-                        defaultChecked={disableReactWarnings}
-                        label="Hide react ESLint warnings"
-                        onChange={e => setDisableReactWarnings((e.target as HTMLInputElement).checked)}
-                    />
-                    <Input
-                        type="checkbox"
-                        defaultChecked={disableTypeScriptInfo}
-                        label="Hide TypeScript Info logs"
-                        onChange={e => setDisableTypeScriptInfo((e.target as HTMLInputElement).checked)}
-                    />
-                </div>
+				<div className="group">
+					<p>Date Range</p>
+					<Input
+						type="date"
+						value={toInputDate(fromDate)}
+						label="From"
+						onChange={e => {
+							const newFrom = new Date((e.target as HTMLInputElement).value).getTime();
+							const { from, to } = normalizeDateRange(newFrom, toDate);
+							setFromDate(from);
+							setToDate(to);
+						}}
+					/>
+					<Input
+						type="date"
+						value={toInputDate(toDate)}
+						label="To"
+						onChange={e => {
+							const newTo = new Date((e.target as HTMLInputElement).value).getTime();
+							const { from, to } = normalizeDateRange(fromDate, newTo);
+							setFromDate(from);
+							setToDate(to);
+						}}
+					/>
+				</div>
 
-                <div className="group">
-                    <p>Date Range</p>
-                    <Input
-                        type="date"
-                        value={toInputDate(fromDate)}
-                        label="From"
-                        onChange={e => {
-                            const newFrom = new Date((e.target as HTMLInputElement).value).getTime();
-                            const { from, to } = normalizeDateRange(newFrom, toDate);
-                            setFromDate(from);
-                            setToDate(to);
-                        }}
-                    />
-                    <Input
-                        type="date"
-                        value={toInputDate(toDate)}
-                        label="To"
-                        onChange={e => {
-                            const newTo = new Date((e.target as HTMLInputElement).value).getTime();
-                            const { from, to } = normalizeDateRange(fromDate, newTo);
-                            setFromDate(from);
-                            setToDate(to);
-                        }}
-                    />
-                </div>
+				<div className="group">
+					<p>.NET log tools</p>
+					<Input
+						type="checkbox"
+						defaultChecked={exceptionsOnly}
+						label="Exceptions only?"
+						onChange={e => setExceptionsOnly((e.target as HTMLInputElement).checked)}
+					/>
+				</div>
 
-                <div className="group">
-                    <p>.NET log tools</p>
-                    <Input
-                        type="checkbox"
-                        defaultChecked={exceptionsOnly}
-                        label="Exceptions only?"
-                        onChange={e => setExceptionsOnly((e.target as HTMLInputElement).checked)}
-                    />
-                </div>
+				<div className="group">
+					<p>Specific Patterns</p>
+					<Input
+						type="checkbox"
+						defaultChecked={nullPointersOnly}
+						label="Null errors"
+						onChange={e => setNullPointersOnly((e.target as HTMLInputElement).checked)}
+					/>
+				</div>
 
-                <div className="group">
-                    <p>Filter by search</p>
-                    <Input
-                        type="text"
-                        defaultValue={filterQuery}
-                        onKeyUp={ev => debounce.current?.handle(ev.currentTarget.value)}
-                    />
-                </div>
+				<div className="group">
+					<p>Filter by search</p>
+					<Input
+						type="text"
+						defaultValue={filterQuery}
+						disabled={nullPointersOnly}
+						placeholder={nullPointersOnly ? `Disabled with null errors active` : 'Search logs....'}
+						onKeyUp={ev => debounce.current?.handle(ev.currentTarget.value)}
+					/>
+				</div>
 
-                <div className="group">
-                    <p>Extra options</p>
-                    <Input
-                        type="number"
-                        defaultValue={pageSize}
-                        step={10}
-                        label="Result limit"
-                        onChange={ev => {
-                            const value = parseInt((ev.target as HTMLInputElement).value);
-                            if (!isNaN(value)) setPageSize(value as int);
-                        }}
-                    />
-                </div>
-            </Tile>
+				<div className="group">
+					<p>Extra options</p>
+					<Input
+						type="number"
+						defaultValue={pageSize}
+						step={10}
+						label="Result limit"
+						onChange={ev => {
+							const value = parseInt((ev.target as HTMLInputElement).value);
+							if (!isNaN(value)) setPageSize(value as int);
+						}}
+					/>
+				</div>
+				<div className={'group'}>
+					<p>{`Omit`}</p>
+					<Input
+						type={'text'}
+						label={`Where message contains ?`}
+						help={<small>{`Tip: Use comma or enter`}</small>}
+						placeholder={'?'}
+						onKeyDown={e => {
+							if (e.target.value === '') {
+								return;
+							}
+							if (e.key == 'Enter' || e.key == ',') {
 
-            <div className="dashboards-stdout">
-                {log.map((entry: StdEntry, idx: number) => (
-                    <div className={'log-entry'} key={idx}>
-                        {renderTag(entry)}
-                        {entry.messages.map((message: StdOutMessage, i: number) =>
-                            message.trace ? (
-                                <div key={i}>
-                                    <pre>{message.entry} <br />{usefulTraceItem(message.trace)}</pre>
-                                </div>
-                            ) : (
-                                <p key={i}>{usefulPathItem(message.entry)}</p>
-                            )
-                        )}
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
+								if (!hideWhereContains.includes(e.target.value)) {
+									setHideWhereContains([...hideWhereContains, e.target.value]);
+								}
+								e.target.value = '';
+								e.preventDefault();
+								e.stopPropagation();
+							}
+						}}
+					/>
+					{hideWhereContains.map((value: string) => {
+						return (
+							<Badge variant={"primary"}>
+								{value}
+								<Button onClick={() => setHideWhereContains(hideWhereContains.filter(existing => existing !== value))}><Icon type={'fa-trash'} /></Button>
+							</Badge>
+						)
+					})}
+				</div>
+			</AdminPage.Filters>
+			<AdminPage.Content>
+				<div className="admin-dashboard admin-dashboard--stdout">
+					<Alert variant="info">
+						{`The following log is partially realtime. It will poll the current server for its latest log entries every 3 seconds.`}
+					</Alert>
+				</div>
+				<div className="admin-dashboard__stdout">
+					{log.map((entry: StdEntry, idx: number) => (
+						<div className={'log-entry'} key={idx}>
+							{renderTag(entry)}
+							{entry.messages.map((message: StdOutMessage, i: number) =>
+								message.trace ? (
+									<div key={i}>
+										<pre>{message.entry} <br />{usefulTraceItem(message.trace)}</pre>
+									</div>
+								) : (
+									<p key={i}>{usefulPathItem(message.entry)}</p>
+								)
+							)}
+						</div>
+					))}
+				</div>
+
+			</AdminPage.Content>
+		</AdminPage.ContentWrapper>
+	</>;
+
 };
 
 export default StdOut;

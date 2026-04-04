@@ -1,3 +1,13 @@
+// *************************
+// * NB: DEPRECATED
+// *
+// * replaced by AdminPage.SubHeader
+// *
+// * remaining views to update:
+// * Layouts/NavMenuMap
+// * Layouts/PanelledEditor
+// * Payments/ProductAttribute/ValueEditor
+// *************************
 import Link from 'UI/Link';
 import Search from 'UI/Search';
 import AutoFormExtensions, {AutoFormType} from "Admin/AutoForm/AutoFormExtensions";

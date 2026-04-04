@@ -8,6 +8,7 @@ import TemplateApi, { Template } from "Api/Template";
 // ========================
 import Input from "UI/Input";
 import Alert from "UI/Alert";
+import TemplateTypeSelector from "Admin/Template/TemplateTypeSelector";
 
 // ========================
 // React Imports
@@ -43,7 +44,6 @@ const DEFAULT_TEMPLATE = "UI/Templates/BaseWebTemplate";
  * Features:
  * - Dynamically loads available base template components based on selected type.
  * - Fetches possible parent templates for the chosen base template.
- * - Allows the parent template to be updated and notifies parent via `onParentChange`.
  * - Displays error messages if fetching fails.
  *
  * Behavior:
@@ -54,13 +54,14 @@ const DEFAULT_TEMPLATE = "UI/Templates/BaseWebTemplate";
  */
 const AddEditTemplateConfig: React.FC<AddEditTemplateConfigProps> = ({
 		 existing,
-		 onParentChange,
-	 }) => {
+ 	 }) => {
 	
-	// ========================
-	// Derived
-	// ========================
-	const bodyJson: CanvasNode = JSON.parse(existing?.bodyJson ?? '{}') ?? {};
+	const isExistingTemplate = !!existing?.id;
+	
+ 	// ========================
+ 	// Derived
+ 	// ========================
+ 	const bodyJson: CanvasNode = JSON.parse(existing?.bodyJson ?? '{}') ?? {};
 	
 	// ========================
 	// State
@@ -133,12 +134,11 @@ const AddEditTemplateConfig: React.FC<AddEditTemplateConfigProps> = ({
 			{/* Error message */}
 			{error && <Alert variant="danger">{error}</Alert>}
 
-			{/* Template type selector */}
-			<Input
-				type="select"
+{/* Template type selector */}
+			<TemplateTypeSelector
 				label="Template type"
 				name="templateType"
-				defaultValue={existing?.templateType ?? 1}
+				value={templateType}
 				onChange={(e) => {
 					setTemplateType(
 						parseInt(
@@ -146,44 +146,28 @@ const AddEditTemplateConfig: React.FC<AddEditTemplateConfigProps> = ({
 						) as int
 					);
 				}}
-			>
-				<option value={1}>Web</option>
-				<option value={2}>Email</option>
-				<option value={3}>PDF</option>
-			</Input>
+			/>
+			{!isExistingTemplate && (
 			<Input 
 				type={'select'}
 				label={`Parent template`}
-				defaultValue={templateValue}
-				onChange={(e) => {
-					
-					const value = (e.target as HTMLSelectElement).value;
-					const id = parseInt(value);
-					
-					if (Number.isNaN(id)) {
-						// base template
-						onParentChange && onParentChange(value);
-					}
-					else {
-						const template: Template = possibleParents?.results.find(result => result.id == id)!;
-						
-						onParentChange && onParentChange(template);
-					}
-				}}
+				name="bodyJson"
+				defaultValue={existing?.bodyJson}
 			>
 				<optgroup label={`Basic templates`}/>
 				{Object.keys(templateComponents ?? {}).map((component) => {
 					return (
-						<option value={component} key={component}>{component}</option>
+						<option value={JSON.stringify({ t: component })} key={component}>{component}</option>
 					)
 				})}
 				<optgroup label={`Existing templates`}/>
 				{possibleParents?.results?.map((template: Template) => {
 					return (
-						<option value={template.id}>{template.title}</option>
+						<option value={JSON.stringify({ t: "Admin/Template", d: { templateKey: template.key } })}>{template.title}</option>
 					)
 				})}
 			</Input>
+			)}
 			
 		</div>
 	);

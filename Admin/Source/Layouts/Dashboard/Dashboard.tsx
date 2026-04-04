@@ -1,37 +1,39 @@
+﻿import Landing from 'Admin/Layouts/Landing';
 import Tile from 'Admin/Tile';
 import Canvas from 'UI/Canvas';
 import { useSession } from 'UI/Session';
-import roleApi from 'Api/Role';
 
 /**
  * The main landing dashboard.
  * @param props
  * @returns
  */
-const Dashboard: React.FC<{}> = () => {
-	
+const Dashboard: React.FC = (): React.ReactNode => {
 	const { session } = useSession();
 	var { role, user } = session;
 
-	return role && user && <>
-		{role.adminDashboardJson ?
+	if (!role || !user) {
+		return;
+	}
+
+	var greeting = user.firstName || user.username || `there`;
+
+	return <>
+		{role.adminDashboardJson ? <>
 			<Canvas>
 				{role.adminDashboardJson}
-			</Canvas> : <div className="container">
-				<Tile>
-					<center>
+			</Canvas>
+		</> : <>
+				<Landing>
+					<Tile title={`👋 Hey ${greeting}!`}>
 						<p>
-							<i className="fa fa-hand-peace" />
+							{`You're in the administration area. Click on the 3 bars in the top left to choose something to do.`}
 						</p>
-						{`Hey there!`}
-					</center>
-					<center>
-						{`You're in the administration area. Click on the 3 bars in the top left to choose something to do.`}
-					</center>
-				</Tile>
-			</div>
-		}
+					</Tile>
+				</Landing>
+			</>}
 	</>;
+
 }
 
 export default Dashboard;

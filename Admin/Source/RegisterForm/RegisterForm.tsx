@@ -97,7 +97,7 @@ const RegisterForm: React.FC<RegisterFormProps> = (props: RegisterFormProps): Re
 					type='password'
 					name='newPasswordConfirm'
 					label={`Confirm Password`}
-					placeholder={`Confirm password your new password`}
+					placeholder={`Confirm your new password`}
 					validate={['Required', validatePasswordMatch]} />
 			</fieldset>
 
@@ -116,7 +116,7 @@ const RegisterForm: React.FC<RegisterFormProps> = (props: RegisterFormProps): Re
 				<div>
 					{`You'll need to ask to be authorised.`}
 					<Spacer height={20}/>
-					<Input type="submit" label="Create my account" />
+					<Input type="submit" label="Create My Account" />
 					{`Already got an account?`} <a href="/en-admin/login">{`Login here`}</a>
 				</div>
 			}

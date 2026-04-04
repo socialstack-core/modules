@@ -1,0 +1,105 @@
+.admin-nav-menu-editor {
+	.nav-menu-items {
+		margin-bottom: var(--spacing-md, 1rem);
+	}
+
+	.nav-menu-empty {
+		padding: var(--spacing-lg, 1.5rem);
+		text-align: center;
+		color: var(--text-muted, #6c757d);
+		background: var(--surface-raised, #f8f9fa);
+		border-radius: var(--border-radius, 0.25rem);
+	}
+
+	.nav-menu-footer {
+		margin-top: var(--spacing-md, 1rem);
+	}
+
+	.collapsible .collapsible-icon-left {
+		i::before {
+			content: "\f078"; // fa-chevron-down
+		}
+	}
+
+
+	.nav-menu-item-row {
+		margin-bottom: var(--spacing-sm, 0.5rem);
+		border: 1px solid var(--border-color, #dee2e6);
+		border-radius: var(--border-radius, 0.25rem);
+		background: var(--surface-raised, #fff);
+		transition: opacity 0.2s, border-color 0.2s;
+
+		&.dragging {
+			opacity: 0.5;
+		}
+
+		&.drag-over {
+			border-color: var(--primary, #0d6efd);
+			box-shadow: 0 0 0 2px rgba(var(--primary-rgb, 13, 110, 253), 0.25);
+		}
+
+		.collapsible {
+			border: none;
+			background: transparent;
+		}
+
+		.collapsible-summary {
+			border: none;
+			background: transparent;
+		}
+	}
+
+	.nav-menu-item-title {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm, 0.5rem);
+	}
+
+	.nav-menu-drag-handle {
+		cursor: grab;
+		padding: var(--spacing-xs, 0.25rem);
+		color: var(--text-muted, #6c757d);
+
+		&:active {
+			cursor: grabbing;
+		}
+	}
+
+	.nav-menu-item-icon {
+		color: var(--text-muted, #6c757d);
+		font-size: var(--font-size-sm, 0.875rem);
+	}
+
+	.nav-menu-item-label {
+		font-weight: 500;
+	}
+
+	.nav-menu-item-target {
+		font-size: var(--font-size-sm, 0.875rem);
+		color: var(--text-muted, #6c757d);
+	}
+
+	.nav-menu-item-form {
+		padding: var(--spacing-md, 1rem);
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md, 1rem);
+
+		.form-group {
+			margin-bottom: 0;
+		}
+	}
+
+	.nav-menu-item-actions {
+		display: flex;
+		gap: var(--spacing-sm, 0.5rem);
+		margin-top: var(--spacing-sm, 0.5rem);
+	}
+
+	.nav-menu-children {
+		margin-top: var(--spacing-sm, 0.5rem);
+		padding-left: var(--spacing-md, 1rem);
+		border-left: 2px solid var(--border-color, #dee2e6);
+		margin-left: var(--spacing-sm, 0.5rem);
+	}
+}

@@ -1,0 +1,124 @@
+.admin-page__feedback {
+	grid-area: feedback;
+	//padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
+	padding: px_to_rem(16) px_to_rem(20);
+	box-shadow: rgba(255, 255, 255, 0.6) 0 2px 4px 0 inset;
+	z-index: 1;
+	display: flex;
+	gap: px_to_rem(12);
+	background: var(--background);
+	color: var(--color);
+	animation: feedbackPulse 2.75s ease-in-out;
+
+	&-icon {
+		width: px_to_rem(24);
+		height: px_to_rem(24);
+		display: none;
+		flex-shrink: 0;
+	}
+
+	&-internal {
+		max-height: px_to_rem(80);
+		overflow-y: auto;
+	}
+
+	&--info {
+		--background: var(--admin-feedback--info, #E8F1F8);
+		--color: var(--admin-feedback-fg--info, #444);
+		--pulse: var(--admin-feedback--info-pulse, #1B75BB);
+		--pulse-fg: var(--admin-feedback--info-pulse, #fff);
+
+		.admin-page__feedback-icon--info {
+			display: block;
+		}
+	}
+
+	&--warning {
+		--background: var(--admin-feedback--warning, #FFF8E7);
+		--color: var(--admin-feedback-fg--warning, #444);
+		--pulse: var(--admin-feedback--warning-pulse, #FCB813);
+		--pulse-fg: var(--admin-feedback--warning-pulse, #222);
+
+		.admin-page__feedback-icon--warning {
+			display: block;
+		}
+	}
+
+	&--success {
+		--background: var(--admin-feedback--success, #EBF7ED);
+		--color: var(--admin-feedback-fg--success, #444);
+		--pulse: var(--admin-feedback--success-pulse, #37B34A);
+		--pulse-fg: var(--admin-feedback--success-pulse, #fff);
+
+		.admin-page__feedback-icon--success {
+			display: block;
+		}
+	}
+
+	&--danger {
+		--background: var(--admin-feedback--danger, #FBEAEA);
+		--color: var(--admin-feedback-fg--danger, #444);
+		--pulse: var(--admin-feedback--danger-pulse, #DA322B);
+		--pulse-fg: var(--admin-feedback--danger-pulse, #fff);
+
+		.admin-page__feedback-icon--danger {
+			display: block;
+		}
+
+	}
+
+	strong, p {
+		margin: 0 0 px_to_rem(4) 0;
+		font-size: px_to_rem(14);
+	}
+
+	strong {
+		text-transform: uppercase;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+	}
+
+	p {
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		overflow: hidden;
+
+		&:last-of-type {
+			margin-bottom: 0;
+		}
+
+	}
+}
+
+@keyframes feedbackPulse {
+  0%, 18% {
+	  background: var(--background);
+	  color: var(--color);
+  }
+
+  25% { 
+	  background: var(--pulse);
+	  color: var(--pulse-fg);
+  }
+  32% { 
+	  background: var(--background);
+	  color: var(--color);
+  }
+
+  38% { 
+	  background: var(--pulse);
+	  color: var(--pulse-fg);
+  }
+  45% { 
+	  background: var(--background);
+	  color: var(--color);
+  }
+
+  100% {
+	  background: var(--background);
+	  color: var(--color);
+  }
+
+}

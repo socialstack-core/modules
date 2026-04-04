@@ -1,0 +1,43 @@
+.admin-page__notice {
+    padding: px_to_rem(16) px_to_rem(20);
+    background: var(--palette-light-yellow, var(--warning-light));
+    border-radius: px_to_rem(6);
+    color: #444;
+    //height: var(--admin-page-notice-height);
+    display: flex;
+    flex-direction: column;
+    gap: px_to_rem(4);
+    //box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
+    box-shadow: rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px;
+	//margin-bottom: px_to_rem(10);
+    
+    strong, p {
+		margin: 0;
+		font-size: px_to_rem(14);
+    }
+    
+    strong {
+		text-transform: uppercase;
+		overflow: hidden;
+		white-space: nowrap;
+		text-overflow: ellipsis;
+    }
+    
+    p {
+		/*
+			display: -webkit-box;
+			-webkit-box-orient: vertical;
+			-webkit-line-clamp: 2;
+			overflow: hidden;
+		*/
+    }
+
+}
+
+.admin-page__content.admin-page__content--no-padding {
+
+	> .admin-page__notice {
+		margin: 0 var(--admin-page-padding, #{px_to_rem(20)});
+	}
+
+}

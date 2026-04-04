@@ -1,0 +1,7 @@
+.admin-dashboard--developer {
+	--min-tile-width: #{px_to_rem(450)};
+	display: grid;
+	gap: px_to_rem(20);
+	grid-template-columns: 
+		repeat(auto-fit, minmax(min(var(--min-tile-width), 100%), 1fr));
+}

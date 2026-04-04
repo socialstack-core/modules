@@ -1,5 +1,5 @@
 import { getAll as getAllPropTypes, TypeMeta, CodeModuleMeta } from 'Admin/Functions/GetPropTypes';
-import componentGroupApi, {ComponentGroup} from "Api/ComponentGroup";
+import { getComponentFilter } from './ComponentGroups';
 
 type ComponentSet = {
 	modules: ComponentInfo[],
@@ -19,6 +19,7 @@ type ComponentInfo = {
 	props: CodeModuleMeta,
 	directory: ComponentDirectory,
 	moduleClass: any /** The react render func, but can be either a class or a function */
+	meta?: Record<string, string | string[]>
 };
 
 var cachedComps: ComponentSet | null = null;
@@ -50,67 +51,25 @@ export function groupByDirectory(modules: ComponentInfo[]): ComponentDirectory[]
 	return dirs;
 }
 
-const cachedComponentGroups: ComponentGroup[] = [];
-
-const loadComponentGroupCache = async (componentGroups: number[]) => {
-	if (Array.isArray(componentGroups)) {
-		const requiredIds = componentGroups.filter(
-			// Identify any IDs that aren't loaded. 
-			id => !Boolean(cachedComponentGroups.find(existing => existing.id === id))
-		)
-
-		const results = await componentGroupApi.list({
-			query: "Id = [?]",
-			args: [requiredIds],
-			pageIndex: 0 as uint,
-			pageSize: 50 as uint
-		})
-
-		// lets cache em'
-		cachedComponentGroups.push(...results.results);
-	}
-}
-
-export async function collectModules(componentGroups? : number[]) : Promise<ComponentSet> {
-	
-	if (componentGroups && componentGroups.length != 0) {
-		await loadComponentGroupCache(componentGroups);
-	}
-	
-	if (cachedComps){
-		// a component group filter has been applied.
-		// do a length check to make sure if the component groups array is empty
-		// we skip the filter.
-		if (componentGroups && componentGroups.length != 0) {
-			// so now, we need to iterate over the object
-			// allowing all that are in the component group.
-
-			const allComponents: string[] = cachedComponentGroups.flatMap(group => {
-				const parsed = JSON.parse(group.allowedComponents ?? "[]");
-				return Array.isArray(parsed) ? parsed : [];
-			});
-			
-			const cacheCopy = {
-				modules: [
-					...cachedComps.modules.filter(
-						(componentInfo: ComponentInfo) => {
-							return allComponents.includes(componentInfo.publicName);
-						}
-					)
-				],
-				directories: [...cachedComps.directories],
-				directoryLookup: {...cachedComps.directoryLookup},
-			}
-			
-			return cacheCopy;
-			
-		}
-		return cachedComps;
+export async function collectModules(componentGroups?: string | string[]): Promise<ComponentSet> {
+	if (!cachedComps) {
+		const propTypeCache = await getAllPropTypes();
+		cachedComps = constructCache(propTypeCache);
 	}
 
-	const propTypeCache = await getAllPropTypes();
+	const groups = componentGroups 
+		? (typeof componentGroups === 'string' ? [componentGroups] : componentGroups)
+		: null;
+	const filterFunc = await getComponentFilter(groups);
 	
-	cachedComps = constructCache(propTypeCache);
+	if (filterFunc) {
+		return {
+			modules: cachedComps.modules.filter(m => filterFunc(m.publicName)),
+			directories: cachedComps.directories,
+			directoryLookup: cachedComps.directoryLookup
+		};
+	}
+
 	return cachedComps;
 }
 
@@ -170,6 +129,21 @@ function constructCache(propTypeCache : TypeMeta) {
 			props: modulePropInfo,
 			moduleClass: moduleFunc
 		};
+
+		var exportType = modulePropInfo.types?.find((t: any) => t.name === 'export');
+		if (exportType?.detail?.meta) {
+			moduleInfo.meta = exportType.detail.meta;
+		}
+
+		// Also check all types in the module for meta (e.g., interface definitions)
+		if (!moduleInfo.meta && modulePropInfo.types) {
+			for (var type of modulePropInfo.types) {
+				if (type.meta) {
+					moduleInfo.meta = type.meta;
+					break;
+				}
+			}
+		}
 
 		modules.push(moduleInfo);
 	}

@@ -46,7 +46,6 @@ const getTemplateComponents = (
 		const allComponents: Record<string, React.FC> = {};
 
 		getAll().then((components) => {
-			console.log({ components })
 			Object.keys(components.codeModules).forEach((key: string) => {
 				const lowerKey = key.toLowerCase();
 

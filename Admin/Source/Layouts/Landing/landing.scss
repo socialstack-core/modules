@@ -1,21 +1,17 @@
-.landing{
-	.landing_page {
-		background: #2A3F54;
-	}
+.admin-landing {
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+    padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
 
-	.landing_panel {
-		position: absolute;
-		top: 50%;
-		left: 50%;
-		width: 500px;
-		max-width: 100vw;
-		transform: translateX(-50%) translateY(-50%);
+	> .admin-tile {
+		width: px_to_rem(500);
+		max-width: 100%;
 	}
-
-	.fullsize{
-		width:100%;
-		height:100%;
-	}
-
 }
 
+#react-root > .admin-landing {
+	height: 100vh;
+	height: 100dvh;
+}

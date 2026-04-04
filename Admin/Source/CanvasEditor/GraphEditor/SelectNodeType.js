@@ -20,7 +20,7 @@ export default function NodeTypeSelect(props){
 	
 	return <Modal visible 
 			isLarge
-			title={`Add a node to your graph`}
+			title={`Add a Node to Your Graph`}
 			onClose={props.onClose} className={"module-select-modal"}>
 			<div className="module-group">
 			{

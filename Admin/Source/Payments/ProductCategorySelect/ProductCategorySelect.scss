@@ -21,8 +21,8 @@
 	}
 
 	&__entry {
-		background: var(--admin-subheader-bg, var(--fallback__admin-subheader-bg));
-		color: var(--admin-subheader-fg, var(--fallback__admin-subheader-fg));
+		background: var(--admin-page__subheader-background, #E0E4F5);
+		color: var(--admin-page__subheader-fg, #222);
 		border-radius: .25rem;
 		padding: .5rem .75rem;
 		//display: flex;
