@@ -1,15 +1,17 @@
-﻿using System;
-using System.IO;
+﻿using Api.Configuration;
+using Api.Contexts;
+using Api.Eventing;
+using Api.Signatures;
 using Api.Startup;
-using Api.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.AspNetCore.StaticFiles;
-using Api.Signatures;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace Api.Uploader
 {
@@ -34,14 +36,7 @@ namespace Api.Uploader
 		public EventListener()
 		{
 			// Also hook up the configure app method:
-			Api.Startup.WebServerStartupInfo.OnConfigureApplication += (IApplicationBuilder app) => {
-
-				/*
-				 Note! These are here for convenience and dependency reduction.
-				 You should definitely front Kestrel with a full feature web server like NGINX
-				 and make it handle the content and UI paths instead.
-				 Private files should use NGINX subrequest authentication via the /v1/upload/authenticate endpoint.
-				 */
+			Events.WebServerStartup.BeforeConfigureApplication.AddEventListener((Context context, IApplicationBuilder app) => {
 
 				// Setup the public unauthed static content route:
 				var pubPath = SetupDirectory(false);
@@ -173,8 +168,8 @@ namespace Api.Uploader
 					OnPrepareResponse = GzipMappingFileProvider.OnPrepareResponse
 				});
 
-			};
-
+				return new ValueTask<IApplicationBuilder>(app);
+			});
 		}
 		
 		private string SetupDirectory(bool priv)
