@@ -1,0 +1,6 @@
+{
+	"name": "Event Engine",
+	"description": "The essential glue that holds a SocialStack API together. This event module is used for defining, handling and dispatching events which allow the API to be highly modular whilst still statically typed for clear code complete of what's available. For example, Events.User.AfterCreate is an event which you can listen to and it is dispatched immediately after a user has been created.",
+	"modules": [
+	]
+}

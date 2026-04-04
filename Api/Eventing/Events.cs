@@ -1,3 +1,4 @@
+using Api.Contexts;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -21,9 +22,9 @@ namespace Api.Eventing
 		/// <summary>
 		/// Call this to trigger the OnStart event.
 		/// </summary>
-		public static async Task TriggerStart()
+		public static async Task TriggerStart(Context context)
 		{
-			await EventsAfterStart.Dispatch(new Contexts.Context(), null);
+			await EventsAfterStart.Dispatch(context, null);
 		}
 
 		/// <summary>

@@ -79,6 +79,12 @@ namespace Api.Eventing
 		public EventHandler<T> BeforeCreate;
 
 		/// <summary>
+		/// Called during content installation (InstallContent). 
+		/// Allows modification of the builder before the content is created/updated.
+		/// </summary>
+		public EventHandler<Api.Users.ContentBuilder> OnInstall;
+
+		/// <summary>
 		/// Called to actually create the result in the data engine.
 		/// </summary>
 		public EventHandler<T> Create;
