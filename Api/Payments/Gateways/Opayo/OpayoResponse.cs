@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Newtonsoft.Json;
 
@@ -369,31 +370,53 @@ namespace Api.Payments.Opayo.Response
 		/// The merchant session key.
 		/// </summary>
 		public string MerchantSessionKey { get; set; }
+
+		/// <summary>
+		/// List of errors
+		/// </summary>
+		[JsonProperty("errors")]
+		public List<OpayoError> Errors { get; set; }
 	}
 
 
 	/// <summary>
-	/// Exception thrown for payo API errors with attached context.
+	/// The details of a unique hosted page by the merchant for the transation
 	/// </summary>
-	public class OpayoApiException : Exception
+	public class RegisteredPageResponse
 	{
 		/// <summary>
-		/// The HTTP status code of the response.
+		/// The next Url to pass the user for payment details
 		/// </summary>
-		public HttpStatusCode StatusCode { get; }
+		[JsonProperty("nextURL")]
+		public string NextURL { get; set; }
 
 		/// <summary>
-		/// Parsed Opayo error detail, if available.
+		/// The expiry of the transaction redirect
 		/// </summary>
-		public OpayoError Error { get; }
-
+		[JsonProperty("expiry")]
+		public DateTime Expiry { get; set; }
+		
+		/// <summary>
+		/// The status of the transation
+		/// "Registered"
+		/// </summary>
+		[JsonProperty("status")]
+		public string Status { get; set; }
 
 		/// <summary>
-		/// Creates a new <see cref="OpayoApiException"/>.
+		/// The unique id of the registered page
 		/// </summary>
-		public OpayoApiException(HttpStatusCode statusCode, string message, OpayoError error = null)
-			: base(message) => (StatusCode, Error) = (statusCode, error);
+		[JsonProperty("registrationId")]
+		public string RegistrationId { get; set; }
+
+		/// <summary>
+		/// List of errors
+		/// </summary>
+		[JsonProperty("errors")]
+		public List<OpayoError> Errors { get; set; }
 	}
+
+
 
 	/// <summary>
 	/// Opayo errors response
@@ -430,8 +453,10 @@ namespace Api.Payments.Opayo.Response
 		/// Summary of error used in exception
 		/// </summary>
 		/// <returns></returns>
-		public override string ToString() => $"{Code}:{Property}:{Description}";
-
+		public override string ToString()
+		{
+			var parts = new[] { Code, Property, Description }.Where(s => !string.IsNullOrWhiteSpace(s));
+			return string.Join(":", parts);
+		}
 	}
-
 }

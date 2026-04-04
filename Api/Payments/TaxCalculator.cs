@@ -1,4 +1,7 @@
 using System;
+using System.Threading.Tasks;
+using Api.Contexts;
+using Api.Eventing;
 
 namespace Api.Payments;
 
@@ -22,11 +25,10 @@ public class TaxCalculator
 	/// </summary>
 	public double Multiplier;
 	
-	
 	/// <summary>
 	/// Applies this tax calculator to the given pence/cents value.
 	/// </summary>
-	public ulong Apply(ulong amount)
+	public ulong Apply (ulong amount)
 	{
 		// Naturally floors.
 		return (ulong)(amount * Multiplier);
@@ -47,4 +49,39 @@ public class TaxCalculator
 		return (ulong)( (amount * (1 - apportion)) + (amount * apportion * Multiplier) );
 	}
 
+	/// <summary>
+	/// Applies this tax calculator to the given pence/cents value.
+	/// </summary>
+	public async ValueTask<ulong> Apply (Context context, ulong amount)
+	{
+		//Confirms if a tax calculator is needed
+		var conditionalCalculator = await Events.Price.BeforeApplyTaxCalculation.Dispatch(context, new ConditionalVATCalculator(), this);
+
+		if(conditionalCalculator.Multiplier.HasValue)
+		{
+			return conditionalCalculator.Apply(amount);
+		}
+
+		return Apply(amount);
+	}
+}
+
+/// <summary>
+/// Used to calculate the VAT if the VAT is conditionally altered
+/// </summary>
+public struct ConditionalVATCalculator
+{
+	/// <summary>
+	/// VAT Multiplier
+	/// </summary>
+	public uint? Multiplier;
+
+	/// <summary>
+	/// Applies this tax calculator to the given pence/cents value.
+	/// </summary>
+	public ulong Apply (ulong amount)
+	{
+		// Naturally floors.
+		return (ulong)(amount * Multiplier);
+	}
 }

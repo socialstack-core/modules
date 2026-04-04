@@ -18,6 +18,8 @@ public class OpayoController : AutoController
 	/// Instanced automatically.
 	/// </summary>
 	/// <param name="opayo"></param>
+	/// <param name="purchases"></param>
+	/// 
 	public OpayoController(OpayoService opayo)
 	{
 		_opayo = opayo;
@@ -42,36 +44,4 @@ public class OpayoController : AutoController
 	{
 		return RequestHelper.GetClientIp(httpContext);
 	}
-
-
-	///// <summary>
-	///// Updates a purchase based on a webhook event from a opayo payment.
-	///// </summary>
-	///// <returns></returns>
-	//[HttpPost("webhook")]
-	//public async ValueTask<PublicMessage?> Webhook(HttpContext httpContext)
-	//{
-	//	// Get the opayo config:
-	//	var opayoConfig = _opayo.Config;
-
-	//	if (opayoConfig == null || string.IsNullOrEmpty(opayoConfig.PaymentEndpointSecret))
-	//	{
-	//		// Reject.
-	//		Console.WriteLine("Attempted to use opayo webhook but opayo is not configured.");
-	//		return null;
-	//	}
-
-	//	var json = await new StreamReader(httpContext.Request.Body).ReadToEndAsync();
-
-	//	var signatureHeader = httpContext.Request.Headers["Opayo-Signature"];
-
-	//	var opayoEvent = EventUtility.ConstructEvent(json, signatureHeader, opayoConfig.PaymentEndpointSecret);
-
-	//	// Handle the webhook call:
-	//	await _opayo.HandleWebhook(opayoEvent);
-
-	//	return new PublicMessage("Handled", "webhook/ok");
-	//}
-
-
 }

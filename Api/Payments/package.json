@@ -1,7 +1,0 @@
-{
-	"dependencies":[
-	    "Api/Addresses",
-		"Api/Automations",
-		"nuget:Stripe.net"
-	]
-}

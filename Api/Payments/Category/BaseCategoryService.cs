@@ -176,7 +176,7 @@ namespace Api.Payments
                 return category;
             });
 
-            eventGroup.AfterUpdate.AddEventListener((Context ctx, TCategory category, ChangedFields fields) =>
+            eventGroup.AfterUpdate.AddEventListener((Context ctx, TCategory category, ChangedFields diff) =>
             {
                 // clear the cache
                 _categoryTree = null;

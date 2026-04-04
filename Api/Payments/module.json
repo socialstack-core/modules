@@ -1,0 +1,6 @@
+{
+	"name": "SocialStack e-commerce",
+	"description": "A broad e-commerce module which includes handling payments through multiple gateway providers, shopping carts, order management and more.",
+	"modules": [
+	]
+}

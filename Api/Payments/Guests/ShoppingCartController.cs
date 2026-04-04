@@ -1,7 +1,5 @@
-using Amazon.S3.Model;
 using Api.Addresses;
 using Api.Contexts;
-using Api.Eventing;
 using Api.GuestUsers;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;
@@ -34,7 +32,7 @@ public partial class ShoppingCartController
 
 
 	/// <summary>
-	/// Submits the cart. May go to a manager first or become an order. Fails if the cart is already checked out etc.
+	/// Submits the cart. Fails if the cart is already checked out etc.
 	/// </summary>
 	/// <param name="httpContext"></param>
 	/// <param name="context"></param>
@@ -106,9 +104,42 @@ public partial class ShoppingCartController
 		}
 		
 		checkoutInfo.GuestUserId = guestUser.Id;
+		
+		_options ??= Services.Get<DeliveryOptionService>();
+		checkoutInfo.DeliveryOption = await _options.GetFromKey(context, checkoutInfo.DeliveryOptionKey);
 
 		// finally checkout the order for the guest 
 		var info = await carts.Checkout(context, cart, checkoutInfo);
+
+		if (info.Purchase != null)
+		{
+			// Move to ordered state:
+			cart = await carts.Update(context, cart, (Context ctx, ShoppingCart toUpdate, ShoppingCart original) =>
+			{
+				if (!toUpdate.SubmittedUtc.HasValue)
+				{
+					toUpdate.SubmittedUtc = DateTime.UtcNow;
+				}
+
+				toUpdate.DeliveryInformation = checkoutInfo.DeliveryInformation;
+				toUpdate.ContactName = checkoutInfo.ContactName;
+				toUpdate.CustomerOrderReference = checkoutInfo.CustomerOrderReference;
+
+				toUpdate.GuestUserId = guestUser.Id;
+				toUpdate.SubmittedOrderId = info.Purchase.Id;
+				toUpdate.GatewayPublicJson = info.Purchase.GatewayPublicJson;
+
+				if (info.Purchase.OrderNumber > 0)
+				{
+					toUpdate.OrderNumber = info.Purchase.OrderNumber;
+					toUpdate.OrderNumberLookup = info.Purchase.OrderNumberLookup;
+				}
+
+				toUpdate.SubmitStatus = 200;
+			}, DataOptions.IgnorePermissions);
+		}
+
+		info.ShoppingCart = cart;
 
 		await Events.ShoppingCart.AfterGuestCheckout.Dispatch(context, cart, info, guestUser);
 

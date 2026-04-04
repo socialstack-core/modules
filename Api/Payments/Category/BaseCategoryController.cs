@@ -153,6 +153,40 @@ namespace Api.Payments
 			return await _categoryService.GetChildren(context, id);
 		}
 
+        /// <summary>
+        /// List the children for a category mapped to lightweight link structures (for UI)
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        [HttpGet("{id}/children-links")]
+        public virtual async ValueTask<List<CategoryLinkNode>> GetChildrenLinks(Context context, [FromRoute] uint id)
+        {
+            var nodes = await _categoryService.GetChildren(context, id);
+			if (nodes == null)
+			{
+				return null;
+			}
+			
+			var result = new List<CategoryLinkNode>();
+            foreach (var node in nodes)
+            {
+				if (node.Category == null || node.Category.IsHidden)
+				{
+					continue;
+				}
+
+                result.Add(new CategoryLinkNode
+                {
+                    Id = node.Category.Id,
+                    Name = node.Category.Name.Get(context),
+                    PrimaryUrl = _categoryService.GetPrimaryUrl(context, node.Category),
+                    HasChildren = node.Children != null && node.Children.Count > 0
+                });
+            }
+            return result;
+        }
+
 
         /// <summary>
         /// List the parents for a category

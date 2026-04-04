@@ -71,7 +71,12 @@ namespace Api.Payments
 				return paymentMethod;
 			}
 
-			if (paymentMethodJson.Type != JTokenType.Object)
+			if (paymentMethodJson.Type == JTokenType.String)
+			{
+				JToken parsed = JToken.Parse((string)paymentMethodJson);
+				paymentMethodJson = parsed;
+			}
+			else if (paymentMethodJson.Type != JTokenType.Object)
 			{
 				throw new PublicException("Payment method ID provided but it was an invalid type", "payment_method_invalid");
 			}
@@ -100,10 +105,10 @@ namespace Api.Payments
 			var sessionId = sessionIdJson.ToObject<string>();
 
 			// the payment details may also include browser details for 3ds
-			var browserInfo = browserDetailsJson.ToObject<BrowserInfo>() ?? null;
+			var browserInfo = browserDetailsJson != null ? browserDetailsJson.ToObject<BrowserInfo>() ?? null : null;
 
 			// has the user said we can save their details
-			bool saveable = saveableJson.ToObject<bool>();
+			bool saveable = saveableJson != null ? saveableJson.ToObject<bool>() : false;
 
 			// if a subscription then must save the details
 			if (!saveable && saveableRequired)

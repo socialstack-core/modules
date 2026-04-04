@@ -232,16 +232,10 @@ public class MongoSearchEventListener
 				}
 
 				// add any custom SHOULD clauses such as boosts for purchased products etc 
-				if (Events.Product.SearchShould.HasListeners())
-				{
-					shouldArr = await Events.Product.SearchShould.Dispatch(context, shouldArr, search);
-				}
+				shouldArr = await Events.Product.SearchShould.Dispatch(context, shouldArr, search);
 
 				// add any custom MUST clauses such as hiding drafts or discontinued products
-				if (Events.Product.SearchMust.HasListeners())
-				{
-					mustArr = await Events.Product.SearchMust.Dispatch(context, mustArr, search);
-				}
+				mustArr = await Events.Product.SearchMust.Dispatch(context, mustArr, search);
 
 				if (idMatchDoc != null && search.SearchType == ProductSearchType.Reductive)
 				{
@@ -453,10 +447,7 @@ public class MongoSearchEventListener
 				}
 
 				// add any custom filters such as exclusions etc
-				if (Events.Product.SearchFilter.HasListeners())
-				{
-					filterClauses = await Events.Product.SearchFilter.Dispatch(context, filterClauses, search);
-				}
+				filterClauses = await Events.Product.SearchFilter.Dispatch(context, filterClauses, search);
 
 				// hide any specifically passed product ids 
 				if (search.ExcludedIds != null && search.ExcludedIds.Count > 0)

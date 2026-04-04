@@ -1,4 +1,6 @@
+using Api.AutoForms;
 using Api.GuestUsers;
+using Api.Permissions;
 using Api.Startup;
 
 namespace Api.Payments
@@ -15,6 +17,8 @@ namespace Api.Payments
 		/// <summary>
 		/// The guest user created for this purchase
 		/// </summary>
+		[Permissions(WriteRule = "false", Roles="!admins")]
+		[Module(Hide = true)]
 		public uint? GuestUserId;
 
 	}

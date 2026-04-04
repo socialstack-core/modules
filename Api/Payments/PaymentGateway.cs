@@ -1,4 +1,5 @@
 using Api.Contexts;
+using System;
 using System.Threading.Tasks;
 
 namespace Api.Payments;
@@ -14,6 +15,11 @@ public class PaymentGateway
 	public uint Id;
 
 	/// <summary>
+	/// Identifier for the payment gateway passed to 3rd parties etc
+	/// </summary>
+	public string ShortCode;
+
+	/// <summary>
 	/// Process an incoming challenge response from the gateway
 	/// </summary>
 	/// <param name="purchase"></param>
@@ -25,6 +31,19 @@ public class PaymentGateway
 	}
 
 	/// <summary>
+	/// Process an incoming hosted page payment response from the gateway
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="purchase"></param>
+	/// <param name="hostedPageResponse"></param>
+	/// <returns></returns>
+	public virtual ValueTask<Purchase> ValidateHostedPageTransaction(Context context, Purchase purchase, HostedPageResponse hostedPageResponse)
+	{
+		throw new NotImplementedException();
+	}
+
+
+	/// <summary>
 	/// Request a payment to occur.
 	/// </summary>
 	/// <param name="purchase"></param>
@@ -33,7 +52,7 @@ public class PaymentGateway
 	/// <returns></returns>
 	public virtual ValueTask<PurchaseAndAction> ExecutePurchase(Purchase purchase, ProductCost totalCost, PaymentMethod paymentMethod)
 	{
-		return new ValueTask<PurchaseAndAction>(new PurchaseAndAction() { });
+		throw new NotImplementedException();
 	}
 
 	/// <summary>

@@ -1,10 +1,8 @@
-using System;
 using Api.Database;
 using Api.Startup;
-using Api.Translate;
 using Api.Users;
 using Newtonsoft.Json;
-
+using System.ComponentModel.DataAnnotations;
 
 namespace Api.Payments
 {
@@ -41,14 +39,32 @@ namespace Api.Payments
 		public string TaxJurisdiction;
 
 		/// <summary>
+		/// Gateway response for exposure to end user/admin
+		/// </summary>
+		public JsonString GatewayPublicJson;
+
+		/// <summary>
 		/// The unique reference created for this basket and hence purchase
 		/// </summary>
 		public string Reference;
 
 		/// <summary>
-		/// Key to allow anonymous users to see address details.
-		/// This ensures that an anonymous user cannot create an address or deliver to an incorrect address, instead, they are made using CQC and the user can only pass the address key
+		/// Customer order reference. Not guaranteed to be unique.
 		/// </summary>
-		public string AnonymousAddressKey;
+		[MaxLength(26)]
+		public string CustomerOrderReference;
+
+		/// <summary>
+		/// The contact name for the order, defaulted from addresses
+		/// </summary>
+		[MaxLength(50)]
+		public string ContactName;
+
+		/// <summary>
+		/// Additional delivery information
+		/// </summary>
+		[MaxLength(150)]
+		public string DeliveryInformation;
+
 	}
 }

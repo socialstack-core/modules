@@ -183,6 +183,10 @@ namespace Api.Eventing
 	/// </summary>
 	public partial class ProductEventGroup : EventGroup<Product>
 	{
+		/// <summary>
+		/// Called when a line item is being constructed. Can be used to add custom errors if you need to do so.
+		/// </summary>
+		public EventHandler<LineItem> OnLineItem;
 
 		/// <summary>
 		/// Called when running a search for products.
@@ -220,6 +224,11 @@ namespace Api.Eventing
 		/// Use this event to provide a custom one instead.
 		/// </summary>
 		public EventHandler<TaxCalculator, string> ResolveTaxCalculator;
+
+		/// <summary>
+		/// Called when applying tax calculations. Intended to check if the calculation is necessary
+		/// </summary>
+		public EventHandler<ConditionalVATCalculator, TaxCalculator> BeforeApplyTaxCalculation;
 
 	}
 

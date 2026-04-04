@@ -20,7 +20,7 @@ namespace Api.Payments
 	/// https://docs.stripe.com/testing
 	/// </summary>
 	public partial class StripeService : AutoService
-    {
+	{
 		private StripeGateway _gateway;
 		private StripeConfig _config;
 		private PurchaseService _purchases;
@@ -29,13 +29,13 @@ namespace Api.Payments
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public StripeService(PaymentGatewayService gateways, PurchaseService purchases)
-        {
+		{
 			_purchases = purchases;
 
 			// Get configuration:
 			var stripeConfig = GetConfig<StripeConfig>();
-			
-			if(string.IsNullOrWhiteSpace(stripeConfig.SecretKey))
+
+			if (!stripeConfig.IsEnabled)
 			{
 				// Not configured - don't register Stripe.
 				return;
@@ -48,7 +48,8 @@ namespace Api.Payments
 
 			StripeConfiguration.ApiKey = _config.SecretKey;
 
-			_config.OnChange += () => {
+			_config.OnChange += () =>
+			{
 
 				StripeConfiguration.ApiKey = _config.SecretKey;
 
@@ -129,7 +130,8 @@ namespace Api.Payments
 				if (stripeEvent.Type == "payment_intent.payment_failed")
 				{
 					// E.g. card rejected it.
-					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) => {
+					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) =>
+					{
 						toUpdate.Status = 500;
 					}, DataOptions.IgnorePermissions);
 				}
@@ -144,7 +146,8 @@ namespace Api.Payments
 				else if (stripeEvent.Type == "payment_intent.requires_action" || stripeEvent.Type == "payment_intent.canceled")
 				{
 					// User caused in some way.
-					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) => {
+					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) =>
+					{
 						toUpdate.Status = 400;
 					}, DataOptions.IgnorePermissions);
 
@@ -153,7 +156,8 @@ namespace Api.Payments
 				else if (stripeEvent.Type == "payment_intent.succeeded")
 				{
 					// Payment success!
-					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) => {
+					await _purchases.Update(context, purchase, (Context c, Purchase toUpdate, Purchase orig) =>
+					{
 						toUpdate.Status = 202;
 					}, DataOptions.IgnorePermissions);
 				}
@@ -183,6 +187,7 @@ namespace Api.Payments
 		{
 			_config = config;
 			Id = 1;
+			ShortCode = _config.ShortCode;
 		}
 
 		/// <summary>
@@ -195,8 +200,6 @@ namespace Api.Payments
 		private GuestUserService _guests;
 #endif
 		private PurchaseService _purchases;
-
-		private PaymentMethodService _paymentMethods;
 
 		/// <summary>
 		/// Converts intent status to a Purchase.Status ID.
@@ -292,12 +295,14 @@ namespace Api.Payments
 			}
 
 			// Method must be attached to a customer to be reusable.
-			var customer = await _customerService.CreateAsync(new CustomerCreateOptions() {
+			var customer = await _customerService.CreateAsync(new CustomerCreateOptions()
+			{
 				Email = context.User == null ? null : context.User.Email
 			});
 
 			// Create a reusable payment method from a single use token:
-			var stripeMethod = await _paymentMethodService.CreateAsync(new PaymentMethodCreateOptions() {
+			var stripeMethod = await _paymentMethodService.CreateAsync(new PaymentMethodCreateOptions()
+			{
 				Type = "card",
 				Card = new PaymentMethodCardOptions()
 				{
@@ -306,7 +311,8 @@ namespace Api.Payments
 			});
 
 			// Attach to customer:
-			await _paymentMethodService.AttachAsync(stripeMethod.Id, new PaymentMethodAttachOptions() {
+			await _paymentMethodService.AttachAsync(stripeMethod.Id, new PaymentMethodAttachOptions()
+			{
 				Customer = customer.Id
 			});
 
@@ -334,7 +340,6 @@ namespace Api.Payments
 			{
 				_users = Services.Get<UserService>();
 				_purchases = Services.Get<PurchaseService>();
-				_paymentMethods = Services.Get<PaymentMethodService>();
 #if PAYMENTS_GUEST_USERS
 				_guests = Services.Get<GuestUserService>();
 #endif
@@ -364,7 +369,7 @@ namespace Api.Payments
 				}
 			}
 #if PAYMENTS_GUEST_USERS
-			else if (purchase.GuestUserId.GetValueOrDefault() > 0) 
+			else if (purchase.GuestUserId.GetValueOrDefault() > 0)
 			{
 				guestUser = await _guests.Get(context, purchase.GuestUserId.GetValueOrDefault(), DataOptions.IgnorePermissions);
 				if (guestUser != null)
@@ -382,7 +387,8 @@ namespace Api.Payments
 			StripeConfiguration.ApiKey = _config.SecretKey;
 
 			// Mark as starting to submit to gateway and add the total cost to it:
-			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = 101;
@@ -408,20 +414,23 @@ namespace Api.Payments
 				ReceiptEmail = emailAddress,
 				Metadata = new Dictionary<string, string> {
 					{ "PurchaseId", purchase.Id.ToString() },
-					{ "UserId", user == null ? "0" : user.Id.ToString() },
 #if PAYMENTS_GUEST_USERS
-					{ "GuestUserId", guestUser == null ? "0" : guestUser.Id.ToString() }
+					{ "GuestUserId", guestUser == null ? "0" : guestUser.Id.ToString() },
 #endif
+					{ "UserId", user == null ? "0" : user.Id.ToString() }
 				}
 			});
 
 			// Update purchase with Id from payment intent and the total cost:
-			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = ConvertStatus(paymentIntent.Status);
 				toUpdate.PaymentGatewayInternalId = paymentIntent.Id;
 
+				// extract any user friendly status/errors
+				toUpdate.GatewayPublicJson = new JsonString(JsonConvert.SerializeObject(GetTransactionMessage(paymentIntent)));
 			});
 
 			string action = null;
@@ -463,7 +472,6 @@ namespace Api.Payments
 			{
 				_users = Services.Get<UserService>();
 				_purchases = Services.Get<PurchaseService>();
-				_paymentMethods = Services.Get<PaymentMethodService>();
 #if PAYMENTS_GUEST_USERS
 				_guests = Services.Get<GuestUserService>();
 #endif
@@ -519,7 +527,8 @@ namespace Api.Payments
 			var longAmount = (long)totalCost.Amount;
 
 			// Mark as starting to submit to gateway and add the total cost to it:
-			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = 101;
@@ -547,20 +556,24 @@ namespace Api.Payments
 				ReceiptEmail = emailAddress,
 				Metadata = new Dictionary<string, string> {
 					{ "PurchaseId", purchase.Id.ToString() },
-					{ "UserId", user == null ? "0" : user.Id.ToString() },
 #if PAYMENTS_GUEST_USERS
-					{ "GuestUserId", guestUser == null ? "0" : guestUser.Id.ToString() }
+					{ "GuestUserId", guestUser == null ? "0" : guestUser.Id.ToString() },
 #endif
+					{ "UserId", user == null ? "0" : user.Id.ToString() }
 				}
 			});
 
 			// Update purchase with Id from payment intent and the total cost:
-			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) => {
+			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
 				toUpdate.Status = ConvertStatus(paymentIntent.Status);
 				toUpdate.PaymentGatewayInternalId = paymentIntent.Id;
 				toUpdate.GatewayResponseJson = new JsonString(_purchases.AppendResponseElement(orig.GatewayResponseJson.ValueOf(), paymentIntent));
+
+				// extract any user friendly status/errors
+				toUpdate.GatewayPublicJson = new JsonString(JsonConvert.SerializeObject(GetTransactionMessage(paymentIntent)));
 			});
 
 			if (_config.VerboseLogging)
@@ -580,10 +593,35 @@ namespace Api.Payments
 				}
 			}
 
-			return new PurchaseAndAction() {
+			return new PurchaseAndAction()
+			{
 				Purchase = purchase,
 				Action = action
 			};
 		}
+
+		/// <summary>
+		/// Extract a user friendly status
+		/// </summary>
+		/// <param name="paymentIntent"></param>
+		/// <returns></returns>
+		private List<string> GetTransactionMessage(PaymentIntent paymentIntent)
+		{
+			// extract any user friendly status/errors
+			var gatewayResponses = new List<string>();
+
+			if (paymentIntent.LastPaymentError != null)
+			{
+				gatewayResponses.Add(paymentIntent.LastPaymentError.Message);
+			}
+
+			if (gatewayResponses.Count == 0)
+			{
+				gatewayResponses.Add(paymentIntent.Description);
+			}
+
+			return gatewayResponses;
+		}
+
 	}
 }

@@ -30,19 +30,19 @@ namespace Api.Payments.Opayo
         {
 			if (string.IsNullOrWhiteSpace(raw))
 			{
-				throw new PublicException("Phone number is required", "purchase_phone_missing");
+				return null;
 			}
 
 			if (string.IsNullOrWhiteSpace(countryCode) || !Regex.IsMatch(countryCode, "^\\d+$"))
 			{
-				throw new PublicException("Country code must be numeric (e.g., '44')", "purchase_phone_countrycode");
+				throw new PublicException("Card Payment :: Country code must be numeric (e.g., '44')", "purchase_phone_countrycode");
 			}
 
             // Remove all non-digits
             var digits = NonDigit.Replace(raw, string.Empty);
 			if (string.IsNullOrEmpty(digits))
 			{
-				throw new PublicException("Phone number must contain digits", "purchase_phone_digits");
+				throw new PublicException("Card Payment :: Phone number must contain digits", "purchase_phone_digits");
 			}
 
             // If digits already start with the country code
@@ -56,7 +56,7 @@ namespace Api.Payments.Opayo
 			{
 				var nsn = digits.TrimStart('0');
 				if (string.IsNullOrEmpty(nsn)) { 
-					throw new PublicException("Invalid local phone number after removing trunk prefix", "purchase_phone_prefix");
+					throw new PublicException("Card Payment :: Invalid local phone number after removing trunk prefix", "purchase_phone_prefix");
 				}
                 return "+" + countryCode + nsn;
             }

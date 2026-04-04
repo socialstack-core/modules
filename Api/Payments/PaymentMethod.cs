@@ -57,6 +57,11 @@ namespace Api.Payments
 		public BrowserInfo BrowserInfo { get; set; }
 
 		/// <summary>
+		/// Has the card been used/validated by the provider
+		/// </summary>
+		public bool IsValidated;
+
+		/// <summary>
 		/// The session id for this payment method on the gateway.
 		/// </summary>
 		[JsonIgnore]

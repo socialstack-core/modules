@@ -49,7 +49,6 @@ namespace Api.Payments
 		/// The set of options for the user.
 		/// </summary>
 		public List<DeliveryEstimate> Options;
-		
 	}
     
 	/// <summary>

@@ -1,7 +1,5 @@
 using Api.Contexts;
-using Api.Database;
 using Api.Eventing;
-using Api.Permissions;
 using Api.Startup;
 using System;
 using System.Collections.Generic;
@@ -32,6 +30,155 @@ namespace Api.Payments
 			_coupons = coupons;
 			_config = GetConfig<ProductConfig>();
 			_couponConfig = GetConfig<CouponConfig>();
+
+
+			Events.Product.BeforeCreate.AddEventListener(async (Context context, Product product) =>
+			{
+				if (product == null)
+				{
+					return null;
+				}
+
+				var componentSet = product.GetTemporaryComponents();
+
+				if (componentSet != null)
+				{
+					// 1. Create any that are needed
+					List<ulong> mappings = new List<ulong>();
+
+					foreach (var componentInfo in componentSet)
+					{
+						if (componentInfo.DeleteComponent)
+						{
+							// Ignore this one - it never existed anyway.
+							continue;
+						}
+
+						if (componentInfo.Id == 0)
+						{
+							// Creating a new productQuantity. Following the same pattern as AutoController.
+
+							// Using InstanceType such that it supports any dynamically added fields as well:
+							var componentProductQuantity = (ProductQuantity)Activator.CreateInstance(InstanceType);
+							await SetFieldsOnObject(componentProductQuantity, context, componentInfo.ProductQuantity);
+							componentProductQuantity.UserId = context.UserId;
+
+							// Not permitted to create with a specified ID via the API. Ensure it's 0:
+							componentProductQuantity.SetId(default);
+
+							// And the create call itself:
+							componentProductQuantity = await Create(context, componentProductQuantity);
+
+							if (componentProductQuantity != null)
+							{
+								mappings.Add(componentProductQuantity.Id);
+							}
+						}
+					}
+
+					// Finally update the mapping set.
+					product.Mappings.Set("productcomponents", mappings);
+				}
+
+				return product;
+			});
+
+
+
+			Events.Product.BeforeUpdate.AddEventListener(async (Context context, Product toUpdate, Product original) =>
+			{
+
+				if (toUpdate == null)
+				{
+					return null;
+				}
+
+				var componentSet = toUpdate.GetTemporaryComponents();
+
+				if (componentSet != null)
+				{
+					// 1. Create any that are needed
+					// 2. Update "productComponent" Mappings
+					// 3. Update ProductQuantity quantity
+					// 4. Delete any that have been marked as such
+					List<ulong> mappings = new List<ulong>();
+
+					foreach (var componentInfo in componentSet)
+					{
+						if (componentInfo.DeleteComponent)
+						{
+							if (componentInfo.Id == 0)
+							{
+								// Ignore this one - it never existed anyway.
+								continue;
+							}
+
+							// Delete it now:
+							await Delete(context, componentInfo.Id);
+
+							continue;
+						}
+
+						if (componentInfo.Id == 0)
+						{
+							// Creating a new productQuantity. Following the same pattern as AutoController.
+
+							// Using InstanceType such that it supports any dynamically added fields as well:
+							var componentProductQuantity = (ProductQuantity)Activator.CreateInstance(InstanceType);
+							await SetFieldsOnObject(componentProductQuantity, context, componentInfo.ProductQuantity);
+							componentProductQuantity.UserId = context.UserId;
+
+							// Not permitted to create with a specified ID via the API. Ensure it's 0:
+							componentProductQuantity.SetId(default);
+
+							// And the create call itself:
+							componentProductQuantity = await Create(context, componentProductQuantity);
+
+							if (componentProductQuantity != null)
+							{
+								mappings.Add(componentProductQuantity.Id);
+							}
+						}
+						else
+						{
+							// Update. Load the productQuantity such that we can set the changed fields on it,
+							var originalEntity = await Get(context, componentInfo.Id);
+
+							if (originalEntity == null)
+							{
+								continue;
+							}
+
+							if (componentInfo.UpdateComponent)
+							{
+								// and again like above we're just following what AutoController does.
+								if (originalEntity == null)
+								{
+									continue;
+								}
+
+								var entityToUpdate = StartUpdate(context, originalEntity);
+								await SetFieldsOnObject(entityToUpdate, context, componentInfo.ProductQuantity);
+
+								// Make sure it's still the original ID:
+								entityToUpdate.SetId(componentInfo.Id);
+
+								entityToUpdate = await FinishUpdate(context, entityToUpdate, originalEntity);
+							}
+
+							mappings.Add(originalEntity.Id);
+						}
+					}
+
+					// Finally update the mapping set.
+					toUpdate.Mappings.Set("productcomponents", mappings);
+				}
+
+
+				return toUpdate;
+			});
+
+
 
 			/*
 			Events.Service.AfterStart.AddEventListener(async (Context ctx, object s) => {
@@ -401,6 +548,7 @@ namespace Api.Payments
 			};
 
 			ulong totalLessTax = 0;
+			ulong total = 0;
 
 			// Get tax calc if active (comes from lookup, resolves instantly):
 			var taxCalc = await _prices.GetTaxCalculator(context, taxJurisdiction);
@@ -427,7 +575,7 @@ namespace Api.Payments
 						collection.HasSubscriptionProducts = true;
 					}
 
-					collection.Contents.Add(new LineItem()
+					var lineItem = new LineItem()
 					{
 						ProductId = item.ProductId,
 						Quantity = quantity,
@@ -438,25 +586,21 @@ namespace Api.Payments
 						ErrorCode = cost.ErrorCode,
 						ErrorMessage = cost.ErrorMessage,
 						TotalLessTax = cost.AmountLessTax
-					});
+					};
+
+					lineItem = await Events.Product.OnLineItem.Dispatch(context, lineItem);
+
+					collection.Contents.Add(lineItem);
 
 					totalLessTax += cost.AmountLessTax;
+					total += cost.Amount;
 				}
 			}
 
 			collection.TotalLessTax = totalLessTax;
-
-			if (taxCalc != null)
-			{
-				collection.Total = taxCalc.Apply(totalLessTax);
-			}
-			else
-			{
-				collection.Total = totalLessTax;
-			}
-
 			collection.TotalPDLessTax = totalLessTax;
-			collection.TotalPD = collection.Total;
+			collection.Total = total;
+			collection.TotalPD = total;
 
 			// Valid coupon?
 			if (couponId != 0)
@@ -884,9 +1028,12 @@ namespace Api.Payments
 			var totalWithTax = totalCost;
 			var totalWithoutTax = totalCost;
 
-			if (taxCalculator != null && product.TaxExempt != 1)
+			if (taxCalculator != null && product.TaxExempt == 0)
 			{
 				totalWithTax = taxCalculator.Apply(totalCost);
+			}else if(product.TaxExempt == 2)
+			{
+				totalWithTax = await taxCalculator.Apply(context, totalCost);
 			}
 
 			result.Amount = totalWithTax;

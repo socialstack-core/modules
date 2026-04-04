@@ -189,6 +189,11 @@ namespace Api.Payments
 		/// <summary>
 		/// Indicates if this is a variant product related to a parent base product
 		/// </summary>
+		[Data("tab", "linkToParent")]
+		[Data("label", "Variant Of")]
+		[Module("Admin/ContentSelect")]
+		[Data("contentType", "Product")]
+		[Data("search", "name")]
 		public uint? VariantOfId;
 
 		/// <summary>
@@ -249,6 +254,41 @@ namespace Api.Payments
 				_tempVariants = new List<PartialProductVariant>();
 			}
 			_tempVariants.Add(variant);
+		}
+
+		/// <summary>
+		/// The set of temporary components which may exist during a creation or update only.
+		/// </summary>
+		private List<PartialProductComponent> _tempComponents { get; set; }
+
+		/// <summary>
+		/// Gets the set of temporary components which may exist during a creation or update only.
+		/// </summary>
+		/// <returns></returns>
+		public List<PartialProductComponent> GetTemporaryComponents() => _tempComponents;
+
+		/// <summary>
+		/// Sets the set of temporary components which may exist during a creation or update only.
+		/// </summary>
+		/// <param name="tempComponents"></param>
+		public void SetTemporaryComponents(List<PartialProductComponent> tempComponents)
+		{
+			_tempComponents = tempComponents;
+		}
+
+		/// <summary>
+		/// Adds a temporary 
+		/// </summary>
+		/// <param name="component"></param>
+		public void AddTemporaryComponentInfo(PartialProductComponent component)
+		{
+			// Note that this doesn't encounter threading issues as the product
+			// instance this is ocurring on is not cache shared.
+			if (_tempComponents == null)
+			{
+				_tempComponents = new List<PartialProductComponent>();
+			}
+			_tempComponents.Add(component);
 		}
 
 		/// <summary>

@@ -62,7 +62,7 @@ namespace Api.Payments
 				Roles.Guest.Revoke("purchaseToken_load", "purchaseToken_list");
 				Roles.Public.Revoke("purchaseToken_load", "purchaseToken_list");
 				Roles.Member.Revoke("purchaseToken_load", "purchaseToken_list");
-				
+
 				// Allow viewing of owned things:
 				Roles.Guest.If("IsSelf()").ThenGrant(
 					"productquantity_load", "productquantity_list",
@@ -83,9 +83,10 @@ namespace Api.Payments
 					"purchase_load", "purchase_list",
 					"purchase_execute",
 					"shoppingcart_load", "shoppingcart_list",
-					"subscription_load", "subscription_list",
-					"paymentmethod_load", "paymentmethod_list"
+					"subscription_load", "subscription_list"
 				);
+
+				Roles.Member.If("IsSelf()").ThenGrant("paymentmethod_load", "paymentmethod_list");
 
 				// We'll also be restricting the developer role on payment methods.
 				Roles.Admin.Revoke("paymentmethod_load", "paymentmethod_list");

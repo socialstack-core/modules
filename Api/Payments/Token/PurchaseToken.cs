@@ -7,11 +7,10 @@ using System;
 namespace Api.Payments
 {
 
-	[HasVirtualField("Purchase", typeof(Purchase), "PurchaseId")]
-
 	/// <summary>
 	/// A token to allow anon access to a purchase during 3d auth and via email links.
 	/// </summary>
+	[HasVirtualField("Purchase", typeof(Purchase), "PurchaseId")]
 	public partial class PurchaseToken : Content<uint>
 	{
 		/// <summary>

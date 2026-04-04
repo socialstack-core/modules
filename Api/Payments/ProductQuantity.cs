@@ -21,9 +21,13 @@ namespace Api.Payments
 	[ImplicitFor("RequestedProductQuantities", typeof(ShoppingCart))]
 	[ImplicitFor("RequestedProductQuantities", typeof(Purchase))]
 
+	// Used to link product components (kits)
+	[ListAs("ProductComponents", IsPrimary = false)]
+	[ImplicitFor("ProductComponents", typeof(Product))]
+
 	[HasVirtualField("Product", typeof(Product), "ProductId")]
 
-	public partial class ProductQuantity : VersionedContent<uint>
+	public partial class ProductQuantity : UserCreatedContent<uint>
 	{
 		/// <summary>
 		/// The product that this is a quantity of. The product may permit unlimited usage in which case units does not need to be used.

@@ -1,6 +1,5 @@
-using System;
-using Api.Database;
-using Api.Translate;
+using Api.Addresses;
+using Api.Startup;
 using Api.Users;
 
 
@@ -25,4 +24,9 @@ public partial class DeliveryOption : VersionedContent<uint>
 	/// The cart that this option is associated with.
 	/// </summary>
 	public uint ShoppingCartId;
+
+	/// <summary>
+    /// An anonymous key used to confirm that the user does have permission to call on this DeliveryOption
+    /// </summary>
+    public string AnonKey;
 }

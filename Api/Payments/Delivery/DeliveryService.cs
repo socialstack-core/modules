@@ -1,3 +1,4 @@
+using AngleSharp.Html.Dom.Events;
 using Api.Addresses;
 using Api.Contexts;
 using Api.Eventing;
@@ -6,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -189,12 +191,22 @@ namespace Api.Payments
 		/// <returns></returns>
 		public async ValueTask<List<DeliveryOption>> EstimateDelivery(Context context, ShoppingCart cart, CartEstimation options)
 		{
+			Address address;
+
 			if (string.IsNullOrEmpty(options.DeliveryAddressKey))
 			{
-				throw new PublicException("A target delivery address has not been set.", "delivery/no_address");
-			}
+				// Not specified by the request - use the one on the cart.
+				if (cart.DeliveryAddressId == 0)
+				{
+					throw new PublicException("A target delivery address has not been set.", "delivery/no_address");
+				}
 
-			var address = await _addresses.Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(options.DeliveryAddressKey).First(context);
+				address = await _addresses.Get(context, cart.DeliveryAddressId, DataOptions.IgnorePermissions);
+			}
+			else
+			{
+				address = await _addresses.Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(options.DeliveryAddressKey).First(context);
+			}
 
 			if (address == null)
 			{
@@ -215,12 +227,23 @@ namespace Api.Payments
 			// Load the option:
 			var option = await _options.Get(context, deliveryOptionId, DataOptions.IgnorePermissions);
 
-			if (option == null)
+			return await GetEstimate(context, option);
+		}
+
+		/// <summary>
+		/// Gets the parsed delivery estimate for the given delivery option ID.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="deliveryOption"></param>
+		/// <returns></returns>
+		public async ValueTask<DeliveryEstimate> GetEstimate(Context context, DeliveryOption deliveryOption)
+		{
+			if (deliveryOption == null)
 			{
 				return null;
 			}
 
-			return Newtonsoft.Json.JsonConvert.DeserializeObject<DeliveryEstimate>(option.InformationJson);
+			return Newtonsoft.Json.JsonConvert.DeserializeObject<DeliveryEstimate>(deliveryOption.InformationJson);
 		}
 
 		/// <summary>
@@ -239,12 +262,50 @@ namespace Api.Payments
 				return currentOpts;
 			}
 
+			var skipStaleCheck = false;
+			if(cart.DeliveryOptionId != 0)
+			{
+				var tomorrowLocal = DateOnly.FromDateTime(DateTime.Today.AddDays(1));
+
+				//A delivery option has been selected but not checked out.
+				//We must check if the current options are still valid.
+				var newOpts = new List<DeliveryOption>();
+				for(int i = 0; i < currentOpts.Count; i++)
+				{
+					var option = currentOpts[i];
+					DeliveryEstimate info = null;
+
+					if(!string.IsNullOrEmpty(option.InformationJson))
+					{
+						info = JsonConvert.DeserializeObject<DeliveryEstimate>(option.InformationJson);
+					}
+
+					if(info == null || (info.RequestedDeliveryDate < tomorrowLocal && option.Id != cart.DeliveryOptionId))
+					{
+						//The option is invalid or out of date, so delete it
+						await _options.Delete(context, option, DataOptions.IgnorePermissions);
+					}
+					else
+					{
+						newOpts.Add(option);
+					}
+				}
+				currentOpts = newOpts;
+
+				if(currentOpts.Count > 0)
+				{
+					skipStaleCheck = true;
+				}
+			}
+
 			// If the cart itself has not changed since the last estimate
 			// then return the prior set.
 			var lastModified = cart.EditedUtc;
 			var anHourAgo = DateTime.UtcNow.AddHours(-1);
 
-			if (currentOpts != null && currentOpts.Count > 0)
+			skipStaleCheck = skipStaleCheck ? skipStaleCheck : cart.DeliveryAddressId == targetAddress.Id;
+
+			if (!skipStaleCheck && currentOpts != null && currentOpts.Count > 0)
 			{
 				var stale = false;
 
@@ -303,7 +364,7 @@ namespace Api.Payments
 				TaxJurisdiction = taxJurisdiction,
 				Pricing = pricingInfo,
 				TaxCalculator = taxCalc,
-				Target = targetAddress
+				Target = targetAddress,
 			});
 
 			if (estimate.Options == null)
@@ -312,12 +373,38 @@ namespace Api.Payments
 				return null;
 			}
 
+			//Grab the currentOpts again as they may have been updated during the dispatch
+			currentOpts = await _options
+				.Where("ShoppingCartId=?", DataOptions.IgnorePermissions)
+				.Bind(cart.Id).ListAll(context);
+
 			// Store them:
 			var opts = new List<DeliveryOption>();
 
 			foreach (var item in estimate.Options)
 			{
 				var estimateJson = Newtonsoft.Json.JsonConvert.SerializeObject(item, jsonSettings);
+
+				//Check if our estimateJson matches any existing options
+				var alreadyAdded = false;
+				if(currentOpts != null && currentOpts.Count > 0)
+				{
+					foreach(var option in currentOpts)
+					{
+						if(option.AddressId == targetAddress.Id && estimateJson == option.InformationJson)
+						{
+							opts.Add(option);
+							alreadyAdded = true;
+							break;
+						}
+					}
+				}
+
+				if(alreadyAdded)
+				{
+					continue;
+				}
+
 				var opt = await _options.Create(context, new DeliveryOption()
 				{
 					AddressId = targetAddress.Id,
@@ -332,9 +419,79 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Create a new batch of estimates for a cart and select the most appropriate. This is used for split orders so it is expected that a delivery option has already been selected for the original order for us to work from
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="cart"></param>
+		/// <param name="deliveryAddress"></param>
+		/// <param name="deliveryInformation"></param>
+		/// <param name="update"></param>
+		/// <returns></returns>
+		public async ValueTask<DeliveryOption> UpdateCartDeliveryOption(Context context, ShoppingCart cart, Address deliveryAddress, DeliveryEstimate deliveryInformation, bool update = true)
+		{
+			var newDeliveryOptions = await EstimateDelivery(context, cart, deliveryAddress);
+
+			//Find the delivery option that matches the original selection (if any)
+			DeliveryOption newDeliveryOption = null;
+			if (newDeliveryOptions != null && deliveryInformation != null)
+			{
+				DeliveryOption earliestOption = null;
+				DeliveryEstimate earliestEstimate = null;
+				foreach (var option in newDeliveryOptions)
+				{
+					DeliveryEstimate currentDeliveryInformation = null;
+					if (!string.IsNullOrWhiteSpace(option.InformationJson))
+					{
+						try
+						{
+							currentDeliveryInformation = JsonConvert.DeserializeObject<DeliveryEstimate>(
+								option.InformationJson
+							);
+						}
+						catch (Exception e)
+						{
+							// This should never happen as estimates have to happen to get this far
+							Log.Error(LogTag, e, $"Failed to deserialize delivery information for cart {cart.Id} with delivery option {option.Id}");
+						}
+					}
+
+					if (currentDeliveryInformation != null && currentDeliveryInformation.DeliveryCode == deliveryInformation.DeliveryCode)
+					{
+						if(currentDeliveryInformation.RequestedDeliveryDate == deliveryInformation.RequestedDeliveryDate)
+						{
+							newDeliveryOption = option;
+							break;
+						}else if(earliestEstimate == null || earliestEstimate.RequestedDeliveryDate > currentDeliveryInformation.RequestedDeliveryDate)
+						{
+							earliestOption = option;
+							earliestEstimate = currentDeliveryInformation;
+						}
+					}
+				}
+
+				if(newDeliveryOption == null && earliestOption != null)
+				{
+					//We cannot find a match so assume that the date has somehow become unavailable. Use the earliest available option with a matching code
+					newDeliveryOption = earliestOption;
+				}
+			}
+
+			//Update the cart with the new delivery option and price
+			if (update && newDeliveryOption != null)
+			{
+				await _carts.Update(context, cart, (Context ctx, ShoppingCart toUpdate, ShoppingCart original) =>
+				{
+					toUpdate.DeliveryOptionId = newDeliveryOption.Id;
+				}, DataOptions.IgnorePermissions);
+			}
+
+			return newDeliveryOption;
+		}
+
+		/// <summary>
 		/// Json serialization settings for delivery options
 		/// </summary>
-		private static readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
+		public readonly JsonSerializerSettings jsonSettings = new JsonSerializerSettings
 		{
 			ContractResolver = new DefaultContractResolver
 			{

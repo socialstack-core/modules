@@ -1,12 +1,9 @@
 using Api.Contexts;
-using Api.Permissions;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json.Linq;
 using Stripe;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 

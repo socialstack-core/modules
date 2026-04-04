@@ -34,7 +34,7 @@ namespace Api.Payments
 
 			InstallAdminPages("Products", "fa:fa-shopping-basket", ["id", "name", "minQuantity"], null, "ecommerce");
 
-			HashSet<string> excludeFields = new HashSet<string>() { "Score", "Categories", "Tags", "VariantOfId" };
+			HashSet<string> excludeFields = new HashSet<string>() { "Score", "Categories", "Tags" };
 			HashSet<string> nonAdminExcludeFields = new HashSet<string>() { "RolePermits", "UserPermits" };
 
 			// expose all category names into search index 
@@ -73,19 +73,19 @@ namespace Api.Payments
 						continue;
 					}
 
-					foreach(var crumb in categoryNode.BreadcrumbCategories)
+					foreach (var crumb in categoryNode.BreadcrumbCategories)
 					{
 						if (crumb.Id == 1)
 						{
 							continue;
 						}
-						
+
 						metadataText.Add(crumb.Name.GetStringValue(ctx));
 					}
 				}
 
 				return metadataText;
-			},10);
+			}, 10);
 
 			Events.Product.BeforeGettable.AddEventListener((Context ctx, JsonField<Product, uint> field) =>
 			{
@@ -143,12 +143,60 @@ namespace Api.Payments
 					field.Module = "Admin/Payments/ProductCategorySelect";
 				}
 
+				if (field.Name == "ProductComponents")
+				{
+					field.Data["tab"] = "components";
+					field.Module = "Admin/Payments/ProductComponents/ValueEditor";
+
+					// Set value method:
+					field.OnSetValue.AddEventListener((Context ctx, object value, Product target, JToken token) =>
+					{
+						var productComponentArray = token as JArray;
+
+						if (productComponentArray != null)
+						{
+							foreach (var productComponent in productComponentArray)
+							{
+								if (productComponent == null || productComponent.Type != JTokenType.Object)
+								{
+									continue;
+								}
+
+								// We have a product component object.
+								var idField = productComponent["id"];
+								var deleteComponentField = productComponent["deleteComponent"];
+								var updateComponentField = productComponent["updateComponent"];
+
+								// Load it as a partial:
+								target.AddTemporaryComponentInfo(new PartialProductComponent()
+								{
+									ProductQuantity = productComponent as JObject,
+									Id = idField == null ? 0 : idField.Value<uint>(),
+									DeleteComponent = deleteComponentField == null ? false : deleteComponentField.Value<bool>(),
+									UpdateComponent = updateComponentField == null ? false : updateComponentField.Value<bool>()
+								});
+							}
+						}
+
+						// The product's _tempComponents set is now loaded and gets
+						// dealt with by the BeforeCreate and BeforeUpdate event handlers.
+						// Before* is involved because we need to also set the productComponents mappings set.
+
+						// Returning null blocks the default id array behaviour 
+						// but allows us to do custom value loading instead.
+
+						return new ValueTask<object>((object)null);
+					});
+				}
+
+
 				if (field.Name == "Variants")
 				{
 					field.Module = "Admin/Payments/Variants/ValueEditor";
 
 					// Set value method:
-					field.OnSetValue.AddEventListener((Context ctx, object value, Product target, JToken token) => {
+					field.OnSetValue.AddEventListener((Context ctx, object value, Product target, JToken token) =>
+					{
 
 						var variantArray = token as JArray;
 
@@ -166,8 +214,8 @@ namespace Api.Payments
 								var deleteVariantField = variant["deleteVariant"];
 
 								// Load it as a partial:
-								var loadedVariant = variant.ToObject<PartialProductVariant>();
-								target.AddTemporaryVariantInfo(new PartialProductVariant() {
+								target.AddTemporaryVariantInfo(new PartialProductVariant()
+								{
 									Product = variant as JObject,
 									Id = idField == null ? 0 : idField.Value<uint>(),
 									DeleteVariant = deleteVariantField == null ? false : deleteVariantField.Value<bool>(),
@@ -182,12 +230,25 @@ namespace Api.Payments
 
 						// Returning null blocks the default id array behaviour 
 						// but allows us to do custom value loading instead.
-						
+
 						return new ValueTask<object>((object)null);
 					});
 				}
 
 				return new ValueTask<JsonField<Product, uint>>(field);
+			});
+
+			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
+			{
+				if (builder.ContentType == typeof(Product) &&
+					(builder.PageType == CommonPageType.AdminEdit || builder.PageType == CommonPageType.AdminAdd)
+				)
+				{
+					builder.AddAdminTab(new AdminTab("Components", "components"));
+					builder.AddAdminTab(new AdminTab("Link to parent", "linkToParent"));
+				}
+
+				return new ValueTask<PageBuilder>(builder);
 			});
 
 			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
@@ -199,19 +260,19 @@ namespace Api.Payments
 						.AppendChild(new CanvasNode("Admin/Payments/ProductCategoryTree"));
 				}
 				else if (
-					builder.ContentType == typeof(Product) && 
+					builder.ContentType == typeof(Product) &&
 					(builder.PageType == CommonPageType.AdminEdit || builder.PageType == CommonPageType.AdminAdd)
 				)
 				{
 					// Use wrapper around AutoForm (same props).
 					// This editor simply ensures that variants are hidden when the product type is not a variant one.
 					var formNode = builder.GetContentRoot().Find("Admin/AutoForm");
-					if(formNode != null)
+					if (formNode != null)
 					{
 						formNode.Module = "Admin/Payments/ProductEditor";
 					}
 
-					builder.PrimaryContentIncludes += ",productCategories.requiredAttributes,productTemplate.requiredAttributes,variants.additionalAttributes";
+					builder.PrimaryContentIncludes += ",productComponents.product,productCategories.requiredAttributes,productTemplate.requiredAttributes,variants.additionalAttributes";
 				}
 
 				return new ValueTask<PageBuilder>(builder);
@@ -225,7 +286,7 @@ namespace Api.Payments
 				new PageBuilder()
 				{
 					Key = "primary:product",
-					PrimaryContentIncludes = "coshhDocuments,productImages,productDownloads,productCategories,attributes,attributes.attribute,calculatedPrice,variants,variants.calculatedPrice,variants.additionalAttributes,variants.additionalAttributes.attribute,variants.attributes.attribute,variants.calculatedPrice,breadcrumb",
+					PrimaryContentIncludes = "coshhDocuments,productImages,productDownloads,productCategories,attributes,attributes.attribute,calculatedPrice,variants,variants.calculatedPrice,variants.additionalAttributes,variants.additionalAttributes.attribute,variants.attributes.attribute,variants.calculatedPrice,breadcrumb,suggestions,suggestions.primaryUrl,suggestions.calculatedPrice",
 					Title = "${product.name}",
 					BuildBody = (PageBuilder builder) =>
 					{
@@ -242,7 +303,7 @@ namespace Api.Payments
 					BuildBody = (PageBuilder builder) =>
 					{
 						return builder.AddTemplate(
-							new CanvasNode("UI/Product/Search")
+							new CanvasNode("UI/Product/Search").With("showPromotions", true)
 						);
 					}
 				}
@@ -269,7 +330,6 @@ namespace Api.Payments
 
 			Events.Product.AfterCreate.AddEventListener(async (Context context, Product product) =>
 			{
-
 				// Permalink target which will be for whichever page wants to handle a product as its primary content.
 				// If a specific page for this product exists, it will ultimately pick that.
 				var linkTarget = permalinks.CreatePrimaryTargetLocator(this, product);
@@ -306,7 +366,8 @@ namespace Api.Payments
 
 				if (tempVariants != null)
 				{
-					product = await Update(context, product, (Context ctx, Product toUpdate, Product orig) => {
+					product = await Update(context, product, (Context ctx, Product toUpdate, Product orig) =>
+					{
 						// Need to pass the temp fields to the object to update:
 						toUpdate.SetTemporaryVariants(tempVariants);
 					}, DataOptions.IgnorePermissions);
@@ -324,7 +385,7 @@ namespace Api.Payments
 				}
 
 				// Validate:
-				await ValidateProduct(context, toUpdate , false);
+				await ValidateProduct(context, toUpdate, false);
 
 				Product parentProduct = null;
 
@@ -357,7 +418,37 @@ namespace Api.Payments
 						Target = _permalinks.CreatePrimaryTargetLocator(this, toUpdate)
 					};
 
-					await _permalinks.BulkCreate(context, [permalinkInfo]);
+				await _permalinks.BulkCreate(context, [permalinkInfo]);
+				}
+
+				// Handle VariantOfId change - update the variants mappings on the parent products
+				if (toUpdate.VariantOfId != original.VariantOfId)
+				{
+					// If was previously a variant, remove from old parent's variants mapping
+					if (original.VariantOfId.HasValue && original.VariantOfId.Value != 0)
+					{
+						var oldParent = await Get(context, original.VariantOfId.Value);
+						if (oldParent != null)
+						{
+							await Update(context, oldParent, (ctx, parent, orig) =>
+							{
+								parent.Mappings.Remove("variants", toUpdate.Id);
+							}, DataOptions.IgnorePermissions);
+						}
+					}
+
+					// If is now a variant, add to new parent's variants mapping
+					if (toUpdate.VariantOfId.HasValue && toUpdate.VariantOfId.Value != 0)
+					{
+						var newParent = await Get(context, toUpdate.VariantOfId.Value);
+						if (newParent != null)
+						{
+							await Update(context, newParent, (ctx, parent, orig) =>
+							{
+								parent.Mappings.Add("variants", toUpdate.Id);
+							}, DataOptions.IgnorePermissions);
+						}
+					}
 				}
 
 				//Update prices
@@ -448,30 +539,27 @@ namespace Api.Payments
 				return toUpdate;
 			});
 
-			// Added to make sure the ContinueSellingWithNoStock of the parent
+			// Added to make sure the ContinueSellingWithNoStock,Hidden and category Mappings of the parent
 			// is mirrored to variants. This also doesn't execute when a variant
 			// is updated. Only parent products.
-			// my initial idea was to run "AfterUpdate", but that event didn't have the original
-			// passed into the scope, executing with "BeforeUpdate" means I can check whether this
-			// actually needs to run or can be skipped. Just a minor optimisation, this can reduce
-			// the workload a fair bit on products that have many many variants per say.
-			Events.Product.BeforeUpdate.AddEventListener(async (ctx, product, original) =>
+
+			Events.Product.AfterUpdate.AddEventListener(async (Context ctx, Product product, ChangedFields diff) =>
 			{
-				// this event only fires when a change has been made, saves an unnecessary few calls & 
-				// updates, especially on products with many variants.
-				if (original.ContinueSellingWithNoStock == product.ContinueSellingWithNoStock)
+				if (!diff.HasChanged("ContinueSellingWithNoStock") && !diff.HasChanged("Mappings") && !diff.HasChanged("Hidden"))
 				{
 					return product;
 				}
+
 				// first, lets check if this is not a variant. 
 				// if it is, lets exit early.
-				if (product.VariantOfId.HasValue && product.VariantOfId.Value != 0)
+				if (product.ProductType != 2 || (product.VariantOfId.HasValue && product.VariantOfId.Value != 0))
 				{
 					return product;
 				}
 
 				// here we know it's not a product, lets get all variants
-				var variants = await Where("VariantOfId = ?", DataOptions.IgnorePermissions).Bind(product.Id)
+				var variants = await Where("VariantOfId = ?", DataOptions.IgnorePermissions)
+					.Bind(product.Id)
 					.ListAll(ctx);
 
 				// iterate all the variants, if the variant
@@ -480,15 +568,38 @@ namespace Api.Payments
 				// else we update to keep it in sync. 
 				foreach (var variant in variants)
 				{
-					if (variant.ContinueSellingWithNoStock == product.ContinueSellingWithNoStock)
+					if (variant.Id == product.Id)
 					{
-						// skip, no point wasting an "Update" call.
+						continue;
+					}
+
+					var needsUpdate = false;
+
+					if (variant.ContinueSellingWithNoStock != product.ContinueSellingWithNoStock)
+					{
+						needsUpdate = true;
+					}
+
+					if (variant.Mappings.Changed("productcategories", product.Mappings))
+					{
+						needsUpdate = true;
+					}
+
+					if (variant.Hidden != product.Hidden)
+					{
+						needsUpdate = true;
+					}
+
+					if (!needsUpdate)
+					{
 						continue;
 					}
 
 					await Update(ctx, variant, (_, updateVariant, _) =>
 					{
+						updateVariant.Mappings.Set("productcategories", product.Mappings.Get("productcategories"));
 						updateVariant.ContinueSellingWithNoStock = product.ContinueSellingWithNoStock;
+						updateVariant.Hidden = product.Hidden;
 					});
 				}
 
@@ -591,7 +702,7 @@ namespace Api.Payments
 
 			return "/product/" + product.Slug;
 		}
-		
+
 		/// <summary>
 		/// Checks whether the sync is running
 		/// </summary>
@@ -743,5 +854,5 @@ namespace Api.Payments
 			set => _tiersToUse = value;
 		}
 	}
-    
+
 }

@@ -49,13 +49,13 @@ public partial class CalculatedPriceValueGenerator<T, ID> : VirtualFieldValueGen
 			if (tiers != null)
 			{
 				writer.WriteASCII("{\"listPrice\":[");
-				PopulatePricesWriter(context, tiers.Original, writer, taxCalculator, product, currencyCode);
+				await PopulatePricesWriter(context, tiers.Original, writer, taxCalculator, product, currencyCode);
 				writer.Write((byte)']');
 
 				if (tiers.Discounted != null && tiers.Discounted.Count > 0)
 				{
 					writer.WriteASCII(",\"discountedPrice\":[");
-					PopulatePricesWriter(context, tiers.Discounted, writer, taxCalculator, product, currencyCode);
+					await PopulatePricesWriter(context, tiers.Discounted, writer, taxCalculator, product, currencyCode);
 					writer.Write((byte)']');
 				}
 
@@ -67,7 +67,7 @@ public partial class CalculatedPriceValueGenerator<T, ID> : VirtualFieldValueGen
 		writer.WriteASCII("null");
 	}
 
-	private void PopulatePricesWriter(
+	private async ValueTask PopulatePricesWriter(
 		Context context,
 		List<Price> tiers,
 		Writer writer,
@@ -96,9 +96,16 @@ public partial class CalculatedPriceValueGenerator<T, ID> : VirtualFieldValueGen
 
 			ulong amount = amountLessTax;
 
-			if (taxCalculator != null && product.TaxExempt != 1)
+			if (taxCalculator != null)
 			{
-				amount = taxCalculator.Apply(amount);
+				if(product.TaxExempt == 0)
+				{
+					amount = taxCalculator.Apply(amount);
+				}
+				else if(product.TaxExempt == 2)
+				{
+					amount = await taxCalculator.Apply(context, amount);
+				}
 			}
 
 			writer.WriteASCII("{\"amount\":");

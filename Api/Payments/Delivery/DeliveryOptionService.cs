@@ -19,7 +19,19 @@ namespace Api.Payments
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public DeliveryOptionService() : base(Events.DeliveryOption)
-        {
+		{
+			Events.DeliveryOption.BeforeCreate.AddEventListener(async (Context context, DeliveryOption option) =>
+			{
+				//Add an anonymous key to the address
+				DeliveryOption matchingOption = null;
+				while(option.AnonKey == null || matchingOption != null)
+				{
+					option.AnonKey = RandomToken.Generate(16);
+					matchingOption = await Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(option.AnonKey).First(context);
+				}
+
+				return option;
+			});
 		}
 		
 	}

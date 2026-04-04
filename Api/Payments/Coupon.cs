@@ -18,6 +18,7 @@ namespace Api.Payments
 		/// <summary>
 		/// The token.
 		/// </summary>
+		[Meta("title")]
         [DatabaseField(Length = 10)]
 		[Data("required", true)]
 		[Data("validate", "Required")]

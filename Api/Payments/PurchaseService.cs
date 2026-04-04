@@ -1,19 +1,19 @@
-﻿using System.Threading.Tasks;
-using System.Collections.Generic;
+﻿using Api.CanvasRenderer;
 using Api.Contexts;
-using Api.Eventing;
-using Api.Startup;
+using Api.Counters;
 using Api.Emails;
-using System;
+using Api.Eventing;
 using Api.Pages;
-using Api.CanvasRenderer;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
-using System.Text;
-using Newtonsoft.Json.Linq;
-using Api.Counters;
 using Newtonsoft.Json;
-using Api.Addresses;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Api.Payments
 {
@@ -54,7 +54,7 @@ namespace Api.Payments
 			_emails = emailTemplateService;
 			_counters = counters;
 
-			InstallAdminPages("Orders", "fa:fa-shopping-basket", ["id", "total"], null, "ecommerce");
+			InstallAdminPages("Orders", "fa:fa-shopping-basket", ["id", "reference", "totalCost", "totalCostLessTax"], null, "ecommerce");
 
 			pages.Install(
 				new PageBuilder()
@@ -120,6 +120,19 @@ namespace Api.Payments
 								.WithLink("token", "url.token", false)
 						);
 					}
+				},
+				new PageBuilder()
+				{
+					Url = "/cart/purchases/hosted/${token}",
+					Key = "payment_order_hosted_status",
+					Title = "Purchase",
+					BuildBody = (PageBuilder builder) =>
+					{
+						return builder.AddTemplate(
+							new CanvasNode("UI/Payments/HostedStatus")
+								.WithLink("token", "url.token", false)
+						);
+					}
 				}
 			);
 
@@ -155,26 +168,23 @@ namespace Api.Payments
 					Name = "A payment issue occurred",
 					Subject = "A payment issue occurred",
 					Key = "payment_fault",
+					PrimaryContentType = "PurchaseToken",
+					PrimaryContentIncludes = "purchase, purchase.productQuantities, purchase.productQuantities.product, purchase.billingAddress, purchase.deliveryAddress",
 					BuildBody = (EmailBuilder builder) =>
 					{
 						return builder.AddTemplate(
 							new CanvasNode("Email/Centered")
 							.AppendChild(
-								"We tried to request a payment of "
+								"There was an issue with the payment for this order"
 							)
 							.AppendChild(
-								new CanvasNode("UI/Token")
-									.With("mode", "customdata")
-									.With("fields", new string[] { "printablePrice" })
-									.AppendChild("${customData.printablePrice}")
-							)
-							.AppendChild(
-								" but it was unable to go through. This can be because the card used was cancelled, has expired, or there are insufficient funds. If you're not sure, please check with your bank."
+								new CanvasNode("Email/Purchase/View")
+									.WithPrimaryLink("purchaseToken")
 							)
 							.AppendChild(
 								new CanvasNode("Email/PrimaryButton")
-									.With("label", "View payment details")
-									.With("target", "/checkout/payment/${customData.paymentId}")
+									.With("label", "View your order details online")
+									.With("target", "cart/purchases/token/${customData.token}")
 							)
 						);
 					}
@@ -209,7 +219,6 @@ namespace Api.Payments
 
 			Events.Purchase.BeforeCreate.AddEventListener(async (Context context, Purchase purchase) =>
 			{
-
 				if (purchase == null)
 				{
 					return purchase;
@@ -235,36 +244,52 @@ namespace Api.Payments
 				return purchase;
 			});
 
-			Events.Purchase.BeforeUpdate.AddEventListener(async (Context context, Purchase purchase, Purchase original) =>
+			Events.Purchase.AfterUpdate.AddEventListener(async (Context context, Purchase purchase, ChangedFields diff) =>
 			{
-				// State change - is it now a successful payment?
-				if (purchase.Status != original.Status)
+				if (!diff.HasChanged("Status"))
 				{
-					if (purchase.Status == 201) // Just send order confirmation for BNPL
-					{
-						// send order confirmation email
-						var processed = false;
-						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
-					}
-					else if (purchase.Status == 202) // Don't include BNPL here (201) as the payment doesn't actually happen until later.
-					{
-						// send order payment success email
-						var processed = false;
-						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_receipt", purchase);
+					return purchase;
+				}
 
-						// send order confirmation email
-						processed = false;
-						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
-					}
-					else if (purchase.Status > 299)
+				if (purchase.Status == 201) // Just send order confirmation for BNPL
+				{
+					// send order confirmation email
+					var processed = false;
+					await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
+				}
+				else if (purchase.Status == 202) // Don't include BNPL here (201) as the payment doesn't actually happen until later.
+				{
+					// send order payment success email
+					var processed = false;
+					await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_receipt", purchase);
+
+					// send order confirmation email
+					processed = false;
+					await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_order_details", purchase);
+				}
+				else if (purchase.Status > 299)
+				{
+					// send order payment failure  email
+					var processed = false;
+					await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_fault", purchase);
+				}
+
+				// Check to see if we can validate the card as being used
+				if (purchase.Status == 202 && purchase.PaymentMethodId > 0)
+				{
+					var paymentMethod = await _paymentMethods.Get(context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
+
+					if (paymentMethod != null && !paymentMethod.IsValidated)
 					{
-						// send order payment failure  email
-						var processed = false;
-						await Events.Purchase.SendConfirmationEmail.Dispatch(context, processed, "payment_fault", purchase);
+						paymentMethod = await _paymentMethods.Update(context, paymentMethod, (Context ctx, PaymentMethod toUpdate, PaymentMethod orig) =>
+						{
+							toUpdate.IsValidated = true;
+						}, DataOptions.IgnorePermissions);
 					}
 				}
+
 				return purchase;
-			});
+			}); 
 
 			Events.Purchase.SendConfirmationEmail.AddEventListener(async (Context context, bool processed, string key, Purchase purchase) =>
 			{
@@ -293,7 +318,7 @@ namespace Api.Payments
 					throw new PublicException("Could not create session token.", "Purchase_session_token");
 				}
 
-				if (key == "payment_order_details")
+				if (key == "payment_order_details" || key == "payment_fault")
 				{
 					userRecipient.CustomData = token;
 				}
@@ -313,75 +338,6 @@ namespace Api.Payments
 				// processed so return null
 				return true;
 			});
-
-#if PAYMENTS_GUEST_USERS
-	
-			// link the purchase to the guest user
-			Events.Purchase.Checkout.AddEventListener(async (Context context, Purchase purchase, CheckoutInfo checkoutInfo) =>
-			{
-				// only anon users should be checking out as a quest
-				if (context.UserId != 0 || context.RoleId != 6)
-				{
-					return purchase;
-				}
-
-				if (purchase == null || checkoutInfo.GuestUserId == 0)
-				{
-					return purchase;
-				}
-
-				purchase.GuestUserId = checkoutInfo.GuestUserId;
-
-				return purchase;
-			}, 20);
-
-			// send any emails to the guest user 
-			Events.Purchase.SendConfirmationEmail.AddEventListener(async(Context context, bool processed, string key, Purchase purchase) => {
-
-				if (processed || string.IsNullOrWhiteSpace(key) || purchase == null || purchase.GuestUserId == 0)
-				{
-					return processed;
-				}
-
-				//for guest users only send order confirmation
-				if (key != "payment_order_details")
-				{
-					return true;
-				}
-
-				var guestUser = await Services.Get<Api.GuestUsers.GuestUserService>().Get(context, purchase.GuestUserId.GetValueOrDefault(), DataOptions.IgnorePermissions);
-
-				if (guestUser == null || string.IsNullOrWhiteSpace(guestUser.Email))
-				{
-					return processed;
-				}
-
-				// send email to guest passing token to allow for lookup/retrieval
-				var userRecipient = new Recipient(guestUser.Email);
-
-				var token = await _purchaseTokens.Create(context,
-					new PurchaseToken()
-					{
-						PurchaseId = purchase.Id,
-						Scope = "View",
-						IsSingleUse = false,
-						CreatedUtc = DateTime.UtcNow,
-						ExpiresUtc = DateTime.UtcNow.AddDays(14)
-					}, DataOptions.IgnorePermissions);
-
-				if (token == null)
-				{
-					throw new PublicException("Could not create session token.", "Purchase_session_token");
-				}
-
-				userRecipient.CustomData = token;
-
-				_emails.Send(userRecipient, key);
-
-				// processed so return null
-				return true;
-			},5); // run before any stock listeners and sets processed to block others 
-#endif
 
 		}
 
@@ -484,7 +440,7 @@ namespace Api.Payments
 		public async ValueTask<Purchase> CloneToRequestedProductQuantities(Context context, Purchase purchase)
 		{
 			var existing = await GetOriginalProductQuantities(context, purchase);
-			if(existing != null && existing.Count > 0)
+			if (existing != null && existing.Count > 0)
 			{
 				return purchase;
 			}
@@ -527,7 +483,7 @@ namespace Api.Payments
 
 			if (purchase.PaymentGatewayId != 0 && purchase.PaymentMethodId == 0)
 			{
-				// method known but has no saved payment details (guest)
+				// method known but has no saved payment details (guest or not configured to save cards)
 				return;
 			}
 
@@ -730,6 +686,11 @@ namespace Api.Payments
 				checkoutInfo.BillingAddress = await checkoutInfo.GetBillingAddress(context);
 			}
 
+			if (checkoutInfo.DeliveryOption == null)
+			{
+				checkoutInfo.DeliveryOption = await checkoutInfo.GetDeliveryOption(context);
+			}
+
 			var purchase = new Purchase()
 			{
 				UserId = context.UserId,
@@ -746,12 +707,15 @@ namespace Api.Payments
 				ProductsCostLessTax = pricingInfo.TotalLessTax,
 				DeliveryAddressId = checkoutInfo.DeliveryAddress != null ? checkoutInfo.DeliveryAddress.Id : 0,
 				BillingAddressId = checkoutInfo.BillingAddress != null ? checkoutInfo.BillingAddress.Id : 0,
-				DeliveryOptionId = checkoutInfo.DeliveryOptionId,
+				DeliveryOptionId = checkoutInfo.DeliveryOption != null ? checkoutInfo.DeliveryOption.Id : 0,
 				BuyNowPayLater = paymentMethod == null,
 				PaymentMethodId = paymentMethod == null ? 0 : paymentMethod.Id,
 				PaymentGatewayId = paymentMethod == null ? 0 : paymentMethod.PaymentGatewayId,
 				IpAddress = checkoutInfo.IpAddress,
-				Reference = checkoutInfo.Reference
+				Reference = checkoutInfo.Reference,
+				ContactName = checkoutInfo.ContactName,
+				CustomerOrderReference = checkoutInfo.CustomerOrderReference,
+				DeliveryInformation = checkoutInfo.DeliveryInformation
 			};
 
 			// Handle any custom checkout fields:
@@ -764,7 +728,7 @@ namespace Api.Payments
 			// This is to avoid modding the quantity during the payment being processed:
 			var purchaseLineItems = await AddProductsUnsaved(context, purchase, pricingInfo);
 
-			if (checkoutInfo.DeliveryOptionId == 0)
+			if (checkoutInfo.DeliveryOption == null)
 			{
 				// Delivery cost is simply zero. This option includes both collection and digital goods only orders.
 				purchase.DeliveryCost = 0;
@@ -775,7 +739,7 @@ namespace Api.Payments
 				purchase.DeliveryApportionment = deliveryInfo.Value.TaxApportion;
 
 				// Ask delivery option service for the prices it stated.
-				var deliveryEstimate = await _deliveries.GetEstimate(context, checkoutInfo.DeliveryOptionId);
+				var deliveryEstimate = await _deliveries.GetEstimate(context, checkoutInfo.DeliveryOption);
 
 				if (deliveryEstimate == null)
 				{
@@ -817,6 +781,19 @@ namespace Api.Payments
 				await _paymentMethods.Get(context, purchase.PaymentMethodId, DataOptions.IgnorePermissions);
 
 			return await Execute(context, purchase, paymentMethod);
+		}
+
+		/// <summary>
+		/// Gets a purchase by a delivery entity, does a reverse lookup on a mapping table.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="delivery"></param>
+		/// <param name="dataOptions"></param>
+		/// <returns></returns>
+		public async ValueTask<Purchase> GetPurchaseByDelivery(Context context, Delivery delivery, DataOptions dataOptions = DataOptions.Default)
+		{
+			var items = await ListByTarget<Purchase, uint>(context, delivery.Id, "Deliveries", dataOptions);
+			return items?.FirstOrDefault();
 		}
 
 		/// <summary>
@@ -964,5 +941,31 @@ namespace Api.Payments
 			// Ask the gateway to do the thing:
 			return await gateway.ValidateChallenge(purchase, challengeResponse);
 		}
+
+		/// <summary>
+		/// Requests the validation of a hosted page payment transaction
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="purchase"></param>
+		/// <param name="hostedPageResponse"></param>
+		/// <returns></returns>
+		public async ValueTask<Purchase> ValidateHostedPayment(Context context,Purchase purchase, HostedPageResponse hostedPageResponse)
+		{
+			// Get the gateway:
+			PaymentGateway gateway = _gateways.Get(purchase.PaymentGatewayId);
+
+			if (gateway == null)
+			{
+				throw new PublicException(
+					"The gateway providing your payment method is currently unavailable. If this keeps happening please let us know.",
+					"purchase/gateway_unavailable"
+				);
+			}
+
+			// Ask the gateway to do the thing:
+			return await gateway.ValidateHostedPageTransaction(context, purchase, hostedPageResponse);
+		}
+
+
 	}
 }

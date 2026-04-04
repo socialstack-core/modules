@@ -53,7 +53,7 @@ namespace Api.Payments
 
 			if (purchase == null)
 			{
-				throw new PublicException("Could not process validation response.", "purchase_validation_notfound");
+				throw new PublicException("Could not process validation response.", "purchase/purchase_validation_not_found");
 			}
 
 			var purchaseAndAction = await (_service as PurchaseService).ValidateChallenge(context, purchase, challengeResponse);
@@ -63,6 +63,43 @@ namespace Api.Payments
 			{
 				Status = purchase != null ? purchase.Status : 500
 			};
+		}
+
+		/// <summary>
+		/// Process the approval challenge response (called from redirect page after hosted payment processing)
+		/// </summary>
+		/// <param name="httpContext"></param>
+		/// <param name="context"></param>
+		/// <param name="hostedPageResponse"></param>
+		/// <returns></returns>
+
+		[HttpPost("hosted/payment/callback")]
+		public virtual async ValueTask<Purchase> ValidateHostedPageResponse(HttpContext httpContext, Context context, [FromBody] HostedPageResponse hostedPageResponse)
+		{
+			// token is url encoded base64 as it is also passed to the provider
+			string unescaped = Uri.UnescapeDataString(hostedPageResponse.Token);
+			var decodedToken = Encoding.UTF8.GetString(Convert.FromBase64String(unescaped));
+
+			if (string.IsNullOrWhiteSpace(decodedToken))
+			{
+				return null;
+			}
+
+			// save ip address against the token for auditing
+			var ipAddress = RequestHelper.GetClientIp(httpContext);
+			var purchase = await (_service as PurchaseService).GetByToken(context, decodedToken, ipAddress);
+
+			if (purchase == null)
+			{
+				throw new PublicException("Could not process hosted payment response.", "purchase/purchase_not_found");
+			}
+
+			if (purchase.Reference != hostedPageResponse.Reference)
+			{
+				throw new PublicException("Could not process hosted payment response.", "purchase/reference_not_found");
+			}
+
+			return await (_service as PurchaseService).ValidateHostedPayment(context, purchase, hostedPageResponse);
 		}
 
 		/// <summary>

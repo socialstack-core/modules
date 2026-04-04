@@ -69,10 +69,7 @@ public partial class CartContentsValueGenerator<T, ID> : VirtualFieldValueGenera
 				writer.WriteASCII(",\"errorMessage\":");
 				writer.WriteEscaped(contents.ErrorMessage);
 
-				if (Events.ShoppingCart.OnWriteCartContents.HasListeners())
-				{
-					await Events.ShoppingCart.OnWriteCartContents.Dispatch(context, writer, cart, contents);
-				}
+				await Events.ShoppingCart.OnWriteCartContents.Dispatch(context, writer, cart, contents);
 
 				writer.WriteASCII(",\"contents\":[");
 				var lines = contents.Contents;

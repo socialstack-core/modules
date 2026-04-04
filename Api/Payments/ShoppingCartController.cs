@@ -4,6 +4,7 @@ using Api.Startup;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -106,21 +107,51 @@ namespace Api.Payments
 				return null;
 			}
 
+			if (cart.Revision != checkout.Nonce)
+			{
+				throw new PublicException("The basket has been updated in another session, please refresh.", "cart/updated");
+			}
+
 			checkout.IpAddress = RequestHelper.GetClientIp(httpContext);
 			
+			//persist cart ref to purchase
 			if (!string.IsNullOrWhiteSpace(cart.Reference))
 			{
 				checkout.Reference = cart.Reference;
 			}
 
-			return await (_service as ShoppingCartService)
+			var info = await (_service as ShoppingCartService)
 				.Checkout(
 					context,
 					cart,
 					checkout
 				);
-		}
 
+			if (info.Purchase != null)
+			{
+				// Move to ordered state:
+				cart = await (_service as ShoppingCartService).Update(context, cart, (Context ctx, ShoppingCart toUpdate, ShoppingCart original) =>
+				{
+					if (!toUpdate.SubmittedUtc.HasValue)
+					{
+						toUpdate.SubmittedUtc = DateTime.UtcNow;
+					}
+
+					if (toUpdate.UserId == 0)
+					{
+						toUpdate.UserId = ctx.UserId;
+					}
+
+					toUpdate.GatewayPublicJson = info.Purchase.GatewayPublicJson;
+					toUpdate.SubmittedOrderId = info.Purchase.Id;
+					toUpdate.SubmitStatus = 200;
+				}, DataOptions.IgnorePermissions);
+			}
+
+			info.ShoppingCart = cart;
+
+			return info;
+		}
 	}
 
 	/// <summary>
@@ -137,6 +168,11 @@ namespace Api.Payments
 		/// Anon cart key (albeit users are expected to be logged in, but they still won't own the cart).
 		/// </summary>
 		public string AnonymousCartKey;
+
+		/// <summary>
+		/// Unique token so that we can confirm that the cart had not been updated (the revision id for example)
+		/// </summary>
+		public uint Nonce;
 
 		/// <summary>
 		/// The key used for the delivery address
@@ -163,7 +199,18 @@ namespace Api.Payments
 		/// <summary>
 		/// Delivery option if necessary.
 		/// </summary>
-		public uint DeliveryOptionId;
+		public string DeliveryOptionKey;
+
+		/// <summary>
+		/// The user/customer supplied delivery instructions
+		/// </summary>
+		public string DeliveryInformation;
+
+		/// <summary>
+		/// The delivery option
+		/// </summary>
+		[JsonIgnore]
+		public DeliveryOption DeliveryOption;
 
 		/// <summary>
 		/// The ip addess of the client
@@ -174,6 +221,16 @@ namespace Api.Payments
 		/// The unique reference created for this purchase (passed from cart)
 		/// </summary>
 		public string Reference;
+
+		/// <summary>
+		/// The user/customer supplied order reference or purchase order number
+		/// </summary>
+		public string CustomerOrderReference;
+
+		/// <summary>
+		/// The contact name for the order, defaulted from addresses
+		/// </summary>
+		public string ContactName;
 
 		/// <summary>
 		/// If using a saved payment method, the ID of it or the details for a one off payment use.
@@ -208,6 +265,20 @@ namespace Api.Payments
 				return await Services.Get<AddressService>().Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(DeliveryAddressKey).First(context);
 			}
 			return DeliveryAddress;
+		}
+
+		/// <summary>
+		/// Get the delivery option (does not update the struct itself)
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		public async ValueTask<DeliveryOption> GetDeliveryOption(Context context)
+		{
+			if(DeliveryOption == null && !string.IsNullOrEmpty(DeliveryOptionKey))
+			{
+				return await Services.Get<DeliveryOptionService>().Where("AnonKey = ?", DataOptions.IgnorePermissions).Bind(DeliveryOptionKey).First(context);
+			}
+			return DeliveryOption;
 		}
 	}
 

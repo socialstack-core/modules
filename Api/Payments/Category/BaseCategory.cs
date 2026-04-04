@@ -37,9 +37,8 @@ namespace Api.Payments
         /// The category image ref
         /// </summary>
         [DatabaseField(Length = 300)]
-        [Data("required", true)]
-        [Data("validate", "Required")]
-        public string FeatureRef;
+		[Data("hint", "Used for full background images in banners, recommended wide aspect ratio")]
+		public string FeatureRef;
 
 		/// <summary>
 		/// Optional product image overlay (square aspect ratio with transparent background recommended)
@@ -55,22 +54,10 @@ namespace Api.Payments
 		public bool ReplaceWhiteWithTransparency;
 
 		/// <summary>
-		/// Optionally nudge product image horizontally
-		/// </summary>
-		public int? ProductImageHorizontalOffset;
-
-		/// <summary>
-		/// Optionally nudge product image vertically
-		/// </summary>
-		public int? ProductImageVerticalOffset;
-
-		/// <summary>
 		/// Optional icon to show with this item.
 		/// </summary>
 		[DatabaseField(Length = 300)]
         [Data("type", "icon")]
-        [Data("required", true)]
-        [Data("validate", "Required")]
         public string IconRef;
 
         /// <summary>
@@ -82,5 +69,17 @@ namespace Api.Payments
 		/// Is this part of the the primary category for a product
 		/// </summary>
 		public bool IsPrimary;
-    }
+
+		/// <summary>
+		/// Is this category hidden, normally for use with seasonal secondary categories
+		/// </summary>
+		public bool IsHidden;
+
+		/// <summary>
+		/// Is this category to be used as a landing page for sub categories, normally only for secondary categories
+		/// </summary>
+		[Data("hint", "Set true to indicate that the category page should show sub categories rather than products (normally secondary categories")]
+		public bool IsLandingPage;
+
+	}
 }

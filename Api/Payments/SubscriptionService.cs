@@ -26,12 +26,14 @@ namespace Api.Payments
         private readonly PaymentMethodService _paymentMethods;
         private readonly EmailTemplateService _emails;
         private readonly AddressService _addresses;
+        private readonly DeliveryOptionService _options;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
         public SubscriptionService(UserService users, ProductQuantityService productQuantities,
-            PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails, AddressService addresses) : base(
+            PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails,
+            AddressService addresses, DeliveryOptionService options) : base(
             Events.Subscription)
         {
             _users = users;
@@ -40,6 +42,7 @@ namespace Api.Payments
             _paymentMethods = paymentMethods;
             _emails = emails;
             _addresses = addresses;
+            _options = options;
 
             Events.Subscription.BeforeSettable.AddEventListener((Context ctx, JsonField<Subscription, uint> field) =>
             {
@@ -634,7 +637,7 @@ namespace Api.Payments
             Address billingAddress = null;
             if(subscription.BillingAddressId != 0)
             {
-                billingAddress = await _addresses.Get(context, subscription.BillingAddressId);
+                billingAddress = await _addresses.Get(context, subscription.BillingAddressId, DataOptions.IgnorePermissions);
             }
 
             Address deliveryAddress = null;
@@ -646,8 +649,16 @@ namespace Api.Payments
                 }
                 else
                 {
-                    deliveryAddress = await _addresses.Get(context, subscription.DeliveryAddressId);
+                    deliveryAddress = await _addresses.Get(context, subscription.DeliveryAddressId, DataOptions.IgnorePermissions);
                 }
+            }
+
+            //Get delivery option
+            DeliveryOption deliveryOption = null;
+            if(subscription.DeliveryOptionId != 0)
+            {
+
+                deliveryOption = await _options.Get(context, subscription.DeliveryOptionId, DataOptions.IgnorePermissions);
             }
 
 			return await _purchases.CreateAndExecute(
@@ -662,7 +673,7 @@ namespace Api.Payments
                 new CheckoutInfo {
 					DeliveryAddress = deliveryAddress,
 					BillingAddress = billingAddress,
-					DeliveryOptionId = subscription.DeliveryOptionId
+					DeliveryOption = deliveryOption
 				},
 
                 timePeriodKey
