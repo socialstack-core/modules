@@ -37,27 +37,6 @@ const formatCurrency = (value, options) => {
 		throw new Error('currency reqd.');
 	}
 
-	/**
-	 * Guard against invalid or missing numeric values.
-	 *
-	 * `undefined`, `null`, or non-numeric values would otherwise
-	 * be coerced via arithmetic (value / divisor) into `NaN`,
-	 * which Intl.NumberFormat formats as "0", causing misleading
-	 * output in the UI.
-	 *
-	 * Returning an empty string prevents accidental display of
-	 * an incorrect zero-value price.
-	 */
-	const numericValue = typeof value === "number"
-		? value
-		: typeof value === "string" && value.trim() !== ""
-			? Number(value)
-			: NaN;
-
-	if (!Number.isFinite(numericValue)) {
-		return "";
-	}
-
 	var currencyFractionDigits = fractionDigits(currencyCode, localeCode);
 	var hideSymbol = options.hideSymbol || (options.currencyDisplay != undefined && (options.currencyDisplay == "none" || options.currencyDisplay == false));
 
