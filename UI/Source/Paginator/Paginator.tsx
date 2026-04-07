@@ -56,14 +56,29 @@ interface PaginatorProps {
 	/**
 	 * Does the URL change when there is a change to a page index
 	 */
-    urlUpdating?: boolean
+	urlUpdating?: boolean,
+
+	/**
+	 * set true to render paginator only (no overview)
+	 */
+	paginatorOnly?: boolean,
+
+	/**
+	 * set true to render overview only (no paginator)
+	 */
+	overviewOnly?: boolean,
+
+	/** 
+	 * set true to have paginator dock to bottom of parent
+	 */
+	dockBottom?: boolean
 }
 
 /**
  * Standalone component which displays a paginator.
  */
 const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
-    var {pageIndex, totalResults, pageSize} = props;
+	var { pageIndex, totalResults, pageSize, paginatorOnly, overviewOnly, dockBottom } = props;
 
     const [dropdownId, setDropdownId] = useState<string>();
 
@@ -108,7 +123,6 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
         }
 
     }, [pageIndex, totalResults, currentPage]);
-
 
     // if we only have a single page then optionally hide
     if (!props.always && totalPages && totalPages < 2) {
@@ -159,6 +173,10 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
     function renderPaginator(description: string, maxLinks: number) {
         let paginatorClass = ['paginator'];
 
+		if (dockBottom) {
+			paginatorClass.push('paginator--bottom');
+		}
+
         var fromPage, toPage;
 
         if (maxLinks % 2 == 0) {
@@ -189,88 +207,92 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
         }
 
         return <>
-            <nav className={paginatorClass.join(' ')} aria-label={description}>
-                <ul className="pagination">
-                    {/* first page */}
-                    {showFirstLastNav &&
-                        <li className="page-item first-page">
-                            <button type="button" className="page-link" onClick={() => changePage(1)}
-                                    disabled={currentPage <= 1} title={`First page`}>
-                                {firstIcon}
-                                <span className="sr-only">
-									{`First page`}
-								</span>
-                            </button>
-                        </li>
-                    }
-                    {/* previous page */}
-                    {showPrevNextNav &&
-                        <li className="page-item prev-page">
-                            <button type="button" className="page-link" onClick={() => changePage(currentPage - 1)}
-                                    disabled={currentPage <= 1} title={`Previous page`}>
-                                {prevIcon}
-                                <span className="sr-only">
-									{`Previous page`}
-								</span>
-                            </button>
-                        </li>
-                    }
+			<nav className={paginatorClass.join(' ')} aria-label={description}>
+				{!overviewOnly && <>
+					<ul className="pagination">
+						{/* first page */}
+						{showFirstLastNav &&
+							<li className="page-item first-page">
+								<button type="button" className="page-link" onClick={() => changePage(1)}
+									disabled={currentPage <= 1} title={`First page`}>
+									{firstIcon}
+									<span className="sr-only">
+										{`First page`}
+									</span>
+								</button>
+							</li>
+						}
+						{/* previous page */}
+						{showPrevNextNav &&
+							<li className="page-item prev-page">
+								<button type="button" className="page-link" onClick={() => changePage(currentPage - 1)}
+									disabled={currentPage <= 1} title={`Previous page`}>
+									{prevIcon}
+									<span className="sr-only">
+										{`Previous page`}
+									</span>
+								</button>
+							</li>
+						}
 
-                    {/* individual page links */}
-                    {renderPageLinks(pageRange)}
+						{/* individual page links */}
+						{renderPageLinks(pageRange)}
 
-                    {/* next page */}
-                    {showPrevNextNav &&
-                        <li className="page-item next-page">
-                            <button type="button" className="page-link" onClick={() => changePage(currentPage + 1)}
-                                    disabled={currentPage == totalPages} title={`Next page`}>
-                                {nextIcon}
-                                <span className="sr-only">
-									{`Next page`}
-								</span>
-                            </button>
-                        </li>
-                    }
-                    {/* last page */}
-                    {showFirstLastNav &&
-                        <li className="page-item last-page">
-                            <button type="button" className="page-link" onClick={() => changePage(totalPages)}
-                                    disabled={currentPage == totalPages} title={`Last page`}>
-                                {lastIcon}
-                                <span className="sr-only">
-									{`Last page`}
-								</span>
-                            </button>
-                        </li>
-                    }
-                </ul>
+						{/* next page */}
+						{showPrevNextNav &&
+							<li className="page-item next-page">
+								<button type="button" className="page-link" onClick={() => changePage(currentPage + 1)}
+									disabled={currentPage == totalPages} title={`Next page`}>
+									{nextIcon}
+									<span className="sr-only">
+										{`Next page`}
+									</span>
+								</button>
+							</li>
+						}
+						{/* last page */}
+						{showFirstLastNav &&
+							<li className="page-item last-page">
+								<button type="button" className="page-link" onClick={() => changePage(totalPages)}
+									disabled={currentPage == totalPages} title={`Last page`}>
+									{lastIcon}
+									<span className="sr-only">
+										{`Last page`}
+									</span>
+								</button>
+							</li>
+						}
+					</ul>
+				</>}
 
-                <div className="pagination-overview">
-                    {showInput && <>
-                        <label className="page-label" htmlFor={dropdownId}>
-                            {`Viewing page`}
-                        </label>
-                        <input className="form-control" type="text" id={dropdownId} value={pageIndex || '1'}
-                               onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                                   if (e.keyCode == 13) {
-                                       changePageStr((e.target as HTMLInputElement).value);
-                                   }
-                               }}/>
+				{!paginatorOnly && <>
+					<div className="pagination-overview">
+						{showInput && <>
+							<label className="page-label" htmlFor={dropdownId}>
+								{`Viewing page`}
+							</label>
+							<input className="form-control" type="text" id={dropdownId} value={pageIndex || '1'}
+								onKeyUp={(e: React.KeyboardEvent<HTMLInputElement>) => {
+									if (e.keyCode == 13) {
+										changePageStr((e.target as HTMLInputElement).value);
+									}
+								}} />
 
-                        {!!totalPages &&
-                            <span className="field-label">{`of ${totalPages}`}</span>
-                        }
-                    </>}
+							{!!totalPages &&
+								<span className="field-label">{`of ${totalPages}`}</span>
+							}
+						</>}
 
-                    {showSummary && <>
-                        <p className="field-label">
-                            {`Viewing page ${currentPage}`}
-                            {!!totalPages &&
-                                <span>{` of ${totalPages}`}</span>
-                            }
-                        </p>
-                    </>}
-                </div>
+						{showSummary && <>
+							<p className="field-label">
+								{`Viewing page ${currentPage}`}
+								{!!totalPages &&
+									<span>{` of ${totalPages}`}</span>
+								}
+							</p>
+						</>}
+					</div>
+				</>}
 
             </nav>
         </>;
@@ -280,7 +302,6 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
     function renderPageLinks(pageRange: number[]) {
         return pageRange.map((page: number) => renderPage(page));
     }
-	
 
 	function renderPage(page: number) {
         var isCurrentPage = page == currentPage;

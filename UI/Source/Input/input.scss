@@ -42,9 +42,11 @@
 // select controls without a selection that are also using floating labels render the "no selection" option by default, along with the label
 // this looks odd when viewed in context with a group of text input fields also using floating labels, so we add a "no-selection" class to the select;
 // this causes the select to show only the label until focussed or a selection is made
+// Now uses CSS [value=""] to detect empty selection instead of React state
 .form-floating > .form-select:not(:focus) {
     
-	&.no-selection {
+	&[value=""],
+	&:not([value]) {
 		color: transparent;
 
 		~ label {

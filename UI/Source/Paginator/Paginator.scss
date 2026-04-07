@@ -1,11 +1,46 @@
 $paginator_justify_content: center;
 
+:root {
+	--paginator-background: var(--site-bg, #fff);
+}
+
 .paginator {
 	width: 100%;
 	display: none;
+	z-index: 1;
 
 	&--mobile {
 		display: block;
+	}
+
+	&--bottom {
+		margin-bottom: 0;
+		position: sticky;
+		bottom: px_to_rem(20);
+		background: var(--paginator-background);
+
+		.pagination {
+			margin-bottom: 0;
+			justify-content: center;
+		}
+
+		&::before {
+			content: "";
+			position: absolute;
+			width: 100%;
+			top: px_to_rem(-20);
+			height: px_to_rem(20);
+			background: linear-gradient(to bottom, transparent, var(--paginator-background) 50%);
+		}
+
+		&::after {
+			content: "";
+			position: absolute;
+			width: 100%;
+			bottom: px_to_rem(-20);
+			height: px_to_rem(20);
+			background: var(--paginator-background);
+		}
 	}
 
 	// NB: Bootstrap-specific .pagination overrides are set within global-bootstrap.55.scss

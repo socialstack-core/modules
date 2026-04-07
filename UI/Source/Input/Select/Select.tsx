@@ -24,7 +24,6 @@ declare global {
 }
 
 const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
-	const [selectValue, setSelectValue] = useState<string | undefined>();
 	const [options, setOptions] = useState<ApiList<Content> | null>(null);
 
 	const { field, validationFailure, onInputRef } = props;
@@ -33,7 +32,6 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 		displayField, contentTypeValue, onDisplay, filter, ...attribs } = field;
 
 	const onSelectChange = (e: React.FormEvent<HTMLSelectElement>) => {
-		setSelectValue((e.target as HTMLSelectElement).value);
 		onChange && onChange(e as React.ChangeEvent<HTMLSelectElement>);
 	};
 
@@ -53,18 +51,10 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 
 	}, [contentType, filter]);
 
-	var selectDefaultValue = typeof selectValue === 'undefined' ? defaultValue : selectValue;
+	var selectValue = value !== undefined ? value : defaultValue;
 
 	var selectClass = className || "form-select ui-form-select" + (validationFailure ? ' is-invalid' : '');
-
-	if (value !== undefined) {
-		selectDefaultValue = value;
-	}
-
-	if (selectDefaultValue == undefined) {
-		selectClass += " no-selection";
-	}
-
+	
 	if (noSelectionValue === undefined) {
 		noSelectionValue = '';
 	}
@@ -93,7 +83,7 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 				(e as any).content = content;
 				onSelectChange(e);
 			}}
-			value={selectDefaultValue}
+			value={selectValue}
 			className={selectClass}
 			{...attribs}
 		>
@@ -106,8 +96,8 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 					? entry[contentTypeValue]
 					: entry.id}
 				selected={contentTypeValue
-					? entry[contentTypeValue] == selectDefaultValue ? true : undefined
-					: entry.id == selectDefaultValue ? true : undefined
+					? entry[contentTypeValue] == selectValue ? true : undefined
+					: entry.id == selectValue ? true : undefined
 				}
 			>
 				{
@@ -121,7 +111,7 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 		<select id={props.id}
 			ref={(el: HTMLSelectElement) => onInputRef && onInputRef(el)}
 			onInput={onSelectChange}
-			value={selectDefaultValue}
+			value={selectValue}
 			className={selectClass}
 			onChange={onSelectChange}
 			{...attribs}
