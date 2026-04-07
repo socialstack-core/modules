@@ -8,7 +8,7 @@ interface DualRangeProps {
 	label: string,
 	min?: number,
 	max?: number,
-	step?: number,
+	steps?: number,
 	defaultFrom?: number,
 	defaultTo?: number,
 	numberFormat?: Intl.NumberFormat,
@@ -37,23 +37,29 @@ interface DualRangeProps {
 	 * label used for reset price range button; defaults to "Reset price range"
 	 */
 	resetLabel?: string,
+
+	/**
+	 * set true to ensure handles never pass the left/right edges of the range
+	 */
+	aligned?: boolean
 }
 
 const DEFAULT_MIN_RANGE = 0;
 const DEFAULT_MAX_RANGE = 100;
+const DEFAULT_STEPS = 20;
 
 /**
  * The DualRange React component.
  * @param props React props.
  */
 const DualRange: React.FC<DualRangeProps> = (props) => {
-	const { label, min, max, step, defaultFrom, defaultTo, numberFormat, live, onChange } = props;
+	const { label, min, max, defaultFrom, defaultTo, numberFormat, live, onChange, aligned } = props;
 	const updateLabel = props.updateLabel?.length ? props.updateLabel : `Go`;
 	const resetLabel = props.resetLabel?.length ? props.resetLabel : `Reset price range`;
 
 	const minValue = min || DEFAULT_MIN_RANGE;
 	const maxValue = max || DEFAULT_MAX_RANGE;
-	const stepValue = step || 1;
+	const steps = props.steps || DEFAULT_STEPS;
 
 	const [fromValue, setFromValue] = useState(defaultFrom || minValue);
 	const [toValue, setToValue] = useState(defaultTo || maxValue);
@@ -86,12 +92,12 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
       var(--range-track-background) 100%)`;
 
 	function changeFromSlider(e) {
-		const newValue = parseInt(e.target.value, 10);
+		const newValue = stepToValue(parseInt(e.target.value, 10));
 		setFromValue(newValue > toValue ? toValue : newValue);
 	}
 
 	function changeToSlider(e) {
-		const newValue = parseInt(e.target.value, 10);
+		const newValue = stepToValue(parseInt(e.target.value, 10));
 		setToValue(newValue < fromValue ? fromValue : newValue);
 	}
 
@@ -101,8 +107,24 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
 		onChange(minValue, maxValue);
 	}
 
+	var rangeClasses = ['ui-dual-range'];
+
+	if (aligned) {
+		rangeClasses.push('ui-dual-range--aligned');
+	}
+
+	function valueToStep(value) {
+		var stepValue = (maxValue - minValue) / steps;
+		return Math.round((value - minValue) / stepValue);
+	}
+
+	function stepToValue(step) {
+		var stepValue = (maxValue - minValue) / steps;
+		return minValue + (step * stepValue);
+	}
+
 	return (
-		<div className="ui-dual-range">
+		<div className={rangeClasses.join(' ')}>
 			<label id={id} htmlFor={fromId}>
 				{label}
 			</label>
@@ -123,14 +145,14 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
 					<div className="ui-dual-range__gradient" style={{ 'background': rangeBackground }} />
 
 					<input type="range" className="ui-dual-range__from" id={fromId}
-						min={minValue} max={maxValue}
+						min="0" max={steps} step="1" value={valueToStep(fromValue)}
 						aria-valuemin={minValue} aria-valuemax={toValue} aria-valuenow={fromValue} aria-labelledby={`${id} ${labelFromId}`}
-						step={stepValue} value={fromValue} onInput={changeFromSlider} />
+						onInput={changeFromSlider} />
 
 					<input type="range" className="ui-dual-range__to" id={toId}
-						min={minValue} max={maxValue}
+						min="0" max={steps} step="1" value={valueToStep(toValue)}
 						aria-valuemin={fromValue} aria-valuemax={maxValue} aria-valuenow={toValue} aria-labelledby={`${id} ${labelToId}`}
-						step={stepValue} value={toValue} onInput={changeToSlider} />
+						onInput={changeToSlider} />
 
 					{!live && <>
 						<Button xs 
