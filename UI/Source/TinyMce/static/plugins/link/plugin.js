@@ -1,9 +1,1242 @@
 /**
- * Copyright (c) Tiny Technologies, Inc. All rights reserved.
- * Licensed under the LGPL or a commercial license.
- * For LGPL see License.txt in the project root for license information.
- * For commercial licenses see https://www.tiny.cloud/
- *
- * Version: 5.0.11 (2019-07-04)
+ * TinyMCE version 6.8.6 (TBD)
  */
-!function(c){"use strict";var n,t,e,r,o,i=tinymce.util.Tools.resolve("tinymce.PluginManager"),u=tinymce.util.Tools.resolve("tinymce.util.VK"),a=function(n){return n.target_list},l=function(n){return n.rel_list},f=function(n){return n.link_class_list},v=function(n){var t=n.link_assume_external_targets;return"boolean"==typeof t&&t?1:"string"!=typeof t||"http"!==t&&"https"!==t?0:t},s=function(n){return"boolean"==typeof n.link_context_toolbar&&n.link_context_toolbar},g=function(n){return n.link_list},y=function(n){return"string"==typeof n.default_link_target},k=function(n){return n.default_link_target},m=a,d=function(n){return!1!==a(n)},h=l,x=function(n){return l(n)!==undefined},p=f,b=function(n){return f(n)!==undefined},O=function(n){return!1!==n.link_title},w=function(n){return"boolean"==typeof n.allow_unsafe_link_target&&n.allow_unsafe_link_target},A=function(n){return!0===n.link_quicklink},C=tinymce.util.Tools.resolve("tinymce.dom.DOMUtils"),_=tinymce.util.Tools.resolve("tinymce.Env"),T=function(n){if(!_.ie||10<_.ie){var t=c.document.createElement("a");t.target="_blank",t.href=n,t.rel="noreferrer noopener";var e=c.document.createEvent("MouseEvents");e.initMouseEvent("click",!0,!0,c.window,0,0,0,0,0,!1,!1,!1,!1,0,null),i=t,u=e,c.document.body.appendChild(i),i.dispatchEvent(u),c.document.body.removeChild(i)}else{var r=c.window.open("","_blank");if(r){r.opener=null;var o=r.document;o.open(),o.write('<meta http-equiv="refresh" content="0; url='+C.DOM.encode(n)+'">'),o.close()}}var i,u},N=function(){},S=function(n){return function(){return n}},D=S(!1),M=S(!0),L=D,E=M,U=function(){return P},P=(r={fold:function(n,t){return n()},is:L,isSome:L,isNone:E,getOr:e=function(n){return n},getOrThunk:t=function(n){return n()},getOrDie:function(n){throw new Error(n||"error: getOrDie called on none.")},getOrNull:function(){return null},getOrUndefined:function(){return undefined},or:e,orThunk:t,map:U,ap:U,each:function(){},bind:U,flatten:U,exists:L,forall:E,filter:U,equals:n=function(n){return n.isNone()},equals_:n,toArray:function(){return[]},toString:S("none()")},Object.freeze&&Object.freeze(r),r),R=function(e){var n=function(){return e},t=function(){return o},r=function(n){return n(e)},o={fold:function(n,t){return t(e)},is:function(n){return e===n},isSome:E,isNone:L,getOr:n,getOrThunk:n,getOrDie:n,getOrNull:n,getOrUndefined:n,or:t,orThunk:t,map:function(n){return R(n(e))},ap:function(n){return n.fold(U,function(n){return R(n(e))})},each:function(n){n(e)},bind:r,flatten:n,exists:r,forall:r,filter:function(n){return n(e)?o:P},equals:function(n){return n.is(e)},equals_:function(n,t){return n.fold(L,function(n){return t(e,n)})},toArray:function(){return[e]},toString:function(){return"some("+e+")"}};return o},z={some:R,none:U,from:function(n){return null===n||n===undefined?P:R(n)}},q=function(t){return function(n){return function(n){if(null===n)return"null";var t=typeof n;return"object"===t&&(Array.prototype.isPrototypeOf(n)||n.constructor&&"Array"===n.constructor.name)?"array":"object"===t&&(String.prototype.isPrototypeOf(n)||n.constructor&&"String"===n.constructor.name)?"string":t}(n)===t}},K=q("string"),I=q("function"),j=Array.prototype.slice,B=(o=Array.prototype.indexOf)===undefined?function(n,t){return F(n,t)}:function(n,t){return o.call(n,t)},V=function(n,t){for(var e=0,r=n.length;e<r;e++){t(n[e],e,n)}},F=function(n,t){for(var e=0,r=n.length;e<r;++e)if(n[e]===t)return e;return-1},W=Array.prototype.push,H=function(n){for(var t=[],e=0,r=n.length;e<r;++e){if(!Array.prototype.isPrototypeOf(n[e]))throw new Error("Arr.flatten item "+e+" was not an array, input: "+n);W.apply(t,n[e])}return t},$=function(n,t){var e=function(n,t){for(var e=n.length,r=new Array(e),o=0;o<e;o++){var i=n[o];r[o]=t(i,o,n)}return r}(n,t);return H(e)},G=(I(Array.from)&&Array.from,tinymce.util.Tools.resolve("tinymce.util.Tools")),J=function(n){return/^\w+:/i.test(n)},X=function(n,t){var e,r,o=["noopener"],i=n?n.split(/\s+/):[],u=function(n){return n.filter(function(n){return-1===G.inArray(o,n)})},a=t?0<(e=u(e=i)).length?e.concat(o):o:u(i);return 0<a.length?(r=a,G.trim(r.sort().join(" "))):""},Q=function(n,t){return t=t||n.selection.getNode(),Z(t)?n.dom.select("a[href]",t)[0]:n.dom.getParent(t,"a[href]")},Y=function(n){return n&&"A"===n.nodeName&&!!n.href},Z=function(n){return n&&"FIGURE"===n.nodeName&&/\bimage\b/i.test(n.className)},nn=function(n){return t=["title","rel","class","target"],e=function(t,e){return n[e].each(function(n){t[e]=0<n.length?n:null}),t},r={href:n.href},V(t,function(n){r=e(r,n)}),r;var t,e,r},tn=function(n,t){var e=n.dom.select("img",t)[0];if(e){var r=n.dom.getParents(e,"a[href]",t)[0];r&&(r.parentNode.insertBefore(e,r),n.dom.remove(r))}},en=function(n,t,e){var r=n.dom.select("img",t)[0];if(r){var o=n.dom.create("a",e);r.parentNode.insertBefore(o,r),o.appendChild(r)}},rn=function(d,h,p){d.undoManager.transact(function(){var n,t,e,r,o,i,u,a,c,l,f=d.selection.getNode(),s=Q(d,f),g=nn(p);if(!x(d.settings)&&!1===w(d.settings)){var m=X(g.rel,"_blank"===g.target);g.rel=m||null}g.href=(n=g.href,"http"!==(t=v(d.settings))&&"https"!==t||J(n)?n:t+"://"+n),p.href===h.href&&h.attach(),s?(d.focus(),u=d,a=s,c=p.text,l=g,c.each(function(n){a.hasOwnProperty("innerText")?a.innerText=n:a.textContent=n}),u.dom.setAttribs(a,l),u.selection.select(a)):(e=d,r=f,o=p.text,i=g,Z(r)?en(e,r,i):o.fold(function(){e.execCommand("mceInsertLink",!1,i)},function(n){e.insertContent(e.dom.createHTML("a",i,e.dom.encode(n)))}))})},on=function(e){e.undoManager.transact(function(){var n=e.selection.getNode();if(Z(n))tn(e,n);else{var t=e.dom.getParent(n,"a[href]",e.getBody());t&&e.dom.remove(t,!0)}e.focus()})},un=function(n){return 0<G.grep(n,Y).length},an=function(n){var t=n.getAttribute("data-mce-href");return t||n.getAttribute("href")},cn=function(n){return!(/</.test(n)&&(!/^<a [^>]+>[^<]+<\/a>$/.test(n)||-1===n.indexOf("href=")))},ln=Q,fn=function(n,t){var e=t?t.innerText||t.textContent:n.getContent({format:"text"});return e.replace(/\uFEFF/g,"")},sn=X,gn=J,mn=function(n,t){for(var e=0;e<n.length;e++){var r=t(n[e],e);if(r.isSome())return r}return z.none()},dn=function(n){return K(n.value)?n.value:""},hn=function(e){return void 0===e&&(e=dn),function(n){return z.from(n).map(function(n){return t=n,r=e,o=[],G.each(t,function(n){var t=K(n.text)?n.text:K(n.title)?n.title:"";if(n.menu!==undefined);else{var e=r(n);o.push({text:t,value:e})}}),o;var t,r,o})}},pn={sanitize:function(n){return hn(dn)(n)},sanitizeWith:hn,createUi:function(t,e){return function(n){return{name:t,type:"selectbox",label:e,items:n}}},getValue:dn},vn=function(n){var t=n,e=function(){return t};return{get:e,set:function(n){t=n},clone:function(){return vn(e())}}},yn=function(t,n,e,r){var o,i,u=r[n],a=0<t.length;return u!==undefined?(o=u,i=e,mn(i,function(n){return z.some(n).filter(function(n){return n.value===o})})).map(function(n){return{url:{value:n.value,meta:{text:a?t:n.text,attach:N}},text:a?t:n.text}}):z.none()},kn=function(n,i){var u=vn(n.text),o=function(n,t){var e,r,o=(e=i,r=t.name,"link"===r?e.catalogs.link:"anchor"===r?e.catalogs.anchor:z.none()).getOr([]);return yn(u.get(),t.name,o,n)};return{onChange:function(n,t){return"url"===t.name?function(n){if(u.get().length<=0){var t=n.url.meta.text!==undefined?n.url.meta.text:n.url.value;return z.some({text:t})}return z.none()}(n()):(e=["anchor","link"],r=t.name,-1<B(e,r)?o(n(),t):("text"===t.name&&u.set(n().text),z.none()));var e,r}}},xn=function(){return(xn=Object.assign||function(n){for(var t,e=1,r=arguments.length;e<r;e++)for(var o in t=arguments[e])Object.prototype.hasOwnProperty.call(t,o)&&(n[o]=t[o]);return n}).apply(this,arguments)},bn=function(n){var e=z.none(),t=[],r=function(n){o()?u(n):t.push(n)},o=function(){return e.isSome()},i=function(n){V(n,u)},u=function(t){e.each(function(n){c.setTimeout(function(){t(n)},0)})};return n(function(n){e=z.some(n),i(t),t=[]}),{get:r,map:function(e){return bn(function(t){r(function(n){t(e(n))})})},isReady:o}},On={nu:bn,pure:function(t){return bn(function(n){n(t)})}},wn=function(t){var n=function(n){var r;t((r=n,function(){for(var n=[],t=0;t<arguments.length;t++)n[t]=arguments[t];var e=this;c.setTimeout(function(){r.apply(e,n)},0)}))},e=function(){return On.nu(n)};return{map:function(r){return wn(function(e){n(function(n){var t=r(n);e(t)})})},bind:function(e){return wn(function(t){n(function(n){e(n).get(t)})})},anonBind:function(e){return wn(function(t){n(function(n){e.get(t)})})},toLazy:e,toCached:function(){var t=null;return wn(function(n){null===t&&(t=e()),t.get(n)})},get:n}},An={nu:wn,pure:function(t){return wn(function(n){n(t)})}},Cn=tinymce.util.Tools.resolve("tinymce.util.Delay"),_n=function(n){var t=n.href;return 0<t.indexOf("@")&&-1===t.indexOf("//")&&-1===t.indexOf("mailto:")?z.some({message:"The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?",preprocess:function(n){return xn({},n,{href:"mailto:"+t})}}):z.none()},Tn=function(u,n,a){return mn([_n,(e=n,function(n){var t=n.href;return 1===e&&!gn(t)||0===e&&/^\s*www[\.|\d\.]/i.test(t)?z.some({message:"The URL you entered seems to be an external link. Do you want to add the required http:// prefix?",preprocess:function(n){return xn({},n,{href:"http://"+t})}}):z.none()})],function(n){return n(a)}).fold(function(){return An.pure(a)},function(i){return An.nu(function(t){var e,n,r,o;e=u,n=i.message,r=function(n){c.console.log("state",n),t(n?i.preprocess(a):a)},o=e.selection.getRng(),Cn.setEditorTimeout(e,function(){e.windowManager.confirm(n,function(n){e.selection.setRng(o),r(n)})})})});var e},Nn=function(n){var t=n.dom.select("a:not([href])"),e=$(t,function(n){var t=n.name||n.id;return t?[{text:t,value:"#"+t}]:[]});return 0<e.length?z.some([{text:"None",value:""}].concat(e)):z.none()},Sn=function(n){if(b(n.settings)){var t=p(n.settings);return pn.sanitize(t)}return z.none()},Dn=tinymce.util.Tools.resolve("tinymce.util.XHR"),Mn=function(t){var e=function(n){return t.convertURL(n.value||n.url,"href")},n=g(t.settings);return An.nu(function(t){"string"==typeof n?Dn.send({url:n,success:function(n){return t(function(n){try{return z.some(JSON.parse(n))}catch(t){return z.none()}}(n))},error:function(n){return t(z.none())}}):"function"==typeof n?n(function(n){return t(z.some(n))}):t(z.from(n))}).map(function(n){return n.bind(pn.sanitizeWith(e)).map(function(n){return 0<n.length?[{text:"None",value:""}].concat(n):n})})},Ln=function(n,t){if(x(n.settings)){var e=h(n.settings),r=t.is("_blank");return(!1===w(n.settings)?pn.sanitizeWith(function(n){return sn(pn.getValue(n),r)}):pn.sanitize)(e)}return z.none()},En=[{text:"Current window",value:""},{text:"New window",value:"_blank"}],Un=function(n){if(d(n.settings)){var t=m(n.settings);return pn.sanitize(t).orThunk(function(){return z.some(En)})}return z.none()},Pn=function(n,t,e){var r=n.getAttrib(t,e);return null!==r&&0<r.length?z.some(r):z.none()},Rn=function(s,g,m){return Mn(s).map(function(n){var t,e,r,o,i,u,a,c,l,f=(e=m,r=(t=s).selection,o=t.dom,i=cn(r.getContent())?z.some(fn(r,e)):z.none(),u=e?z.some(o.getAttrib(e,"href")):z.none(),a=e?z.from(o.getAttrib(e,"target")):z.none(),c=Pn(o,e,"rel"),l=Pn(o,e,"class"),{url:u,text:i,title:Pn(o,e,"title"),target:a,rel:c,linkClass:l});return{anchor:f,catalogs:{targets:Un(s),rels:Ln(s,f.target),classes:Sn(s),anchor:Nn(s),link:n},optNode:z.from(m),flags:{titleEnabled:O(g)}}})},zn=function(p){var n,t,e;(t=(n=p).settings,e=ln(n),Rn(n,t,e)).map(function(n){var i,u,a,t,e,r,o,c,l,f,s,g,m,d,h=(u=n,a=v((i=p).settings),function(n){var e=n.getData();if(!e.url.value)return on(i),void n.close();var t=function(t){return z.from(e[t]).filter(function(n){return!u.anchor[t].is(n)})},r={href:e.url.value,text:t("text"),target:t("target"),rel:t("rel"),"class":t("linkClass"),title:t("title")},o={href:e.url.value,attach:e.url.meta!==undefined&&e.url.meta.attach?e.url.meta.attach:function(){}};Tn(i,a,r).get(function(n){rn(i,o,n)}),n.close()});return t=n,e=h,r=p.settings,l=t.anchor.text.map(function(){return{name:"text",type:"input",label:"Text to display"}}).toArray(),f=t.flags.titleEnabled?[{name:"title",type:"input",label:"Title"}]:[],s=y(r)?z.some(k(r)):z.none(),c=s,g={url:{value:(o=t).anchor.url.getOr(""),meta:{attach:function(){},text:o.anchor.url.fold(function(){return""},function(){return o.anchor.text.getOr("")}),original:{value:o.anchor.url.getOr("")}}},text:o.anchor.text.getOr(""),title:o.anchor.title.getOr(""),anchor:o.anchor.url.getOr(""),link:o.anchor.url.getOr(""),rel:o.anchor.rel.getOr(""),target:o.anchor.target.or(c).getOr(""),linkClass:o.anchor.linkClass.getOr("")},m=kn(g,t),d=t.catalogs,{title:"Insert/Edit Link",size:"normal",body:{type:"panel",items:H([[{name:"url",type:"urlinput",filetype:"file",label:"URL"}],l,f,function(n){for(var t=[],e=function(n){t.push(n)},r=0;r<n.length;r++)n[r].each(e);return t}([d.anchor.map(pn.createUi("anchor","Anchors")),d.rels.map(pn.createUi("rel","Rel")),d.targets.map(pn.createUi("target","Open link in...")),d.link.map(pn.createUi("link","Link list")),d.classes.map(pn.createUi("linkClass","Class"))])])},buttons:[{type:"cancel",name:"cancel",text:"Cancel"},{type:"submit",name:"save",text:"Save",primary:!0}],initialData:g,onChange:function(t,n){var e=n.name;m.onChange(t.getData,{name:e}).each(function(n){t.setData(n)})},onSubmit:e}}).get(function(n){p.windowManager.open(n)})},qn=function(n,t){return n.dom.getParent(t,"a[href]")},Kn=function(n){return qn(n,n.selection.getStart())},In=function(n,t){if(t){var e=an(t);if(/^#/.test(e)){var r=n.$(e);r.length&&n.selection.scrollIntoView(r[0],!0)}else T(t.href)}},jn=function(n){return function(){zn(n)}},Bn=function(n){return function(){In(n,Kn(n))}},Vn=function(r){r.on("click",function(n){var t=qn(r,n.target);t&&u.metaKeyPressed(n)&&(n.preventDefault(),In(r,t))}),r.on("keydown",function(n){var t,e=Kn(r);e&&13===n.keyCode&&!0===(t=n).altKey&&!1===t.shiftKey&&!1===t.ctrlKey&&!1===t.metaKey&&(n.preventDefault(),In(r,e))})},Fn=function(e){return function(t){var n=function(n){return t.setActive(!e.readonly&&!!ln(e,n.element))};return e.on("NodeChange",n),function(){return e.off("NodeChange",n)}}},Wn=function(e){return function(t){t.setDisabled(!un(e.dom.getParents(e.selection.getStart())));var n=function(n){return t.setDisabled(!un(n.parents))};return e.on("NodeChange",n),function(){return e.off("NodeChange",n)}}},Hn=function(n){n.addCommand("mceLink",function(){A(n.settings)?n.fire("contexttoolbar-show",{toolbarKey:"quicklink"}):jn(n)()})},$n=function(n){n.addShortcut("Meta+K","",function(){n.execCommand("mceLink")})},Gn=function(n){n.ui.registry.addToggleButton("link",{icon:"link",tooltip:"Insert/edit link",onAction:jn(n),onSetup:Fn(n)}),n.ui.registry.addButton("unlink",{icon:"unlink",tooltip:"Remove link",onAction:function(){return on(n)},onSetup:Wn(n)})},Jn=function(n){n.ui.registry.addMenuItem("openlink",{text:"Open link",icon:"new-tab",onAction:Bn(n),onSetup:Wn(n)}),n.ui.registry.addMenuItem("link",{icon:"link",text:"Link...",shortcut:"Meta+K",onAction:jn(n)}),n.ui.registry.addMenuItem("unlink",{icon:"unlink",text:"Remove link",onAction:function(){return on(n)},onSetup:Wn(n)})},Xn=function(t){t.ui.registry.addContextMenu("link",{update:function(n){return un(t.dom.getParents(n,"a"))?"link unlink openlink":"link"}})},Qn=function(i){var n=function(n){var t=i.selection.getNode();return n.setDisabled(!ln(i,t)),function(){}};i.ui.registry.addContextForm("quicklink",{launch:{type:"contextformtogglebutton",icon:"link",tooltip:"Link",onSetup:Fn(i)},label:"Link",predicate:function(n){return!!ln(i,n)&&s(i.settings)},initValue:function(){var n=ln(i);return n?an(n):""},commands:[{type:"contextformtogglebutton",icon:"link",tooltip:"Link",primary:!0,onSetup:function(n){var t=i.selection.getNode();return n.setActive(!!ln(i,t)),Fn(i)(n)},onAction:function(n){var t=ln(i),e=n.getValue();if(t)i.dom.setAttrib(t,"href",e),i.selection.collapse(!1),n.hide();else{var r={href:e,attach:function(){}},o=cn(i.selection.getContent())?z.some(fn(i.selection,t)).filter(function(n){return 0<n.length}).or(z.from(e)):z.none();rn(i,r,{href:e,text:o,title:z.none(),rel:z.none(),target:z.none(),"class":z.none()}),n.hide()}}},{type:"contextformbutton",icon:"unlink",tooltip:"Remove link",onSetup:n,onAction:function(n){on(i),n.hide()}},{type:"contextformbutton",icon:"new-tab",tooltip:"Open link",onSetup:n,onAction:function(n){Bn(i)(),n.hide()}}]})};!function Yn(){i.add("link",function(n){Gn(n),Jn(n),Xn(n),Qn(n),Vn(n),Hn(n),$n(n)})}()}(window);
+
+(function () {
+    'use strict';
+
+    var global$5 = tinymce.util.Tools.resolve('tinymce.PluginManager');
+
+    const hasProto = (v, constructor, predicate) => {
+      var _a;
+      if (predicate(v, constructor.prototype)) {
+        return true;
+      } else {
+        return ((_a = v.constructor) === null || _a === void 0 ? void 0 : _a.name) === constructor.name;
+      }
+    };
+    const typeOf = x => {
+      const t = typeof x;
+      if (x === null) {
+        return 'null';
+      } else if (t === 'object' && Array.isArray(x)) {
+        return 'array';
+      } else if (t === 'object' && hasProto(x, String, (o, proto) => proto.isPrototypeOf(o))) {
+        return 'string';
+      } else {
+        return t;
+      }
+    };
+    const isType = type => value => typeOf(value) === type;
+    const isSimpleType = type => value => typeof value === type;
+    const eq = t => a => t === a;
+    const isString = isType('string');
+    const isObject = isType('object');
+    const isArray = isType('array');
+    const isNull = eq(null);
+    const isBoolean = isSimpleType('boolean');
+    const isNullable = a => a === null || a === undefined;
+    const isNonNullable = a => !isNullable(a);
+    const isFunction = isSimpleType('function');
+    const isArrayOf = (value, pred) => {
+      if (isArray(value)) {
+        for (let i = 0, len = value.length; i < len; ++i) {
+          if (!pred(value[i])) {
+            return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    };
+
+    const noop = () => {
+    };
+    const constant = value => {
+      return () => {
+        return value;
+      };
+    };
+    const tripleEquals = (a, b) => {
+      return a === b;
+    };
+
+    class Optional {
+      constructor(tag, value) {
+        this.tag = tag;
+        this.value = value;
+      }
+      static some(value) {
+        return new Optional(true, value);
+      }
+      static none() {
+        return Optional.singletonNone;
+      }
+      fold(onNone, onSome) {
+        if (this.tag) {
+          return onSome(this.value);
+        } else {
+          return onNone();
+        }
+      }
+      isSome() {
+        return this.tag;
+      }
+      isNone() {
+        return !this.tag;
+      }
+      map(mapper) {
+        if (this.tag) {
+          return Optional.some(mapper(this.value));
+        } else {
+          return Optional.none();
+        }
+      }
+      bind(binder) {
+        if (this.tag) {
+          return binder(this.value);
+        } else {
+          return Optional.none();
+        }
+      }
+      exists(predicate) {
+        return this.tag && predicate(this.value);
+      }
+      forall(predicate) {
+        return !this.tag || predicate(this.value);
+      }
+      filter(predicate) {
+        if (!this.tag || predicate(this.value)) {
+          return this;
+        } else {
+          return Optional.none();
+        }
+      }
+      getOr(replacement) {
+        return this.tag ? this.value : replacement;
+      }
+      or(replacement) {
+        return this.tag ? this : replacement;
+      }
+      getOrThunk(thunk) {
+        return this.tag ? this.value : thunk();
+      }
+      orThunk(thunk) {
+        return this.tag ? this : thunk();
+      }
+      getOrDie(message) {
+        if (!this.tag) {
+          throw new Error(message !== null && message !== void 0 ? message : 'Called getOrDie on None');
+        } else {
+          return this.value;
+        }
+      }
+      static from(value) {
+        return isNonNullable(value) ? Optional.some(value) : Optional.none();
+      }
+      getOrNull() {
+        return this.tag ? this.value : null;
+      }
+      getOrUndefined() {
+        return this.value;
+      }
+      each(worker) {
+        if (this.tag) {
+          worker(this.value);
+        }
+      }
+      toArray() {
+        return this.tag ? [this.value] : [];
+      }
+      toString() {
+        return this.tag ? `some(${ this.value })` : 'none()';
+      }
+    }
+    Optional.singletonNone = new Optional(false);
+
+    const nativeIndexOf = Array.prototype.indexOf;
+    const nativePush = Array.prototype.push;
+    const rawIndexOf = (ts, t) => nativeIndexOf.call(ts, t);
+    const contains = (xs, x) => rawIndexOf(xs, x) > -1;
+    const map = (xs, f) => {
+      const len = xs.length;
+      const r = new Array(len);
+      for (let i = 0; i < len; i++) {
+        const x = xs[i];
+        r[i] = f(x, i);
+      }
+      return r;
+    };
+    const each$1 = (xs, f) => {
+      for (let i = 0, len = xs.length; i < len; i++) {
+        const x = xs[i];
+        f(x, i);
+      }
+    };
+    const foldl = (xs, f, acc) => {
+      each$1(xs, (x, i) => {
+        acc = f(acc, x, i);
+      });
+      return acc;
+    };
+    const flatten = xs => {
+      const r = [];
+      for (let i = 0, len = xs.length; i < len; ++i) {
+        if (!isArray(xs[i])) {
+          throw new Error('Arr.flatten item ' + i + ' was not an array, input: ' + xs);
+        }
+        nativePush.apply(r, xs[i]);
+      }
+      return r;
+    };
+    const bind = (xs, f) => flatten(map(xs, f));
+    const findMap = (arr, f) => {
+      for (let i = 0; i < arr.length; i++) {
+        const r = f(arr[i], i);
+        if (r.isSome()) {
+          return r;
+        }
+      }
+      return Optional.none();
+    };
+
+    const is = (lhs, rhs, comparator = tripleEquals) => lhs.exists(left => comparator(left, rhs));
+    const cat = arr => {
+      const r = [];
+      const push = x => {
+        r.push(x);
+      };
+      for (let i = 0; i < arr.length; i++) {
+        arr[i].each(push);
+      }
+      return r;
+    };
+    const someIf = (b, a) => b ? Optional.some(a) : Optional.none();
+
+    const option = name => editor => editor.options.get(name);
+    const register$1 = editor => {
+      const registerOption = editor.options.register;
+      registerOption('link_assume_external_targets', {
+        processor: value => {
+          const valid = isString(value) || isBoolean(value);
+          if (valid) {
+            if (value === true) {
+              return {
+                value: 1,
+                valid
+              };
+            } else if (value === 'http' || value === 'https') {
+              return {
+                value,
+                valid
+              };
+            } else {
+              return {
+                value: 0,
+                valid
+              };
+            }
+          } else {
+            return {
+              valid: false,
+              message: 'Must be a string or a boolean.'
+            };
+          }
+        },
+        default: false
+      });
+      registerOption('link_context_toolbar', {
+        processor: 'boolean',
+        default: false
+      });
+      registerOption('link_list', { processor: value => isString(value) || isFunction(value) || isArrayOf(value, isObject) });
+      registerOption('link_default_target', { processor: 'string' });
+      registerOption('link_default_protocol', {
+        processor: 'string',
+        default: 'https'
+      });
+      registerOption('link_target_list', {
+        processor: value => isBoolean(value) || isArrayOf(value, isObject),
+        default: true
+      });
+      registerOption('link_rel_list', {
+        processor: 'object[]',
+        default: []
+      });
+      registerOption('link_class_list', {
+        processor: 'object[]',
+        default: []
+      });
+      registerOption('link_title', {
+        processor: 'boolean',
+        default: true
+      });
+      registerOption('allow_unsafe_link_target', {
+        processor: 'boolean',
+        default: false
+      });
+      registerOption('link_quicklink', {
+        processor: 'boolean',
+        default: false
+      });
+    };
+    const assumeExternalTargets = option('link_assume_external_targets');
+    const hasContextToolbar = option('link_context_toolbar');
+    const getLinkList = option('link_list');
+    const getDefaultLinkTarget = option('link_default_target');
+    const getDefaultLinkProtocol = option('link_default_protocol');
+    const getTargetList = option('link_target_list');
+    const getRelList = option('link_rel_list');
+    const getLinkClassList = option('link_class_list');
+    const shouldShowLinkTitle = option('link_title');
+    const allowUnsafeLinkTarget = option('allow_unsafe_link_target');
+    const useQuickLink = option('link_quicklink');
+
+    var global$4 = tinymce.util.Tools.resolve('tinymce.util.Tools');
+
+    const getValue = item => isString(item.value) ? item.value : '';
+    const getText = item => {
+      if (isString(item.text)) {
+        return item.text;
+      } else if (isString(item.title)) {
+        return item.title;
+      } else {
+        return '';
+      }
+    };
+    const sanitizeList = (list, extractValue) => {
+      const out = [];
+      global$4.each(list, item => {
+        const text = getText(item);
+        if (item.menu !== undefined) {
+          const items = sanitizeList(item.menu, extractValue);
+          out.push({
+            text,
+            items
+          });
+        } else {
+          const value = extractValue(item);
+          out.push({
+            text,
+            value
+          });
+        }
+      });
+      return out;
+    };
+    const sanitizeWith = (extracter = getValue) => list => Optional.from(list).map(list => sanitizeList(list, extracter));
+    const sanitize = list => sanitizeWith(getValue)(list);
+    const createUi = (name, label) => items => ({
+      name,
+      type: 'listbox',
+      label,
+      items
+    });
+    const ListOptions = {
+      sanitize,
+      sanitizeWith,
+      createUi,
+      getValue
+    };
+
+    const keys = Object.keys;
+    const hasOwnProperty = Object.hasOwnProperty;
+    const each = (obj, f) => {
+      const props = keys(obj);
+      for (let k = 0, len = props.length; k < len; k++) {
+        const i = props[k];
+        const x = obj[i];
+        f(x, i);
+      }
+    };
+    const objAcc = r => (x, i) => {
+      r[i] = x;
+    };
+    const internalFilter = (obj, pred, onTrue, onFalse) => {
+      each(obj, (x, i) => {
+        (pred(x, i) ? onTrue : onFalse)(x, i);
+      });
+    };
+    const filter = (obj, pred) => {
+      const t = {};
+      internalFilter(obj, pred, objAcc(t), noop);
+      return t;
+    };
+    const has = (obj, key) => hasOwnProperty.call(obj, key);
+    const hasNonNullableKey = (obj, key) => has(obj, key) && obj[key] !== undefined && obj[key] !== null;
+
+    var global$3 = tinymce.util.Tools.resolve('tinymce.dom.TreeWalker');
+
+    var global$2 = tinymce.util.Tools.resolve('tinymce.util.URI');
+
+    const isAnchor = elm => isNonNullable(elm) && elm.nodeName.toLowerCase() === 'a';
+    const isLink = elm => isAnchor(elm) && !!getHref(elm);
+    const collectNodesInRange = (rng, predicate) => {
+      if (rng.collapsed) {
+        return [];
+      } else {
+        const contents = rng.cloneContents();
+        const firstChild = contents.firstChild;
+        const walker = new global$3(firstChild, contents);
+        const elements = [];
+        let current = firstChild;
+        do {
+          if (predicate(current)) {
+            elements.push(current);
+          }
+        } while (current = walker.next());
+        return elements;
+      }
+    };
+    const hasProtocol = url => /^\w+:/i.test(url);
+    const getHref = elm => {
+      var _a, _b;
+      return (_b = (_a = elm.getAttribute('data-mce-href')) !== null && _a !== void 0 ? _a : elm.getAttribute('href')) !== null && _b !== void 0 ? _b : '';
+    };
+    const applyRelTargetRules = (rel, isUnsafe) => {
+      const rules = ['noopener'];
+      const rels = rel ? rel.split(/\s+/) : [];
+      const toString = rels => global$4.trim(rels.sort().join(' '));
+      const addTargetRules = rels => {
+        rels = removeTargetRules(rels);
+        return rels.length > 0 ? rels.concat(rules) : rules;
+      };
+      const removeTargetRules = rels => rels.filter(val => global$4.inArray(rules, val) === -1);
+      const newRels = isUnsafe ? addTargetRules(rels) : removeTargetRules(rels);
+      return newRels.length > 0 ? toString(newRels) : '';
+    };
+    const trimCaretContainers = text => text.replace(/\uFEFF/g, '');
+    const getAnchorElement = (editor, selectedElm) => {
+      selectedElm = selectedElm || getLinksInSelection(editor.selection.getRng())[0] || editor.selection.getNode();
+      if (isImageFigure(selectedElm)) {
+        return Optional.from(editor.dom.select('a[href]', selectedElm)[0]);
+      } else {
+        return Optional.from(editor.dom.getParent(selectedElm, 'a[href]'));
+      }
+    };
+    const isInAnchor = (editor, selectedElm) => getAnchorElement(editor, selectedElm).isSome();
+    const getAnchorText = (selection, anchorElm) => {
+      const text = anchorElm.fold(() => selection.getContent({ format: 'text' }), anchorElm => anchorElm.innerText || anchorElm.textContent || '');
+      return trimCaretContainers(text);
+    };
+    const getLinksInSelection = rng => collectNodesInRange(rng, isLink);
+    const getLinks$1 = elements => global$4.grep(elements, isLink);
+    const hasLinks = elements => getLinks$1(elements).length > 0;
+    const hasLinksInSelection = rng => getLinksInSelection(rng).length > 0;
+    const isOnlyTextSelected = editor => {
+      const inlineTextElements = editor.schema.getTextInlineElements();
+      const isElement = elm => elm.nodeType === 1 && !isAnchor(elm) && !has(inlineTextElements, elm.nodeName.toLowerCase());
+      const isInBlockAnchor = getAnchorElement(editor).exists(anchor => anchor.hasAttribute('data-mce-block'));
+      if (isInBlockAnchor) {
+        return false;
+      }
+      const rng = editor.selection.getRng();
+      if (!rng.collapsed) {
+        const elements = collectNodesInRange(rng, isElement);
+        return elements.length === 0;
+      } else {
+        return true;
+      }
+    };
+    const isImageFigure = elm => isNonNullable(elm) && elm.nodeName === 'FIGURE' && /\bimage\b/i.test(elm.className);
+    const getLinkAttrs = data => {
+      const attrs = [
+        'title',
+        'rel',
+        'class',
+        'target'
+      ];
+      return foldl(attrs, (acc, key) => {
+        data[key].each(value => {
+          acc[key] = value.length > 0 ? value : null;
+        });
+        return acc;
+      }, { href: data.href });
+    };
+    const handleExternalTargets = (href, assumeExternalTargets) => {
+      if ((assumeExternalTargets === 'http' || assumeExternalTargets === 'https') && !hasProtocol(href)) {
+        return assumeExternalTargets + '://' + href;
+      }
+      return href;
+    };
+    const applyLinkOverrides = (editor, linkAttrs) => {
+      const newLinkAttrs = { ...linkAttrs };
+      if (getRelList(editor).length === 0 && !allowUnsafeLinkTarget(editor)) {
+        const newRel = applyRelTargetRules(newLinkAttrs.rel, newLinkAttrs.target === '_blank');
+        newLinkAttrs.rel = newRel ? newRel : null;
+      }
+      if (Optional.from(newLinkAttrs.target).isNone() && getTargetList(editor) === false) {
+        newLinkAttrs.target = getDefaultLinkTarget(editor);
+      }
+      newLinkAttrs.href = handleExternalTargets(newLinkAttrs.href, assumeExternalTargets(editor));
+      return newLinkAttrs;
+    };
+    const updateLink = (editor, anchorElm, text, linkAttrs) => {
+      text.each(text => {
+        if (has(anchorElm, 'innerText')) {
+          anchorElm.innerText = text;
+        } else {
+          anchorElm.textContent = text;
+        }
+      });
+      editor.dom.setAttribs(anchorElm, linkAttrs);
+      editor.selection.select(anchorElm);
+    };
+    const createLink = (editor, selectedElm, text, linkAttrs) => {
+      const dom = editor.dom;
+      if (isImageFigure(selectedElm)) {
+        linkImageFigure(dom, selectedElm, linkAttrs);
+      } else {
+        text.fold(() => {
+          editor.execCommand('mceInsertLink', false, linkAttrs);
+        }, text => {
+          editor.insertContent(dom.createHTML('a', linkAttrs, dom.encode(text)));
+        });
+      }
+    };
+    const linkDomMutation = (editor, attachState, data) => {
+      const selectedElm = editor.selection.getNode();
+      const anchorElm = getAnchorElement(editor, selectedElm);
+      const linkAttrs = applyLinkOverrides(editor, getLinkAttrs(data));
+      editor.undoManager.transact(() => {
+        if (data.href === attachState.href) {
+          attachState.attach();
+        }
+        anchorElm.fold(() => {
+          createLink(editor, selectedElm, data.text, linkAttrs);
+        }, elm => {
+          editor.focus();
+          updateLink(editor, elm, data.text, linkAttrs);
+        });
+      });
+    };
+    const unlinkSelection = editor => {
+      const dom = editor.dom, selection = editor.selection;
+      const bookmark = selection.getBookmark();
+      const rng = selection.getRng().cloneRange();
+      const startAnchorElm = dom.getParent(rng.startContainer, 'a[href]', editor.getBody());
+      const endAnchorElm = dom.getParent(rng.endContainer, 'a[href]', editor.getBody());
+      if (startAnchorElm) {
+        rng.setStartBefore(startAnchorElm);
+      }
+      if (endAnchorElm) {
+        rng.setEndAfter(endAnchorElm);
+      }
+      selection.setRng(rng);
+      editor.execCommand('unlink');
+      selection.moveToBookmark(bookmark);
+    };
+    const unlinkDomMutation = editor => {
+      editor.undoManager.transact(() => {
+        const node = editor.selection.getNode();
+        if (isImageFigure(node)) {
+          unlinkImageFigure(editor, node);
+        } else {
+          unlinkSelection(editor);
+        }
+        editor.focus();
+      });
+    };
+    const unwrapOptions = data => {
+      const {
+        class: cls,
+        href,
+        rel,
+        target,
+        text,
+        title
+      } = data;
+      return filter({
+        class: cls.getOrNull(),
+        href,
+        rel: rel.getOrNull(),
+        target: target.getOrNull(),
+        text: text.getOrNull(),
+        title: title.getOrNull()
+      }, (v, _k) => isNull(v) === false);
+    };
+    const sanitizeData = (editor, data) => {
+      const getOption = editor.options.get;
+      const uriOptions = {
+        allow_html_data_urls: getOption('allow_html_data_urls'),
+        allow_script_urls: getOption('allow_script_urls'),
+        allow_svg_data_urls: getOption('allow_svg_data_urls')
+      };
+      const href = data.href;
+      return {
+        ...data,
+        href: global$2.isDomSafe(href, 'a', uriOptions) ? href : ''
+      };
+    };
+    const link = (editor, attachState, data) => {
+      const sanitizedData = sanitizeData(editor, data);
+      editor.hasPlugin('rtc', true) ? editor.execCommand('createlink', false, unwrapOptions(sanitizedData)) : linkDomMutation(editor, attachState, sanitizedData);
+    };
+    const unlink = editor => {
+      editor.hasPlugin('rtc', true) ? editor.execCommand('unlink') : unlinkDomMutation(editor);
+    };
+    const unlinkImageFigure = (editor, fig) => {
+      var _a;
+      const img = editor.dom.select('img', fig)[0];
+      if (img) {
+        const a = editor.dom.getParents(img, 'a[href]', fig)[0];
+        if (a) {
+          (_a = a.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(img, a);
+          editor.dom.remove(a);
+        }
+      }
+    };
+    const linkImageFigure = (dom, fig, attrs) => {
+      var _a;
+      const img = dom.select('img', fig)[0];
+      if (img) {
+        const a = dom.create('a', attrs);
+        (_a = img.parentNode) === null || _a === void 0 ? void 0 : _a.insertBefore(a, img);
+        a.appendChild(img);
+      }
+    };
+
+    const isListGroup = item => hasNonNullableKey(item, 'items');
+    const findTextByValue = (value, catalog) => findMap(catalog, item => {
+      if (isListGroup(item)) {
+        return findTextByValue(value, item.items);
+      } else {
+        return someIf(item.value === value, item);
+      }
+    });
+    const getDelta = (persistentText, fieldName, catalog, data) => {
+      const value = data[fieldName];
+      const hasPersistentText = persistentText.length > 0;
+      return value !== undefined ? findTextByValue(value, catalog).map(i => ({
+        url: {
+          value: i.value,
+          meta: {
+            text: hasPersistentText ? persistentText : i.text,
+            attach: noop
+          }
+        },
+        text: hasPersistentText ? persistentText : i.text
+      })) : Optional.none();
+    };
+    const findCatalog = (catalogs, fieldName) => {
+      if (fieldName === 'link') {
+        return catalogs.link;
+      } else if (fieldName === 'anchor') {
+        return catalogs.anchor;
+      } else {
+        return Optional.none();
+      }
+    };
+    const init = (initialData, linkCatalog) => {
+      const persistentData = {
+        text: initialData.text,
+        title: initialData.title
+      };
+      const getTitleFromUrlChange = url => {
+        var _a;
+        return someIf(persistentData.title.length <= 0, Optional.from((_a = url.meta) === null || _a === void 0 ? void 0 : _a.title).getOr(''));
+      };
+      const getTextFromUrlChange = url => {
+        var _a;
+        return someIf(persistentData.text.length <= 0, Optional.from((_a = url.meta) === null || _a === void 0 ? void 0 : _a.text).getOr(url.value));
+      };
+      const onUrlChange = data => {
+        const text = getTextFromUrlChange(data.url);
+        const title = getTitleFromUrlChange(data.url);
+        if (text.isSome() || title.isSome()) {
+          return Optional.some({
+            ...text.map(text => ({ text })).getOr({}),
+            ...title.map(title => ({ title })).getOr({})
+          });
+        } else {
+          return Optional.none();
+        }
+      };
+      const onCatalogChange = (data, change) => {
+        const catalog = findCatalog(linkCatalog, change).getOr([]);
+        return getDelta(persistentData.text, change, catalog, data);
+      };
+      const onChange = (getData, change) => {
+        const name = change.name;
+        if (name === 'url') {
+          return onUrlChange(getData());
+        } else if (contains([
+            'anchor',
+            'link'
+          ], name)) {
+          return onCatalogChange(getData(), name);
+        } else if (name === 'text' || name === 'title') {
+          persistentData[name] = getData()[name];
+          return Optional.none();
+        } else {
+          return Optional.none();
+        }
+      };
+      return { onChange };
+    };
+    const DialogChanges = {
+      init,
+      getDelta
+    };
+
+    var global$1 = tinymce.util.Tools.resolve('tinymce.util.Delay');
+
+    const delayedConfirm = (editor, message, callback) => {
+      const rng = editor.selection.getRng();
+      global$1.setEditorTimeout(editor, () => {
+        editor.windowManager.confirm(message, state => {
+          editor.selection.setRng(rng);
+          callback(state);
+        });
+      });
+    };
+    const tryEmailTransform = data => {
+      const url = data.href;
+      const suggestMailTo = url.indexOf('@') > 0 && url.indexOf('/') === -1 && url.indexOf('mailto:') === -1;
+      return suggestMailTo ? Optional.some({
+        message: 'The URL you entered seems to be an email address. Do you want to add the required mailto: prefix?',
+        preprocess: oldData => ({
+          ...oldData,
+          href: 'mailto:' + url
+        })
+      }) : Optional.none();
+    };
+    const tryProtocolTransform = (assumeExternalTargets, defaultLinkProtocol) => data => {
+      const url = data.href;
+      const suggestProtocol = assumeExternalTargets === 1 && !hasProtocol(url) || assumeExternalTargets === 0 && /^\s*www(\.|\d\.)/i.test(url);
+      return suggestProtocol ? Optional.some({
+        message: `The URL you entered seems to be an external link. Do you want to add the required ${ defaultLinkProtocol }:// prefix?`,
+        preprocess: oldData => ({
+          ...oldData,
+          href: defaultLinkProtocol + '://' + url
+        })
+      }) : Optional.none();
+    };
+    const preprocess = (editor, data) => findMap([
+      tryEmailTransform,
+      tryProtocolTransform(assumeExternalTargets(editor), getDefaultLinkProtocol(editor))
+    ], f => f(data)).fold(() => Promise.resolve(data), transform => new Promise(callback => {
+      delayedConfirm(editor, transform.message, state => {
+        callback(state ? transform.preprocess(data) : data);
+      });
+    }));
+    const DialogConfirms = { preprocess };
+
+    const getAnchors = editor => {
+      const anchorNodes = editor.dom.select('a:not([href])');
+      const anchors = bind(anchorNodes, anchor => {
+        const id = anchor.name || anchor.id;
+        return id ? [{
+            text: id,
+            value: '#' + id
+          }] : [];
+      });
+      return anchors.length > 0 ? Optional.some([{
+          text: 'None',
+          value: ''
+        }].concat(anchors)) : Optional.none();
+    };
+    const AnchorListOptions = { getAnchors };
+
+    const getClasses = editor => {
+      const list = getLinkClassList(editor);
+      if (list.length > 0) {
+        return ListOptions.sanitize(list);
+      }
+      return Optional.none();
+    };
+    const ClassListOptions = { getClasses };
+
+    const parseJson = text => {
+      try {
+        return Optional.some(JSON.parse(text));
+      } catch (err) {
+        return Optional.none();
+      }
+    };
+    const getLinks = editor => {
+      const extractor = item => editor.convertURL(item.value || item.url || '', 'href');
+      const linkList = getLinkList(editor);
+      return new Promise(resolve => {
+        if (isString(linkList)) {
+          fetch(linkList).then(res => res.ok ? res.text().then(parseJson) : Promise.reject()).then(resolve, () => resolve(Optional.none()));
+        } else if (isFunction(linkList)) {
+          linkList(output => resolve(Optional.some(output)));
+        } else {
+          resolve(Optional.from(linkList));
+        }
+      }).then(optItems => optItems.bind(ListOptions.sanitizeWith(extractor)).map(items => {
+        if (items.length > 0) {
+          const noneItem = [{
+              text: 'None',
+              value: ''
+            }];
+          return noneItem.concat(items);
+        } else {
+          return items;
+        }
+      }));
+    };
+    const LinkListOptions = { getLinks };
+
+    const getRels = (editor, initialTarget) => {
+      const list = getRelList(editor);
+      if (list.length > 0) {
+        const isTargetBlank = is(initialTarget, '_blank');
+        const enforceSafe = allowUnsafeLinkTarget(editor) === false;
+        const safeRelExtractor = item => applyRelTargetRules(ListOptions.getValue(item), isTargetBlank);
+        const sanitizer = enforceSafe ? ListOptions.sanitizeWith(safeRelExtractor) : ListOptions.sanitize;
+        return sanitizer(list);
+      }
+      return Optional.none();
+    };
+    const RelOptions = { getRels };
+
+    const fallbacks = [
+      {
+        text: 'Current window',
+        value: ''
+      },
+      {
+        text: 'New window',
+        value: '_blank'
+      }
+    ];
+    const getTargets = editor => {
+      const list = getTargetList(editor);
+      if (isArray(list)) {
+        return ListOptions.sanitize(list).orThunk(() => Optional.some(fallbacks));
+      } else if (list === false) {
+        return Optional.none();
+      }
+      return Optional.some(fallbacks);
+    };
+    const TargetOptions = { getTargets };
+
+    const nonEmptyAttr = (dom, elem, name) => {
+      const val = dom.getAttrib(elem, name);
+      return val !== null && val.length > 0 ? Optional.some(val) : Optional.none();
+    };
+    const extractFromAnchor = (editor, anchor) => {
+      const dom = editor.dom;
+      const onlyText = isOnlyTextSelected(editor);
+      const text = onlyText ? Optional.some(getAnchorText(editor.selection, anchor)) : Optional.none();
+      const url = anchor.bind(anchorElm => Optional.from(dom.getAttrib(anchorElm, 'href')));
+      const target = anchor.bind(anchorElm => Optional.from(dom.getAttrib(anchorElm, 'target')));
+      const rel = anchor.bind(anchorElm => nonEmptyAttr(dom, anchorElm, 'rel'));
+      const linkClass = anchor.bind(anchorElm => nonEmptyAttr(dom, anchorElm, 'class'));
+      const title = anchor.bind(anchorElm => nonEmptyAttr(dom, anchorElm, 'title'));
+      return {
+        url,
+        text,
+        title,
+        target,
+        rel,
+        linkClass
+      };
+    };
+    const collect = (editor, linkNode) => LinkListOptions.getLinks(editor).then(links => {
+      const anchor = extractFromAnchor(editor, linkNode);
+      return {
+        anchor,
+        catalogs: {
+          targets: TargetOptions.getTargets(editor),
+          rels: RelOptions.getRels(editor, anchor.target),
+          classes: ClassListOptions.getClasses(editor),
+          anchor: AnchorListOptions.getAnchors(editor),
+          link: links
+        },
+        optNode: linkNode,
+        flags: { titleEnabled: shouldShowLinkTitle(editor) }
+      };
+    });
+    const DialogInfo = { collect };
+
+    const handleSubmit = (editor, info) => api => {
+      const data = api.getData();
+      if (!data.url.value) {
+        unlink(editor);
+        api.close();
+        return;
+      }
+      const getChangedValue = key => Optional.from(data[key]).filter(value => !is(info.anchor[key], value));
+      const changedData = {
+        href: data.url.value,
+        text: getChangedValue('text'),
+        target: getChangedValue('target'),
+        rel: getChangedValue('rel'),
+        class: getChangedValue('linkClass'),
+        title: getChangedValue('title')
+      };
+      const attachState = {
+        href: data.url.value,
+        attach: data.url.meta !== undefined && data.url.meta.attach ? data.url.meta.attach : noop
+      };
+      DialogConfirms.preprocess(editor, changedData).then(pData => {
+        link(editor, attachState, pData);
+      });
+      api.close();
+    };
+    const collectData = editor => {
+      const anchorNode = getAnchorElement(editor);
+      return DialogInfo.collect(editor, anchorNode);
+    };
+    const getInitialData = (info, defaultTarget) => {
+      const anchor = info.anchor;
+      const url = anchor.url.getOr('');
+      return {
+        url: {
+          value: url,
+          meta: { original: { value: url } }
+        },
+        text: anchor.text.getOr(''),
+        title: anchor.title.getOr(''),
+        anchor: url,
+        link: url,
+        rel: anchor.rel.getOr(''),
+        target: anchor.target.or(defaultTarget).getOr(''),
+        linkClass: anchor.linkClass.getOr('')
+      };
+    };
+    const makeDialog = (settings, onSubmit, editor) => {
+      const urlInput = [{
+          name: 'url',
+          type: 'urlinput',
+          filetype: 'file',
+          label: 'URL',
+          picker_text: 'Browse links'
+        }];
+      const displayText = settings.anchor.text.map(() => ({
+        name: 'text',
+        type: 'input',
+        label: 'Text to display'
+      })).toArray();
+      const titleText = settings.flags.titleEnabled ? [{
+          name: 'title',
+          type: 'input',
+          label: 'Title'
+        }] : [];
+      const defaultTarget = Optional.from(getDefaultLinkTarget(editor));
+      const initialData = getInitialData(settings, defaultTarget);
+      const catalogs = settings.catalogs;
+      const dialogDelta = DialogChanges.init(initialData, catalogs);
+      const body = {
+        type: 'panel',
+        items: flatten([
+          urlInput,
+          displayText,
+          titleText,
+          cat([
+            catalogs.anchor.map(ListOptions.createUi('anchor', 'Anchors')),
+            catalogs.rels.map(ListOptions.createUi('rel', 'Rel')),
+            catalogs.targets.map(ListOptions.createUi('target', 'Open link in...')),
+            catalogs.link.map(ListOptions.createUi('link', 'Link list')),
+            catalogs.classes.map(ListOptions.createUi('linkClass', 'Class'))
+          ])
+        ])
+      };
+      return {
+        title: 'Insert/Edit Link',
+        size: 'normal',
+        body,
+        buttons: [
+          {
+            type: 'cancel',
+            name: 'cancel',
+            text: 'Cancel'
+          },
+          {
+            type: 'submit',
+            name: 'save',
+            text: 'Save',
+            primary: true
+          }
+        ],
+        initialData,
+        onChange: (api, {name}) => {
+          dialogDelta.onChange(api.getData, { name }).each(newData => {
+            api.setData(newData);
+          });
+        },
+        onSubmit
+      };
+    };
+    const open$1 = editor => {
+      const data = collectData(editor);
+      data.then(info => {
+        const onSubmit = handleSubmit(editor, info);
+        return makeDialog(info, onSubmit, editor);
+      }).then(spec => {
+        editor.windowManager.open(spec);
+      });
+    };
+
+    const register = editor => {
+      editor.addCommand('mceLink', (_ui, value) => {
+        if ((value === null || value === void 0 ? void 0 : value.dialog) === true || !useQuickLink(editor)) {
+          open$1(editor);
+        } else {
+          editor.dispatch('contexttoolbar-show', { toolbarKey: 'quicklink' });
+        }
+      });
+    };
+
+    var global = tinymce.util.Tools.resolve('tinymce.util.VK');
+
+    const appendClickRemove = (link, evt) => {
+      document.body.appendChild(link);
+      link.dispatchEvent(evt);
+      document.body.removeChild(link);
+    };
+    const open = url => {
+      const link = document.createElement('a');
+      link.target = '_blank';
+      link.href = url;
+      link.rel = 'noreferrer noopener';
+      const evt = document.createEvent('MouseEvents');
+      evt.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+      appendClickRemove(link, evt);
+    };
+
+    const getLink = (editor, elm) => editor.dom.getParent(elm, 'a[href]');
+    const getSelectedLink = editor => getLink(editor, editor.selection.getStart());
+    const hasOnlyAltModifier = e => {
+      return e.altKey === true && e.shiftKey === false && e.ctrlKey === false && e.metaKey === false;
+    };
+    const gotoLink = (editor, a) => {
+      if (a) {
+        const href = getHref(a);
+        if (/^#/.test(href)) {
+          const targetEl = editor.dom.select(href);
+          if (targetEl.length) {
+            editor.selection.scrollIntoView(targetEl[0], true);
+          }
+        } else {
+          open(a.href);
+        }
+      }
+    };
+    const openDialog = editor => () => {
+      editor.execCommand('mceLink', false, { dialog: true });
+    };
+    const gotoSelectedLink = editor => () => {
+      gotoLink(editor, getSelectedLink(editor));
+    };
+    const setupGotoLinks = editor => {
+      editor.on('click', e => {
+        const link = getLink(editor, e.target);
+        if (link && global.metaKeyPressed(e)) {
+          e.preventDefault();
+          gotoLink(editor, link);
+        }
+      });
+      editor.on('keydown', e => {
+        if (!e.isDefaultPrevented() && e.keyCode === 13 && hasOnlyAltModifier(e)) {
+          const link = getSelectedLink(editor);
+          if (link) {
+            e.preventDefault();
+            gotoLink(editor, link);
+          }
+        }
+      });
+    };
+    const toggleState = (editor, toggler) => {
+      editor.on('NodeChange', toggler);
+      return () => editor.off('NodeChange', toggler);
+    };
+    const toggleLinkState = editor => api => {
+      const updateState = () => {
+        api.setActive(!editor.mode.isReadOnly() && isInAnchor(editor, editor.selection.getNode()));
+        api.setEnabled(editor.selection.isEditable());
+      };
+      updateState();
+      return toggleState(editor, updateState);
+    };
+    const toggleLinkMenuState = editor => api => {
+      const updateState = () => {
+        api.setEnabled(editor.selection.isEditable());
+      };
+      updateState();
+      return toggleState(editor, updateState);
+    };
+    const hasExactlyOneLinkInSelection = editor => {
+      const links = editor.selection.isCollapsed() ? getLinks$1(editor.dom.getParents(editor.selection.getStart())) : getLinksInSelection(editor.selection.getRng());
+      return links.length === 1;
+    };
+    const toggleGotoLinkState = editor => api => {
+      const updateState = () => api.setEnabled(hasExactlyOneLinkInSelection(editor));
+      updateState();
+      return toggleState(editor, updateState);
+    };
+    const toggleUnlinkState = editor => api => {
+      const hasLinks$1 = parents => hasLinks(parents) || hasLinksInSelection(editor.selection.getRng());
+      const parents = editor.dom.getParents(editor.selection.getStart());
+      const updateEnabled = parents => {
+        api.setEnabled(hasLinks$1(parents) && editor.selection.isEditable());
+      };
+      updateEnabled(parents);
+      return toggleState(editor, e => updateEnabled(e.parents));
+    };
+
+    const setup = editor => {
+      editor.addShortcut('Meta+K', '', () => {
+        editor.execCommand('mceLink');
+      });
+    };
+
+    const setupButtons = editor => {
+      editor.ui.registry.addToggleButton('link', {
+        icon: 'link',
+        tooltip: 'Insert/edit link',
+        onAction: openDialog(editor),
+        onSetup: toggleLinkState(editor)
+      });
+      editor.ui.registry.addButton('openlink', {
+        icon: 'new-tab',
+        tooltip: 'Open link',
+        onAction: gotoSelectedLink(editor),
+        onSetup: toggleGotoLinkState(editor)
+      });
+      editor.ui.registry.addButton('unlink', {
+        icon: 'unlink',
+        tooltip: 'Remove link',
+        onAction: () => unlink(editor),
+        onSetup: toggleUnlinkState(editor)
+      });
+    };
+    const setupMenuItems = editor => {
+      editor.ui.registry.addMenuItem('openlink', {
+        text: 'Open link',
+        icon: 'new-tab',
+        onAction: gotoSelectedLink(editor),
+        onSetup: toggleGotoLinkState(editor)
+      });
+      editor.ui.registry.addMenuItem('link', {
+        icon: 'link',
+        text: 'Link...',
+        shortcut: 'Meta+K',
+        onSetup: toggleLinkMenuState(editor),
+        onAction: openDialog(editor)
+      });
+      editor.ui.registry.addMenuItem('unlink', {
+        icon: 'unlink',
+        text: 'Remove link',
+        onAction: () => unlink(editor),
+        onSetup: toggleUnlinkState(editor)
+      });
+    };
+    const setupContextMenu = editor => {
+      const inLink = 'link unlink openlink';
+      const noLink = 'link';
+      editor.ui.registry.addContextMenu('link', {
+        update: element => {
+          const isEditable = editor.dom.isEditable(element);
+          if (!isEditable) {
+            return '';
+          }
+          return hasLinks(editor.dom.getParents(element, 'a')) ? inLink : noLink;
+        }
+      });
+    };
+    const setupContextToolbars = editor => {
+      const collapseSelectionToEnd = editor => {
+        editor.selection.collapse(false);
+      };
+      const onSetupLink = buttonApi => {
+        const node = editor.selection.getNode();
+        buttonApi.setEnabled(isInAnchor(editor, node));
+        return noop;
+      };
+      const getLinkText = value => {
+        const anchor = getAnchorElement(editor);
+        const onlyText = isOnlyTextSelected(editor);
+        if (anchor.isNone() && onlyText) {
+          const text = getAnchorText(editor.selection, anchor);
+          return someIf(text.length === 0, value);
+        } else {
+          return Optional.none();
+        }
+      };
+      editor.ui.registry.addContextForm('quicklink', {
+        launch: {
+          type: 'contextformtogglebutton',
+          icon: 'link',
+          tooltip: 'Link',
+          onSetup: toggleLinkState(editor)
+        },
+        label: 'Link',
+        predicate: node => hasContextToolbar(editor) && isInAnchor(editor, node),
+        initValue: () => {
+          const elm = getAnchorElement(editor);
+          return elm.fold(constant(''), getHref);
+        },
+        commands: [
+          {
+            type: 'contextformtogglebutton',
+            icon: 'link',
+            tooltip: 'Link',
+            primary: true,
+            onSetup: buttonApi => {
+              const node = editor.selection.getNode();
+              buttonApi.setActive(isInAnchor(editor, node));
+              return toggleLinkState(editor)(buttonApi);
+            },
+            onAction: formApi => {
+              const value = formApi.getValue();
+              const text = getLinkText(value);
+              const attachState = {
+                href: value,
+                attach: noop
+              };
+              link(editor, attachState, {
+                href: value,
+                text,
+                title: Optional.none(),
+                rel: Optional.none(),
+                target: Optional.none(),
+                class: Optional.none()
+              });
+              collapseSelectionToEnd(editor);
+              formApi.hide();
+            }
+          },
+          {
+            type: 'contextformbutton',
+            icon: 'unlink',
+            tooltip: 'Remove link',
+            onSetup: onSetupLink,
+            onAction: formApi => {
+              unlink(editor);
+              formApi.hide();
+            }
+          },
+          {
+            type: 'contextformbutton',
+            icon: 'new-tab',
+            tooltip: 'Open link',
+            onSetup: onSetupLink,
+            onAction: formApi => {
+              gotoSelectedLink(editor)();
+              formApi.hide();
+            }
+          }
+        ]
+      });
+    };
+
+    var Plugin = () => {
+      global$5.add('link', editor => {
+        register$1(editor);
+        setupButtons(editor);
+        setupMenuItems(editor);
+        setupContextMenu(editor);
+        setupContextToolbars(editor);
+        setupGotoLinks(editor);
+        register(editor);
+        setup(editor);
+      });
+    };
+
+    Plugin();
+
+})();

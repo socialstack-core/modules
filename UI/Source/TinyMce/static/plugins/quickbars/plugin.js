@@ -1,9 +1,447 @@
 /**
- * Copyright (c) Tiny Technologies, Inc. All rights reserved.
- * Licensed under the LGPL or a commercial license.
- * For LGPL see License.txt in the project root for license information.
- * For commercial licenses see https://www.tiny.cloud/
- *
- * Version: 5.0.11 (2019-07-04)
+ * TinyMCE version 6.8.6 (TBD)
  */
-!function(t){"use strict";var e=tinymce.util.Tools.resolve("tinymce.PluginManager"),a=0,n=function(e,n,r){var t,o,i;e.plugins.table?e.plugins.table.insertTable(n,r):(o=n,i=r,(t=e).undoManager.transact(function(){var e,n;t.insertContent(function(e,n){var r,t,o;for(o='<table data-mce-id="mce" style="width: 100%">',o+="<tbody>",t=0;t<n;t++){for(o+="<tr>",r=0;r<e;r++)o+="<td><br></td>";o+="</tr>"}return o+="</tbody>",o+="</table>"}(o,i)),(e=t.dom.select("*[data-mce-id]")[0]).removeAttribute("data-mce-id"),n=t.dom.select("td,th",e),t.selection.setCursorLocation(n[0],0)}))},o=function(e,n,r){var t,o,i,u;o=(t=e.editorUpload.blobCache).create((i="mceu",u=(new Date).getTime(),i+"_"+Math.floor(1e9*Math.random())+ ++a+String(u)),r,n),t.add(o),e.insertContent(e.dom.createHTML("img",{src:o.blobUri()}))},i="undefined"!=typeof t.window?t.window:Function("return this;")(),u=function(e,n){return function(e,n){for(var r=n!==undefined&&null!==n?n:i,t=0;t<e.length&&r!==undefined&&null!==r;++t)r=r[e[t]];return r}(e.split("."),n)},s=function(e,n){var r=u(e,n);if(r===undefined||null===r)throw e+" not available on this browser";return r};var r,c,f,d,l=tinymce.util.Tools.resolve("tinymce.util.Promise"),m=function(t){return new l(function(e){var n=function r(){return new(s("FileReader"))}();n.onloadend=function(){e(n.result.split(",")[1])},n.readAsDataURL(t)})},g=function(){return new l(function(n){var e;(e=t.document.createElement("input")).type="file",e.style.position="fixed",e.style.left=0,e.style.top=0,e.style.opacity=.001,t.document.body.appendChild(e),e.onchange=function(e){n(Array.prototype.slice.call(e.target.files))},e.click(),e.parentNode.removeChild(e)})},h=function(r){r.ui.registry.addButton("quickimage",{icon:"image",tooltip:"Insert image",onAction:function(){g().then(function(e){var n=e[0];m(n).then(function(e){o(r,e,n)})})}}),r.ui.registry.addButton("quicktable",{icon:"table",tooltip:"Insert table",onAction:function(){n(r,2,2)}})},v=function(e){return function(){return e}},p=v(!1),N=v(!0),O=p,b=N,E=function(){return w},w=(d={fold:function(e,n){return e()},is:O,isSome:O,isNone:b,getOr:f=function(e){return e},getOrThunk:c=function(e){return e()},getOrDie:function(e){throw new Error(e||"error: getOrDie called on none.")},getOrNull:function(){return null},getOrUndefined:function(){return undefined},or:f,orThunk:c,map:E,ap:E,each:function(){},bind:E,flatten:E,exists:O,forall:b,filter:E,equals:r=function(e){return e.isNone()},equals_:r,toArray:function(){return[]},toString:v("none()")},Object.freeze&&Object.freeze(d),d),T=function(r){var e=function(){return r},n=function(){return o},t=function(e){return e(r)},o={fold:function(e,n){return n(r)},is:function(e){return r===e},isSome:b,isNone:O,getOr:e,getOrThunk:e,getOrDie:e,getOrNull:e,getOrUndefined:e,or:n,orThunk:n,map:function(e){return T(e(r))},ap:function(e){return e.fold(E,function(e){return T(e(r))})},each:function(e){e(r)},bind:t,flatten:e,exists:t,forall:t,filter:function(e){return e(r)?o:w},equals:function(e){return e.is(r)},equals_:function(e,n){return e.fold(O,function(e){return n(r,e)})},toArray:function(){return[r]},toString:function(){return"some("+r+")"}};return o},S={some:T,none:E,from:function(e){return null===e||e===undefined?w:T(e)}},y=function(e){if(null===e||e===undefined)throw new Error("Node cannot be null or undefined");return{dom:v(e)}},x={fromHtml:function(e,n){var r=(n||t.document).createElement("div");if(r.innerHTML=e,!r.hasChildNodes()||1<r.childNodes.length)throw t.console.error("HTML does not have a single root node",e),new Error("HTML must have a single root node");return y(r.childNodes[0])},fromTag:function(e,n){var r=(n||t.document).createElement(e);return y(r)},fromText:function(e,n){var r=(n||t.document).createTextNode(e);return y(r)},fromDom:y,fromPoint:function(e,n,r){var t=e.dom();return S.from(t.elementFromPoint(n,r)).map(y)}},k=(t.Node.ATTRIBUTE_NODE,t.Node.CDATA_SECTION_NODE,t.Node.COMMENT_NODE,t.Node.DOCUMENT_NODE,t.Node.DOCUMENT_TYPE_NODE,t.Node.DOCUMENT_FRAGMENT_NODE,t.Node.ELEMENT_NODE),D=(t.Node.TEXT_NODE,t.Node.PROCESSING_INSTRUCTION_NODE,t.Node.ENTITY_REFERENCE_NODE,t.Node.ENTITY_NODE,t.Node.NOTATION_NODE,function(n){return function(e){return function(e){if(null===e)return"null";var n=typeof e;return"object"===n&&(Array.prototype.isPrototypeOf(e)||e.constructor&&"Array"===e.constructor.name)?"array":"object"===n&&(String.prototype.isPrototypeOf(e)||e.constructor&&"String"===e.constructor.name)?"string":n}(e)===n}}),_=D("string"),C=D("object"),A=D("array"),R=D("boolean"),I=D("undefined"),M=D("function"),q=Array.prototype.slice;M(Array.from)&&Array.from;function L(e,n,r,t,o){return e(r,t)?S.some(r):M(o)&&o(r)?S.none():n(r,t,o)}var P,F,U,B,j=function(){return s("Node")},H=function(e,n,r){return 0!=(e.compareDocumentPosition(n)&r)},X=function(e,n){return H(e,n,j().DOCUMENT_POSITION_CONTAINED_BY)},z=function(e,n){var r=function(e,n){for(var r=0;r<e.length;r++){var t=e[r];if(t.test(n))return t}return undefined}(e,n);if(!r)return{major:0,minor:0};var t=function(e){return Number(n.replace(r,"$"+e))};return W(t(1),t(2))},G=function(){return W(0,0)},W=function(e,n){return{major:e,minor:n}},Y={nu:W,detect:function(e,n){var r=String(n).toLowerCase();return 0===e.length?G():z(e,r)},unknown:G},$="Firefox",V=function(e,n){return function(){return n===e}},J=function(e){var n=e.current;return{current:n,version:e.version,isEdge:V("Edge",n),isChrome:V("Chrome",n),isIE:V("IE",n),isOpera:V("Opera",n),isFirefox:V($,n),isSafari:V("Safari",n)}},K={unknown:function(){return J({current:undefined,version:Y.unknown()})},nu:J,edge:v("Edge"),chrome:v("Chrome"),ie:v("IE"),opera:v("Opera"),firefox:v($),safari:v("Safari")},Q="Windows",Z="Android",ee="Solaris",ne="FreeBSD",re=function(e,n){return function(){return n===e}},te=function(e){var n=e.current;return{current:n,version:e.version,isWindows:re(Q,n),isiOS:re("iOS",n),isAndroid:re(Z,n),isOSX:re("OSX",n),isLinux:re("Linux",n),isSolaris:re(ee,n),isFreeBSD:re(ne,n)}},oe={unknown:function(){return te({current:undefined,version:Y.unknown()})},nu:te,windows:v(Q),ios:v("iOS"),android:v(Z),linux:v("Linux"),osx:v("OSX"),solaris:v(ee),freebsd:v(ne)},ie=function(e,n){var r=String(n).toLowerCase();return function(e,n){for(var r=0,t=e.length;r<t;r++){var o=e[r];if(n(o,r,e))return S.some(o)}return S.none()}(e,function(e){return e.search(r)})},ue=function(e,r){return ie(e,r).map(function(e){var n=Y.detect(e.versionRegexes,r);return{current:e.name,version:n}})},ae=function(e,r){return ie(e,r).map(function(e){var n=Y.detect(e.versionRegexes,r);return{current:e.name,version:n}})},se=function(e,n){return-1!==e.indexOf(n)},ce=/.*?version\/\ ?([0-9]+)\.([0-9]+).*/,fe=function(n){return function(e){return se(e,n)}},de=[{name:"Edge",versionRegexes:[/.*?edge\/ ?([0-9]+)\.([0-9]+)$/],search:function(e){return se(e,"edge/")&&se(e,"chrome")&&se(e,"safari")&&se(e,"applewebkit")}},{name:"Chrome",versionRegexes:[/.*?chrome\/([0-9]+)\.([0-9]+).*/,ce],search:function(e){return se(e,"chrome")&&!se(e,"chromeframe")}},{name:"IE",versionRegexes:[/.*?msie\ ?([0-9]+)\.([0-9]+).*/,/.*?rv:([0-9]+)\.([0-9]+).*/],search:function(e){return se(e,"msie")||se(e,"trident")}},{name:"Opera",versionRegexes:[ce,/.*?opera\/([0-9]+)\.([0-9]+).*/],search:fe("opera")},{name:"Firefox",versionRegexes:[/.*?firefox\/\ ?([0-9]+)\.([0-9]+).*/],search:fe("firefox")},{name:"Safari",versionRegexes:[ce,/.*?cpu os ([0-9]+)_([0-9]+).*/],search:function(e){return(se(e,"safari")||se(e,"mobile/"))&&se(e,"applewebkit")}}],le=[{name:"Windows",search:fe("win"),versionRegexes:[/.*?windows\ nt\ ?([0-9]+)\.([0-9]+).*/]},{name:"iOS",search:function(e){return se(e,"iphone")||se(e,"ipad")},versionRegexes:[/.*?version\/\ ?([0-9]+)\.([0-9]+).*/,/.*cpu os ([0-9]+)_([0-9]+).*/,/.*cpu iphone os ([0-9]+)_([0-9]+).*/]},{name:"Android",search:fe("android"),versionRegexes:[/.*?android\ ?([0-9]+)\.([0-9]+).*/]},{name:"OSX",search:fe("os x"),versionRegexes:[/.*?os\ x\ ?([0-9]+)_([0-9]+).*/]},{name:"Linux",search:fe("linux"),versionRegexes:[]},{name:"Solaris",search:fe("sunos"),versionRegexes:[]},{name:"FreeBSD",search:fe("freebsd"),versionRegexes:[]}],me={browsers:v(de),oses:v(le)},ge=function(e){var n,r,t,o,i,u,a,s,c,f,d,l=me.browsers(),m=me.oses(),g=ue(l,e).fold(K.unknown,K.nu),h=ae(m,e).fold(oe.unknown,oe.nu);return{browser:g,os:h,deviceType:(r=g,t=e,o=(n=h).isiOS()&&!0===/ipad/i.test(t),i=n.isiOS()&&!o,u=n.isAndroid()&&3===n.version.major,a=n.isAndroid()&&4===n.version.major,s=o||u||a&&!0===/mobile/i.test(t),c=n.isiOS()||n.isAndroid(),f=c&&!s,d=r.isSafari()&&n.isiOS()&&!1===/safari/i.test(t),{isiPad:v(o),isiPhone:v(i),isTablet:v(s),isPhone:v(f),isTouch:v(c),isAndroid:n.isAndroid,isiOS:n.isiOS,isWebView:v(d)})}},he=(U=!(P=function(){var e=t.navigator.userAgent;return ge(e)}),function(){for(var e=[],n=0;n<arguments.length;n++)e[n]=arguments[n];return U||(U=!0,F=P.apply(null,e)),F}),ve=k,pe=function(e,n){var r=e.dom();if(r.nodeType!==ve)return!1;if(r.matches!==undefined)return r.matches(n);if(r.msMatchesSelector!==undefined)return r.msMatchesSelector(n);if(r.webkitMatchesSelector!==undefined)return r.webkitMatchesSelector(n);if(r.mozMatchesSelector!==undefined)return r.mozMatchesSelector(n);throw new Error("Browser lacks native selectors")},Ne=({detect:he}.detect().browser.isIE(),function(e,n,r){for(var t=e.dom(),o=M(r)?r:v(!1);t.parentNode;){t=t.parentNode;var i=x.fromDom(t);if(n(i))return S.some(i);if(o(i))break}return S.none()}),Oe=function(e,n,r){return Ne(e,function(e){return pe(e,n)},r)},be={getToolbarItemsOr:(B=_,function(e,n,r){return function(e,n){if(!n(e))throw new Error("Default value doesn't match requested type.")}(r,B),function(e,n){if(A(e)||C(e))throw new Error("expected a string but found: "+e);return I(e)?n:R(e)?!1===e?"":n:e}(e.getParam(n,r),r)})},Ee=function(e){return be.getToolbarItemsOr(e,"quickbars_selection_toolbar","bold italic | quicklink h2 h3 blockquote")},we=function(e){return be.getToolbarItemsOr(e,"quickbars_insert_toolbar","quickimage quicktable")},Te=function(a){var e=we(a);0<e.trim().length&&a.ui.registry.addContextToolbar("quickblock",{predicate:function(e){var n,r,t,o=x.fromDom(e),i=a.schema.getTextBlockElements(),u=function(e){return e.dom()===a.getBody()};return(n=o,r="table",t=u,L(pe,Oe,n,r,t)).fold(function(){return(e=o,n=function(e){return e.dom().nodeName.toLowerCase()in i&&a.dom.isEmpty(e.dom())},r=u,L(function(e){return n(e)},Ne,e,n,r)).isSome();var e,n,r},function(){return!1})},items:e,position:"line",scope:"editor"})},Se=function(n){n.ui.registry.addContextToolbar("imageselection",{predicate:function(e){return"IMG"===e.nodeName||"FIGURE"===e.nodeName&&/image/i.test(e.className)},items:"alignleft aligncenter alignright",position:"node"});var e=Ee(n);0<e.trim().length&&n.ui.registry.addContextToolbar("textselection",{predicate:function(e){return!n.selection.isCollapsed()},items:e,position:"selection"})};!function ye(){e.add("quickbars",function(e){h(e),Te(e),Se(e)})}()}(window);
+
+(function () {
+    'use strict';
+
+    var global$1 = tinymce.util.Tools.resolve('tinymce.PluginManager');
+
+    const hasProto = (v, constructor, predicate) => {
+      var _a;
+      if (predicate(v, constructor.prototype)) {
+        return true;
+      } else {
+        return ((_a = v.constructor) === null || _a === void 0 ? void 0 : _a.name) === constructor.name;
+      }
+    };
+    const typeOf = x => {
+      const t = typeof x;
+      if (x === null) {
+        return 'null';
+      } else if (t === 'object' && Array.isArray(x)) {
+        return 'array';
+      } else if (t === 'object' && hasProto(x, String, (o, proto) => proto.isPrototypeOf(o))) {
+        return 'string';
+      } else {
+        return t;
+      }
+    };
+    const isType = type => value => typeOf(value) === type;
+    const isSimpleType = type => value => typeof value === type;
+    const isString = isType('string');
+    const isBoolean = isSimpleType('boolean');
+    const isNullable = a => a === null || a === undefined;
+    const isNonNullable = a => !isNullable(a);
+    const isFunction = isSimpleType('function');
+
+    const option = name => editor => editor.options.get(name);
+    const register = editor => {
+      const registerOption = editor.options.register;
+      const toolbarProcessor = defaultValue => value => {
+        const valid = isBoolean(value) || isString(value);
+        if (valid) {
+          if (isBoolean(value)) {
+            return {
+              value: value ? defaultValue : '',
+              valid
+            };
+          } else {
+            return {
+              value: value.trim(),
+              valid
+            };
+          }
+        } else {
+          return {
+            valid: false,
+            message: 'Must be a boolean or string.'
+          };
+        }
+      };
+      const defaultSelectionToolbar = 'bold italic | quicklink h2 h3 blockquote';
+      registerOption('quickbars_selection_toolbar', {
+        processor: toolbarProcessor(defaultSelectionToolbar),
+        default: defaultSelectionToolbar
+      });
+      const defaultInsertToolbar = 'quickimage quicktable';
+      registerOption('quickbars_insert_toolbar', {
+        processor: toolbarProcessor(defaultInsertToolbar),
+        default: defaultInsertToolbar
+      });
+      const defaultImageToolbar = 'alignleft aligncenter alignright';
+      registerOption('quickbars_image_toolbar', {
+        processor: toolbarProcessor(defaultImageToolbar),
+        default: defaultImageToolbar
+      });
+    };
+    const getTextSelectionToolbarItems = option('quickbars_selection_toolbar');
+    const getInsertToolbarItems = option('quickbars_insert_toolbar');
+    const getImageToolbarItems = option('quickbars_image_toolbar');
+
+    let unique = 0;
+    const generate = prefix => {
+      const date = new Date();
+      const time = date.getTime();
+      const random = Math.floor(Math.random() * 1000000000);
+      unique++;
+      return prefix + '_' + random + unique + String(time);
+    };
+
+    const insertTable = (editor, columns, rows) => {
+      editor.execCommand('mceInsertTable', false, {
+        rows,
+        columns
+      });
+    };
+    const insertBlob = (editor, base64, blob) => {
+      const blobCache = editor.editorUpload.blobCache;
+      const blobInfo = blobCache.create(generate('mceu'), blob, base64);
+      blobCache.add(blobInfo);
+      editor.insertContent(editor.dom.createHTML('img', { src: blobInfo.blobUri() }));
+    };
+
+    const blobToBase64 = blob => {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          resolve(reader.result.split(',')[1]);
+        };
+        reader.readAsDataURL(blob);
+      });
+    };
+
+    var global = tinymce.util.Tools.resolve('tinymce.util.Delay');
+
+    const pickFile = editor => new Promise(resolve => {
+      let resolved = false;
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.style.position = 'fixed';
+      fileInput.style.left = '0';
+      fileInput.style.top = '0';
+      fileInput.style.opacity = '0.001';
+      document.body.appendChild(fileInput);
+      const resolveFileInput = value => {
+        var _a;
+        if (!resolved) {
+          (_a = fileInput.parentNode) === null || _a === void 0 ? void 0 : _a.removeChild(fileInput);
+          resolved = true;
+          resolve(value);
+        }
+      };
+      const changeHandler = e => {
+        resolveFileInput(Array.prototype.slice.call(e.target.files));
+      };
+      fileInput.addEventListener('input', changeHandler);
+      fileInput.addEventListener('change', changeHandler);
+      const cancelHandler = e => {
+        const cleanup = () => {
+          resolveFileInput([]);
+        };
+        if (!resolved) {
+          if (e.type === 'focusin') {
+            global.setEditorTimeout(editor, cleanup, 1000);
+          } else {
+            cleanup();
+          }
+        }
+        editor.off('focusin remove', cancelHandler);
+      };
+      editor.on('focusin remove', cancelHandler);
+      fileInput.click();
+    });
+
+    const setupButtons = editor => {
+      editor.ui.registry.addButton('quickimage', {
+        icon: 'image',
+        tooltip: 'Insert image',
+        onAction: () => {
+          pickFile(editor).then(files => {
+            if (files.length > 0) {
+              const blob = files[0];
+              blobToBase64(blob).then(base64 => {
+                insertBlob(editor, base64, blob);
+              });
+            }
+          });
+        }
+      });
+      editor.ui.registry.addButton('quicktable', {
+        icon: 'table',
+        tooltip: 'Insert table',
+        onAction: () => {
+          insertTable(editor, 2, 2);
+        }
+      });
+    };
+
+    const constant = value => {
+      return () => {
+        return value;
+      };
+    };
+    const never = constant(false);
+
+    class Optional {
+      constructor(tag, value) {
+        this.tag = tag;
+        this.value = value;
+      }
+      static some(value) {
+        return new Optional(true, value);
+      }
+      static none() {
+        return Optional.singletonNone;
+      }
+      fold(onNone, onSome) {
+        if (this.tag) {
+          return onSome(this.value);
+        } else {
+          return onNone();
+        }
+      }
+      isSome() {
+        return this.tag;
+      }
+      isNone() {
+        return !this.tag;
+      }
+      map(mapper) {
+        if (this.tag) {
+          return Optional.some(mapper(this.value));
+        } else {
+          return Optional.none();
+        }
+      }
+      bind(binder) {
+        if (this.tag) {
+          return binder(this.value);
+        } else {
+          return Optional.none();
+        }
+      }
+      exists(predicate) {
+        return this.tag && predicate(this.value);
+      }
+      forall(predicate) {
+        return !this.tag || predicate(this.value);
+      }
+      filter(predicate) {
+        if (!this.tag || predicate(this.value)) {
+          return this;
+        } else {
+          return Optional.none();
+        }
+      }
+      getOr(replacement) {
+        return this.tag ? this.value : replacement;
+      }
+      or(replacement) {
+        return this.tag ? this : replacement;
+      }
+      getOrThunk(thunk) {
+        return this.tag ? this.value : thunk();
+      }
+      orThunk(thunk) {
+        return this.tag ? this : thunk();
+      }
+      getOrDie(message) {
+        if (!this.tag) {
+          throw new Error(message !== null && message !== void 0 ? message : 'Called getOrDie on None');
+        } else {
+          return this.value;
+        }
+      }
+      static from(value) {
+        return isNonNullable(value) ? Optional.some(value) : Optional.none();
+      }
+      getOrNull() {
+        return this.tag ? this.value : null;
+      }
+      getOrUndefined() {
+        return this.value;
+      }
+      each(worker) {
+        if (this.tag) {
+          worker(this.value);
+        }
+      }
+      toArray() {
+        return this.tag ? [this.value] : [];
+      }
+      toString() {
+        return this.tag ? `some(${ this.value })` : 'none()';
+      }
+    }
+    Optional.singletonNone = new Optional(false);
+
+    typeof window !== 'undefined' ? window : Function('return this;')();
+
+    const ELEMENT = 1;
+
+    const name = element => {
+      const r = element.dom.nodeName;
+      return r.toLowerCase();
+    };
+
+    const has$1 = (element, key) => {
+      const dom = element.dom;
+      return dom && dom.hasAttribute ? dom.hasAttribute(key) : false;
+    };
+
+    var ClosestOrAncestor = (is, ancestor, scope, a, isRoot) => {
+      if (is(scope, a)) {
+        return Optional.some(scope);
+      } else if (isFunction(isRoot) && isRoot(scope)) {
+        return Optional.none();
+      } else {
+        return ancestor(scope, a, isRoot);
+      }
+    };
+
+    const fromHtml = (html, scope) => {
+      const doc = scope || document;
+      const div = doc.createElement('div');
+      div.innerHTML = html;
+      if (!div.hasChildNodes() || div.childNodes.length > 1) {
+        const message = 'HTML does not have a single root node';
+        console.error(message, html);
+        throw new Error(message);
+      }
+      return fromDom(div.childNodes[0]);
+    };
+    const fromTag = (tag, scope) => {
+      const doc = scope || document;
+      const node = doc.createElement(tag);
+      return fromDom(node);
+    };
+    const fromText = (text, scope) => {
+      const doc = scope || document;
+      const node = doc.createTextNode(text);
+      return fromDom(node);
+    };
+    const fromDom = node => {
+      if (node === null || node === undefined) {
+        throw new Error('Node cannot be null or undefined');
+      }
+      return { dom: node };
+    };
+    const fromPoint = (docElm, x, y) => Optional.from(docElm.dom.elementFromPoint(x, y)).map(fromDom);
+    const SugarElement = {
+      fromHtml,
+      fromTag,
+      fromText,
+      fromDom,
+      fromPoint
+    };
+
+    const is = (element, selector) => {
+      const dom = element.dom;
+      if (dom.nodeType !== ELEMENT) {
+        return false;
+      } else {
+        const elem = dom;
+        if (elem.matches !== undefined) {
+          return elem.matches(selector);
+        } else if (elem.msMatchesSelector !== undefined) {
+          return elem.msMatchesSelector(selector);
+        } else if (elem.webkitMatchesSelector !== undefined) {
+          return elem.webkitMatchesSelector(selector);
+        } else if (elem.mozMatchesSelector !== undefined) {
+          return elem.mozMatchesSelector(selector);
+        } else {
+          throw new Error('Browser lacks native selectors');
+        }
+      }
+    };
+
+    const ancestor$1 = (scope, predicate, isRoot) => {
+      let element = scope.dom;
+      const stop = isFunction(isRoot) ? isRoot : never;
+      while (element.parentNode) {
+        element = element.parentNode;
+        const el = SugarElement.fromDom(element);
+        if (predicate(el)) {
+          return Optional.some(el);
+        } else if (stop(el)) {
+          break;
+        }
+      }
+      return Optional.none();
+    };
+    const closest$2 = (scope, predicate, isRoot) => {
+      const is = (s, test) => test(s);
+      return ClosestOrAncestor(is, ancestor$1, scope, predicate, isRoot);
+    };
+
+    const closest$1 = (scope, predicate, isRoot) => closest$2(scope, predicate, isRoot).isSome();
+
+    const ancestor = (scope, selector, isRoot) => ancestor$1(scope, e => is(e, selector), isRoot);
+    const closest = (scope, selector, isRoot) => {
+      const is$1 = (element, selector) => is(element, selector);
+      return ClosestOrAncestor(is$1, ancestor, scope, selector, isRoot);
+    };
+
+    const addToEditor$1 = editor => {
+      const insertToolbarItems = getInsertToolbarItems(editor);
+      if (insertToolbarItems.length > 0) {
+        editor.ui.registry.addContextToolbar('quickblock', {
+          predicate: node => {
+            const sugarNode = SugarElement.fromDom(node);
+            const textBlockElementsMap = editor.schema.getTextBlockElements();
+            const isRoot = elem => elem.dom === editor.getBody();
+            return !has$1(sugarNode, 'data-mce-bogus') && closest(sugarNode, 'table,[data-mce-bogus="all"]', isRoot).fold(() => closest$1(sugarNode, elem => name(elem) in textBlockElementsMap && editor.dom.isEmpty(elem.dom), isRoot), never);
+          },
+          items: insertToolbarItems,
+          position: 'line',
+          scope: 'editor'
+        });
+      }
+    };
+
+    const supports = element => element.dom.classList !== undefined;
+
+    const has = (element, clazz) => supports(element) && element.dom.classList.contains(clazz);
+
+    const addToEditor = editor => {
+      const isEditable = node => editor.dom.isEditable(node);
+      const isInEditableContext = el => isEditable(el.parentElement);
+      const isImage = node => {
+        const isImageFigure = node.nodeName === 'FIGURE' && /image/i.test(node.className);
+        const isImage = node.nodeName === 'IMG' || isImageFigure;
+        const isPagebreak = has(SugarElement.fromDom(node), 'mce-pagebreak');
+        return isImage && isInEditableContext(node) && !isPagebreak;
+      };
+      const imageToolbarItems = getImageToolbarItems(editor);
+      if (imageToolbarItems.length > 0) {
+        editor.ui.registry.addContextToolbar('imageselection', {
+          predicate: isImage,
+          items: imageToolbarItems,
+          position: 'node'
+        });
+      }
+      const textToolbarItems = getTextSelectionToolbarItems(editor);
+      if (textToolbarItems.length > 0) {
+        editor.ui.registry.addContextToolbar('textselection', {
+          predicate: node => !isImage(node) && !editor.selection.isCollapsed() && isEditable(node),
+          items: textToolbarItems,
+          position: 'selection',
+          scope: 'editor'
+        });
+      }
+    };
+
+    var Plugin = () => {
+      global$1.add('quickbars', editor => {
+        register(editor);
+        setupButtons(editor);
+        addToEditor$1(editor);
+        addToEditor(editor);
+      });
+    };
+
+    Plugin();
+
+})();

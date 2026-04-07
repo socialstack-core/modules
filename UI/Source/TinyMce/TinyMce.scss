@@ -140,3 +140,65 @@ body.mce-fullscreen.administration .administration-panel-shell-wrapper .administ
 .mce-editor-submittable.mce-submitpanel-narrow .mce-container .mce-submitpanel { text-align: inherit; width: 100%; padding-left: 0; margin-top: 2px; margin-left: 0; }
 .mce-editor-submittable.mce-submitpanel-narrow .mce-container .mce-submitpanel > a:first-child { margin-left: 10px; }
 
+// ensure TinyMCE menus are visible above modals
+body > .tox-silver-sink {
+	z-index: 2147483647;
+}
+
+// style tinymce buttons (e.g. dialog cancel/confirm)
+html .tox-button:not(.tox-button--icon, .tox-button--naked) {
+	--btn-min-height: var(--btn-md-min-height, #{$default-btn-md-min-height});
+	--btn-padding: var(--btn-md-padding, #{$default-btn-md-padding});
+	--btn-font-size: var(--btn-md-font-size, #{$default-btn-md-font-size});
+	--btn-font-weight: var(--btn-md-font-weight, #{$default-btn-md-font-weight});
+	--btn-border-radius: var(--btn-md-border-radius, #{$default-btn-md-border-radius});
+	--btn-icon: var(--btn-md-icon, #{$default-btn-md-icon});
+	--btn-gap: var(--btn-md-gap, #{$default-btn-md-gap});
+
+	min-height: var_to_rem(--btn-min-height);
+	padding: 0 var_to_rem(--btn-padding);
+	font-size: var_to_rem(--btn-font-size);
+	font-weight: var(--btn-font-weight);
+	border-radius: var_to_rem(--btn-border-radius);
+	gap: var_to_rem(--btn-gap);
+
+	> svg {
+		max-width: var_to_rem(--btn-icon);
+		height: var_to_rem(--btn-icon);
+		flex-shrink: 0;
+	}
+	
+	> i {
+		flex-shrink: 0;
+    }
+
+}
+
+html .tox-button:not(.tox-button--icon, .tox-button--naked, .tox-button--secondary) {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-fg);
+}
+
+html .tox-button:not(.tox-button--icon, .tox-button--naked, .tox-button--secondary):hover {
+    background-color: var(--secondary) !important;
+    border-color: var(--secondary) !important;
+    color: var(--secondary-fg) !important;
+}
+
+html .tox-button.tox-button--secondary {
+	background-color: var(--secondary);
+	border-color: var(--secondary);
+	color: var(--secondary-fg);
+}
+
+html .tox-button.tox-button--secondary:hover {
+    background-color: var(--secondary-hover) !important;
+    border-color: var(--secondary-hover-border) !important;
+    color: var(--secondary-fg) !important;
+}
+
+// prevent FOUM (flash of unstyled markup)
+.textarea--tinymce {
+	display: none;
+}
