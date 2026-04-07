@@ -17,6 +17,14 @@
     flex-direction: column;
     background-color: var(--ui-site-bg, #fff);
     color: var(--ui-site-fg, #000);
+	transition: 
+		opacity var(--ui-dialog-open-speed) ease, 
+		display var(--ui-dialog-open-speed) ease allow-discrete, 
+		overlay var(--ui-dialog-open-speed) ease allow-discrete;
+}
+
+html dialog.ui-dialog:not(:open) {
+	display: none !important;
 }
 
 .ui-dialog[data-show="true"],
@@ -29,16 +37,26 @@
 .ui-dialog[data-show="false"] {
     opacity: 0;
     pointer-events: none;
+	transition-duration: var(--ui-dialog-close-speed);
+
+	&::backdrop {
+		transition-duration: var(--ui-dialog-close-speed);
+	}
+
 }
 
 .ui-dialog[data-show="true"]::backdrop,
 .ui-dialog:modal::backdrop {
-    opacity: .4;
+	opacity: .4;
 }
 
 .ui-dialog::backdrop {
     background-color: #000;
-    opacity: 0;
+	opacity: 0;
+	transition: 
+		opacity var(--ui-dialog-open-speed) ease, 
+		display var(--ui-dialog-open-speed) ease allow-discrete, 
+		overlay var(--ui-dialog-open-speed) ease allow-discrete;
 }
 
 .ui-dialog__header {
@@ -79,6 +97,10 @@
     text-align: left;
 }
 
+.ui-dialog__alert {
+	margin-top: 1rem;
+}
+
 .ui-dialog__footer {
     display: flex;
     align-items: center;
@@ -93,28 +115,4 @@
 	.ui-dialog[open] {
 		opacity: 0;
 	}
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .ui-dialog {
-		transition: 
-			opacity var(--ui-dialog-open-speed) ease, 
-			display var(--ui-dialog-open-speed) ease allow-discrete, 
-			overlay var(--ui-dialog-open-speed) ease allow-discrete;
-
-		&::backdrop {
-			transition: 
-				opacity var(--ui-dialog-open-speed) ease, 
-				display var(--ui-dialog-open-speed) ease allow-discrete, 
-				overlay var(--ui-dialog-open-speed) ease allow-discrete;
-		}
-
-		&[data-show="false"] {
-			transition-duration: var(--ui-dialog-close-speed);
-
-			&::backdrop {
-				transition-duration: var(--ui-dialog-close-speed);
-			}
-		}
-    }
 }

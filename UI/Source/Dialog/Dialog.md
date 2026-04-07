@@ -57,4 +57,25 @@ No description has been added for this component.
 		</p>
 	</Dialog>
 
+	{/* alternatively, import UI/Dialog/ConfirmDialog: */}
+	<ConfirmDialog title={`Confirm Dialog Test`} isOpen={confirmDialogOpen} onClose={() => setConfirmDialogOpen(false)}
+		confirmCallback={() => {
+			// code to run when action confirmed (required)
+			//...
+		}}
+		cancelCallback={() => {
+			// code to run when action cancelled (optional)
+			//...
+		}}
+		variant="primary"
+		confirmText={`Do the thing`} cancelText={`Cancel the thing`}>
+		<p>
+			This will lorem ipsum dolor sit amet.
+		</p>
+		<p>
+			Do you wish to continue?
+		</p>
+	</ConfirmDialog>
+
+
 ```

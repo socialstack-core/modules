@@ -1,7 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
+import Alert from 'UI/Alert';
+import Loading from 'UI/Loading';
 import Button from 'UI/Button';
 
-type DialogProps = React.PropsWithChildren<{
+/**
+ * Props for the dialog component.
+ * @icon fal fa-window-maximize
+ * @description A modal dialog window.
+ */
+export interface DialogProps {
 	/**
 	 * dialog title
 	 */
@@ -13,7 +20,12 @@ type DialogProps = React.PropsWithChildren<{
 	isOpen: boolean,
 
 	/**
-	 * method to call when closing dialog
+	 * set true to prevent dialog from closing automatically after confirmation method has completed
+	 */
+	keepOpen?: boolean,
+
+	/**
+	 * on close / cancel callback
 	 */
 	onClose: () => void,
 
@@ -27,28 +39,18 @@ type DialogProps = React.PropsWithChildren<{
 	 */
 	className?: string,
 
-	children?: React.ReactNode
-}> & (
-		| {
-			/**
-			 * set true to use ConfirmDialog defaults
-			 */
-			confirm: true;
-			confirmVariant?: string;
-			confirmCallback: () => void;
-			cancelCallback?: () => void;
-			confirmText?: string;
-			cancelText?: string;
-		}
-		| {
-			confirm?: false;
-			confirmVariant?: never;
-			confirmCallback?: never;
-			cancelCallback?: never;
-			confirmText?: never;
-			cancelText?: never;
-		}
-	);
+	children?: React.ReactNode,
+
+	/**
+	 * set true to use ConfirmDialog defaults
+	 */
+	confirm?: boolean,
+	confirmVariant?: string,
+	confirmCallback?: () => any,
+	cancelCallback?: () => void,
+	confirmText?: string,
+	cancelText?: string
+}
 
 type DialogHeaderProps = React.PropsWithChildren<{
 	children?: React.ReactNode
@@ -59,10 +61,10 @@ type DialogFooterProps = React.PropsWithChildren<{
 }>;
 
 function DialogRoot(props: DialogProps) {
-	const { isOpen, onClose, className, children,
+	const { isOpen, keepOpen, onClose, className, children,
 		confirm, confirmVariant, confirmCallback, cancelCallback, confirmText, cancelText,
 		...attribs } = props;
-	const [error, setError] = useState<PublicError>();
+	const [error, setError] = useState<Error>();
 	const [loading, setLoading] = useState<boolean>(false);
 	const dialogRef = useRef<HTMLDialogElement>(null);
 	let headerNode: React.ReactNode = null;
@@ -113,21 +115,21 @@ function DialogRoot(props: DialogProps) {
 			dialog.dataset.show = "false";
 		}
 
-		const handleCancel = (e) => {
+		const handleCancel = (e: any) => {
 			e.preventDefault();
-			dialog.close();
+			dialog!.close();
 		};
 
-		function transitionEndHandler(e) {
+		function transitionEndHandler(e: any) {
 
 			if (e.target == dialog) {
 
-				if (dialog.dataset.show == "true") {
+				if (dialog!.dataset.show == "true") {
 					// opened
-					delete dialog.dataset.show;
+					delete dialog!.dataset.show;
 				}
 
-				if (dialog.dataset.show == "false") {
+				if (dialog!.dataset.show == "false") {
 					// closed
 					originalClose.call(dialog);
 				}
@@ -136,10 +138,21 @@ function DialogRoot(props: DialogProps) {
 
 		}
 
+		function dialogClickHandler(e: any) {
+			e.stopPropagation();
+
+			// allow clicking the background to close the dialog if we're not a modal dialog
+			if (e.target == dialog && !dialog!.matches(':modal')) {
+				dialog!.close();
+			}
+		}
+
 		dialog.addEventListener('transitionend', transitionEndHandler);
 		dialog.addEventListener('cancel', handleCancel);
+		document.addEventListener('click', dialogClickHandler);
 
 		return () => {
+			document.removeEventListener('click', dialogClickHandler);
 			dialog.removeEventListener('cancel', handleCancel);
 			dialog.removeEventListener('transitionend', transitionEndHandler);
 
@@ -229,9 +242,17 @@ function DialogRoot(props: DialogProps) {
 
 			{/* confirm */}
 			<Button variant={confirmVariant || 'success'} onClick={() => {
-				var possiblePromise = confirmCallback();
+				var possiblePromise = confirmCallback ? confirmCallback() : null;
 				if (!possiblePromise) {
-					cancelCallback();
+
+					if (cancelCallback) {
+						cancelCallback();
+					}
+
+					if (!keepOpen) {
+						onClose();
+					}
+
 					return;
 				}
 
@@ -239,11 +260,20 @@ function DialogRoot(props: DialogProps) {
 				setLoading(true);
 
 				possiblePromise.then(() => {
-					cancelCallback();
+
+					if (cancelCallback) {
+						cancelCallback();
+					}
+
 					setLoading(false);
 					setError(undefined);
+
+					if (!keepOpen) {
+						onClose();
+					}
+
 				})
-					.catch((err) => {
+					.catch((err: any) => {
 						setError(err);
 						setLoading(false);
 					})
@@ -259,8 +289,10 @@ function DialogRoot(props: DialogProps) {
 	});
 
 	return <>
-		{/* NB: only use [open] attribute here to render non-modal dialogs (not recommended - try UI/Popover) */}
-		<dialog className={classNames.join(' ')} closedby={noClose ? 'none' : 'closerequest'}
+		{/* NB: only use [open] attribute here to render non-modal dialogs (not recommended - try UI/Popover)
+		  * also removed  closedby={noClose ? 'none' : 'closerequest'}  as this disables closing via Esc
+		  */}
+		<dialog className={classNames.join(' ')} 
 			ref={dialogRef}
 			onClose={onClose}
 			onCancel={(e) => {
@@ -269,28 +301,24 @@ function DialogRoot(props: DialogProps) {
 				onClose();
 			}}>
 
-			{error &&
-				<Alert variant="danger">
-					{error.message}
-				</Alert>
-			}
+			<header className="ui-dialog__header">
+				{headerNode}
+			</header>
 
-			{loading &&
-				<Loading />
-			}
+			<div className="ui-dialog__content">
+				{loading && <Loading />}
+				{!loading && filteredChildren}
+				{error &&
+					<Alert variant="danger" className="ui-dialog__alert">
+						{error.message}
+					</Alert>
+				}
+			</div>
 
-			{!loading && <>
-				<header className="ui-dialog__header">
-					{headerNode}
-				</header>
-				<div className="ui-dialog__content">
-					{filteredChildren}
-				</div>
-				{footerNode && <>
-					<footer className="ui-dialog__footer">
-						{footerNode}
-					</footer>
-				</>}
+			{!loading && footerNode && <>
+				<footer className="ui-dialog__footer">
+					{footerNode}
+				</footer>
 			</>}
 
 		</dialog>
