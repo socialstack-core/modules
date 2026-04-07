@@ -3,16 +3,24 @@ import Spacer from 'UI/Spacer';
 import Alert from 'UI/Alert';
 import Loading from 'UI/Loading';
 import Input from 'UI/Input';
+import Dialog from 'UI/Dialog';
+import Button from 'UI/Button';
 import { useState, useEffect, useRef } from 'react'; 
 
 type ActionFunc<FieldType> = (fields: FieldType) => Promise<ResponseType>;
+
+type HTMLFormControlElement =
+	| HTMLInputElement
+	| HTMLTextAreaElement
+	| HTMLSelectElement;
 
 /**
  * Props for the Form component.
  */
 interface FormProps<ResponseType, FieldType> extends React.HTMLAttributes<HTMLFormElement> {
 	action: ActionFunc<FieldType>,
-	resetOnSubmit?:boolean,
+	resetOnSubmit?: boolean,
+	submitOnReset?: boolean,
 	failedMessage?: React.ReactNode,
 	loadingMessage?: string,
 	successMessage?: React.ReactNode,
@@ -25,10 +33,12 @@ interface FormProps<ResponseType, FieldType> extends React.HTMLAttributes<HTMLFo
 	xl?: boolean,
 	formRef?: React.RefObject<HTMLFormElement>,
 	className?: string,
+	showFailureDialog?: boolean,
 	onSuccess?: (response: ResponseType) => void,
 	onFailed?: (e: PublicError) => void,
 	onValues?: (values: FieldType, setAction: (newAction: ActionFunc<FieldType>) => void) => FieldType | Promise<FieldType>,
-	onSubmitted?: (values: FieldType) => void
+	onSubmitted?: (values: FieldType) => void,
+	onInvalidCapture?: (e: React.FormEvent<HTMLFormControlElement>) => void,
 }
 
 /**
@@ -46,11 +56,15 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 		submitEnabled,
 		submitLabel,
 		resetOnSubmit,
+		submitOnReset,
 		onSubmitted,
 		onSuccess,
 		onFailed,
+		onInvalidCapture,
 		formRef,
+		showFailureDialog,
 		onValues,
+		className,
 		...attribs
 	} = props;
 
@@ -66,6 +80,16 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 		setSuccess(false);
 		setLoading(false);
 	}, [action]);
+
+	const onReset = (e: React.FormEvent<HTMLFormElement>) => {
+
+		if (submitOnReset) {
+			setTimeout(() => {
+				internalFormRef.current?.requestSubmit();
+			}, 0);
+		}
+
+	};
 
 	const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault(); // Prevent default form submission
@@ -127,10 +151,26 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 		}
 	});
 
-	return (
+	if (className?.length) {
+		formClasses.push(className);
+	}
+
+	return <>
+		{showFailureDialog && <>
+			<Dialog title={`Warning`} isOpen={showFormResponse && failureMessage} onClose={() => setFailed(null)}>
+				{failureMessage}
+				<Dialog.Footer>
+					<Button onClick={() => setFailed(null)}>
+						{`Close`}
+					</Button>
+				</Dialog.Footer>
+			</Dialog>
+		</>}
 		<form
-		    className={formClasses.join(' ')}
+			className={formClasses.join(' ')}
 			onSubmit={onSubmit}
+			onReset={onReset}
+			onInvalidCapture={onInvalidCapture}
 			ref={internalFormRef}
 			method={"post"}
 			{...attribs}
@@ -140,7 +180,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 				<div className="form-response">
 					<Spacer />
 					{
-						failureMessage && (
+						failureMessage && !showFailureDialog && (
 							<div className="form-failed">
 								<Alert variant="danger">
 									{failureMessage}
@@ -173,7 +213,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 				</div>
 			)}
 		</form>
-	);
+	</>;
 	
 }
 
