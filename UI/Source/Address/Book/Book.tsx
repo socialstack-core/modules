@@ -6,7 +6,8 @@ import Form from 'UI/Form';
 import Input from 'UI/Input';
 import { useState } from 'react';
 import Button from 'UI/Button';
-import ConfirmModal from 'UI/Modal/ConfirmModal';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
+import { displayAddress } from 'UI/Functions/ContactTools';
 
 /**
  * Props for the Address/Book component.
@@ -50,16 +51,6 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 		return <Loading />;
 	}
 
-	const addressToLines = (addr: Address) => {
-		var current = [];
-		addr.line1 && current.push(addr.line1);
-		addr.line2 && current.push(addr.line2);
-		addr.line3 && current.push(addr.line3);
-		addr.city && current.push(addr.city);
-		addr.postcode && current.push(addr.postcode);
-		return current;
-	};
-
 	return (
 		<div className="ui-address-book">
 			<h1 className="ui-address-book__title">
@@ -82,7 +73,7 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 								</span>
 							</>}
 						</header>
-						{addressToLines(address).map(line => <div>{line}</div>)}
+						{displayAddress(address)}
 						<footer className="ui-address-book__item-footer">
 							{/* TODO */}
 							{/*<Button onClick={() => ...}>{`Edit`}</Button>*/}
@@ -97,7 +88,7 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 				<h2 className="ui-address-book__subtitle">
 					{`Add new address`}
 				</h2>
-				<Form action={addressApi.create} submitLabel={`Add address`}
+				<Form action={addressApi.create} submitLabel={`Add Address`}
 				onValues={values => {
 					values.addressType = addressType;
 					return values;
@@ -115,21 +106,20 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 					<Input type='checkbox' name='IsDefaultDeliveryAddress' label={`Set as default shipping address`} />
 				</Form>
 			</section>
-			{
-				confirmDelete && <ConfirmModal
-					confirmVariant={'danger'}
+
+			{confirmDelete && <>
+				<ConfirmDialog variant="danger" isOpen={confirmDelete} onClose={() => setConfirmDelete(null)}
 					confirmCallback={() => {
 						return addressApi.delete(confirmDelete.id).then(() => {
 							setConfirmDelete(null);
 							setCreateCounter(createCounter + 1);
 						});
 					}}
-					cancelCallback={() => setConfirmDelete(null)}
-					confirmText={`Yes, delete the address`}
-				>
+					confirmText={`Yes, delete the address`}>
 					{`Are you sure you want to delete this address?`}
-				</ConfirmModal>
-			}
+				</ConfirmDialog>
+			</>}
+
 		</div>
 	);
 }
