@@ -64,7 +64,7 @@ export default CardForm = (props) => {
 			<ReactCreditCardIntl expiry={expiry} number={number} cvc={cvc} name={name} focused={focus}/>
 		</div>
 		{/* Do not specify a name on any of the following inputs. This prevents them from being submitted with surrounding forms. */}
-        <Input label={`Card number`} placeholder='Long number on front of card' type='text' validate={['Required']}
+        <Input label={`Card Number`} placeholder='Long number on front of card' type='text' validate={['Required']}
             onFocus={e => setFocus('number')}
             onKeyUp={e => setNumber(e.target.value)}
             onChange={e => setNumber(e.target.value)}
@@ -110,14 +110,14 @@ export default CardForm = (props) => {
                 target.value = cardNumFormatted;
             }} />
 		
-        <Input label={`Name shown on card`} placeholder={`Name on card`} type='text'
+        <Input label={`Name Shown on Card`} placeholder={`Name on card`} type='text'
             onFocus={e => setFocus('name')}
             onKeyUp={e => setName(e.target.value)}
             onChange={e => setName(e.target.value)} />
 
         <Row>
             <Col sizeXs={12} sizeSm={7}>
-                <Input label={`Expiry date`} placeholder='MM/YY' type='text' validate={['Required']}
+                <Input label={`Expiry Date`} placeholder='MM/YY' type='text' validate={['Required']}
                     onFocus={e => setFocus('expiry')}
                     onKeyUp={e => setExpiry(e.target.value)}
                     onChange={e => setExpiry(e.target.value)}
@@ -158,7 +158,7 @@ export default CardForm = (props) => {
             <Col sizeXs={12} sizeSm={5}>
                 {/* typically 3 digits, but American Express uses 4 */}
                 {/* text with a pattern instead of type=number otherwise maxlength ignored */}
-                <Input label={`Card verification code`} placeholder={isAmexOrDinersClub ? `4 digits on front of card` : `Last 3 digits on reverse`}
+                <Input label={`Card Verification Code`} placeholder={isAmexOrDinersClub ? `4 digits on front of card` : `Last 3 digits on reverse`}
                     type='text' inputmode='numeric' pattern='\d*' maxlength={isAmexOrDinersClub ? 4 : 3} validate={['Required']} required
                     onFocus={e => setFocus('cvc')}
                     onKeyUp={e => setCvc(e.target.value)}
@@ -171,7 +171,7 @@ export default CardForm = (props) => {
             </Col>
         </Row>
 
-		{user &&
+		{user && paymentGateways.canSaveCards && 
 			<Input type="checkbox"
 					checked={canSave ? true : undefined}
 					onChange={e => setCanSave(e.target.checked)} 

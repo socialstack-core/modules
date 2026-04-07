@@ -40,7 +40,6 @@ const Challenge: React.FC<ChallengeProps> = (props: ChallengeProps): React.React
 		
 		// small delay ensures refs are mounted (safe for SSR hydration edge cases)
 		const t = window.setTimeout(() => {
-            debugger;
 			if (formRef.current) {
 				try {
 					formRef.current.submit();
@@ -59,7 +58,7 @@ const Challenge: React.FC<ChallengeProps> = (props: ChallengeProps): React.React
 	}, [metaData, onSubmitted, onError]);
 
 	return (
-		<div style={{ display: "grid", gap: 12 }}>
+		<div className="payment-challenge__wrapper">
 			<iframe
 				ref={iframeRef}
 				name={iframeNameRef.current}

@@ -39,7 +39,7 @@ const PromoCode: React.FC<PromoCodeProps> = (props) => {
 				{/* fixed discount amount */}
 				{coupon.discountFixedAmount > 0 && <>
 					<li>
-						{`${minSpend}${formatCurrency(coupon.discountFixedAmount * 100, { currencyCode: pricedCart.currencyCode })} off`}
+						{`${minSpend}${formatCurrency(coupon.discountFixedAmount, { currencyCode: pricedCart.currencyCode })} off`}
 					</li>
 				</>}
 
@@ -55,7 +55,7 @@ const PromoCode: React.FC<PromoCodeProps> = (props) => {
 				</>}
 
 				{/* free delivery */}
-				{coupon.minimumSpendAmount > 0 && <>
+				{(coupon.minimumSpendAmount > 0 && coupon.freeDelivery) && <>
 					<li>
 						{`${minSpend}free delivery`}
 					</li>
@@ -83,10 +83,10 @@ const PromoCode: React.FC<PromoCodeProps> = (props) => {
 				<Input type='text' name='coupon' placeholder={`Enter promotional code`} noWrapper readOnly={shoppingCart?.coupon ? true : undefined}
 					onChange={(e) => updateApplyCodeEnabled(e)} value={shoppingCart?.coupon?.token} />
 				{!shoppingCart?.coupon && <>
-					<Input type="submit" label={`Apply code`} noWrapper disabled={applyCodeEnabled ? undefined : true} />
+					<Input type="submit" label={`Apply Code`} noWrapper disabled={applyCodeEnabled ? undefined : true} />
 				</>}
 				{shoppingCart?.coupon && <>
-					<Input type="reset" variant="danger" label={`Remove code`} noWrapper onClick={() => setCoupon(null)} />
+					<Input type="reset" variant="danger" label={`Remove Code`} noWrapper onClick={() => setCoupon(null)} />
 				</>}
 			</Form>
 			{renderCouponDetails(shoppingCart?.coupon)}

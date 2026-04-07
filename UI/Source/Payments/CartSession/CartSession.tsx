@@ -97,7 +97,12 @@ export const Provider: React.FC<React.PropsWithChildren> = (props) => {
 	
     const loadCart = (cart: ShoppingCart) => {
         // Merge productQuants in to contents.
-        var { productQuantities, cartContents } = cart;
+        var { productQuantities, cartContents, submitStatus } = cart;
+
+        if (submitStatus > 0) {
+            setShoppingCart(null);
+            return;
+        }
 
         if (cartContents && cartContents.contents && productQuantities) {
 
@@ -305,3 +310,42 @@ export { CartSession };
 export function useCart() {
     return useContext(CartSession) || {lessTax: true};
 }
+
+/**
+ * Cart item structure matching the order form's cartJson format.
+ * Supports backward compatibility from older flat ID arrays.
+ */
+type CartItem = {
+	id: number;
+	expectedQty: number;
+};
+
+/**
+* Normalizes cart data from API response.
+*
+* @param cartJson - JSON string from orderForm.cartJson
+* @returns Normalized array of CartItem objects
+*/
+export const normalizeCart = (cartJson?: string | null): CartItem[] => {
+	let parsedCart: any;
+
+	try {
+		parsedCart = JSON.parse(cartJson || '[]');
+	} catch (e) {
+		console.error("Invalid cartJson format:", e);
+		return [];
+	}
+
+	if (!Array.isArray(parsedCart)) {
+		return [];
+	}
+
+	// filter out any invalid / missing product IDs
+	return parsedCart
+		.filter((item: any) => Number.isInteger(item?.id))
+		.map((item: any): CartItem => ({
+			id: item.id,
+			expectedQty: Number.isInteger(item?.expectedQty) ? item.expectedQty : 1
+		}));
+
+};

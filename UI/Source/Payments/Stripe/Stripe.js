@@ -10,6 +10,13 @@ var ensureLoaded = () => {
 		return new Promise((success, reject) => {
 
 			var cfg = getConfig<StripeConfig>("Stripe");
+
+			var isEnabled = cfg?.[0]?.isEnabled || false;
+
+			if (!isEnabled) {
+				return;
+			}
+
 			var publicKey = cfg?.[0]?.publishableKey;
 			
 			if(!publicKey){
@@ -31,11 +38,15 @@ var ensureLoaded = () => {
 };
 
 var cfg = getConfig<StripeConfig>("Stripe");
-var publicKey = cfg?.[0]?.publishableKey;
+var isEnabled = cfg?.[0]?.isEnabled || false;
 
-if(publicKey && publicKey.length > 0) {
+if (isEnabled) {
 	// All this module does is force itself into the paymentGateways object.
 	var paymentGateways = global.paymentGateways = global.paymentGateways || {};
+
+	paymentGateways.canSaveCards = cfg?.[0]?.canSaveCards || true;
+	paymentGateways.ownFormEnabled = cfg?.[0]?.ownFormEnabled || false;
+	paymentGateways.hostedPageEnabled = cfg?.[0]?.hostedPageEnabled || false;
 
 	paymentGateways.onSubmittedCard = cardInfo => {
 		

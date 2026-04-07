@@ -1,7 +1,20 @@
 .ui-product-view__about {
 
+	> span:first-child {
+
+		// ensure sized images within HTML block don't overflow container
+		img {
+			max-width: 100%;
+			height: auto;
+		}
+	}
+
 	iframe {
 		max-width: 100%;
+
+		// enforce 16/9 aspect ratio
+		aspect-ratio: 16 / 9;
+		height: 56.25%;
 	}
 
 }

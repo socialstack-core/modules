@@ -3,6 +3,10 @@ import Alert from 'UI/Alert';
 import { recurrenceText } from 'UI/Functions/Payments';
 import BasketItem from 'UI/Product/BasketItem';
 import { ShoppingCart } from 'Api/ShoppingCart';
+import CartTotal from 'UI/Payments/CartTotal';
+import ProductPrice from "UI/Product/Price";
+import { PriceCurrency } from "Api/Content";
+import Quantity from "UI/Product/Quantity";
 
 /**
  * Props for the ProductTable component.
@@ -22,6 +26,11 @@ interface ProductTableProps {
 	 * set true if contents should not be editable
 	 */
 	readOnly?: boolean,
+
+	/**
+	 * set true to render as a basic table
+	 */
+	tableFormat?: boolean
 }
 
 /**
@@ -29,7 +38,7 @@ interface ProductTableProps {
  * @param props React props.
  */
 const ProductTable: React.FC<ProductTableProps> = (props) => {
-	var { shoppingCart, readOnly, lessTax } = props;
+	var { shoppingCart, readOnly, lessTax, tableFormat } = props;
 	var pricedCart = shoppingCart?.cartContents;
 
 	if (!pricedCart || !pricedCart.contents.length) {
@@ -46,6 +55,87 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 	var itemSet = pricedCart.contents;
 	var currencyCode = pricedCart.currencyCode;
 	//var hasAtLeastOneSubscription = pricedCart.hasSubscriptionProducts;
+
+	if (tableFormat) {
+		return <>
+			<div className="shopping-cart__plain-table">
+				<table className="table ui-table ui-table--xs">
+					<thead>
+						<tr>
+							{/*
+						<th>
+							<span className="sr-only">{`Product image`}</span>
+						</th>
+						*/}
+							<th>{`Code`}</th>
+							<th>{`Product Name`}</th>
+							<th>{`Category`}</th>
+							{/*
+							<th className="ui-table__col--currency ui-table__col--right">{`Price per item`}</th>
+							*/}
+							<th className="ui-table__col--qty">{`Quantity`}</th>
+							<th className="ui-table__col--currency ui-table__col--right">{`Total Price`}</th>
+						</tr>
+					</thead>
+					<tbody>
+						{itemSet.map(lineItem => {
+							var product = lineItem.product;
+
+							// subscription
+							if (product.billingFrequency) {
+								return;
+							}
+
+							// standard quantity of product
+							//const unitAmount = ;
+							const totalAmount = lessTax ? lineItem.totalLessTax : lineItem.total;
+
+							return <>
+								<tr key={String(lineItem.id)}>
+									<td>{product?.sku}</td>
+									<td>{product?.name}</td>
+									<td>{lineItem.product?.primaryCategory?.name ?? "-"}</td>
+									{/*
+									<td className="ui-table__col--currency ui-table__col--right">
+										<ProductPrice
+											product={product}
+											currentPriceOnly={true}
+											compact={true}
+											override={{
+												currencyCode: currencyCode ?? "GBP",
+												amount: unitAmount
+											}}
+										/>
+									</td>
+									*/}
+									<td className="ui-table__col--qty">
+										<Quantity
+											compact
+											product={product}
+											qtyOverride={lineItem.quantity}
+											readOnly={true}
+										/>
+									</td>
+									<td className="ui-table__col--currency ui-table__col--right">
+										<ProductPrice
+											product={product}
+											currentPriceOnly={true}
+											compact={true}
+											override={{
+												currencyCode: currencyCode ?? "GBP",
+												amount: totalAmount
+											}}
+										/>
+									</td>
+								</tr>
+							</>;
+						})}
+					</tbody>
+				</table>
+			</div>
+			<CartTotal shoppingCart={shoppingCart} lessTax={lessTax} hideCTAs={true} />
+		</>;
+	}
 
 	return <>
 		<ul className="shopping-cart__table">

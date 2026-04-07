@@ -38,8 +38,16 @@ const PaymentGateway: React.FC<CustomInputTypeProps<"payment">> = (props) => {
 	useEffect(() => {
 		// may be anon user in which case dont attempt to get cards
 		if (!props.updateMode && session.user) {
-			// Get user's existing cards (Returns "non-sensitive" info only).
-			paymentMethodApi.list().then(response => {
+			// Get user's existing validated cards (Returns "non-sensitive" info only).
+
+			paymentMethodApi.list(
+				{
+					query: "IsValidated=?",
+					args: [true],
+					pageIndex: 0 as uint,
+					pageSize:50 as uint
+				}
+			).then(response => {
 				var methods = response?.results;
 
 				if (methods) {

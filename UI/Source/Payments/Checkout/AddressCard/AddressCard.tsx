@@ -1,7 +1,6 @@
 import Input from 'UI/Input';
 import { Address } from 'Api/Address';
 
-
 /**
  * Props for the AddressCard component.
  */
@@ -10,7 +9,8 @@ interface AddressCardProps {
 	selectedAddress?: Address,
 	onChange: Function,
 	name: string,
-    readonly: boolean
+    readonly: boolean,
+    displayName?: boolean
 }
 
 /**
@@ -18,7 +18,7 @@ interface AddressCardProps {
  * @param props React props.
  */
 const AddressCard: React.FC<AddressCardProps> = (props) => {
-	var { address, selectedAddress, onChange, name , readonly} = props;
+	var { address, selectedAddress, onChange, name , readonly, displayName} = props;
 
 	if (!address) {
 		return;
@@ -27,6 +27,7 @@ const AddressCard: React.FC<AddressCardProps> = (props) => {
 	return <>
 		{readonly ? 
 			<address className="payment-checkout__address payment-checkout__address__readonly">
+                {displayName && address.name && <div className="payment-checkout__address-name">{address.name}</div>}
 				{address.line1 && <span>{address.line1}</span>}
 				{address.line2 && <span>{address.line2}</span>}
 				{address.line3 && <span>{address.line3}</span>}
@@ -39,6 +40,7 @@ const AddressCard: React.FC<AddressCardProps> = (props) => {
 			onChange={onChange}
 			label={<>
 				<address className="payment-checkout__address">
+                    {displayName && address.name && <div className="payment-checkout__address-name">{address.name}</div>}
 					{address.line1 && <span>{address.line1}</span>}
 					{address.line2 && <span>{address.line2}</span>}
 					{address.line3 && <span>{address.line3}</span>}

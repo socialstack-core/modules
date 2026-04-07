@@ -9,6 +9,9 @@ import addressApi, { Address } from 'Api/Address';
 import CheckoutSection from './CheckoutSection';
 import { ApiList } from 'UI/Functions/WebRequest';
 import AddressCard from 'UI/Payments/Checkout/AddressCard';
+import Col from "UI/Column";
+import Row from "UI/Row";
+import {toLocaleUTCDateString, isoConvert} from 'UI/Functions/DateTools';
 
 /**
  * Props for the Checkout component.
@@ -28,7 +31,11 @@ interface AddressSelectionProps {
 
 	hasSame?: boolean;
 
+	guestCanAdd?: boolean;
+
 	canAdd?: boolean;
+
+	canEdit?: boolean;	
 
 	editUrl?: string;
 
@@ -43,17 +50,22 @@ interface AddressSelectionProps {
 
 const AddressSelection: React.FC<AddressSelectionProps> = (props) => {
 	const { selectedTitle, unselectedTitle, value, setValue, name, hasSame, isSame,
-		setSameAs, setSavedAddresses, addressType, savedAddresses, enabled, canAdd, editUrl } = props;
+		setSameAs, setSavedAddresses, addressType, savedAddresses, enabled, guestCanAdd, canAdd, canEdit, editUrl } = props;
 	
 	const { session } = useSession();		
 	const { user } = session;
 
-    const [showEditGuestAddressModal, setShowEditGuestAddressModal] = useState(false);
 	const [showNewAddressModal, setShowNewAddressModal] = useState(false);
 
-	const canEdit = !!savedAddresses;
-
-	let canAddIntl = canEdit ? canAdd : true;
+	const updateAddressFromId = (id: string) => {
+		if (savedAddresses) {
+			var addressId = parseInt(id,10);
+			const addr = savedAddresses.find(a => a.id === addressId);
+			if (addr) {
+				setValue(addr);
+			}
+		}
+	};
 
 	const addNewAddress = () => {
 		return <>
@@ -65,20 +77,37 @@ const AddressSelection: React.FC<AddressSelectionProps> = (props) => {
 						values!.isDefaultBillingAddress = true;
 					}
 
+					if (savedAddresses) { 
+						values!.countryCode = savedAddresses[0]?.countryCode || 'GB';
+					} else {
+						values!.countryCode = 'GB';
+					}
+
 					return values;
 				}}
 
 				onSuccess={
 					(addr: Address) => {
+
+						//date comes back as number from api convert to iso string for consistency with rest of data
+						addr.createdUtc = isoConvert(addr.createdUtc).toISOString();
+						addr.editedUtc = isoConvert(addr.editedUtc).toISOString();
+
+						if (savedAddresses) {
+							const newAddresses = [...savedAddresses, addr].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+							setSavedAddresses(newAddresses);
+						}
+
 						setValue(addr);
 						setShowNewAddressModal(false);
 					}
 				}>
-				<Input type='text' name='line1' label={`Address Line 1`} />
+				<Input type='text' name='name' label={`Name`} validate={['Required']}/>					
+				<Input type='text' name='line1' label={`Address Line 1`} validate={['Required']} />
 				<Input type='text' name='line2' label={`Address Line 2`} />
 				<Input type='text' name='line3' label={`Address Line 3`} />
-				<Input type='text' name='city' label={`City`} />
-				<Input type='text' name='postcode' label={`Postcode`} />
+				<Input type='text' name='city' label={`City`} validate={['Required']} />
+				<Input type='text' name='postcode' label={`Postcode`} validate={['Required']} />
 
 				<div className="payment-checkout__address-modal-footer">
 					<Button outlined onClick={() => setShowNewAddressModal(false)}>
@@ -92,59 +121,7 @@ const AddressSelection: React.FC<AddressSelectionProps> = (props) => {
 		</>;
 	};
 
-	// Allow the editing of the address inline for guests etc without an address book
-	const editGuestAddress = () => {
-		return <>
-			<Form action={async (fields) => fields}
-				onValues={values => {
-					return values;
-				}}
-
-				onSuccess={
-					addr => {
-						if (savedAddresses) {
-							// merge the changes into the saved address
-							const index = savedAddresses?.findIndex(a => a.id === value?.id);
-							if (index !== -1 && index !== undefined) {
-
-								const updated = {
-									...savedAddresses[index],
-									...addr,
-								};
-
-								const newAddresses = savedAddresses.map((a, i) =>
-									i === index ? updated : a
-								);
-
-								// notify parent
-								setSavedAddresses(newAddresses);
-								setValue(savedAddresses[index]);
-							}
-						}
-
-						setShowEditGuestAddressModal(false);
-					}
-				}>
-				<Input type='text' name='name' label={`Name`} defaultValue={value?.name} />
-				<Input type='text' name='line1' label={`Address Line 1`} defaultValue={value?.line1} />
-				<Input type='text' name='line2' label={`Address Line 2`} defaultValue={value?.line2} />
-				<Input type='text' name='line3' label={`Address Line 3`} defaultValue={value?.line3} />
-				<Input type='text' name='city' label={`City`} defaultValue={value?.city} />
-				<Input type='text' name='postcode' label={`Postcode`} defaultValue={value?.postcode} />
-				
-				<div className="payment-checkout__address-modal-footer">
-					<Button outlined onClick={() => setShowEditGuestAddressModal(false)}>
-						{`Cancel`}
-					</Button>
-					<Button type="submit">
-						{`Save Changes`}
-					</Button>
-				</div>
-			</Form>
-		</>;
-	};
-
-	const renderContents = () => {
+    const renderContents = () => {
 		return <>
 			{hasSame && <div>
 				<Input type='checkbox' name={name + '_same'} defaultChecked={isSame} onChange={(e) => {
@@ -152,58 +129,83 @@ const AddressSelection: React.FC<AddressSelectionProps> = (props) => {
 				}} label={`Same as delivery address`} />
 			</div>}
 			{(!hasSame || !isSame) && <>
-				<div className="payment-checkout__address-selection">
-                    {value && 
-                        <AddressCard address={value} selectedAddress={value} name={name} />
-                    }
 
-					{savedAddresses?.filter(a => a.id !== value?.id)
-						.map(savedAddress => (
-							<AddressCard
-								key={savedAddress.id}
-								address={savedAddress}
-								selectedAddress={value}
-								onChange={() => setValue(savedAddress)}
-								name={name}
-						/>
-					))}
+				<Row>
+					<Col sizeMd='6' className="payment-checkout__address-selection">
+						<div className="payment-checkout__address-selection-selector">
+							<Input
+								type="select"
+								onChange={(e) => updateAddressFromId((e.target as HTMLSelectElement).value)}
+								value={value?.id}
+								noWrapper
+							>
 
-				</div>
-				<div className="payment-checkout__address-selection-footer">
-					{user && canEdit && <Link outlined href={editUrl || "/address_book"}>
-						{`Edit addresses`}
-					</Link>}
+								<option value="" selected={!value?.id}>
+									{`Please select a ${addressType} address`}
+								</option>
 
-					{!user && canEdit && <Button onClick={() => setShowEditGuestAddressModal(true)}>
-						{`Edit address`}
-					</Button>}
+								{savedAddresses?.map(savedAddress => (
+									<option
+										key={savedAddress.id}
+										value={savedAddress.id}
+										selected={value?.id === savedAddress.id}
+									>
+										{savedAddress.name}
 
-					{canAddIntl && <Button onClick={() => setShowNewAddressModal(true)}>
-						{`Add new address`}
-					</Button>}
-				</div>
+										{(savedAddress.city && savedAddress.city.length > 0) && 
+											<>{`, ${savedAddress.city}`}</>
+										}
+										{(savedAddress.postcode && savedAddress.postcode.length > 0) && 
+											<>{`, ${savedAddress.postcode}`}</>
+										}
+									</option>
+								))}
+							</Input>
+						</div>
+
+						<div className="payment-checkout__address-selection-actions">
+							{/* Guest can add new address to temp address list */}
+							{!user && guestCanAdd && savedAddresses &&  
+								<Button onClick={() => setShowNewAddressModal(true)}>
+									{`Add new address`}
+								</Button>
+							}
+
+							{user && canEdit && 
+								<Link outlined href={editUrl || "/address_book"}>
+									{`Edit addresses`}
+								</Link>
+							}
+
+							{/* User can add new address which is saved in their address */}
+							{user && canAdd && 
+								<Button onClick={() => setShowNewAddressModal(true)}>
+									{`Add new address`}
+								</Button>
+							}
+						</div>
+
+					</Col>
+					<Col sizeMd='6'>
+						{value && 
+							<div className="payment-checkout__address-selection-selected">
+								<AddressCard address={value} selectedAddress={value} name={name} displayName={true} readonly={true} />
+							</div>
+						}
+					</Col>
+				</Row>
+
 			</>}
 
 			{showNewAddressModal && <>
 				<Modal
-					title={`Add address`}
+					title={`Add Address`}
 					className={"payment-checkout__address-modal"}
 					onClose={() => setShowNewAddressModal(false)}
 					visible={true}>
 					{addNewAddress()}
 				</Modal>
 			</>}
-
-			{showEditGuestAddressModal && <>
-				<Modal
-					title={`Edit address`}
-					className={"payment-checkout__address-modal"}
-					onClose={() => setShowEditGuestAddressModal(false)}
-					visible={true}>
-					{editGuestAddress()}
-				</Modal>
-			</>}
-
 
 		</>;
 	};

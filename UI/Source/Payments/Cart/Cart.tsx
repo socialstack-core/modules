@@ -23,7 +23,7 @@ interface CartProps {
  */
 const Cart: React.FC<CartProps> = (props) => {
 	const { customFooter } = props;
-	const title = props.title?.length ? props.title : `Shopping basket`;
+	const title = props.title?.length ? props.title : `Shopping Basket`;
 	var { addToCart, emptyCart, shoppingCart, cartIsEmpty, loading, lessTax } = useCart();
 
 	var cartEmpty = loading || (cartIsEmpty ? cartIsEmpty() : true);

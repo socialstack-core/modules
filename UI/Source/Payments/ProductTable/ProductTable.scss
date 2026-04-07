@@ -20,3 +20,20 @@
 		border-color: transparent;
 	}
 }
+
+.shopping-cart__plain-table {
+
+	.ui-table__col--currency.ui-table__col--right {
+
+		> .ui-product-price {
+			justify-content: flex-end;
+			flex-direction: column;
+		}
+
+	}
+
+	.ui-table__col--qty {
+		text-align: center;
+	}
+
+}

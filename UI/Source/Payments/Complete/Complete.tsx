@@ -32,7 +32,9 @@ const Complete: React.FC<CompleteProps> = (props) => {
 	
     const reference = query.get('ref') || '';
 
-	switch (query.get('status')) {
+    var orderStatus = query.get('state') || query.get('status') || '';
+
+    switch (orderStatus.toLowerCase()) {
 		case 'success':
 			return <div className="payment-complete">
 				<Alert variant='success'>
