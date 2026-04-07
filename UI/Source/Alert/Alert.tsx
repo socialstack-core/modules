@@ -7,6 +7,11 @@ const DEFAULT_VARIANT = 'info';
 
 export type AlertType = 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark';
 
+/**
+ * Props for the alert component.
+ * @icon fal fa-exclamation-triangle
+ * @description Displays an alert message.
+ */
 interface AlertProps {
 	/**
 	 * determines appearance (info/ error/ primary / secondary etc.)
@@ -28,14 +33,19 @@ interface AlertProps {
 	/**
 	 * The alert type
 	 */
-	type?: string
+	type?: string,
+
+	/**
+	 * optional additional classnames
+	 */
+	className?: string
 }
 
 /**
  * Alert component
  */
 const Alert: React.FC<React.PropsWithChildren<AlertProps>> = (props) => {
-	const { children, variant, customIcon, isDismissable } = props;
+	const { children, customIcon, isDismissable, className } = props;
 	let { showIcon } = props;
 	const [showAlert, setShowAlert] = useState(true);
 
@@ -43,6 +53,7 @@ const Alert: React.FC<React.PropsWithChildren<AlertProps>> = (props) => {
 		showIcon = true;
 	}
 
+	var variant = props.variant || props.type;
 	var alertVariant = variant?.toLowerCase() || DEFAULT_VARIANT;
 
 	var icon: React.ReactNode = undefined;
@@ -87,6 +98,10 @@ const Alert: React.FC<React.PropsWithChildren<AlertProps>> = (props) => {
 
 	if (isDismissable) {
 		alertClass.push(ALERT_PREFIX + '-dismissable');
+	}
+
+	if (className?.length) {
+		alertClass.push(className);
 	}
 
 	return (<>
