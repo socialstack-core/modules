@@ -23,7 +23,7 @@ const ImpersonationBanner: React.FC<ImpersonationBannerProps> = (props) => {
 	return (
 		<div className="ui-impersonation-banner">
 			<Icon type="fa-mask" />
-			{`You are impersonating user`} <strong>{user.firstName || user.username}</strong>
+			{`You are impersonating user`} <strong>{user.firstName || user.username || user.email}</strong>
 		</div>
 	);
 }
