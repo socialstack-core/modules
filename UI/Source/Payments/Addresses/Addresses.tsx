@@ -23,14 +23,14 @@ const Addresses: React.FC<AddressesProps> = (props) => {
 				{billingAddress && 
 					<div className="purchase-addresses__address">
 						<h5>{`Billing Address`}</h5>
-						<AddressCard address={billingAddress} readonly />
+						<AddressCard address={billingAddress} displayName={true} readonly />
 					</div>
 				}
 
 				{deliveryAddress &&
 					<div className="purchase-addresses__address">
 						<h5>{`Delivery Address`}</h5>
-						<AddressCard address={deliveryAddress} readonly/>
+						<AddressCard address={deliveryAddress} displayName={true} readonly/>
 					</div>
 				}
 			</div>

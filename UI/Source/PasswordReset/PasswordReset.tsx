@@ -67,7 +67,7 @@ const PasswordReset: React.FC<PasswordResetProps> = (props) => {
 				<Form
 					successMessage={`Password has been set.`}
 					failedMessage={`Unable to set your password. Your token may have expired.`}
-					submitLabel={`Set my password`}
+					submitLabel={`Set My Password`}
 					action={(np:NewPassword) => passwordResetRequestApi.loginWithToken(setSession, token, np)}
 					onSuccess={response => {
 						// Response is the new context.
