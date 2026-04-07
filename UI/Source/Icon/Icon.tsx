@@ -76,8 +76,16 @@ type IconProps = IconBaseProps & {
 	 * The compiler will use "type" to identify in-use icons and strip accordingly.
 	 * This is the type of icon you want to display, such as type="fa-bullhorn". 
 	 * Don't target this type with CSS: instead, target ui-icon if you need to do so.
+	 * 
+	 * NB: undefined allowed so as to support empty icons -
+	 *     useful to maintain consistent alignment in a list where certain icons may be unavailable
 	 */
-	type: string,
+	type?: string,
+
+	/**
+	 * For internal use: favour regular/brand etc.
+	 */
+	variant?: string
 }
 
 const Icon: React.FC<IconProps> = (props) => {
@@ -86,19 +94,23 @@ const Icon: React.FC<IconProps> = (props) => {
 		xxs, xs, sm, md, lg, xl, xxl,
 		x2, x3, x4, x5, x6, x7, x8, x9, x10
 	} = props;
-	
-	var variant = 'fa';
-	
-	if(light){
-		variant = 'fal';
-	}else if(duotone){
-		variant = 'fad';
-	}else if(brand){
-		variant = 'fab';
-	}else if(regular){
-		variant = 'far';
-	}else if(solid){
-		variant = 'fas';
+
+	var variant = props.variant;
+
+	if (!variant) {
+		if (light) {
+			variant = 'fal';
+		} else if (duotone) {
+			variant = 'fad';
+		} else if (brand) {
+			variant = 'fab';
+		} else if (regular) {
+			variant = 'far';
+		} else if (solid) {
+			variant = 'fas';
+		} else {
+			variant = 'fa';
+		}
 	}
 	
 	var size = '';
@@ -137,7 +149,7 @@ const Icon: React.FC<IconProps> = (props) => {
 
 	var classNames = [variant, size, 'ui-icon'];
 
-	if (!c) {
+	if (!c && type?.length) {
 		// May need to reconsider this if people specifically target an icon using these class names.
 		// They should generally target ui-icon instead though.
 		// It exists such that static icons, which use a tiny highly accelerated subset of icons, 
@@ -177,5 +189,5 @@ export const IconRef : React.FC<IconRefProps> = (props) => {
 	// this one would not do so and instead refs the main font files with all.
 	var fullRef = parse(fileRef);
 
-	return <Icon {...iconProps} type={fullRef?.basepath || ''} />;
+	return <Icon {...iconProps} variant={fullRef?.scheme} type={fullRef?.basepath || ''} />;
 };
