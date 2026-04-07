@@ -2,7 +2,8 @@ import Loop from 'UI/Loop';
 import Container from 'UI/Container';
 import Row from 'UI/Row';
 import Image from 'UI/Image';
-import Modal from 'UI/Modal';
+import Dialog from 'UI/Dialog';
+import Button from 'UI/Button';
 import Uploader from 'UI/Uploader';
 import * as fileRef from 'UI/FileRef';
 import IconSelector from 'UI/FileSelector/IconSelector';
@@ -89,6 +90,7 @@ const FileSelector = (props) => {
 	const [updatedRef, setUpdatedRef] = useState(ref);
 	const [editedRefData, setEditedRefData] = useState();
 	const [showUploadModal, setShowUploadModal] = useState();
+	const [fileType, setFileType] = useState('all');
 	const [searchFilter, setSearchFilter] = useState();
 	const [filterTagId, setFilterTagId] = useState();
 	const [showIconModal, setShowIconModal] = useState(false);
@@ -160,10 +162,6 @@ const FileSelector = (props) => {
 		setEditedRefData(null);
 	}
 
-	const closeUploadModal = () => {
-		setShowUploadModal(false);
-	}
-
 	const showEditModal = () => {
 		var refInfo = fileRef.parse(currentRef);
 
@@ -175,10 +173,6 @@ const FileSelector = (props) => {
 		});
 	}
 
-	const closeEditModal = () => {
-		setEditedRefData(null);
-	}
-
 	const renderEditModal = () => {
 		var parsedRef = fileRef.parse(currentRef);
 		var isImage = parsedRef.isImage();
@@ -186,116 +180,101 @@ const FileSelector = (props) => {
 		var title = `Edit`;
 
 		return <>
-			<Modal isExtraLarge title={title}
-				buttons={[
-					{
-						label: `Close`,
-						onClick: closeEditModal
-					}
-				]}
-				onClose={closeEditModal}
-				visible={!!editedRefData}
-				className="media-center__upload-modal">
-				<div className="media-center__upload-modal-internal">
-					<Container>
-						<Row>
-								<Col sizeMd='9'>
-									<Alert type='info'>
-										{`Click the image to set its focal point.`}
-									</Alert>
-									<div className='media-center__preview-wrapper'>
-										<div className="media-center__preview"
-											onClick={(e) => {
-												var imagePreviewRect = e.target.getBoundingClientRect();
-												setEditedRefData({
-													...editedRefData,
-													focalX: CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
-													focalY: CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
-												});
-											}}>
-											{showRef(currentRef, PREVIEW_SIZE)}
-											{isImage && !isVideo && <>
-												<div className="media-center__preview-crosshair" style={{
-												left: editedRefData?.focalX + '%',
-												top: editedRefData?.focalY + '%'
-												}}></div>
-											</>}
-										</div>
-									</div>
-								</Col>
+			<Dialog title={title} isOpen={!!editedRefData} onClose={() => setEditedRefData(null)} className="media-center__upload-dialog">
+				<Row>
+					<Col sizeMd='8'>
+						<Alert type='info'>
+							{`Click the image to set its focal point.`}
+						</Alert>
+						<div className='media-center__preview-wrapper'>
+							<div className="media-center__preview"
+								onClick={(e) => {
+									var imagePreviewRect = e.target.getBoundingClientRect();
+									setEditedRefData({
+										...editedRefData,
+										focalX: CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
+										focalY: CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
+									});
+								}}>
+								{showRef(currentRef, PREVIEW_SIZE)}
+								{isImage && !isVideo && <>
+									<div className="media-center__preview-crosshair" style={{
+										left: editedRefData?.focalX + '%',
+										top: editedRefData?.focalY + '%'
+									}}></div>
+								</>}
+							</div>
+						</div>
+					</Col>
 
-								<Col sizeMd='3'>
-									<div className="media-center__metadata">
+					<Col sizeMd='4'>
+						<div className="media-center__metadata">
 
-										<div className="form-text media-center__alt">
-										<Input type="text" label={`Author/Photographer`} value={editedRefData?.author} onChange={e => {
-												setEditedRefData({
-													...editedRefData,
-													author: e.target.value
-												});
-											}} />
-										</div>
+							<div className="form-text media-center__alt">
+								<Input type="text" label={`Author/Photographer`} value={editedRefData?.author} onChange={e => {
+									setEditedRefData({
+										...editedRefData,
+										author: e.target.value
+									});
+								}} />
+							</div>
 
-										<div className="form-text media-center__alt">
-										<Input type="text" label={`Alternative Text`} value={editedRefData?.alt} onChange={e => {
-											setEditedRefData({
-												...editedRefData,
-												alt: e.target.value
-											});
-										}} />
-									</div>
+							<div className="form-text media-center__alt">
+								<Input type="text" label={`Alternative Text`} value={editedRefData?.alt} onChange={e => {
+									setEditedRefData({
+										...editedRefData,
+										alt: e.target.value
+									});
+								}} />
+							</div>
 
-										{isImage && !isVideo &&
-											<div className="form-text media-center__focal-point">
-												<button type="button" className="btn btn-sm btn-outline-secondary me-2" onClick={() => {
-													setEditedRefData({
-														...editedRefData,
-														focalX: 50,
-														focalY: 50
-													});
-												}}>
-													<i className="fal fa-fw fa-sync"></i>{` Reset focal point to center`}
-												</button>
-											</div>
-										}
+							{isImage && !isVideo &&
+								<div className="form-text media-center__focal-point">
+									<Button sm variant="secondary" outlined onClick={() => {
+										setEditedRefData({
+											...editedRefData,
+											focalX: 50,
+											focalY: 50
+										});
+									}}>
+										<i className="fal fa-fw fa-sync"></i>{`Reset focal point`}
+									</Button>
+								</div>
+							}
 
-									</div>
-								</Col>
-						</Row>
-					</Container>
-				</div>
-
-				<footer className="media-center__upload-modal-footer">
-					<div className="media-center__upload-modal-footer-options">
-						<button type="button" className="btn btn-outline-primary" onClick={() => closeEditModal()}>
-							{`Cancel`}
-						</button>
-						<button type="button" className="btn btn-primary" onClick={() => saveUpdates()}>
-							{`Save`}
-						</button>
-					</div>
-				</footer>
-			</Modal>
+						</div>
+					</Col>
+				</Row>
+				<Dialog.Footer>
+					<Button outlined onClick={() => setEditedRefData(null)}>
+						{`Cancel`}
+					</Button>
+					<Button onClick={() => saveUpdates()}>
+						{`Save`}
+					</Button>
+				</Dialog.Footer>
+			</Dialog>
 		</>;
 	}
 
 	const renderTag = (tag) => {
+
 		if (!tag || !tag.name || tag.name.length == 0) {
-			return ('');
+			return;
 		}
 
-		var tagClassName = (filterTagId == tag.id) ? "file-selector__tag file-selector__tag-selected" : "file-selector__tag"
-
 		return (
-			<li className={tagClassName} onClick={() => {
-				
-				if (filterTagId && filterTagId == tag.id) {
-					setFilterTagId(null);
-				} else {
-					setFilterTagId(tag.id);
-				}
-			}}>
-				{tag.name}
+			<li className="file-selector__tag">
+				<Button xs outlined={filterTagId != tag.id} onClick={() => {
+					if (filterTagId && filterTagId == tag.id) {
+						setFilterTagId(null);
+					} else {
+						setFilterTagId(tag.id);
+					}
+				}}>
+					<i className={filterTagId == tag.id ? "fas fa-fw fa-tag" : "fal fa-fw fa-tag"}></i>
+					{tag.name}
+				</Button>
 			</li>
 		);
 	}
@@ -325,16 +304,54 @@ const FileSelector = (props) => {
 	}
 
 	const renderHeader = () => {
-		return <div className="row header-container file-selector__search">
-			{searchFields && <>
+
+		if (!searchFields) {
+			return;
+		}
+
+		return <>
+			<div className="image-select-dialog__filters">
 				<Search className="admin-page__search" placeholder={`Search`}
 					onQuery={(where, query) => {
 						setSearchFilter(query);
 					}} />
-			</>}
-		</div>;
+				<Input type="select"
+					label={`File Type`}
+					noWrapper
+					value={fileType}
+					onChange={(e) => setFileType(e.target.value)}>
+					<option key="all" value="all">
+						{`All`}
+					</option>
+					<option key="img" value="img">
+						{`Image`}
+					</option>
+					<option key="vid" value="vid">
+						{`Video`}
+					</option>
+					<option key="audio" value="audio">
+						{`Audio`}
+					</option>
+					<option key="doc" value="doc">
+						{`Document`}
+					</option>
+					<option key="other" value="other">
+						{`Other`}
+					</option>
+				</Input>
+			</div>
+		</>;
+
 	}
-	
+
+	const renderEmpty = () => {
+		return <>
+			<Alert variant="info">
+				{combinedFilter.query ? `No matching uploads found` : `No uploads found`}
+			</Alert>
+		</>;
+	}
+
 	var hasRef = currentRef && currentRef.length;
 	var filename = hasRef ? fileRef.parse(currentRef).ref : "";
 	
@@ -351,11 +368,43 @@ const FileSelector = (props) => {
 
 	// do we need to search ?
 	var combinedFilter = { sort: { field: 'CreatedUtc', direction: 'desc' } };;
+	combinedFilter.args = [];
 
 	if (filterTagId) {
 		combinedFilter.query = "Tags contains ?"
-		combinedFilter.args = [];
 		combinedFilter.args.push(filterTagId);
+	}
+
+	if (fileType?.length && fileType != 'all') {
+		if (combinedFilter.query) {
+			combinedFilter.query += ` AND FileType ${fileType == 'other' ? "!=" : "="} [?]`;
+		} else {
+			combinedFilter.query = `FileType ${fileType == 'other' ? "!=" : "="} [?]`;
+		}
+
+		switch (fileType) {
+
+			case 'img':
+				combinedFilter.args.push(fileRef.allImageTypes);
+				break;
+
+			case 'vid':
+				combinedFilter.args.push(fileRef.allVideoTypes);
+				break;
+
+			case 'audio':
+				combinedFilter.args.push(fileRef.allAudioTypes);
+				break;
+
+			case 'doc':
+				combinedFilter.args.push(fileRef.allDocumentTypes);
+				break;
+
+			case 'other':
+				combinedFilter.args.push(fileRef.allImageTypes.concat(fileRef.allVideoTypes, fileRef.allAudioTypes, fileRef.allDocumentTypes));
+				break;
+		}
+
 	}
 
 	if (searchFilter && searchFilter.length > 0 && searchFields) {
@@ -395,35 +444,23 @@ const FileSelector = (props) => {
 
 	}
 
-	var tags = renderTags(combinedFilter);
-
 	return <div className="file-selector">
 
 		{/* upload browser */}
-		<Modal
-			isExtraLarge
-			title={`Select an Upload`}
-			className={"image-select-modal"}
-			buttons={[
-				{
-					label: `Close`,
-					onClick: closeUploadModal
-				}
-			]}
-			onClose={closeUploadModal}
-			visible={showUploadModal}
-		>
-			{renderHeader()}
-
-			{tags && <>
-				{tags}
-			</>}
+		{showUploadModal && <Dialog isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} className="image-select-dialog">
+			<Dialog.Header>
+				<h2 class="ui-dialog__title">
+					{`Select an Upload`}
+				</h2>
+				{renderHeader()}
+				{renderTags(combinedFilter)}
+			</Dialog.Header>
 
 			<div className="file-selector__grid">
-				<Loop source={source} filter={combinedFilter} paged={props.disablePaging ? undefined : true}>
+				<Loop source={source} filter={combinedFilter} paged={props.disablePaging ? undefined : true}
+					orNone={() => renderEmpty()}>
 					{
 						entry => {
-
 							// NB: API has been seen to report valid images with isImage=false
 							//var isImage = entry.isImage;
 							var isImage = fileRef.isImage(entry.ref);
@@ -443,7 +480,7 @@ const FileSelector = (props) => {
 
 							return <>
 								<div class="loop-item">
-									<button title={entry.originalName} type="button" className="btn file-selector__item" onClick={(e) => updateValue(e, entry)}>
+									<Button allowWrap title={entry.originalName} className="file-selector__item" onClick={(e) => updateValue(e, entry)}>
 										<div className={previewClass}>
 											{isImage && <Image fileRef={entry.ref} size={renderedSize} />}
 											{!isImage && (
@@ -453,7 +490,7 @@ const FileSelector = (props) => {
 										<span className="file-selector__name">
 											{entry.originalName}
 										</span>
-									</button>
+									</Button>
 								</div>
 							</>;
 						}
@@ -461,7 +498,12 @@ const FileSelector = (props) => {
 					}
 				</Loop>
 			</div>
-		</Modal>
+			<Dialog.Footer>
+				<Button onClick={() => setShowUploadModal(false)}>
+					{`Close`}
+				</Button>
+			</Dialog.Footer>
+		</Dialog>}
 
 		{/* Edit Image Modal */}
 		{!!editedRefData && renderEditModal()}

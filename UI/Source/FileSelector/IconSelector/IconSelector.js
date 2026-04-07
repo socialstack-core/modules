@@ -127,7 +127,7 @@ export default class IconSelector extends React.Component {
 				onClose={() => this.closeModal()}
 				isLarge
 				className={"icon-select-modal"}
-				title={`Select an icon`}
+				title={`Select an Icon`}
 			>
 				{this.renderHeader()}
 				<div className="icon-container">
