@@ -227,7 +227,7 @@ const Dropdown: React.FC<DropdownProps> = (props) => {
 		variant = "primary";
 	}
 
-	var btnClass = [isOutline ? "btn btn-outline-" + variant : "btn btn-" + variant];
+	var btnClass = [isOutline ? "btn ui-btn btn-outline-" + variant : "btn ui-btn btn-" + variant];
 
 	if (isSmall) {
 		btnClass.push("btn-sm");
