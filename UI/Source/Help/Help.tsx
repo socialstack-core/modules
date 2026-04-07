@@ -23,10 +23,10 @@ const Help: React.FC<HelpProps> = (props) => {
 	}
 
 	return <>
-		<Button xs variant="link" className="ui-help__trigger" popoverTarget={id}>
+		<Button sm outlined variant="primary" className="ui-help__trigger" popoverTarget={id}>
 			<i className="fr fr-question-circle"></i>
 			<span>
-				{`Help`}
+				{`Need help?`}
 			</span>
 		</Button>
 		<Popover method="auto" id={id} alignment="center" blurBackground={true} className="ui-help__wrapper">

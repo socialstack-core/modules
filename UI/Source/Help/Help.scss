@@ -2,6 +2,10 @@
 
 	&__trigger {
 
+		> i {
+			font-size: px_to_rem(24);
+		}
+
 	}
 
 	&__wrapper {
