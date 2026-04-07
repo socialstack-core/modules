@@ -1,5 +1,7 @@
 /**
  * Props for the button component.
+ * @icon fal fa-mouse-pointer
+ * @description A clickable button.
  */
 interface ButtonProps extends React.HTMLAttributes<HTMLElement>  {
 

@@ -265,6 +265,7 @@ $btn-variants: (
 
 a.btn {
 	display: inline-flex;
+	line-height: normal;
 }
 
 fieldset:disabled .btn {
