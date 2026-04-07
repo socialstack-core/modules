@@ -1,9 +1,38 @@
 :root {
 	// ensure we have a default scroll position
 	--page-scroll-y: 0px;
+
+	// light shade fallbacks
+	--primary-light: var(--primary);
+	--secondary-light: var(--secondary);
+	--success-light: var(--success);
+	--danger-light: var(--danger);
+	--warning-light: var(--warning);
+	--info-light: var(--info);
+	--light-fg: #212529;
+
+	// greyscale shades
+	--grey-light: #f2f2f2;
+	--grey-mid: #999;
+	--grey-dark: #444;
 }
 
-html, body, #react-view, #react-root, #content-root, #content-page, #react-loading {
+// generate lighter shades using relative colour
+@supports (color: rgb(from red r g b)) {
+	
+	:root {
+		--light-opacity: 0.125;
+		--primary-light: rgb(from var(--primary) r g b / var(--light-opacity));
+		--secondary-light: rgb(from var(--secondary) r g b / var(--light-opacity));
+		--success-light: rgb(from var(--success) r g b / var(--light-opacity));
+		--danger-light: rgb(from var(--danger) r g b / var(--light-opacity));
+		--warning-light: rgb(from var(--warning) r g b / var(--light-opacity));
+		--info-light: rgb(from var(--info) r g b / var(--light-opacity));
+	}  
+  
+}
+
+#react-view, #react-root, #content-root, #content-page, #react-loading {
 	height: 100%;
 	width: 100%;
 	margin: 0;
@@ -64,7 +93,11 @@ html, body, #react-view, #react-root, #content-root, #content-page, #react-loadi
 
 }
 
-html {
+html:not(:has(body.mce-content-body)) {
+	height: 100%;
+	width: 100%;
+	margin: 0;
+	touch-action: manipulation;
 	overflow-x: hidden;
 
 	body, #react-view, #react-root, #content-root, #content-page, #react-loading {
@@ -72,8 +105,10 @@ html {
 	}
 
 	body {
-		color: var(--site-fg, #000);
-		background: var(--site-bg, #fff);
+		height: 100%;
+		width: 100%;
+		margin: 0;
+		touch-action: manipulation;
 
 		// potential fix for iOS text size increase
 		-webkit-text-size-adjust: 100%;
@@ -113,6 +148,11 @@ html {
 	&:not(.admin),
 	&.admin .panelled-editor__preview {
 	}
+}
+
+html > body {
+	color: var(--site-fg, #000);
+	background: var(--site-bg, #fff);
 }
 
 .loader {
