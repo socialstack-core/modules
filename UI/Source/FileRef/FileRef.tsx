@@ -1,5 +1,36 @@
 import getConfig from 'UI/Config';
 
+const MEDIA_TYPES = {
+	image: {
+		web: ['png', 'jpeg', 'jpg', 'jfif', 'gif', 'svg', 'apng', 'webp', 'avif'],
+		all: ['png', 'jpeg', 'jpg', 'jfif', 'gif', 'svg', 'bmp', 'apng', 'webp', 'avif', 'heic', 'heif', 'tiff', 'tif']
+	},
+	video: {
+		web: ['mp4', 'webm'],
+		all: ['avi', 'wmv', 'ts', 'm3u8', 'ogv', 'flv', 'h264', 'h265', 'webm', 'ogg', 'mp4', 'mkv', 'mpeg', '3g2', '3gp', 'mov', 'media']
+	},
+	audio: {
+		web: ['wav', 'mp3', 'm4a', 'aac', 'flac'],
+		all: ['wav', 'aiff', 'au', 'pcm', 'flac', 'ape', 'wv', 'alac', 'mp3', 'm4a', 'aac', 'ogg', 'opus', 'wma', 'amr', 'mid', 'midi']
+	},
+	document: {
+		web: ['pdf', 'txt', 'csv', 'xml', 'html', 'json'],
+		all: ['doc', 'docx', 'pdf', 'txt', 'rtf', 'pages', 'xls', 'xlsx', 'csv', 'ods', 'fods', 'odt', 'fodt', 'odp', 'fodp', 'odg', 'fodg', 'ppt', 'pptx', 'key', 'xml', 'html', 'json', 'md']
+	}
+};
+
+export const imageTypes = MEDIA_TYPES.image.web;
+export const allImageTypes = MEDIA_TYPES.image.all;
+
+export const videoTypes = MEDIA_TYPES.video.web;
+export const allVideoTypes = MEDIA_TYPES.video.all;
+
+export const audioTypes = MEDIA_TYPES.audio.web;
+export const allAudioTypes = MEDIA_TYPES.audio.all;
+
+export const documentTypes = MEDIA_TYPES.document.web;
+export const allDocumentTypes = MEDIA_TYPES.document.all;
+
 /*
 * Processes a socialstack URL-like string called a file ref.
 * Content refs are handled by the frontend because they can also have custom handlers.
@@ -420,11 +451,12 @@ export class FileRefInfo {
 
     /**
      * True if this ref is an image.
+     * @param webOnly True if it should only check web compat image filetypes.
      * @returns
      */
-    isImage() {
-        if (this.fileType) {
-            return (imgTypes.indexOf(this.fileType) != -1);
+	isImage(webOnly: boolean) {
+		if (this.fileType) {
+			return ((webOnly ? MEDIA_TYPES.image.web : MEDIA_TYPES.image.all).indexOf(this.fileType) != -1);
         }
 
         return false;
@@ -437,11 +469,37 @@ export class FileRefInfo {
      */
     isVideo(webOnly: boolean) {
         if (this.fileType) {
-            return ((webOnly ? vidTypes : allVidTypes).indexOf(this.fileType) != -1);
+			return ((webOnly ? MEDIA_TYPES.video.web : MEDIA_TYPES.video.all).indexOf(this.fileType) != -1);
         }
 
         return false;
     }
+
+	/**
+	 * True if this ref contains audio.
+	 * @param webOnly True if it should only check web compat audio filetypes.
+	 * @returns
+	 */
+	isAudio(webOnly: boolean) {
+		if (this.fileType) {
+			return ((webOnly ? MEDIA_TYPES.audio.web : MEDIA_TYPES.audio.all).indexOf(this.fileType) != -1);
+		}
+
+		return false;
+	}
+
+	/**
+	 * True if this ref is a document.
+	 * @param webOnly True if it should only check web compat document filetypes.
+	 * @returns
+	 */
+	isDocument(webOnly: boolean) {
+		if (this.fileType) {
+			return ((webOnly ? MEDIA_TYPES.document.web : MEDIA_TYPES.document.all).indexOf(this.fileType) != -1);
+		}
+
+		return false;
+	}
 
     /**
      * The original unmodified ref.
@@ -535,11 +593,6 @@ export function parse (ref: FileRefIsh): FileRefInfo | null {
     return new FileRefInfo(ref as FileRef);
 };
 
-var imgTypes = ['png', 'jpeg', 'jpg', 'gif', 'mp4', 'svg', 'bmp', 'apng', 'webp', 'avif'];
-var vidTypes = ['mp4', 'webm', 'avif'];
-var allVidTypes = ['avi', 'wmv', 'ts', 'm3u8', 'ogv', 'flv', 'h264', 'h265', 'webm', 'ogg', 'mp4', 'mkv', 'mpeg', '3g2', '3gp', 'mov', 'media', 'avif'];
-
-
 /*
 * Convenience method for identifying refs.
 */
@@ -551,9 +604,9 @@ export function isRef(ref : FileRefIsh) {
 /*
 * Convenience method for identifying image refs.
 */
-export function isImage(ref : FileRefIsh) {
+export function isImage(ref: FileRefIsh, webOnly: boolean) {
     var info = parse(ref);
-    return info ? info.isImage() : false;
+    return info ? info.isImage(webOnly) : false;
 }
 
 /**
@@ -565,4 +618,38 @@ export function isImage(ref : FileRefIsh) {
 export function isVideo(ref: FileRefIsh, webOnly: boolean) {
     var info = parse(ref);
     return info ? info.isVideo(webOnly) : false;
+}
+
+/**
+ * Convenience method for identifying audio.
+ * @param ref
+ * @param webOnly True if it should only check for web compatible audio.
+ * @returns
+ */
+export function isAudio(ref: FileRefIsh, webOnly: boolean) {
+	var info = parse(ref);
+	return info ? info.isAudio(webOnly) : false;
+}
+
+/**
+* Convenience method for identifying documents.
+* @param ref
+* @param webOnly True if it should only check for web compatible documents.
+* @returns
+*/
+export function isDocument(ref: FileRefIsh, webOnly: boolean) {
+	var info = parse(ref);
+	return info ? info.isDocument(webOnly) : false;
+}
+
+/**
+* Convenience method for identifying other file types (namely not images, video, audio or documents - e.g. ZIP).
+* @param ref
+* @param webOnly True if it should only check for web compatible file types.
+* @returns
+*/
+export function isOther(ref: FileRefIsh, webOnly: boolean) {
+	var info = parse(ref);
+
+	return info ? !info.isImage(webOnly) && !info.isVideo(webOnly) && !info.isAudio(webOnly) && !info.isDocument(webOnly) : false;
 }
