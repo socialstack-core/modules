@@ -4,6 +4,8 @@ import { useState } from 'react';
 
 /**
  * Props for the collapsible component.
+ * @icon fal fa-layer-group
+ * @description A collapsible region.
  */
 interface CollapsibleProps {
 	/**
@@ -229,6 +231,13 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 			return;
 		}
 		var name = (e.target as HTMLElement).nodeName;
+
+		if (name == 'DIALOG' || e.target.closest("dialog")) {
+			e.preventDefault();
+			e.stopPropagation();
+			return;
+		}
+
 		if (name != 'SUMMARY' && name != 'DETAILS') {
 			return;
 		}
