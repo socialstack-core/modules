@@ -1,0 +1,100 @@
+.price-editor {
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+
+    width: 100%;
+    min-width: 0;
+
+    --price-symbol-bg: rgba(0, 0, 0, 0.05);
+    --price-symbol-border: 1px solid rgba(0, 0, 0, 0.12);
+    --price-symbol-radius: 6px;
+    --price-symbol-font-size: 0.95rem;
+
+    .currency-symbol {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0.65rem;
+
+        background: var(--price-symbol-bg);
+        border: var(--price-symbol-border);
+        border-radius: var(--price-symbol-radius);
+
+        font-weight: 600;
+        font-size: var(--price-symbol-font-size);
+        color: #333;
+
+        user-select: none;
+        flex: 0 0 auto;
+        aspect-ratio: 1;
+
+        box-sizing: border-box;
+        border-top-right-radius: 0px;
+        border-bottom-right-radius: 0px;
+    }
+
+    .price-field {
+        flex: 1 1 auto;
+        min-width: 0;
+        display: block;
+
+        position: relative;
+        left: -10px;
+
+        width: 100%;
+
+        .mb-3 {
+            min-width: 400px;
+            margin-bottom: 0 !important;
+        }
+
+        & :where(input) {
+            height: 100%;
+            width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            margin: 0;
+
+            padding-top: 0;
+            padding-bottom: 0;
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
+        }
+    }
+
+    &:focus-within {
+        .currency-symbol {
+            border-color: rgba(0, 115, 255, 0.35);
+            box-shadow: 0 0 0 3px rgba(0, 115, 255, 0.12);
+        }
+    }
+
+    &:has(input[disabled]),
+    &.disabled {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+}
+
+.price-editor.small {
+    --price-symbol-font-size: 0.85rem;
+    gap: 0.35rem;
+
+    .currency-symbol {
+        padding: 0 0.5rem;
+    }
+}
+
+[dir="rtl"] .price-editor,
+.price-editor.rtl {
+    direction: rtl;
+
+    .currency-symbol {
+        order: 2;
+    }
+
+    .price-field {
+        order: 1;
+    }
+}
