@@ -6,10 +6,11 @@ declare global {
         'canvas': {
             className?: string,
             id?: string,
+			name?: string,
             onChange?: (e: React.FormEvent<HTMLInputElement>) => void,
             onBlur?: (e: React.FocusEvent) => void,
-            defaultValue: string,
-            onCanvasChange: (source: string) => void
+            defaultValue?: string,
+            onCanvasChange?: (source: string) => void
         }
     }
 }
