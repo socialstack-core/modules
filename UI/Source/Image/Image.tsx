@@ -9,7 +9,12 @@ const MIN_SRCSET_WIDTH = 256;
 export type ImageSize      = "original" | number | string; // add more as necessary
 export type ImageAlignment = "none" | "left" | "right" | "center";
 
-export type ImageProps = {
+/**
+ * Props for the image component.
+ * @icon fal fa-image
+ * @description Displays an image.
+ */
+export interface ImageProps {
     onClick?: React.MouseEventHandler<HTMLImageElement>, 
 	fileRef: FileRef, 
 	/**
@@ -45,7 +50,7 @@ export type ImageProps = {
 	plain?: boolean,
 }
 
-let _sortedSizes: int[] | undefined;
+let _sortedSizes: number[] | undefined;
 
 /**
  * Supported sizes from largest to smallest.
@@ -55,7 +60,7 @@ function getSupportedSizes() {
 	if (_sortedSizes) {
 		return _sortedSizes;
 	}
-	var cfg = getConfig<UploaderConfig>('uploader');
+	var cfg = getConfig<any>('uploader');
 	var origSizes = cfg?.[0]?.imageSizes ?? null;
 
 	var sizes = origSizes ? [...origSizes] : [];
@@ -63,7 +68,7 @@ function getSupportedSizes() {
 }
 
 type ImageSource = {
-	size: int,
+	size: number,
 	url: string,
 	format: string,
 	mediaQuery: string
@@ -158,10 +163,13 @@ const Image: React.FC<ImageProps> = (props: ImageProps): React.ReactNode => {
     const classNames: string[] = [props.className ? `ui-image__wrapper ${props.className}` : 'ui-image__wrapper'];
     let animation: string | null = null; 
 
-    if (fileRef === null) {
-        // no file ref, so don't render the image.
-        console.warn('Image: No fileRef provided.');
-        return;
+    if (!fileRef) {
+		return (<div style={{width, height, backgroundColor: 'grey', color: 'white', textAlign: 'center', display: 'inline-block'}}>
+			<div style={{margin: '10px'}}>
+				<i className='fa fa-camera' />
+			</div>
+			{`No source`}
+		</div>);
     }
 	
     // adds an alignment CSS class to the image
@@ -231,7 +239,7 @@ const Image: React.FC<ImageProps> = (props: ImageProps): React.ReactNode => {
 	
     var imgUrl = getUrl(ref, {size: size?.toString()});
 
-	var altWithAuthor = altText;
+	var altWithAuthor: string | undefined = altText;
 	if (authorText) {
 		if (altWithAuthor) {
 			altWithAuthor += ', ';
@@ -327,7 +335,7 @@ const FigureWrapper: React.FC<React.PropsWithChildren<FigureWrapperProps>> = (pr
 					<span itemProp="creator" itemType="https://schema.org/Person" itemScope>
 						<meta itemProp="name" content={author} />
 					</span>
-					<p itemProp="copyrightNotice">© {new Date().getFullYear()} - <span itemProp="creditText">{author}</span></p>
+					<p itemProp="copyrightNotice">Â© {new Date().getFullYear()} - <span itemProp="creditText">{author}</span></p>
 				</>
 			}
 		</figcaption>}
