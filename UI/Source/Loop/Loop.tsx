@@ -206,6 +206,21 @@ export interface LoopProps<T extends Content<uint>, I extends ApiIncludes> {
 	paged?: LoopPageConfig | boolean;
 
 	/**
+	 * set true to render paginator only (no overview)
+	 */
+	paginatorOnly?: boolean;
+
+	/**
+	 * set true to render overview only (no paginator)
+	 */
+	overviewOnly?: boolean;
+
+	/** 
+	 * set true to have paginator dock to bottom of parent
+	 */
+	dockBottom?: boolean;
+
+	/**
 	 * Custom failure handler.
 	 * @param e
 	 * @returns
@@ -468,6 +483,9 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 		maxLinks={maxLinks}
 		pageIndex={props.filter?.pageIndex || pageIndex}
 		totalResults={totalResults}
+		paginatorOnly={props.paginatorOnly}
+		overviewOnly={props.overviewOnly}
+		dockBottom={props.dockBottom}
 		onChange={(pageIndex: number) => {
 			
 			if (props.customChangeHandler) {
