@@ -1,3 +1,60 @@
+// by default, the admin trigger button appears fixed to the bottom-right corner of the window;
+// to override for your specific project (for instance, a third party script adds a button 
+// in the same area), override the relevant CSS properties, as shown below:
+//
+// NB: internal <Dropdown> menu may also need align / position properties updating;
+//     planned changes to UI/Dropdown should automatically account for this in future
+
+/*
+// dock bottom left
+:root {
+	--admin-trigger-left: 1rem;
+	--admin-trigger-right: auto;
+}
+
+// dock top left
+:root {
+	--admin-trigger-left: 1rem;
+	--admin-trigger-right: auto;
+    --admin-trigger-bottom: auto;
+    --admin-trigger-top: 1rem;
+}
+
+// dock top right
+:root {
+    --admin-trigger-bottom: auto;
+    --admin-trigger-top: 1rem;
+}
+
+// dock halfway along left-hand edge
+:root {
+	--admin-trigger-left: 1rem;
+	--admin-trigger-right: auto;
+    --admin-trigger-bottom: auto;
+    --admin-trigger-top: calc(50vh - 1rem);
+}
+
+// dock halfway along right-hand edge
+:root {
+    --admin-trigger-bottom: auto;
+    --admin-trigger-top: calc(50vh - 1rem);
+}
+
+// dock halfway along top edge
+:root {
+    --admin-trigger-left: calc(50vw - 1rem);
+	--admin-trigger-right: auto;
+    --admin-trigger-bottom: auto;
+    --admin-trigger-top: 1rem;
+}
+
+// dock halfway along bottom edge
+:root {
+    --admin-trigger-left: calc(50vw - 1rem);
+	--admin-trigger-right: auto;
+}
+*/
+
 html.admin {
 
     #admin-trigger {
@@ -14,10 +71,10 @@ html:not(.admin) {
 
     #admin-trigger {
         position: fixed;
-        left: var(--admin-trigger-left, $fallback__admin-trigger-left);
-        right: var(--admin-trigger-right, $fallback__admin-trigger-right);
-        bottom: var(--admin-trigger-bottom, $fallback__admin-trigger-bottom);
-        top: var(--admin-trigger-top, $fallback__admin-trigger-top);
+        left: var(--admin-trigger-left, auto);
+        right: var(--admin-trigger-right, 1rem);
+        bottom: var(--admin-trigger-bottom, 1rem);
+        top: var(--admin-trigger-top, auto);
         z-index: 2147483647;
 
         .admin-trigger__env {
@@ -109,10 +166,10 @@ html:not(.admin) {
 
     #admin-menu {
         position: absolute;
-        left: var(--admin-menu-left, $fallback__admin-menu-left);
-        right: var(--admin-menu-right, $fallback__admin-menu-right);
-        bottom: var(--admin-menu-bottom, $fallback__admin-menu-bottom);
-        top: var(--admin-menu-top, $fallback__admin-menu-top);
+        left: var(--admin-menu-left, auto);
+        right: var(--admin-menu-right, 1rem);
+        bottom: var(--admin-menu-bottom, auto);
+        top: var(--admin-menu-top, 3.5rem);
         z-index: 2147483647;
         list-style: none;
         padding: 0;
