@@ -422,6 +422,94 @@ public partial class LogTransactionReader
 		}
 	}
 
+	/// <summary>
+	/// Pre-allocates a chain of pool buffers to hold totalSize bytes for backward field reading.
+	/// Sets up Fields[FieldCount].FirstBuffer and DataStart, and links the chain into the main
+	/// buffer list for cleanup. WriteToBackwardFieldBuffers then uses Fields[FieldCount].FirstBuffer
+	/// to walk the chain.
+	/// </summary>
+	private void AllocateBackwardFieldBuffers(int totalSize)
+	{
+		var bufferSize = BinaryBufferPool.OneKb.BufferSize;
+
+		BufferedBytes first = null;
+		BufferedBytes last = null;
+		int allocated = 0;
+
+		while (allocated < totalSize)
+		{
+			var buff = BinaryBufferPool.OneKb.Get();
+			buff.Length = bufferSize;
+			buff.After = null;
+
+			if (first == null)
+			{
+				first = buff;
+				last = buff;
+			}
+			else
+			{
+				last.After = buff;
+				last = buff;
+			}
+
+			allocated += bufferSize;
+		}
+
+		// Link into the main cleanup chain
+		if (FirstBuffer == null)
+		{
+			FirstBuffer = first;
+		}
+		else
+		{
+			LastBuffer.After = first;
+		}
+		LastBuffer = last;
+
+		// Set up field data pointers
+		Fields[FieldCount].FirstBuffer = first;
+		Fields[FieldCount].DataStart = 0;
+	}
+
+	/// <summary>
+	/// Writes data into the pre-allocated backward field buffer chain at the given
+	/// destination offset. Handles spanning across buffer boundaries.
+	/// </summary>
+	private void WriteToBackwardFieldBuffers(byte[] source, int srcOffset, int length, int destOffset)
+	{
+		if (length == 0)
+		{
+			return;
+		}
+
+		var bufferSize = BinaryBufferPool.OneKb.BufferSize;
+		var node = Fields[FieldCount].FirstBuffer;
+
+		// Navigate to the correct buffer for destOffset
+		while (destOffset >= bufferSize)
+		{
+			node = node.After;
+			destOffset -= bufferSize;
+		}
+
+		// Copy data, spanning buffers if needed
+		while (length > 0)
+		{
+			int space = bufferSize - destOffset;
+			int toCopy = length < space ? length : space;
+			Array.Copy(source, srcOffset, node.Bytes, destOffset, toCopy);
+			srcOffset += toCopy;
+			length -= toCopy;
+
+			if (length > 0)
+			{
+				node = node.After;
+				destOffset = 0;
+			}
+		}
+	}
+
 	private enum ReadState : int {
 		CompressedNumberStart = 0,
 		CompressedNumber2Bytes = 1,
@@ -1462,7 +1550,8 @@ public partial class LogTransactionReader
 								// Go to partial field read state:
 								_fieldDataSoFar = i+1;
 								i = -1;
-								WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
+								AllocateBackwardFieldBuffers(_fieldDataSize);
+								WriteToBackwardFieldBuffers(readBuffer, 0, _fieldDataSoFar, _fieldDataSize - _fieldDataSoFar);
 								_state = ReadState.FieldBytes;
 							}
 						}
@@ -1516,7 +1605,8 @@ public partial class LogTransactionReader
 										// Go to partial field read state:
 										_fieldDataSoFar = i + 1;
 										i = -1;
-										WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
+										AllocateBackwardFieldBuffers(_fieldDataSize);
+										WriteToBackwardFieldBuffers(readBuffer, 0, _fieldDataSoFar, _fieldDataSize - _fieldDataSoFar);
 										_state = ReadState.FieldBytes;
 									}
 								}
@@ -1542,7 +1632,8 @@ public partial class LogTransactionReader
 									// Go to partial field read state:
 									_fieldDataSoFar = i + 1;
 									i = -1;
-									WriteToFieldBuffers(readBuffer, 0, _fieldDataSoFar);
+									AllocateBackwardFieldBuffers(_fieldDataSize);
+									WriteToBackwardFieldBuffers(readBuffer, 0, _fieldDataSoFar, _fieldDataSize - _fieldDataSoFar);
 									_state = ReadState.FieldBytes;
 								}
 
@@ -1550,10 +1641,7 @@ public partial class LogTransactionReader
 						}
 						break;
 					case ReadState.FieldBytes:
-						// Read part of a field value
-
-						#warning wrong order!
-						// We're going backwards - this appends a block of bytes at the end of the current field value
+						// Read part of a field value (backward direction - write at correct offset in pre-allocated chain)
 
 						var bytesToCopy = _fieldDataSize - _fieldDataSoFar;
 						var bytesAvailable = i + 1;
@@ -1562,7 +1650,7 @@ public partial class LogTransactionReader
 							bytesToCopy = bytesAvailable;
 						}
 
-						WriteToFieldBuffers(readBuffer, i - bytesToCopy + 1, bytesToCopy, false);
+						WriteToBackwardFieldBuffers(readBuffer, i - bytesToCopy + 1, bytesToCopy, _fieldDataSize - _fieldDataSoFar - bytesToCopy);
 						_fieldDataSoFar += bytesToCopy;
 						i -= bytesToCopy;
 
