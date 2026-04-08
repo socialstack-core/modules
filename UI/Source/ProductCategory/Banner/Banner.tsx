@@ -37,20 +37,13 @@ const ProductCategoryBanner: React.FC<ProductCategoryBannerProps> = (props) => {
 		backgroundPosition: `${featureInfo.focalX}% ${featureInfo.focalY}%`
 	} : {};
 
-	const offsetX = category.productImageHorizontalOffset || 0;
-	const offsetY = category.productImageVerticalOffset || 0;
-
-	const productImageStyle = offsetX == 0 && offsetY == 0 ? {} : {
-		transform: `translate(${offsetX}px, ${offsetY}px)`
-	};
-
 	return <>
 		{/* hide background image - limit to product image overlay */}
 		{/* <div className={classNames.join(' ')} style={backgroundStyle}>*/}
 		<div className={classNames.join(' ')}>
 			<div className={`${baseClass}__internal`}>
 				{category.productImageRef && <>
-					<Image className={`${baseClass}__image`} size={512} fileRef={category.productImageRef} style={productImageStyle} />
+					<Image className={`${baseClass}__image`} size={512} fileRef={category.productImageRef} />
 				</>}
 				<h1 className={`${baseClass}__title`}>
 					{category.name}
