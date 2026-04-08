@@ -120,11 +120,18 @@ $tab-count: 10;
 
 }
 
-// toggle panel visibility when associated radio button selected
 @for $radio from 1 through $tab-count {
 
+	// toggle panel visibility when associated radio button selected
 	.ui-page__tab-links:has(#tab-link#{$radio}:checked) ~ .ui-page__tab-panels > .ui-page__tab-panel:nth-child(#{$radio}) {
 		display: block;
+	}
+
+	// show marker if the given tab includes an invalid field
+	.ui-page__tabs:has(.ui-page__tab-panel:nth-child(#{$radio}) input.is-invalid) .ui-page__tab-link:nth-child(#{$radio}) > label::after {
+		content: "*";
+		color: var(--danger);
+		margin-left: px_to_rem(8);
 	}
 
 }
