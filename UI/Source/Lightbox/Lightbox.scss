@@ -1,0 +1,162 @@
+$ui-lightbox-max-images: 50;
+$ui-lightbox-header-height: px_to_rem(50);
+
+.ui-lightbox {
+	$ui-lightbox: &;
+
+	> * {
+		user-select: none;
+	}
+
+	// hide radio buttons but leave them accessible
+	input[type="radio"] {
+		clip-path: inset(50%) !important;
+		width: 1px !important;
+		height: 1px !important;
+		margin: -1px !important;
+		overflow: hidden !important;
+		padding: 0 !important;
+		position: absolute;
+	}
+
+	&__trigger {
+		padding: 0 !important;
+		border: 0 !important;
+		background: transparent !important;
+	}
+
+	&__thumbnails {
+		display: flex;
+		flex-wrap: wrap;
+		gap: px_to_rem(12);
+	}
+
+	&__thumbnail {
+		cursor: pointer;
+	}
+
+	&__overlay {
+
+		&:popover-open {
+			padding: px_to_rem(8);
+			background-color: rgba(0 0 0 / .75);
+			overflow: hidden;
+			color: #fff;
+		}
+
+		&-header {
+			height: $ui-lightbox-header-height;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: px_to_rem(16);
+			padding: px_to_rem(8);
+			margin-bottom: px_to_rem(16);
+		}
+
+		&-title {
+			font-size: px_to_rem(20);
+			font-weight: bold;
+			line-height: normal;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			margin: 0;
+		}
+
+		&-close {
+			border: 0 !important;
+			background: transparent !important;
+			color: #fff !important;
+			padding: px_to_rem(8);
+			min-width: calc(1rem * var(--btn-min-height) / 16);
+
+			&:hover {
+				background: #fff !important;
+				color: #000 !important;
+			}
+
+			svg {
+				width: px_to_rem(32);
+				height: px_to_rem(32);
+			}
+		}
+
+	}
+
+	&__slides {
+		height: calc(100% - #{$ui-lightbox-header-height} - #{px_to_rem(24)});
+	}
+
+	&__slide {
+		display: none;
+		gap: px_to_rem(12);
+		grid-template-columns: auto minmax(0, 1fr) auto;
+		grid-template-rows: 100%;
+		grid-template-areas: "back img next";
+		height: 100%;
+
+		figure {
+			width: 100%;
+			text-align: center;
+
+			img {
+				aspect-ratio: 1;
+				object-fit: cover;
+				max-width: 100%;
+				max-height: calc(100vh - #{$ui-lightbox-header-height} - #{px_to_rem(24)} - #{px_to_rem(100)} - #{px_to_rem(24)});
+				max-height: calc(100dvh - #{$ui-lightbox-header-height} - #{px_to_rem(24)} - #{px_to_rem(100)} - #{px_to_rem(24)});
+				margin: 0 auto 8px auto;
+			}
+
+			figcaption {
+				font-size: px_to_rem(13);
+			}
+		}
+
+		> img {
+			aspect-ratio: 1;
+			object-fit: cover;
+			max-width: 100%;
+			max-height: calc(100vh - #{$ui-lightbox-header-height} - #{px_to_rem(24)} - #{px_to_rem(100)} - #{px_to_rem(24)});
+			max-height: calc(100dvh - #{$ui-lightbox-header-height} - #{px_to_rem(24)} - #{px_to_rem(100)} - #{px_to_rem(24)});
+			margin: 0 auto;
+		}
+
+		&-control {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: px_to_rem(8);
+			color: #fff;
+			cursor: pointer;
+
+			svg {
+				width: px_to_rem(48);
+				height: px_to_rem(48);
+			}
+		}
+	}
+
+	@for $i from 1 through $ui-lightbox-max-images {
+
+		&:has(input[type="radio"]:nth-child(#{$i}):checked) {
+
+			.ui-lightbox__slide:nth-child(#{$i}) {
+				display: grid;
+			}
+		}
+
+	}
+
+}
+
+/*
+@media only screen and (orientation: landscape) and (min-width: 600px) {
+  
+  .ui-lightbox {
+    
+  }
+  
+}
+*/
