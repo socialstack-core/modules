@@ -1,0 +1,36 @@
+:root {
+	// TODO: update config with these values
+	--primary-hover: var(--secondary);
+	--primary-hover-border: var(--secondary);
+	--primary-active: var(--secondary);
+	--primary-active-border: var(--secondary);
+}
+
+.ui-button-test {
+
+	section {
+		padding: 1rem;
+		margin: 2rem;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 20px;
+		position: relative;
+
+		&:has(:nth-child(2).form-check) {
+			margin: 0 2rem;
+		}
+
+		> label.name {
+			position: absolute;
+			font-size: 11px;
+			font-family: var(--font);
+			font-weight: 700;
+			color: #888;
+			left: 0;
+			top: -6px;
+			text-transform: uppercase;
+		}
+	}
+}
