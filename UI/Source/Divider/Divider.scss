@@ -1,0 +1,17 @@
+.ui-divider {
+    margin: 2.5rem 0;
+    color: inherit;
+    border: 0;
+    border-top: 1px solid;
+    opacity: .25;
+    height: 1px;
+
+	&--faded {
+	    background-color: transparent;
+		background-image: linear-gradient(to right, 
+			rgba(0, 0, 0, 0), 
+			rgba(0, 0, 0, 0.75) 5%, 
+			rgba(0, 0, 0, 0.75) 95%, 
+			rgba(0, 0, 0, 0));
+	}
+}
