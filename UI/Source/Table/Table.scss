@@ -1,9 +1,73 @@
 .ui-table {
+	// TODO: SIZING SUPPORT
+	/*
+	// set defaults to regular (md)
+	--ui-table-font-size: var(--ui-table-md-font-size, 16);
+	--ui-table-font-weight: var(--ui-table-md-font-weight, 400);
+	--ui-table-cell-padding: var(--ui-table-md-cell-padding, 8);
+
+	// NB: only applied to captions _above_ the table
+	// (by default, captions appear _below_ the table and inherit the same font, albeit in italic)
+	--ui-table-caption-font-size: var(--ui-table-md-caption-font-size, 18);
+	--ui-table-caption-font-weight: var(--ui-table-md-caption-font-weight, 700);
+	--ui-table-caption-margin: var(--ui-table-md-caption-margin, 10);
+	*/
+
 	border: 0;
+	caption-side: bottom;
+
+	// TODO: SIZING SUPPORT
+	/*
+	font-size: var_to_rem(--ui-table-font-size);
+	font-weight: var(--ui-table-font-weight);
+
+	> :not(caption) > * > * {
+		padding: var_to_rem(--ui-table-cell-padding);
+	}
+	*/
+
+	> caption {
+		// TODO: SIZING SUPPORT
+		//font-size: inherit;
+		//font-weight: inherit;
+		//margin: var_to_rem(--ui-table-caption-margin) 0 0 0;
+		font-size: px_to_rem(16);
+		font-weight: 400;
+		margin: px_to_rem(10) 0 0 0;
+		
+		font-style: italic;
+		line-height: normal;
+		text-wrap: balance;
+	}
+
+	&--caption-above {
+		caption-side: top;
+
+		> caption {
+			// TODO: SIZING SUPPORT
+			//font-size: var_to_rem(--ui-table-caption-font-size);
+			//font-weight: var(--ui-table-caption-font-weight);
+			//margin: 0 0 var_to_rem(--ui-table-caption-margin) 0;
+			font-size: px_to_rem(18);
+			font-weight: 700;
+			margin: 0 0 px_to_rem(10) 0;
+			font-style: normal;
+		}
+	}
+
+	> thead {
+
+		> tr {
+
+			> th {
+				vertical-align: middle;
+			}
+		}
+	}
 
 	&--sticky {
 
-		thead {
+		> thead {
 			position: sticky;
 			top: var(--table-header-top, #{px_to_rem(50)});
 			z-index: 100;
@@ -12,7 +76,7 @@
 			// (used to mask content scrolling behind)
 			&::after {
 				content: "";
-				background: var(--table-header-background, var(--light));
+				background: var(--table-header-background, var(--light)); // todo: base on site background (or other direct parent, e.g. tile / panel)
 				position: absolute;
 				width: 100%;
 				top: px_to_rem(-20);
@@ -24,14 +88,134 @@
 
 	}
 
-	thead {
+	// TODO: SIZING SUPPORT
+	/*
+	// nested buttons, links and form controls should follow suit
+	// (arguable that header / caption / footer should be included, but limit to body for now)
+	> tbody {
 
-		tr {
+		.ui-btn {
+			--btn-min-height: var(--btn-xs-min-height, #{$default-btn-xs-min-height});
+			--btn-padding: var(--btn-xs-padding, #{$default-btn-xs-padding});
+			--btn-font-size: var(--btn-xs-font-size, #{$default-btn-xs-font-size});
+			--btn-font-weight: var(--btn-xs-font-weight, #{$default-btn-xs-font-weight});
+			--btn-border-radius: var(--btn-xs-border-radius, #{$default-btn-xs-border-radius});
+			--btn-icon: var(--btn-xs-icon, #{$default-btn-xs-icon});
+			--btn-gap: var(--btn-xs-gap, #{$default-btn-xs-gap});
+		}
 
-			th {
-				vertical-align: middle;
-			}
+		.ui-link {
+			--ui-link-font-size: var(--ui-link-xs-font-size, #{$default-link-xs-font-size});
+			--ui-link-font-weight: var(--ui-link-xs-font-weight, #{$default-link-xs-font-weight});
+			--ui-link-icon: var(--ui-link-xs-icon, #{$default-link-xs-icon});
+			--ui-link-gap: var(--ui-link-xs-gap, #{$default-link-xs-gap});
+		}
+
+		.ui-form-control, .ui-form-select {
+			--form-check-font-size: var(--form-xs-font-size, #{$default-form-xs-font-size});
+			--form-check-size: var(--form-xs-check-size, #{$default-form-xs-check-size});
+			--form-check-gap: var(--form-xs-check-gap, #{$default-form-xs-check-gap});
+			--form-check-border-radius: var(--form-xs-check-border-radius, #{$default-form-xs-check-border-radius});
+			--form-check-background-size: var(--form-xs-check-background-size, #{$default-form-xs-check-background-size});
+
+			--form-switch-width: var(--form-xs-switch-width, #{$default-form-xs-switch-width});
+			--form-switch-height: var(--form-xs-switch-height, #{$default-form-xs-switch-height});
+			--form-switch-dot: var(--form-xs-switch-dot, #{$default-form-xs-switch-dot});
+			--form-switch-gap: var(--form-xs-switch-gap, #{$default-form-xs-switch-gap});
+			--form-switch-border-radius: var(--form-xs-switch-border-radius, #{$default-form-xs-switch-border-radius});
+
+			--label-font-size: var(--label-xs-font-size, #{$default-label-xs-font-size});
+			--label-font-weight: var(--label-xs-font-weight, #{$default-label-xs-font-weight});
+
+			--field-min-height: var(--field-xs-min-height, #{$default-field-xs-min-height});
+			--field-padding: var(--field-xs-padding, #{$default-field-xs-padding});
+			--field-font-size: var(--field-xs-font-size, #{$default-field-xs-font-size});
+			--field-font-weight: var(--field-xs-font-weight, #{$default-field-xs-font-weight});
+			--field-border-radius: var(--field-xs-border-radius, #{$default-field-xs-border-radius});
+			--field-placeholder-font-size: var(--field-xs-placeholder-font-size, #{$default-field-xs-placeholder-font-size});
+			--field-placeholder-font-weight: var(--field-xs-placeholder-font-weight, #{$default-field-xs-placeholder-font-weight});    
+			--field-text-font-size: var(--field-xs-text-font-size, #{$default-field-xs-text-font-size});
+			--field-select-icon-width: var(--field-xs-select-icon-width, #{$default-field-xs-select-icon-width});
+			--field-select-icon-height: var(--field-xs-select-icon-height, #{$default-field-xs-select-icon-height});
 		}
 	}
 
+	// override	vars based on size
+	&-xs,
+	&--xs {
+		--ui-table-font-size: var(--ui-table-xs-font-size, 13);
+		--ui-table-font-weight: var(--ui-table-xs-font-weight, 400);
+		--ui-table-cell-padding: var(--ui-table-xs-cell-padding, 6);
+		--ui-table-caption-font-size: var(--ui-table-xs-caption-font-size, 15);
+		--ui-table-caption-font-weight: var(--ui-table-xs-caption-font-weight, 700);
+		--ui-table-caption-margin: var(--ui-table-xs-caption-margin, 8);
+	}
+	
+	&-sm,
+	&--sm {
+		--ui-table-font-size: var(--ui-table-sm-font-size, 15);
+		--ui-table-font-weight: var(--ui-table-sm-font-weight, 400);
+		--ui-table-cell-padding: var(--ui-table-sm-cell-padding, 8);
+		--ui-table-caption-font-size: var(--ui-table-sm-caption-font-size, 17);
+		--ui-table-caption-font-weight: var(--ui-table-sm-caption-font-weight, 700);
+		--ui-table-caption-margin: var(--ui-table-sm-caption-margin, 10);
+	}
+
+	&-md,
+	&--md {
+		--ui-table-font-size: var(--ui-table-md-font-size, 16);
+		--ui-table-font-weight: var(--ui-table-md-font-weight, 400);
+		--ui-table-cell-padding: var(--ui-table-md-cell-padding, 8);
+		--ui-table-caption-font-size: var(--ui-table-md-caption-font-size, 18);
+		--ui-table-caption-font-weight: var(--ui-table-md-caption-font-weight, 700);
+		--ui-table-caption-margin: var(--ui-table-md-caption-margin, 10);
+	}
+	
+	&-lg,
+	&--lg {
+		--ui-table-font-size: var(--ui-table-lg-font-size, 18);
+		--ui-table-font-weight: var(--ui-table-lg-font-weight, 400);
+		--ui-table-cell-padding: var(--ui-table-lg-cell-padding, 10);
+		--ui-table-caption-font-size: var(--ui-table-lg-caption-font-size, 20);
+		--ui-table-caption-font-weight: var(--ui-table-lg-caption-font-weight, 700);
+		--ui-table-caption-margin: var(--ui-table-lg-caption-margin, 12);
+	}
+
+	&-xl,
+	&--xl {
+		--ui-table-font-size: var(--ui-table-xl-font-size, 20);
+		--ui-table-font-weight: var(--ui-table-xl-font-weight, 400);
+		--ui-table-cell-padding: var(--ui-table-xl-cell-padding, 12);
+		--ui-table-caption-font-size: var(--ui-table-xl-caption-font-size, 24);
+		--ui-table-caption-font-weight: var(--ui-table-xl-caption-font-weight, 700);
+		--ui-table-caption-margin: var(--ui-table-xl-caption-margin, 14);
+	}
+	*/
+
+}
+
+html.admin {
+
+	.ui-table {
+
+		> thead {
+
+			> tr {
+
+				> th {
+					background-color: var(--admin-page__table-header-background, #E0E4F5);
+					color: var(--admin-page__table-header-fg, #222);
+					font-size: px_to_rem(13);
+					font-weight: 700;
+					--form-check-font-size: 13;
+					--form-check-font-weight: 700;
+					--form-check-font-weight--checked: 700;
+
+					.ui-btn {
+						--btn-font-weight: 700;
+					}
+				}
+			}
+		}
+	}
 }
