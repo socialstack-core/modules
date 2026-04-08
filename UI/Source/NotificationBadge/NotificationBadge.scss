@@ -1,0 +1,56 @@
+.notification-badge {
+	background: var(--notification-badge-bg, var(--danger));
+    color: var(--notification-badge-fg, var(--danger-fg));
+    width: px_to_rem(24);
+    height: px_to_rem(24);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+	font-size: px_to_rem(15);
+	line-height: normal;
+	
+	> svg {
+		width: px_to_rem(12);
+        height: px_to_rem(20);
+	}
+
+	> i {
+		font-size: px_to_rem(20);
+	}
+
+	&--small {
+		font-size: px_to_rem(11);
+
+        &:not(:has(svg))::after {
+          content: '+';
+        }
+
+	}
+
+	&--primary {
+		background: var(--primary);
+		color: var(--primary-fg);
+	}
+
+	&--secondary {
+		background: var(--secondary);
+		color: var(--secondary-fg);
+	}
+
+	&--success {
+		background: var(--success);
+		color: var(--success-fg);
+	}
+
+	&--warning {
+		background: var(--warning);
+		color: var(--warning-fg);
+	}
+
+	&--info {
+		background: var(--info);
+		color: var(--info-fg);
+	}
+
+}
