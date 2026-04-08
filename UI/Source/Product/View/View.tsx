@@ -1,10 +1,12 @@
 import { Product } from 'Api/Product';
-import ProductCarousel, {CarouselItem} from 'UI/Product/Carousel';
+import { PriceCurrency } from 'Api/Content';
+import ProductList from 'UI/Product/List';
+import ProductCarousel, { CarouselItem } from 'UI/Product/Carousel';
 import ProductAbout from 'UI/Product/About';
 import ProductAttributes from 'UI/Product/Attributes';
 import ProductPrice from 'UI/Product/Price';
 import ProductQuantity from 'UI/Product/Quantity';
-import ProductDownloads, {COSHHDownloads} from 'UI/Product/Downloads';
+import ProductDownloads from 'UI/Product/Downloads';
 import ProductFAQs from 'UI/Product/FAQs';
 import { useEffect, useState, useRef } from 'react';
 import Breadcrumb, { Crumb } from 'UI/Breadcrumb';
@@ -14,6 +16,7 @@ import Button from 'UI/Button';
 import ProductVariants from 'UI/Product/Variants';
 import Tabs from 'UI/Tabs';
 import { Upload } from "Api/Upload";
+import PromotionCycler, {InlinePromotion} from 'UI/PromotionCycler';
 
 const ROOT_CATEGORY_ID: uint = 1 as uint;
 
@@ -26,7 +29,12 @@ interface ViewProps {
 	 * Usually provided by a graph.
 	 */
 	product: Product,
-	
+
+	/**
+	 * Promotions array (injected by PromotionBodyInjectionEventListener)
+	 */
+	promotions?: InlinePromotion[],
+
 	additionalActions?: (string | React.FC | React.FC<AdditionalActionProps>)[],
 }
 
@@ -39,26 +47,29 @@ type AdditionalActionProps = {
  * @param props React props.
  */
 const View: React.FC<ViewProps> = (props) => {
-	const { product } = props;
+	const { product, promotions } = props;
+
+	if (!product) {
+		return;
+	}
+
 	const { pageState, setPage, updateQuery } = useRouter();
 	const { query, url } = pageState;
 
 	// Must use a ref for updateQuery to avoid capturing router state
 	const updateQueryRef = useRef(updateQuery);
 	updateQueryRef.current = updateQuery;
-	
+
 	// Selected variant (if any) is..
 	const variantSku = query?.get("sku");
 	const currentVariant: Product | undefined = variantSku ? product.variants?.find(prod => prod.sku == variantSku) : undefined;
 	const downloadsSource = currentVariant || product;
-	const downloads = downloadsSource.productDownloads?.filter((download: Upload) => download.ref);
-	const coshhDocuments = product.coshhDocuments?.filter((doc: Upload) => doc.ref);
+	const downloads = downloadsSource?.productDownloads?.filter((download: Upload) => download.ref);
 
 	enum ProductTab {
-		About = `About this product`,
+		About = `About This Product`,
 		Details = `Details`,
-		Downloads = `Downloads`,
-		COSHHDownloads = `COSHH`
+		Downloads = `Downloads`
 	}
 
 	function getTabs(): ProductTab[] {
@@ -81,8 +92,8 @@ const View: React.FC<ViewProps> = (props) => {
 			// only include about tab if we either have a description or FAQs to display
 			case ProductTab.About:
 				const source = currentVariant || product;
-				const about = source.descriptionHtml;
-				const faqs = source.frequentlyAskedQuestionsJson;
+				const about = source?.descriptionHtml;
+				const faqs = source?.frequentlyAskedQuestionsJson;
 				const hasFaqs = faqs ? JSON.parse(faqs)?.length : false;
 
 				return about?.length || hasFaqs;
@@ -99,9 +110,6 @@ const View: React.FC<ViewProps> = (props) => {
 
 			case ProductTab.Downloads:
 				return downloads?.length;
-				
-			case ProductTab.COSHHDownloads:
-				return coshhDocuments?.length;
 
 		}
 
@@ -126,10 +134,7 @@ const View: React.FC<ViewProps> = (props) => {
 
 			case ProductTab.Downloads:
 				return <ProductDownloads product={product} currentVariant={currentVariant} />;
-				
-			case ProductTab.COSHHDownloads:
-				return <COSHHDownloads product={product}/>
-				
+
 			default:
 				return;
 		}
@@ -147,7 +152,7 @@ const View: React.FC<ViewProps> = (props) => {
 		}
 
 	}
-	
+
 	const currentTab = (query?.get("tab") || defaultTab).toLowerCase();
 
 	const setCurrentTab = (target: string) => {
@@ -164,19 +169,35 @@ const View: React.FC<ViewProps> = (props) => {
 	// variant checks
 	const hasVariants = (product.variants ?? [])?.length > 0;
 
+	// Get the base price for non-variant products
+	var basePrice: PriceCurrency | null = null;
+	if (!hasVariants && product?.calculatedPrice) {
+		var calculatedPrice = product.calculatedPrice;
+		var tiers = null;
+		if (calculatedPrice.discountedPrice?.length > 0) {
+			tiers = calculatedPrice.discountedPrice;
+		} else if (calculatedPrice.listPrice?.length > 0) {
+			tiers = calculatedPrice.listPrice;
+		}
+		// The highest tier is always the cheapest per-unit price
+		if (tiers && tiers.length > 0) {
+			basePrice = tiers[tiers.length - 1];
+		}
+	}
+
 	var sortedPrices = hasVariants ? (product.variants ?? []).map(product => {
 		var tiers = null;
 
-		if(product?.calculatedPrice){
+		if (product?.calculatedPrice) {
 			var calculatedPrice = product.calculatedPrice;
-			
-			if(calculatedPrice.discountedPrice?.length > 0){
+
+			if (calculatedPrice.discountedPrice?.length > 0) {
 				tiers = calculatedPrice.discountedPrice;
-			}else if(calculatedPrice.listPrice?.length > 0){
+			} else if (calculatedPrice.listPrice?.length > 0) {
 				tiers = calculatedPrice.listPrice;
 			}
 		}
-		if (!tiers) {
+		if (!tiers || tiers.length === 0) {
 			return null;
 		}
 
@@ -186,8 +207,8 @@ const View: React.FC<ViewProps> = (props) => {
 		.filter(price => !!price) // strip the nulls
 		.sort((a, b) => a.amount - b.amount) : null;
 
-	var cheapestPrice = sortedPrices?.length ? sortedPrices[0] : null;
-	
+	var cheapestPrice = sortedPrices?.length ? sortedPrices[0] : basePrice;
+
 	// Added the required home breadcrumb as well as  
 	// overwrite of the root categories name to "All products"
 	return <>
@@ -198,7 +219,7 @@ const View: React.FC<ViewProps> = (props) => {
 					{ name: `Home`, href: '/' },
 					...product.breadcrumb.map(crumb => {
 						return {
-							name: crumb.id === ROOT_CATEGORY_ID ? `All products` : crumb.name,
+							name: crumb.id === ROOT_CATEGORY_ID ? `All Products` : crumb.name,
 							href: crumb.primaryUrl
 						} as Crumb;
 					})
@@ -209,8 +230,8 @@ const View: React.FC<ViewProps> = (props) => {
 			</>}
 
 			{/* product images */}
-			<ProductCarousel 
-				product={product} 
+			<ProductCarousel
+				product={product}
 				currentVariant={currentVariant}
 				// this holds the current selected thumbnail from
 				// the useState above, this component tells
@@ -221,16 +242,19 @@ const View: React.FC<ViewProps> = (props) => {
 				// when the attribute matrix is mutated, it
 				// should clear the selected thumbnail
 				selectedThumbnail={selectedThumbnail}
-				
+
 				// little subscriber to listen to when the thumb
 				// changes, this doesn't change the selected product
 				// discovered by the attribute matrix, this is just
 				// for looking at the different variants.
-				onThumbSelected={(thumbInfo: CarouselItem) => {
+			onThumbSelected={(thumbInfo: CarouselItem) => {
 					setSelectedThumbnail(thumbInfo);
 				}}
 			/>
-			
+
+			{/* promotions cycler */}
+			{promotions && promotions.length > 0 && <PromotionCycler promotions={promotions} currentProductId={product.id} currentProductPriceInPence={cheapestPrice?.amount} />}
+
 			{/* featured / title / stock info */}
 			<ProductHeader product={product} currentVariant={currentVariant} />
 
@@ -294,24 +318,35 @@ const View: React.FC<ViewProps> = (props) => {
 					override={hasVariants && !currentVariant ? cheapestPrice : undefined}
 					isFrom={!!hasVariants && !currentVariant} />
 
-				{/* quantity / add to order, only present if there is no variants or a variant is selected. */}
+				{/* quantity / add to cart, only present if there is no variants or a variant is selected. */}
 				{(!(product.variants?.length) || currentVariant) &&
 					<ProductQuantity product={currentVariant || product} />}
 
 				{props?.additionalActions?.map((component: string | React.FC<AdditionalActionProps>): React.FC<AdditionalActionProps> => {
 					if (typeof component === 'string') {
 						const Target = require(component)?.default;
-						
-						if (!Target)
-						{
+
+						if (!Target) {
 							throw new Error('Unable to find component ' + component);
 						}
-						
-						return Target; 
+
+						return Target;
 					}
 					return component;
-				}).map((Component) => <Component product={props.product}/>)}
+				}).map((Component) => <Component product={props.product} />)}
 			</div>
+
+			{/* suggested products */}
+			{product.suggestions && product.suggestions.length > 0 && <>
+				<div className="ui-product-view__suggestions">
+					<h3 className="ui-product-view__suggestions-title">
+						{`Similar Products`}
+					</h3>
+					<div className="ui-product-view__suggestions-list">
+						<ProductList content={product.suggestions} viewStyle="small-thumbs" />
+					</div>
+				</div>
+			</>}
 
 		</div>
 	</>;
