@@ -44,7 +44,7 @@ export default class Uploader extends React.Component {
 			ref: this.props.currentRef,
 			aspect169: this.props.aspect169,
 			aspect43: this.props.aspect43,
-			filename: this.props.currentRef ? fileRef.parse(this.props.currentRef).ref : undefined,
+			filename: this.props.currentRef ? fileRef.parse(this.props.currentRef).file : undefined,
 			files: [],
 			draggedOver: false
 		};
@@ -378,7 +378,7 @@ export default class Uploader extends React.Component {
 			{!this.state.files || !this.state.files.length && <>
 				<div className="uploader__internal">
 					<input id={id} className="uploader__input" type="file" disabled={this.props.iconOnly} ref={this.inputRef}
-						onChange={e => this.onSelectedFile(e)} title={this.state.tooltip} multiple />
+						onChange={e => this.onSelectedFile(e)} title={this.state.tooltip} multiple accept={this.props.accept} />
 					<label htmlFor={id} className="uploader__label">
 						<span className="uploader__label-internal">
 							{this.state.message}
@@ -646,7 +646,7 @@ export default class Uploader extends React.Component {
 				}
 
 				<input id={id} className="uploader__input" type="file" disabled={this.props.iconOnly} ref={this.inputRef}
-					onChange={e => this.onSelectedFile(e)} title={loading ? `Loading ...` : tooltip} />
+					onChange={e => this.onSelectedFile(e)} title={loading ? `Loading ...` : tooltip} accept={this.props.accept} />
 				<label htmlFor={id} className={uploaderLabelClass} style={labelStyle}>
 
 					{/* loading */}

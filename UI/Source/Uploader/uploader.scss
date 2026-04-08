@@ -1,29 +1,28 @@
-$uploader_width: 256px;
-$uploader_compact_width: 192px;
-$uploader_icon_width: 96px;
-
-$focal_reticle_size: 24px;
-$focal_reticle_half: $focal_reticle_size * .5;
-$focal_reticle_border: 2px;
-$focal_reticle_color: #fff;
-
 .uploader {
     $uploader: &;
+	--uploader-width: #{px_to_rem(256)};
+	--uploader-compact-width: #{px_to_rem(192)};
+	--uploader-icon-width: #{px_to_rem(96)};
+	--focal-target-color: #fff;
+	--focal-target-size: #{px_to_rem(48)};
+	--focal-target-size-half: #{px_to_rem(-24)};
+	--focal-target-size-quarter: #{px_to_rem(12)};
+	--focal-target-border-width: #{px_to_rem(2)};
 
     &__internal {
-        width: $uploader_width;
+        width: var(--uploader-width);
         aspect-ratio: 1 / 1;
         position: relative;
 
         &--icon {
-            width: $uploader_icon_width;
+            width: var(--uploader-icon-width);
 
             #{$uploader}__label {
                 padding: 0;
             }
 
             + #{$uploader}__caption {
-                width: $uploader_icon_width;
+                width: var(--uploader-icon-width);
             }
 
             #{$uploader}__input {
@@ -37,60 +36,42 @@ $focal_reticle_color: #fff;
         width: 100%;
         height: 100%;
         position: absolute;
-        background: #f0f0f0;
-        background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAAAAACo4kLRAAAAH0lEQVQY02OcxQADZ+AsJgYsYKgIsiD8YTJInEShIAA1NwKQeKc4/QAAAABJRU5ErkJggg==);
+		background-image: conic-gradient(#e6e6e6 0 25%, #f5f5f5 0 50%, #e6e6e6 0 75%, #f5f5f5 0);
+		background-size: 1rem 1rem;
+		overflow: hidden;
 
 		&-crosshair {
 			position: absolute;
-			width: $focal_reticle_size;
-			height: $focal_reticle_size;
-			border-radius: 100%;
-			border: $focal_reticle_border solid $focal_reticle_color;
-			box-shadow: 2px 2px 1px 0 rgba(0,0,0,.5);
-			transform: translate(-$focal_reticle_half, -$focal_reticle_half);
+			width: var(--focal-target-size);
+			height: var(--focal-target-size);
+			transform: translate(var(--focal-target-size-half), var(--focal-target-size-half));
 			pointer-events: none;
 			transition: all .2s ease-in-out;
 			animation-iteration-count: infinite;
-			animation-duration: .67s;
-            z-index:1000;
-        
-			&::before {
-				content: '';
-				position: absolute;
-				width: $focal_reticle_border;
-				height: $focal_reticle_border;
-				left: calc(50% - (#{$focal_reticle_border} / 2));
-				top: calc(50% - (#{$focal_reticle_border} / 2));
-				box-shadow: 
-				  0 calc(#{$focal_reticle_border} * -3) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -4) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -5) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -6) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -7) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * -8) $focal_reticle_color,
+			animation-duration: 2.5s;
+			background:
+				linear-gradient(to right, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 0,
+				linear-gradient(to right, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 100%,
+				linear-gradient(to left, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 0,
+				linear-gradient(to left, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 100%,
+				linear-gradient(to bottom, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 0,
+				linear-gradient(to bottom, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 0,
+				linear-gradient(to top, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 0 100%,
+				linear-gradient(to top, var(--focal-target-color) var(--focal-target-border-width), transparent var(--focal-target-border-width)) 100% 100%;
+			background-size: var(--focal-target-size-quarter) var(--focal-target-size-quarter);
+			background-repeat: no-repeat;
+			filter: drop-shadow(2px 2px 1px rgba(0 0 0 / .5));
+            z-index: 2;
+		}
 
-				  calc(#{$focal_reticle_border} * 3) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 4) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 5) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 6) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 7) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * 8) 0 $focal_reticle_color,
+		&:hover {
 
-				  0 calc(#{$focal_reticle_border} * 3) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 4) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 5) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 6) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 7) $focal_reticle_color,
-				  0 calc(#{$focal_reticle_border} * 8) $focal_reticle_color,
-
-				  calc(#{$focal_reticle_border} * -3) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -4) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -5) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -6) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -7) 0 $focal_reticle_color,
-				  calc(#{$focal_reticle_border} * -8) 0 $focal_reticle_color;
+			#{$uploader}__imagebackground-crosshair {
+				//filter: none;
+				//animation-name: focal_pulse;
+				box-shadow: rgba(0, 0, 0, 0.25) 0 0 0 50vw;
 			}
-        
+
 		}
 
     }
@@ -230,7 +211,7 @@ $focal_reticle_color: #fff;
         text-align: center;
         display: block;
         margin-top: 0.25rem;
-        width: $uploader_width;
+        width: var(--uploader-width);
         text-align: center;
 
         &__single {
@@ -299,13 +280,13 @@ $focal_reticle_color: #fff;
     &--compact {
         
         #{$uploader}__internal {
-            width: $uploader_compact_width;
+            width: var(--uploader-compact-width);
             aspect-ratio: auto;
             height: 100px;
         }
 
         #{$uploader}__label {
-            width: $uploader_compact_width;
+            width: var(--uploader-compact-width);
             font-size: .875rem;
             padding: 1.25rem;
 
@@ -324,7 +305,7 @@ $focal_reticle_color: #fff;
         }
 
         #{$uploader}__caption {
-            width: $uploader_compact_width;
+            width: var(--uploader-compact-width);
         }
 
     }
@@ -369,20 +350,20 @@ html.admin {
         }
 
         &__label {
-    		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
-	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg)) no-repeat center;
-		    color: var(--admin-field-fg, var(--fallback__admin-field-fg));
+    		border: var(--field-border);
+	    	background: var(--field-background) no-repeat center;
+		    color: var(--field-color);
         }
 
         &__icon {
-    		border-color: var(--admin-field-border, var(--fallback__admin-field-border));
-	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+    		border: var(--field-border);
+	    	background: var(--field-background);
         }
 
         &--content {
 
             #{$uploader}__label {
-    	    	background: var(--admin-field-bg, var(--fallback__admin-field-bg));
+		    	background: var(--field-background);
             }
         }
 
