@@ -26,7 +26,7 @@ const Stock: React.FC<StockProps> = (props) => {
 
 	const stockInfoClass = [
 		'ui-product-stock__info',
-		stockLevel ? 'ui-product-stock__info--in-stock' : 'ui-product-stock__info--out-of-stock'];
+		!stockLevel && !product.continueSellingWithNoStock ? 'ui-product-stock__info--out-of-stock' : 'ui-product-stock__info--in-stock'];
 
 	return <div className="ui-product-stock">
 		<div className="ui-product-stock__wrapper">
@@ -38,16 +38,24 @@ const Stock: React.FC<StockProps> = (props) => {
 					{product.sku}
 				</span>
 				<span className={stockInfoClass.join(' ')}>
-					{stockLevel > 0 && <>
+					{(stockLevel && stockLevel > 0) ? <>
 						{/*
 						<i className="fr fr-check-circle"></i>
 						*/}
 						{`${stockLevel} in stock`}
-					</>}
-					{!stockLevel && <>
-						<i className="fr fr-exclamation-circle"></i>
-						{`Available to order (non-stock item)`}
-					</>}
+					</> : null}
+					{!stockLevel ? <>
+						{product.continueSellingWithNoStock ? 
+							<>
+								<i className="fr fr-exclamation-circle"></i>
+								{`Available to order (non-stock item)`}
+							</> :
+							<>
+								<i className="fr fr-exclamation-circle"></i>
+								{`Out of stock`}
+							</>
+						}
+					</> : null}
 				</span>
 			</>}
 

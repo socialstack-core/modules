@@ -8,6 +8,13 @@
 		display: flex;
 		align-items: center;
 		gap: px_to_rem(20);
+		height: 100%;
+
+		.ui-product-stock__info {
+			&--out-of-stock {
+				color: var(--danger);
+			}
+		}
 	}
 
 	&__sku {
@@ -32,6 +39,7 @@
 		font-size: px_to_rem(10);
 		font-weight: 700;
 		color: var(--success);
+		text-wrap: balance;
 
 		> i {
 			font-size: px_to_rem(12);
