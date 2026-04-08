@@ -1,3 +1,4 @@
+import PopoverWrapper from 'UI/Popover/Wrapper';
 import popoverPolyfillJs from './static/popover.min.js';
 import { lazyLoad } from 'UI/Functions/WebRequest';
 import { getUrl } from 'UI/FileRef';
@@ -5,6 +6,7 @@ import {FocusEvent, useEffect, useRef} from 'react';
 //import { toggleFocusable } from 'UI/Functions/ToggleFocusable';
 
 export type PopoverAlignment = 'left' | 'right' | 'top' | 'bottom' | 'center' | 'maximize';
+export type PopoverAutoClose = 'never' | 'always' | 'when-bg-disabled';
 const DEFAULT_METHOD = 'auto';
 const DEFAULT_ALIGNMENT = 'left';
 
@@ -52,6 +54,16 @@ interface PopoverProps {
 	underHeader?: boolean,
 
 	/**
+	 * set true if top should be aligned underneath subheader
+	 */
+	underSubHeader?: boolean,
+
+	/**
+	 * set true if bottom should be aligned above footer
+	 */
+	aboveFooter?: boolean,
+
+	/**
 	 * set true if background should remain accessible
 	 */
 	backgroundActive?: boolean,
@@ -65,40 +77,106 @@ interface PopoverProps {
 	desktopVisible?: boolean,			// 1360px +
 
 	/**
+	 * set to true to have the popover open by default (only works with method="manual")
+	 */
+	open?: boolean,
+
+	/**
 	 * The HTML wrapping tag to use (defaults to div if not supplied)
 	 */
-	tag?: string
+	tag?: string,
+
+	/**
+	 * set true to disable scroll position locking on popover display
+	 */
+	disableScrollLock?: boolean,
+
+	/**
+	 * sets when popover automatically closes if any internal link or button clicked (enforces popover="manual")
+	 * [never, always, or when-bg-disabled] (defaults to never)
+	 * NB: when-bg-disabled relies upon bgDisabledWidth
+	 */
+	closeOnInteractiveClick?: PopoverAutoClose
+
+	/**
+	 * used in conjunction with closeOnInteractiveClick; determines the width under which the background is considered disabled
+	 */
+	bgDisabledWidth?: number,
+
+	/**
+	 * optional handler for toggle event
+	 * @param e
+	 * @returns
+	 */
+	onToggle?: (e: ToggleEvent) => void
 }
 
 /**
  * The Popover React component.
  * @param props React props.
  */
-const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
-	const { className, id, children, blurBackground, underHeader, backgroundActive,
-		tabletPortraitVisible, tabletLandscapeVisible, desktopVisible, tag } = props;
-	const method = props.method || DEFAULT_METHOD;
+const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
+	const { className, id, children, blurBackground, underHeader, underSubHeader, aboveFooter, backgroundActive, onToggle,
+		tabletPortraitVisible, tabletLandscapeVisible, desktopVisible, tag, disableScrollLock, open } = props;
+	var method = props.method || DEFAULT_METHOD;
+	var closeOnInteractiveClick = props.closeOnInteractiveClick || "never";
+
+	if (closeOnInteractiveClick == "always" || closeOnInteractiveClick == "when-bg-disabled") {
+		method = "manual";
+	}
+
 	const alignment = props.alignment || DEFAULT_ALIGNMENT;
-	const popoverRef = useRef(undefined);
+	const bgDisabledWidth = props.bgDisabledWidth || 1024;
+	const popoverRef = useRef<HTMLElement | undefined>(undefined);
 
 	// TODO: investigate use of scrollbar-gutter: stable to prevent page content horizontally shifting
 
-	function useScrollLockPopover(popoverId: string) {
+	// Handle open prop for method="manual"
+	useEffect(() => {
+		if (method === "manual" && open && popoverRef.current) {
+			try {
+				popoverRef.current.showPopover();
+			} catch (e) {
+				// Already open
+			}
+		}
+	}, [open, method]);
+
+	// TODO: investigate use of scrollbar-gutter: stable to prevent page content horizontally shifting
+
+	function useScrollLockPopover() {
 		const scrollYRef = useRef(0);
 
 		useEffect(() => {
-
-			if (!document) {
-				return;
-			}
-
-			const popover = document.getElementById(popoverId);
+			const popover = popoverRef?.current;
+			
 			if (!popover) {
 				return;
 			}
 
 			function handleToggle(e: ToggleEvent) {
+
+				if (typeof onToggle === "function") {
+					onToggle(e);
+				}
+
 				const isOpen = e.newState === "open";
+
+				// update data-* attribute flags on <body>
+				// (available as an alternative to body:has() rules)
+				if (isOpen) {
+					document.body.dataset.popoverOpen = "true";
+					document.body.dataset.popoverFullHeight = (!underHeader && !underSubHeader && !aboveFooter).toString();
+					document.body.dataset.popoverBlurred = blurBackground?.toString();
+				} else {
+					delete document.body.dataset.popoverOpen;
+					delete document.body.dataset.popoverFullHeight;
+					delete document.body.dataset.popoverBlurred;
+				}
+
+				if (disableScrollLock) {
+					return;
+				}
 
 				if (isOpen) {
 					// Save scroll position
@@ -107,21 +185,32 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 					// Lock the body
 					document.body.dataset.scrollFixed = 'true';
 				} else {
-					// Unlock the body
-					delete document.body.dataset.scrollFixed;
 
-					// Restore scroll
-					window.scrollTo({
-						left: 0,
-						top: scrollYRef.current,
-						behavior: 'instant'
-					});
+					setTimeout(() => {
+						// Unlock the body
+						delete document.body.dataset.scrollFixed;
+
+						// Restore scroll
+						window.scrollTo({
+							left: 0,
+							top: scrollYRef.current,
+							behavior: 'instant'
+						});
+					}, 100);
+
 				}
 			}
 
 			popover.addEventListener("toggle", handleToggle as EventListener);
-			return () => popover.removeEventListener("toggle", handleToggle as EventListener);
-		}, [popoverId]);
+			return () => {
+				popover.removeEventListener("toggle", handleToggle as EventListener);
+
+				delete document.body.dataset.popoverOpen;
+				delete document.body.dataset.popoverFullHeight;
+				delete document.body.dataset.popoverBlurred;
+			}
+
+		}, [id]);
 	}
 
 	function isPopoverApiSupported() {
@@ -139,98 +228,22 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 			lazyLoad(getUrl(popoverPolyfillJs)!);
 		}
 
-		let minWidth = 0;
-
-		if (tabletPortraitVisible) {
-			minWidth = 753;
-		}
-		if (tabletLandscapeVisible) {
-			minWidth = 1024;
-		}
-		if (desktopVisible) {
-			minWidth = 1360;
-		}
-
-		// for those wondering "but ... why?!" with respect to CSS embedded in the component;
-		// this is so behaviour can be controlled on a per-popover basis
-		// (e.g. some popovers may blur the background, some may not)
-		const mediaQuery = (minWidth == 0) ? '' : `
-			@media only screen and (min-width: ${minWidth}px) {
-				#${id} {
-					position: static;
-					visibility: visible;
-					transition-property: box-shadow, overlay, display, visibility;
-					transform: none;
-					padding: 0;
-					display: block;
-					box-shadow: none;
-					opacity: 1;
-					width: 100%;
-				}
-
-				#${id}::backdrop {
-					background-color: transparent !important;
-				}
-
-				[popovertarget="${id}"] {
-					display: none;
-				}
-			}`;
-
-		const backgroundRules = `
-			filter: blur(2px) grayscale(25%);
-			pointer-events: none;
-		`;
-
-		// NB: odd-looking ".\:popover-open" references are required by the popover API polyfill
-		const styleEl = document.createElement('style');
-		styleEl.textContent = `
-			body:has(#${id}.ui-popover--blur-bg.\:popover-open) {
-				#content {
-					${backgroundRules}
-
-					~ footer {
-						${backgroundRules}
-					}
-				}
-			}
-			body:has(#${id}.ui-popover--blur-bg:popover-open) {
-				#content {
-					${backgroundRules}
-
-					~ footer {
-						${backgroundRules}
-					}
-				}
-			}
-
-			body:has(#${id}.ui-popover--full.ui-popover--blur-bg.\:popover-open) {
-				#wrapper > header {
-					${backgroundRules}
-				}
-			}
-			body:has(#${id}.ui-popover--full.ui-popover--blur-bg:popover-open) {
-				#wrapper > header {
-					${backgroundRules}
-				}
-			}
-
-			${mediaQuery}
-		`;
-		document.head.appendChild(styleEl);
+		document.addEventListener("click", docClickHandler);
 
 		if (popoverRef.current) {
 			(popoverRef.current as HTMLElement).addEventListener("focusout", focusHandler);
+			(popoverRef.current as HTMLElement).addEventListener("click", clickHandler);
 		}
 
 		return () => {
 			delete document.body.dataset.scrollFixed;
 
 			if (popoverRef.current) {
+				(popoverRef.current as HTMLElement).removeEventListener("click", clickHandler);
 				(popoverRef.current as HTMLElement).removeEventListener("focusout", focusHandler);
 			}
 
-			document.head.removeChild(styleEl);
+			document.removeEventListener("click", docClickHandler);
 		};
 	}, []);
 
@@ -303,6 +316,20 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 
 		setTimeout(() => {
 			if (popoverRef.current) {
+				// Check if another popover is open and has focus - if so, don't interfere
+				// This prevents focus jumping when multiple popovers are open simultaneously
+				const otherPopovers = document.querySelectorAll('[popover]:popover-open');
+				let otherPopoverHasFocus = false;
+				otherPopovers.forEach((popover) => {
+					if (popover !== popoverRef.current && popover.contains(document.activeElement)) {
+						otherPopoverHasFocus = true;
+					}
+				});
+
+				if (otherPopoverHasFocus) {
+					return;
+				}
+
 				if (!(popoverRef.current as HTMLElement).contains(document.activeElement)) {
 					const focusableSelectors = [
 						"a[href]",
@@ -342,6 +369,53 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 		}, 0);
 	};
 
+	// checks for clicks within the popover - handy for auto-closing on selections made
+	const clickHandler = (e: Event) => {
+		// was this click event via a child link or button?
+		const isInteractiveTarget = e.target?.closest('.ui-link, .ui-btn');
+
+		if (!isInteractiveTarget) {
+			return;
+		}
+
+		switch (closeOnInteractiveClick) {
+			case 'always':
+				popoverRef.current.hidePopover();
+				break;
+
+			case 'when-bg-disabled':
+
+				if (window.innerWidth < bgDisabledWidth) {
+					popoverRef.current.hidePopover();
+				}
+
+				break;
+
+			default:
+				return;
+		}
+
+	};
+
+	// used to check for clicks occuring outside the popover
+	// (for when we're using popover="manual" but need to mimic popover="auto" at a specific size, e.g. mobile)
+	const docClickHandler = (e: Event) => {
+
+		if (closeOnInteractiveClick == "when-bg-disabled") {
+
+			if (window.innerWidth < bgDisabledWidth) {
+				const isOutsidePopover = !popoverRef.current.contains(e.target);
+				const isTrigger = e.target?.popoverTargetElement == popoverRef.current;
+
+				if (isOutsidePopover && !isTrigger) {
+					popoverRef.current.hidePopover();
+				}
+
+			}
+
+		}
+	};
+
 	let popoverClasses = ['ui-popover'];
 	popoverClasses.push(`ui-popover--${alignment}`);
 
@@ -355,15 +429,35 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 
 	if (underHeader) {
 		popoverClasses.push("ui-popover--under-header");
-	} else {
+	}
+
+	if (underSubHeader) {
+		popoverClasses.push("ui-popover--under-subheader");
+	}
+
+	if (aboveFooter) {
+		popoverClasses.push("ui-popover--above-footer");
+	}
+
+	if (!underHeader && !underSubHeader && !aboveFooter) {
 		popoverClasses.push("ui-popover--full");
+	}
+
+	if (tabletPortraitVisible) {
+		popoverClasses.push("ui-popover--tablet-portrait-visible");
+	}
+	if (tabletLandscapeVisible) {
+		popoverClasses.push("ui-popover--tablet-landscape-visible");
+	}
+	if (desktopVisible) {
+		popoverClasses.push("ui-popover--desktop-visible");
 	}
 
 	if (className) {
 		popoverClasses.push(className);
 	}
 
-	useScrollLockPopover(id);
+	useScrollLockPopover();
 
 	const Tag = !tag?.length ? "div" : tag;
 
@@ -374,4 +468,6 @@ const Popover: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => {
 	);
 }
 
+PopoverRoot.Wrapper = PopoverWrapper;
+const Popover = PopoverRoot;
 export default Popover;

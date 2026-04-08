@@ -1,12 +1,3 @@
-:root {
-	--ui-popover-min-width: 90vw;
-	--ui-popover-min-height: 75vh;
-	--ui-popover-min-height: 75dvh;
-	
-	--ui-popover-max-width: #{px_to_rem(340)};
-	--ui-popover-max-height: #{px_to_rem(600)};
-}
-
 @mixin popoverOpen() {
 	box-shadow: px_to_rem(-16) 0 px_to_rem(16) 0 rgba(#210818, 25%);
 	transform: none;
@@ -19,6 +10,11 @@
 }
 
 .ui-popover {
+	--ui-popover-min-width: 90vw;
+	--ui-popover-min-height: 75vh;
+	--ui-popover-min-height: 75dvh;
+	--ui-popover-max-width: #{px_to_rem(340)};
+	--ui-popover-max-height: #{px_to_rem(600)};
 	position: fixed;
 	inset: 0;
 	padding: px_to_rem(20);
@@ -45,6 +41,16 @@
 			top: var(--site-header-height, 0);
 			height: auto;
 		}
+
+		&.ui-popover--under-subheader {
+			height: auto;
+		}
+
+		&.ui-popover--above-footer {
+			bottom: var(--site-footer-height, 0);
+			height: auto;
+		}
+
 	}
 
 	&--right {
@@ -59,6 +65,16 @@
 			top: var(--site-header-height, 0);
 			height: auto;
 		}
+
+		&.ui-popover--under-subheader {
+			height: auto;
+		}
+
+		&.ui-popover--above-footer {
+			bottom: var(--site-footer-height, 0);
+			height: auto;
+		}
+
 	}
 
 	&--top {
@@ -75,6 +91,15 @@
 			height: auto;
 		}
 
+		&.ui-popover--under-subheader {
+			height: auto;
+		}
+
+		&.ui-popover--above-footer {
+			bottom: var(--site-footer-height, 0);
+			height: auto;
+		}
+
 	}
 
 	&--bottom {
@@ -84,6 +109,13 @@
 		max-height: var(--ui-popover-max-height);
 		width: 100vw;
 		transform: translateY(100%);
+
+		&.ui-popover--above-footer {
+			transform: translateY(calc(var(--site-footer-height, 0) + 100%));
+			bottom: var(--site-footer-height, 0);
+			height: auto;
+		}
+
 	}
 
 	&--center {
@@ -124,6 +156,112 @@
 			top: var(--site-header-height, 0);
 		}
 	}
+
+	&--under-subheader {
+
+		&::backdrop {
+
+		}
+
+	}
+
+	&--above-footer {
+
+		&::backdrop {
+			bottom: var(--site-footer-height, 0);
+		}
+	}
+
+}
+
+html.admin {
+
+	.ui-popover {
+
+		&--left {
+
+			&.ui-popover--under-header {
+				top: var(--admin-page__header-height, #{px_to_rem(60)});
+			}
+
+			&.ui-popover--under-subheader {
+				top: calc(
+					var(--admin-page__header-height, #{px_to_rem(60)}) +
+					var(--admin-page__subheader-height, #{px_to_rem(72)})
+				);
+			}
+
+			&.ui-popover--above-footer {
+				bottom: var(--admin-page__footer-height, #{px_to_rem(60)});
+			}
+
+		}
+
+		&--right {
+
+			&.ui-popover--under-header {
+				top: var(--admin-page__header-height, #{px_to_rem(60)});
+			}
+
+			&.ui-popover--under-subheader {
+				top: calc(
+					var(--admin-page__header-height, #{px_to_rem(60)}) +
+					var(--admin-page__subheader-height, #{px_to_rem(72)})
+				);
+			}
+
+			&.ui-popover--above-footer {
+				bottom: var(--admin-page__footer-height, #{px_to_rem(60)});
+			}
+
+		}
+
+		&--top {
+
+			&.ui-popover--under-header {
+				transform: translateY(calc(-1 * (var(--admin-page__header-height, #{px_to_rem(60)}) + 100%)));
+				top: var(--admin-page__header-height, #{px_to_rem(60)});
+			}
+
+			&.ui-popover--under-subheader {
+				top: calc(
+					var(--admin-page__header-height, #{px_to_rem(60)}) +
+					var(--admin-page__subheader-height, #{px_to_rem(72)})
+				);
+			}
+
+			&.ui-popover--above-footer {
+				bottom: var(--admin-page__footer-height, #{px_to_rem(60)});
+			}
+
+		}
+
+		&--under-header {
+
+			&::backdrop {
+				top: var(--admin-page__header-height, #{px_to_rem(60)});
+			}
+		}
+
+		&--under-subheader {
+
+			&::backdrop {
+				top: calc(
+					var(--admin-page__header-height, #{px_to_rem(60)}) +
+					var(--admin-page__subheader-height, #{px_to_rem(72)})
+				);
+			}
+		}
+
+		&--above-footer {
+
+			&::backdrop {
+				bottom: var(--admin-page__footer-height, #{px_to_rem(60)});
+			}
+		}
+
+	}
+
 }
 
 @starting-style {
@@ -243,6 +381,42 @@
 #content,
 #content ~ footer {
 	transition: filter .2s ease;
+}
+
+// example rules to support background blurring
+// NB: your project may require additional rules based on markup
+body[data-popover-blurred="true"] {
+
+	#content {
+		filter: blur(2px) grayscale(25%);
+		pointer-events: none;
+		user-select: none;
+
+		~ footer {
+			filter: blur(2px) grayscale(25%);
+			pointer-events: none;
+			user-select: none;
+		}
+
+	}
+
+	.admin-page__internal {
+		filter: blur(2px) grayscale(25%);
+		pointer-events: none;
+		user-select: none;
+	}
+
+	// additional rules to blur header if it's a full-height popover
+	&[data-popover-full-height="true"] {
+
+		#wrapper > header {
+			filter: blur(2px) grayscale(25%);
+			pointer-events: none;
+			user-select: none;
+		}
+
+	}
+
 }
 
 body[data-scroll-fixed="true"] {

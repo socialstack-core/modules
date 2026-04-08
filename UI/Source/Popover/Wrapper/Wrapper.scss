@@ -1,0 +1,98 @@
+@media only screen and (min-width: #{px_to_rem(753)}) {
+
+	.ui-popover__wrapper {
+
+		&:has(.ui-popover--tablet-portrait-visible) {
+
+			.ui-popover--tablet-portrait-visible {
+				position: static;
+				visibility: visible;
+				transition-property: box-shadow, overlay, display, visibility;
+				transform: none;
+				padding: 0;
+				display: block;
+				box-shadow: none;
+				opacity: 1;
+				width: 100%;
+
+				&::backdrop {
+					background-color: transparent !important;
+				}
+
+			}
+
+			[popovertarget] {
+				display: none;
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (min-width: #{px_to_rem(1024)}) {
+
+	.ui-popover__wrapper {
+
+		&:has(.ui-popover--tablet-landscape-visible) {
+
+			.ui-popover--tablet-landscape-visible {
+				position: static;
+				visibility: visible;
+				transition-property: box-shadow, overlay, display, visibility;
+				transform: none;
+				padding: 0;
+				display: block;
+				box-shadow: none;
+				opacity: 1;
+				width: 100%;
+
+				&::backdrop {
+					background-color: transparent !important;
+				}
+
+			}
+
+			[popovertarget] {
+				display: none;
+			}
+
+		}
+
+	}
+
+}
+
+@media only screen and (min-width: #{px_to_rem(1360)}) {
+
+	.ui-popover__wrapper {
+
+		&:has(.ui-popover--desktop-visible) {
+
+			.ui-popover--desktop-visible {
+				position: static;
+				visibility: visible;
+				transition-property: box-shadow, overlay, display, visibility;
+				transform: none;
+				padding: 0;
+				display: block;
+				box-shadow: none;
+				opacity: 1;
+				width: 100%;
+
+				&::backdrop {
+					background-color: transparent !important;
+				}
+
+			}
+
+			[popovertarget] {
+				display: none;
+			}
+
+		}
+
+	}
+
+}
