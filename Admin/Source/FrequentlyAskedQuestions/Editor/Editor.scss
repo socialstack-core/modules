@@ -1,0 +1,36 @@
+.admin-faq-editor {
+
+	table td {
+
+		&:has(p:nth-child(2)) {
+
+			p:first-child::after {
+				content: "...";
+			}
+
+		}
+
+		p {
+
+			&:first-child {
+				display: -webkit-box;
+				-webkit-box-orient: vertical;
+				-webkit-line-clamp: 4;
+				line-clamp: 4;
+				overflow: hidden;
+			}
+
+			&:not(:first-child) {
+				display: none;
+			}
+
+		}
+
+
+	}
+
+    .new-faq-button {
+        margin-bottom: 20px;
+    }
+
+}
