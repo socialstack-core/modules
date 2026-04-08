@@ -843,7 +843,7 @@ namespace Api.Payments.Opayo.Request
 	public class RedirectUrls
 	{
 		/// <summary>
-		/// string <= 200 characters
+		/// string less or equal to 200 characters
 		/// The merchant hosted URL to redirect to if the transaction is cancelled by the user.
 		/// If this is not provided, in the event of a link being expired, your customer will be redirected to the failureURL.
 		/// </summary>
@@ -852,14 +852,14 @@ namespace Api.Payments.Opayo.Request
 
 		/// <summary>
 		/// required
-		/// string <= 200 characters
+		/// string less or equal 200 characters
 		/// The merchant hosted URL to redirect to if the transaction fails.Will have the transactionId field appended.
 		/// </summary>
 		[JsonProperty("failureUrl")]
 		public string FailureUrl { get; set; }
 
 		/// <summary>
-		/// string <= 200 characters
+		/// string less or equal 200 characters
 		/// The merchant hosted URL to redirect to if the registered payment page has expired.
 		/// Will have the transactionId field appended.
 		/// If this is not provided, in the event of a link being expired, your customer will be redirected to the failureURL.
@@ -869,7 +869,7 @@ namespace Api.Payments.Opayo.Request
 
 		/// <summary>
 		/// required
-		/// string <= 200 characters
+		/// string less or equal 200 characters
 		/// The merchant hosted URL to redirect to when the transaction is successfully authorised.Will have the transactionId field appended.
 		/// </summary>
 		[JsonProperty("successUrl")]

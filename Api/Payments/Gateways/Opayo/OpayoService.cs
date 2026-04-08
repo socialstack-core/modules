@@ -218,14 +218,15 @@ namespace Api.Payments
 			/// Process the response from a hosted page transaction 
 			/// 
 			/// https://{hostname}/cart/purchases/hosted/success/NzFVcnZFbFFNeENPaFFmMkEyTDU%253D?
-			/// transactionId=6C3E78AC-08B8-AB32-B900-3A6099FBA009&
-            /// vendorTxCode=WEB-03371&
-            /// registrationId=3a392ece-c59d-4683-802d-1f5d886b0e1f&
-            /// expiry=2026-02-17T09:59:55.009Z&
-            /// state=success&
-            /// signature=G_Hv_X-_vw4khfBa6v5fJmnc6tM20pIZFEe0oEmYHSY%3D
+			/// transactionId=6C3E78AC-08B8-AB32-B900-3A6099FBA009&amp;
+			/// vendorTxCode=WEB-03371&amp;
+			/// registrationId=3a392ece-c59d-4683-802d-1f5d886b0e1f&amp;
+			/// expiry=2026-02-17T09:59:55.009Z&amp;
+			/// state=success&amp;
+			/// signature=G_Hv_X-_vw4khfBa6v5fJmnc6tM20pIZFEe0oEmYHSY%3D
 			/// 
 			/// </summary>
+			/// <param name="context"></param>
 			/// <param name="purchase"></param>
 			/// <param name="hostedPageResponse"></param>
 			/// <returns></returns>

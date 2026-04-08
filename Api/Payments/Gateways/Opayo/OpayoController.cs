@@ -18,7 +18,6 @@ public class OpayoController : AutoController
 	/// Instanced automatically.
 	/// </summary>
 	/// <param name="opayo"></param>
-	/// <param name="purchases"></param>
 	/// 
 	public OpayoController(OpayoService opayo)
 	{
