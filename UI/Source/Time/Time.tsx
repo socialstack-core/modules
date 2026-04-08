@@ -31,6 +31,11 @@ interface TimeProps extends React.HTMLAttributes<HTMLTimeElement> {
 	 * otherwise it is visible as the title (mouse over on desktop).
 	 */
 	dateDisplay?: DateTextOptions,
+
+	/**
+	 * Do not display the time, only the date
+	 */
+	dateOnly?: boolean
 }
 
 /**
@@ -86,7 +91,7 @@ interface DateTextOptions {
  * @param date
  * @returns
  */
-function dateText(date : Date, opts? : DateTextOptions) : string{
+function dateText(date : Date, opts? : DateTextOptions, dateOnly: boolean = false) : string{
 	var monthIndex = date.getMonth();
 	var dayIndex = date.getDate();
 
@@ -122,7 +127,7 @@ function dateText(date : Date, opts? : DateTextOptions) : string{
 
 	dayStr = dateTools.ordinal(dayIndex as int) + " " + dateTools.monthNames[monthIndex] + yearText;
 
-	if (compact && compactDayOnly) {
+	if (dateOnly || (compact && compactDayOnly)) {
 		return dayStr;
 	}
 
@@ -137,12 +142,14 @@ function dateText(date : Date, opts? : DateTextOptions) : string{
  * @param dateOpts
  * @returns
  */
-function timeAgoString(date : Date, absolute?: boolean, withDate?: boolean, dateOpts?: DateTextOptions){
+function timeAgoString(date : Date, absolute?: boolean, withDate?: boolean, dateOpts?: DateTextOptions, dateOnly: boolean = false){
 	if (!date) {
 		return '';
 	}
 
-	if (absolute) {
+	if(dateOnly){
+		return dateText(date, dateOpts, true);
+	}else if (absolute) {
 		if (withDate) {
 			return dateText(date, dateOpts);
 		}
@@ -178,12 +185,12 @@ function timeAgoString(date : Date, absolute?: boolean, withDate?: boolean, date
 /**
 * Displays "x ago" phrase, or just an absolute date/time. 'ago' is the default unless absolute is specified.
 */
-const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateDisplay, ...props }) => {
+const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateDisplay, dateOnly, ...props }) => {
 	const jsDate = useMemo(() => date ? dateTools.isoConvert(date) : new Date(), [date]);
 	const [agoTime, setAgoTime] = useState('');
 
 	useEffect(() => {
-		setAgoTime(timeAgoString(jsDate, absolute, withDate, dateDisplay));
+		setAgoTime(timeAgoString(jsDate, absolute, withDate, dateDisplay, dateOnly));
 	}, [date, absolute, dateDisplay, jsDate, withDate]);
 
 	useEffect(() => {
@@ -191,7 +198,7 @@ const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateD
 			return;
 		}
 
-		var x = setInterval(() => setAgoTime(timeAgoString(jsDate, absolute, withDate, dateDisplay)), (updateRate || 10) * 1000);
+		var x = setInterval(() => setAgoTime(timeAgoString(jsDate, absolute, withDate, dateDisplay, dateOnly)), (updateRate || 10) * 1000);
 
 		return () => {
 			clearInterval(x);

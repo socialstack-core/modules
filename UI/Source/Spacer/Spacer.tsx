@@ -1,5 +1,7 @@
 /**
  * Props for the spacer component.
+ * @icon fal fa-arrows-alt-v
+ * @description An invisible space of a specified height.
  */
 interface SpacerProps {
 	/**

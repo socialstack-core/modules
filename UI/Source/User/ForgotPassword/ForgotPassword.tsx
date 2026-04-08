@@ -1,4 +1,4 @@
-﻿import Input from 'UI/Input';
+import Input from 'UI/Input';
 import Form from 'UI/Form';
 import Link from 'UI/Link';
 import { useState } from 'react';
@@ -41,7 +41,7 @@ const ForgotPassword: React.FC<React.PropsWithChildren<ForgotPasswordProps>> = (
 			) : [
 				<Form
 					failedMessage={failedMessage || `We weren't able to send the link. Please try again later.`}
-					submitLabel={submitLabel || `Send me a link`}
+					submitLabel={submitLabel || `Send Me a Link`}
 					loadingMessage={loadingMessage || `Sending..`}
 					action={resetApi.create}
 					onSuccess={response => {
