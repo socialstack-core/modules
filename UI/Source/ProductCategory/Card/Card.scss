@@ -1,5 +1,5 @@
 .ui-productcategory-card {
-	background: var(--palette-light-grey);
+	background: var(--palette-light-grey, var(--grey-light));
 	border-radius: px_to_rem(24);
 	width: px_to_rem(272);
 	aspect-ratio: 272 / 306;
@@ -25,7 +25,7 @@
 	}
 	
 	&__category {
-		color: var(--palette-dark-grey);
+		color: var(--palette-dark-grey, var(--grey-dark));
 		font-weight: 800;
 		font-size: px_to_rem(20);
 		line-height: px_to_rem(25);
@@ -39,7 +39,6 @@
 	
 	&__link {
 		margin-top: auto;
-		//color: var(--palette-pink);
 		--ui-link-font-weight: 700;
 		--ui-link-font-size: 17;
 	}

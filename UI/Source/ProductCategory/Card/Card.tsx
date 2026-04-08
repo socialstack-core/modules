@@ -1,6 +1,7 @@
 import { ProductCategory } from 'Api/ProductCategory';
 import Image from 'UI/Image';
 import Link from 'UI/Link';
+import defaultImageRef from './image_placeholder.png';
 
 /**
  * Props for the Card component.
@@ -25,11 +26,12 @@ const Card: React.FC<CardProps> = (props) => {
 
 	return (
 		<div className="ui-productcategory-card">
-			<Image className="ui-productcategory-card__image" size={512} fileRef={content.featureRef!} />
+			<Image className="ui-productcategory-card__image" size={512} fileRef={content.productImageRef || content.featureRef || defaultImageRef} />
 			<div className="ui-productcategory-card__internal">
 				<p className="ui-productcategory-card__category">
 					{content.name}
 				</p>
+
 				<Link className="ui-productcategory-card__link" href={content.primaryUrl}>
 					<span>
 						{ctaLabel}

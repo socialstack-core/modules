@@ -1,6 +1,7 @@
 import { ProductCategory } from 'Api/ProductCategory';
 import Image from 'UI/Image';
 import Link from 'UI/Link';
+import defaultImageRef from './image_placeholder.png';
 
 /**
  * Props for the Signpost component.
@@ -21,10 +22,18 @@ const Signpost: React.FC<SignpostProps> = (props) => {
 
 	return (
 		<div className="ui-productcategory-signpost">
+			
 			<Link href={content.primaryUrl}>
-				<Image size={200} fileRef={content.featureRef!} />
-				{content.name}
-			</Link>
+				<div className="ui-productcategory-signpost__wrapper">
+					<div className="ui-productcategory-signpost__image">
+						<Image size={200} fileRef={content.productImageRef || content.featureRef || defaultImageRef} />
+					</div>
+
+					<div className="ui-productcategory-signpost__name">
+						{content.name} 
+					</div>
+				</div>
+			</Link> 
 		</div>
 	);
 }
