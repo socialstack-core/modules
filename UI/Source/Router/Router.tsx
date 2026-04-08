@@ -373,6 +373,17 @@ const Router: React.FC<{}> = () => {
 					const urlParams = new URLSearchParams(pageState.query);
 					items.forEach(item => urlParams.delete(item));
 					changeQuery(urlParams);
+				},
+
+				setPrimaryObject: (obj: any) => {
+					var { po } = pageState;
+					if (!po || !obj) {
+						return;
+					}
+					if (po.type == obj.type && po.id == obj.id) {
+						var pgState: PageState = {...pageState, po: obj};
+						setPage(pgState);
+					}
 				}
 			}}
 		>

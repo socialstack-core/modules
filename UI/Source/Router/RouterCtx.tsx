@@ -14,6 +14,7 @@ export interface RouterContext {
 	pageState: PageState;
 	canGoBack: () => boolean;
 	getPageIncludes: () => string | undefined;
+	setPrimaryObject: (obj: any) => void;
 }
 
 const routerCtx = createContext<RouterContext>({
@@ -23,7 +24,8 @@ const routerCtx = createContext<RouterContext>({
 	getPageIncludes: () => undefined,
 	changeQuery: (query: URLSearchParams) => {},
 	updateQuery: (query: Record<string, string | number | boolean | (string | number | boolean)[] | null | undefined>) => {},
-	removeQueryItems: (items: string[]) => {}
+	removeQueryItems: (items: string[]) => {},
+	setPrimaryObject: (obj: any) => {}
 } as RouterContext);
 
 export { routerCtx };
