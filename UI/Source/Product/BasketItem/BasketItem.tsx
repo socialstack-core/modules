@@ -119,7 +119,7 @@ const BasketItem: React.FC<BasketItemProps> = (props) => {
 
 				{/* product name */}
 				{!disableLink && <>
-					<Link href={content.primaryUrl || `/product/${content.slug}`}>
+					<Link href={content.primaryUrl || `/product/${content.slug}`} className="ui-product-basket-item__link">
 						<span className="ui-product-basket-item__name">
 							{content.name}
 						</span>

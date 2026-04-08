@@ -7,13 +7,14 @@ $signpost-border-radius: px_to_rem(8);
 	container-name: product-signpost;
 	container-type: inline-size;
 	border: 1px solid #ddd;
+	overflow: hidden;
+	transition: box-shadow .3s ease-in-out;
 	border-radius: $signpost-border-radius;
 	--signpost-padding: #{px_to_rem(8)};
 
 	&__outer {
 		display: flex;
 		align-items: center;
-		transition: box-shadow .3s ease-in-out;
 		border-radius: $signpost-border-radius;
 		padding: var(--signpost-padding);
 	}
@@ -27,13 +28,13 @@ $signpost-border-radius: px_to_rem(8);
 		flex-grow: 1;
 		display: grid;
 		gap: px_to_rem(12) px_to_rem(24);
-		grid-template-columns: px_to_rem(150) minmax(0, 1fr) px_to_rem(194);
+		grid-template-columns: px_to_rem(150) minmax(0, 1fr) px_to_rem(50) px_to_rem(150);
 		grid-template-rows: 1fr auto auto 1fr;
 		grid-template-areas:
-			"image category price"
-			"image name price"
-			"image notices price"
-			"image stock price";
+			"image category category price"
+			"image name name price"
+			"image notices notices price"
+			"image stock . price";
 		outline: 0 !important;
 		border-radius: $signpost-border-radius;
 	}
@@ -51,39 +52,26 @@ $signpost-border-radius: px_to_rem(8);
 		}
 	}
 
-	&--list {
-
-		.add-to-orderform {
-
-			&__icon {
-				display: block;
-			}
-		}
-
-	}
-
 	&:not(#{$ui-product-signpost}--disabled):hover {
 		box-shadow: 0 0 px_to_rem(16) 0 rgba(#210818, 25%);
 
 		.ui-image__wrapper .ui-image {
-			transform: none;
+			transform: scale(1.05);
 		}
-
 	}
 
 	&:has(#{$ui-product-signpost}__inner:focus-within) {
-		box-shadow: 
-			0 0 0 0.25rem var(--primary-shadow), 
-			0 0 1rem 0 rgba(33, 8, 24, .25);
+		box-shadow: 0 0 0 0.25rem var(--primary-shadow), 0 0 1rem 0 rgba(33, 8, 24, .25);
 	}
 
 	&__image {
 		grid-area: image;
 		position: relative;
-		width: 100%;
+		width: calc(100% + var(--signpost-padding));
 		height: calc(100% + (2 * var(--signpost-padding)));
 		margin-left: calc(-1 * var(--signpost-padding));
 		aspect-ratio: 1;
+		overflow: hidden;
 		border-radius: $signpost-border-radius 0 0 $signpost-border-radius;
 		//padding-top: px_to_rem(26); // leave space for "featured" / "recommended" banner
 	}
@@ -93,7 +81,6 @@ $signpost-border-radius: px_to_rem(8);
 		top: 0;
 		left: 0;
 		right: 0;
-		//border-radius: $signpost-border-radius $signpost-border-radius  0 0;
 		border-radius: $signpost-border-radius 0 0 0;
 		background: var(--featured-bg, var(--info));
 		font-size: px_to_rem(12);
@@ -141,7 +128,6 @@ $signpost-border-radius: px_to_rem(8);
 		justify-content: center;
 		width: 100%;
 		height: 100%;
-		//border-radius: $signpost-border-radius $signpost-border-radius 0 0;
 		border-radius: $signpost-border-radius 0 0 $signpost-border-radius;
 
 		&::after {
@@ -149,29 +135,22 @@ $signpost-border-radius: px_to_rem(8);
 			background: linear-gradient(225deg, rgba(255, 255, 255, 0) 0%, rgba(74, 74, 73, 0.1) 100%);
 			position: absolute;
 			inset: 0;
-			//border-radius: $signpost-border-radius $signpost-border-radius 0 0;
 			border-radius: $signpost-border-radius 0 0 $signpost-border-radius;
 		}
 
 		.ui-image {
 			max-width: 100%;
-			//height: auto;
 			width: 100%;
 			height: 100%;
-			//object-fit: cover;
-			object-fit: contain;
-			//aspect-ratio: 149 / 140;
-			transform: scale(.95);
+			object-fit: cover;
 			transition: transform .2s ease;
-			//border-radius: $signpost-border-radius $signpost-border-radius 0 0;
 			border-radius: $signpost-border-radius 0 0 $signpost-border-radius;
-
 			// disable hover effect for broken images
-			&[src$="no-image"] {
-				transform: none;
+			&[src$="no-image"],
+			&[src*="image_placeholder"]{
+				transform: none !important;
 			}
 		}
-
 	}
 
 	&__approved {
@@ -314,7 +293,6 @@ $signpost-border-radius: px_to_rem(8);
 					aspect-ratio: 1;
 					--btn-min-height: 44;
 				}
-
 				// hide label by mimicking .sr-only
 				&__label {
 					position: absolute;
@@ -327,17 +305,40 @@ $signpost-border-radius: px_to_rem(8);
 					border: 0;
 				}
 			}
-
 		}
 
 		.ui-product-price {
 			justify-self: flex-end;
 		}
 
+		.ui-product-stock {
+			height: 100%;
+		}
+
+	}
+
+	&--small-thumbs,
+	&--large-thumbs {
+
+		.ui-product-stock {
+			min-height: px_to_rem(27);
+		}
+
 	}
 
 	&--large-thumbs {
 		--signpost-padding: #{px_to_rem(16)};
+	}
+}
+
+@container product-signpost (width < #{px_to_rem(650)}) {
+
+	.ui-product-signpost {
+
+		.ui-product-stock__info {
+			font-size: px_to_rem(9);
+		}
+
 	}
 
 }
@@ -353,14 +354,6 @@ $signpost-border-radius: px_to_rem(8);
 
 			#{$ui-product-signpost}__outer {
 				flex-direction: column;
-
-				&:has(.add-to-orderform) {
-
-					.ui-product-qty {
-						margin-right: calc((var(--signpost-padding) / 2) + px_to_rem(44));
-					}
-
-				}
 			}
 
 			.ui-product-qty {
@@ -409,15 +402,6 @@ $signpost-border-radius: px_to_rem(8);
 				display: flex;
 				flex-direction: column;
 				gap: px_to_rem(12);
-			}
-
-			#{$ui-product-signpost}__approved {
-				width: px_to_rem(40);
-				height: px_to_rem(40);
-
-				> i {
-					font-size: px_to_rem(24);
-				}
 			}
 
 			#{$ui-product-signpost}__purchased {
@@ -484,16 +468,6 @@ $signpost-border-radius: px_to_rem(8);
 			gap: px_to_rem(12);
 		}
 
-		&__approved {
-			width: px_to_rem(40);
-			height: px_to_rem(40);
-
-			> i {
-				font-size: px_to_rem(24);
-			}
-
-		}
-
 		&__purchased {
 			width: px_to_rem(40);
 			height: px_to_rem(40);
@@ -538,52 +512,12 @@ $signpost-border-radius: px_to_rem(8);
 			margin-right: 0 !important;
 		}
 
-		&--list {
-
-			&:has(.add-to-orderform) {
-
-				.add-to-orderform {
-					width: 100%;
-					position: static;
-
-					&__add {
-						width: 100%;
-						aspect-ratio: auto;
-					}
-
-					&__label {
-						position: static;
-						width: auto;
-						height: auto;
-						padding: 0;
-						margin: 0;
-						overflow: visible;
-						clip: auto;
-						border: 0;
-					}
-
-				}
-
-			}
-
-		}
-
 	}
 }
 
 @container product-signpost (width < #{px_to_rem(200)}) {
 
 	.ui-product-signpost {
-
-		&__approved {
-			width: px_to_rem(28);
-			height: px_to_rem(28);
-
-			> i {
-				font-size: px_to_rem(13);
-			}
-
-		}
 
 		&__name {
 			align-self: flex-start;

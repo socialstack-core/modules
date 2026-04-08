@@ -70,7 +70,7 @@ interface SignpostProps {
 	onChangeQuantity?: (newQty: int) => void,
 
 	/**
-	 * Show components after "Add to order" button.
+	 * Show components after "Add to basket" button.
 	 */
 	after?: (React.FC | React.FC<unknown>)[],
 }

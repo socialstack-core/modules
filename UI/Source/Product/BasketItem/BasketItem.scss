@@ -28,9 +28,13 @@
 
 	}
 
-	&__name {
+	&__link {
 		grid-area: name;
 		--ui-link-font-size: 13;
+	}
+
+	&__name {
+		grid-area: name;
 		font-size: px_to_rem(13);
 		font-weight: 700;
 		display: -webkit-box;
@@ -186,7 +190,7 @@
 
 				// override info notices from default blue to red
 				&.alert-info {
-					background: var(--palette-light-red);
+					background: var(--palette-light-red, var(--danger-light));
 					color: var(--secondary);
 					border-color: rgba(218, 50, 43, .25);
 				}
@@ -201,13 +205,13 @@
 
 		&__internal {
 			gap: px_to_rem(12);
-			grid-template-columns: px_to_rem(128) 1fr px_to_rem(165) auto;
+			grid-template-columns: px_to_rem(128) 1fr auto px_to_rem(165) auto;
 			grid-template-rows: repeat(4, auto);
 			grid-template-areas:
 				"image category category category"
-				"image name price remove"
-				"image custom custom custom"
-				"image stock qty qty";
+				"image name name price remove"
+				"image custom custom custom custom"
+				"image stock stock qty qty";
 		}
 
 		&__img {
