@@ -5,9 +5,6 @@ import Link from 'UI/Link';
 import Image from 'UI/Image';
 import Quantity from 'UI/Product/Quantity';
 import Alert from 'UI/Alert';
-import Badge from 'UI/Badge';
-import { allApprovals } from 'UI/Business/Products/Approval';
-import { useSession } from 'UI/Session';
 import {addToRecentSearches} from "UI/RecentSearches/SearchHistory";
 
 /**
@@ -33,9 +30,6 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 		showInStockOnly = false
 	} = props;
 
-    const { session } = useSession();
-    var { role} = session;
-	
     const [products] = useApi(async () => {
 		
 		const products = await searchApi.faceted({
@@ -55,14 +49,13 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 			},
 		}, [
 			productApi.includes.primaryurl,
-			productApi.includes.calculatedprice,
-			productApi.includes.businessproductconfig
+			productApi.includes.calculatedprice
 		]);
 		
 		return products;
 
     },[query])
-
+	
 	if(!products) {
 		return ('');
 	}
@@ -75,13 +68,14 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 		);
 	}
 
+	// NB: link has tabindex explicitly set to zero to prevent Safari from losing focus on click
 	return (
 		<ul className="ui-product-autocomplete">
 			{products.results.map(content => {
 				return <li>
 					<div className="ui-product-autocomplete__item">
 						<Quantity product={content}/>
-						<Link 
+						<Link tabindex="0"
 							href={content.primaryUrl || `/product/${content.slug}`} 
 							onClick={() => {
 								addToRecentSearches(query);
@@ -90,8 +84,6 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 							<Image size={32} fileRef={content.featureRef} className="ui-product-autocomplete__img" />
 							<span className="ui-product-autocomplete__name">
 								{content.name}
-							</span>
-							<span className="ui-product-autocomplete__badges">
 							</span>
 						</Link>
 					</div>
