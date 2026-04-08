@@ -31,7 +31,7 @@
 	}
     
     &__notes {
-        background: var(--palette-light-yellow);
+        background: var(--palette-light-yellow, var(--warning-light));
         padding: px_to_rem(10);
         
         &-title {

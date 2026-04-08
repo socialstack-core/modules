@@ -49,6 +49,17 @@ $grid-gap: px_to_rem(24);
 		}
 
 	}
+
+	.ui-product-signpost {
+		height: 100%;
+
+		&__outer,
+		&__inner {
+			height: 100%;
+		}
+
+	}
+
 }
 
 // list overrides

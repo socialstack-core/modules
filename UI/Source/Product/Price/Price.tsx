@@ -37,6 +37,11 @@ interface PriceProps {
 	 * optional multiplier (used to show total value for [n] items - see order view)
 	 */
 	multiple?: int
+
+	/**
+	 * Should we show the sell units? Defaults to true
+	 */
+	showSellUnit: boolean
 }
 
 export interface CurrencyAmount {
@@ -48,14 +53,14 @@ export interface CurrencyAmount {
  * The Price React component.
  * @param props React props.
  */
-const Price: React.FC<PriceProps> = (props) => {
+const Price: React.FC<PriceProps> = ({showSellUnit = true, ...props}) => {
 	const { product, override, qtyOverride, isFrom, currentPriceOnly, multiple } = props;
 	const { session } = useSession();
 	const { lessTax, getCartQuantity } = useCart();
 	const { locale } = session;
 
 	// current quantity of this product in the basket
-	const quantity = qtyOverride || (getCartQuantity ? getCartQuantity(product?.id || 0) : 0);
+	const quantity = qtyOverride || (getCartQuantity ? getCartQuantity(product?.id ?? 0) : 0);
 
 	let currencyCode: string | undefined;
 	let amount: ulong | undefined;
@@ -92,11 +97,11 @@ const Price: React.FC<PriceProps> = (props) => {
 
 	// check - show total for multiple items?
 	if (amount && multiple) {
-		amount *= multiple;
+		amount = (multiple * amount) as int;
 	}
 
 	//Add unis of product in question
-	let sellUnit = getSellUnit(product);
+	let sellUnit = showSellUnit ? getSellUnit(product) : null;
 
 	return (
 		<span className="ui-product-price">

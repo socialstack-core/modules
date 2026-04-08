@@ -1,5 +1,7 @@
 import { Product } from "Api/Product";
+import { ProductCategory } from 'Api/ProductCategory';
 import Signpost from 'UI/Product/Signpost';
+import PromotionCycler, {InlinePromotion} from 'UI/PromotionCycler';
 
 /**
  * Props for the List component.
@@ -24,6 +26,21 @@ interface ListProps {
 	 * Append UI to the product items
 	 */
 	productExtras?: (React.FC | React.FC<unknown>)[],
+
+	/**
+	 * Promotions to display inline in the list (category placements)
+	 */
+	promotions?: InlinePromotion[],
+
+	/**
+	 * Current category ID for condition filtering
+	 */
+	currentCategoryId?: number,
+
+	/**
+	 * Current category breadcrumbs for includeChildren condition filtering
+	 */
+	currentCategoryBreadcrumbs?: ProductCategory[],
 }
 
 /**
@@ -31,7 +48,7 @@ interface ListProps {
  * @param props React props.
  */
 const List: React.FC<ListProps> = (props: ListProps) => {
-	const { content, viewStyle } = props;
+	const { content, viewStyle, promotions, currentCategoryId, currentCategoryBreadcrumbs } = props;
 
 	if (!content) {
 		return null;
@@ -42,6 +59,11 @@ const List: React.FC<ListProps> = (props: ListProps) => {
 
 	return <>
 		<div className="ui-product-list__wrapper">
+			{promotions && promotions.length > 0 && (
+				<div className="ui-product-list__promotion" style={{ marginBottom: '1rem' }}>
+					<PromotionCycler promotions={promotions} currentCategoryId={currentCategoryId} currentSearchCategoryId={currentCategoryId} currentCategoryBreadcrumbs={currentCategoryBreadcrumbs} />
+				</div>
+			)}
 			<ul className={productListClasses.join(' ')}>
 				{content.map(product => {
 					return <li className="ui-product-list__product">

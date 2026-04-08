@@ -1,5 +1,5 @@
 .ui-product-view__downloads {
-	background: var(--palette-light-grey);
+	background: var(--palette-light-grey, var(--grey-light));
 	padding: px_to_rem(12);
 	border-radius: px_to_rem(8);
 
