@@ -10,7 +10,6 @@ export type SearchCriteria = {
 	sort?: string;
 	view?: string;
 	inStockOnly?: boolean;
-    approvalStatus?:string;
 	hiddenProducts?:boolean;
     
 	facets?: Record<number, number[]>; // attrId -> valueIds
@@ -47,7 +46,6 @@ export function useRouterCriteria({
 		facets: undefined,
 		sort: undefined,
 		inStockOnly: undefined,
-		approvalStatus: undefined,
 		hiddenProducts: undefined
 	},
 	skipResetOnFirstLoad = true

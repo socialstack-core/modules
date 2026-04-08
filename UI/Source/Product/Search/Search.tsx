@@ -8,6 +8,7 @@ import useApi from "UI/Functions/UseApi";
 import Html from 'UI/Html';
 import Input from 'UI/Input';
 import DualRange from 'UI/DualRange';
+import Promotion from 'UI/Promotion';
 import { useSession } from 'UI/Session';
 import searchApi, {ProductSearchAppliedFacet, ProductSearchType, SortDirection} from "Api/ProductSearchController";
 import {ProductAttributeValue } from "Api/ProductAttributeValue";
@@ -23,6 +24,8 @@ import {SearchCriteria, useRouterCriteria } from "./UseRouterCriteria";
 import store from 'UI/Functions/Store';
 import Link from "UI/Link";
 import {ProductCardAfterItem} from "../types";
+import Landing from 'UI/ProductCategory/Landing';
+import PromotionCycler, {InlinePromotion} from 'UI/PromotionCycler';
 
 const MAX_VISIBLE_CATEGORIES = 3;
 const ROOT_CATEGORY_ID: uint = 1 as uint;
@@ -37,8 +40,19 @@ interface SearchProps {
 	lazyLoad: boolean,
 	allowReset: boolean,
     showDebug: boolean,
+    showPromotions: boolean,
 	productCategory?: ProductCategory,
 	customParameters: Record<string,any>,
+	
+	/**
+	 * Promotions array (injected by PromotionBodyInjectionEventListener)
+	 */
+	promotions?: InlinePromotion[],
+	
+	/**
+	 * Category-specific promotions (filtered from promotions by placementType)
+	 */
+	categoryPromotions?: InlinePromotion[],
 	
 	// ==================================================
 	// Product Item After
@@ -85,17 +99,41 @@ type PriceRange = {
  * @param props React props.
  */
 const Search: React.FC<SearchProps> = (props) => {
+
+	const { 
+		productCategory ,
+	} = props;
+
+    if (productCategory && productCategory.isLandingPage) {
+        return (<Landing productCategory={productCategory} />);
+    }
+
+	return <ProductSearch {...props} />
+}
+
+/**
+ * The Product Search React component.
+ * @param props React props.
+ */
+const ProductSearch: React.FC<CheckoutProps> = (props) => {
 	const { 
 		productCategory ,
 		customParameters,
 		lazyLoad = true,
 		allowReset = true,
-        showDebug = false,       
-    } = props;
+        showDebug = false,
+        showPromotions = true,   
+		promotions,
+		categoryPromotions,
+	} = props;
+
+	// Filter promotions by placementType
+	const searchPromotions = promotions?.filter(p => p.placementType === 'search') || [];
+	const categoryPromoList = categoryPromotions || promotions?.filter(p => p.placementType === 'category') || [];
 
 	const { session } = useSession();
-	var { role, business } = session;
-	
+	var { role } = session;
+
 	const { pageState , updateQuery, removeQueryItems } = useRouter();
 	
 	// ============================================
@@ -135,7 +173,7 @@ const Search: React.FC<SearchProps> = (props) => {
     const [lowestPrice, setLowestPrice] = useState<double>(null);
 	const [highestPrice, setHighestPrice] = useState<double>(null);
 
-	const [categorySearch, setCategorySearch] = useState('');
+
 
 	// keep track for lazy loading
 	const [currentPage, setCurrentPage] = useState(1);
@@ -335,8 +373,6 @@ const Search: React.FC<SearchProps> = (props) => {
 		return <Loading />;
 	}
 
-	let step = Math.round((highestPrice - lowestPrice) / 20);
-
 	const facets = (products.secondary as SecondaryIncludes);
 	const { attributeValueFacets, productCategoryFacets } = facets;
 	
@@ -387,7 +423,7 @@ const Search: React.FC<SearchProps> = (props) => {
 		}, 
 		...(productCategory.breadcrumb ?? []).map(breadcrumb => {
 			return ({
-				name: breadcrumb.id === ROOT_CATEGORY_ID ? `All products` : breadcrumb.name,
+				name: breadcrumb.id === ROOT_CATEGORY_ID ? `All Products` : breadcrumb.name,
 				href: breadcrumb.primaryUrl
 			})
 		})
@@ -431,11 +467,6 @@ const Search: React.FC<SearchProps> = (props) => {
 		}
 	}
 
-	//console.log("min: ", lowestPrice);
-	//console.log("max: ", highestPrice);
-	//console.log("defaultFrom: ", minPrice);
-	//console.log("defaultTo: ", maxPrice || highestPrice);
-
 	return (
 		<>
 			<div className="ui-component--padded-width">
@@ -443,11 +474,11 @@ const Search: React.FC<SearchProps> = (props) => {
 					<Breadcrumb crumbs={breadcrumbs} />
 				</>}
 
-				<div className="ui-product-search">
+				<Popover.Wrapper className="ui-product-search">
 					<h1 className="ui-page__title ui-product-search__title">
 						{criteria && criteria.q ? (
 							<>
-								{`${resultCount} results for `}
+								{`${resultCount} Results for `}
 								<strong>{criteria.q}</strong>
 								{
 									// when the search is contextual, show "in {categoryName}"
@@ -461,7 +492,7 @@ const Search: React.FC<SearchProps> = (props) => {
 							</>
 						): 
 							// else we show a default found x results
-							`${resultCount} results`}
+							`${resultCount} Results`}
 					</h1>
 
 					<Button sm outlined className="ui-product-search__filter-trigger" popoverTarget="filters_popover">
@@ -510,10 +541,7 @@ const Search: React.FC<SearchProps> = (props) => {
 											<legend>
 												{`Categories`}
 											</legend>
-											<div className="fieldset-content">
-												<Input type="search" placeholder={`Search for ...`} value={categorySearch} onChange={(e) => setCategorySearch(e.target.value)} noWrapper />
-												<CategoryFilterList facets={categoryFacets} maxVisible={MAX_VISIBLE_CATEGORIES} searchFilter={categorySearch} noBorder />
-											</div>
+											<CategoryFilterList facets={categoryFacets} maxVisible={MAX_VISIBLE_CATEGORIES} noBorder />
 										</fieldset>
 									}
 								</>
@@ -522,7 +550,7 @@ const Search: React.FC<SearchProps> = (props) => {
 							{allowReset && hasCriteria() &&
 								<fieldset>
 									<Button xs outlined className="ui-product-search__filters-reset" onClick={() => {
-										clearAllCriteria(['approvalStatus','inStockOnly', 'hiddenProducts']);
+										clearAllCriteria(['inStockOnly', 'hiddenProducts']);
 
 										// code smell: hack to ensure price range updates
 										document.location = document.location.href;
@@ -535,14 +563,15 @@ const Search: React.FC<SearchProps> = (props) => {
 							{highestPrice && 
 								<DualRange
 									className="ui-product-search__price"
+									aligned
 									label={`Price`}
 									numberFormat={GBPound}
 									min={lowestPrice}
 									max={highestPrice}
-									step={step}
+									steps="20"
 									defaultFrom={minPrice}
 									defaultTo={maxPrice || highestPrice}
-									onChange={(from: number, to: number) => {
+								onChange={(from: number, to: number) => {
 										var range: PriceRange = {};
 										if (from && from != lowestPrice) {
 											range.min = from;
@@ -557,14 +586,6 @@ const Search: React.FC<SearchProps> = (props) => {
 										setCriteria(range);
 									}}
 								/>
-							}
-
-							{showDebug &&
-								<div>
-									{`filter ${minPrice} to ${maxPrice}`}
-									<br></br>
-									{`range  ${lowestPrice} to ${highestPrice} -  ${step}`}
-								</div>
 							}
 
 							{/* attributes */}
@@ -595,6 +616,9 @@ const Search: React.FC<SearchProps> = (props) => {
 								}
 							</>}
 						</div>
+						{showPromotions && searchPromotions.length > 0 && (
+							<PromotionCycler promotions={searchPromotions} currentCategoryId={productCategory?.id} currentSearchCategoryId={productCategory?.id} />
+						)}
 					</Popover>
 
 					<header className="ui-product-search__header">
@@ -676,6 +700,9 @@ const Search: React.FC<SearchProps> = (props) => {
 						// )}
 						productExtras={additionalComponents}
 						// ========================================================
+						promotions={categoryPromoList}
+						currentCategoryId={productCategory?.id}
+						currentCategoryBreadcrumbs={productCategory?.breadcrumb}
 						paginator={(
 							<div className={'pagination-container'}>
 								{lazyLoad ?
@@ -695,7 +722,7 @@ const Search: React.FC<SearchProps> = (props) => {
 						)}
 
 					/>
-				</div>
+				</Popover.Wrapper>
 			</div>
 
 		</>
