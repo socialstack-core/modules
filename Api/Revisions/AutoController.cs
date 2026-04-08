@@ -5,8 +5,6 @@ using Api.Startup;
 using Api.Users;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using Org.BouncyCastle.Ocsp;
-using Stripe;
 using System;
 using System.Text;
 using System.Threading.Tasks;

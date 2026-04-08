@@ -3,12 +3,9 @@ using Api.Database;
 using Api.SocketServerLibrary;
 using Api.Startup;
 using Newtonsoft.Json.Linq;
-using Stripe;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using System.Threading.Tasks;
 
 namespace Api.Permissions

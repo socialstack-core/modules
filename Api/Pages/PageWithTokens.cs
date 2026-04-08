@@ -1,9 +1,7 @@
-using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Startup.Routing;
 using Api.Translate;
 using Microsoft.AspNetCore.Http;
-using Stripe;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

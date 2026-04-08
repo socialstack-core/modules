@@ -3,7 +3,6 @@ using Api.Database;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.OpenApi.Models;
-using Stripe;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections;

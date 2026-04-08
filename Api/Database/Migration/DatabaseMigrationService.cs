@@ -1,7 +1,6 @@
 using Api.Contexts;
 using Api.Eventing;
 using Api.Permissions;
-using Stripe;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;

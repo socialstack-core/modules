@@ -1,6 +1,4 @@
-﻿using Stripe;
-
-namespace Api.SearchMetaData
+﻿namespace Api.SearchMetaData
 {
     /// <summary>
     /// A structure representing search metadata
