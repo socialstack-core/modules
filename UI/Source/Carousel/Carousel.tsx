@@ -1,5 +1,5 @@
 //import Button from 'UI/Button';
-import { useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 /**
  * Props for the Carousel component.
@@ -67,13 +67,16 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 	const scrollContainerRef = useRef();
 	const btnBackRef = useRef();
 	const btnNextRef = useRef();
-	const scrollBehaviour = window?.matchMedia("(prefers-reduced-motion: reduce)").matches ? 'instant' : 'smooth';
+
+	const [scrollBehaviour, setScrollBehaviour] = useState<string>('smooth');
 
 	useEffect(() => {
 
 		if (!carouselRef?.current) {
 			return;
 		}
+
+		setScrollBehaviour(window?.matchMedia("(prefers-reduced-motion: reduce)").matches ? 'instant' : 'smooth');
 
 		carouselRef.current.addEventListener("keydown", keyHandler);
 		carouselRef.current.addEventListener('wheel', wheelHandler);
