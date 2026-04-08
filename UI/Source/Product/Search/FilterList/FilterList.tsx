@@ -26,11 +26,6 @@ interface SearchProps {
 	maxVisible?: int,
 
 	/**
-	 * optional search filter
-	 */
-	searchFilter?: string,
-
-	/**
 	 * set true to remove border and padding
 	 */
 	noBorder?: boolean,
@@ -139,11 +134,6 @@ interface CategorySearchProps {
 	maxVisible?: int,
 
 	/**
-	 * optional search filter
-	 */
-	searchFilter?: string,
-
-	/**
 	 * set true to remove border and padding
 	 */
 	noBorder?: boolean,
@@ -169,7 +159,6 @@ const CategoryFilterList: React.FC<CategorySearchProps> = ({ facets, noBorder, s
 		return null;
 	}
 
-
 	let filterListClasses = ["ui-filter-list"];
 
 	if (noBorder) {
@@ -179,7 +168,7 @@ const CategoryFilterList: React.FC<CategorySearchProps> = ({ facets, noBorder, s
 	const categories: ProductCategory[] = [];
 	
 	facets.forEach((facet) => {
-		if (categories.find(category => category.id == facet.category.id)) {
+		if (!facet.category || categories.find(category => category.id == facet.category.id)) {
 			return;
 		}
 		if (categories.find(category => category.name == facet.category.name)) {
@@ -194,12 +183,16 @@ const CategoryFilterList: React.FC<CategorySearchProps> = ({ facets, noBorder, s
 		<div className={filterListClasses.join(' ')}>
 			{categories.map((category, index) => {
 				
-				const attributeFacet = facets.find(facet => facet.category.id == category.id);
+				const attributeFacet = facets.find(facet => facet.category?.id == category.id);
 				
-				const count = attributeFacet?.count;
+				const count = attributeFacet?.count || 0;
 				
 				if (!expanded && index > maxVisible) {
-					return;
+					return null;
+				}
+
+				if(category.isHidden) {
+				 	return null;
 				}
 				
 				return (
