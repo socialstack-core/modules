@@ -256,7 +256,7 @@ public class MongoSearchEventListener
 						compoundBody["must"] = mustArr;
 					}
 
-					BsonDocument? normalBranch = null;
+					BsonDocument normalBranch = null;
 					if (compoundBody.ElementCount > 0)
 					{
 						normalBranch = new BsonDocument("compound", compoundBody);

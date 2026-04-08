@@ -23,11 +23,6 @@ namespace Api.Startup
 	public class WebServerStartupInfo
     {
 		/// <summary>
-		/// An event which fires when Configure occurs.
-		/// </summary>
-		public static event Action<IApplicationBuilder, ILoggerFactory, IServiceProvider> OnConfigure;
-
-		/// <summary>
 		/// Cors configuration.
 		/// </summary>
 		private readonly CorsConfig _corsConfig;

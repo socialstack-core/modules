@@ -24,6 +24,9 @@ namespace Api.NavMenus
 
 		private bool _installed = false;
 
+		/// <summary>
+		/// The set of admin groups which are going to be created
+		/// </summary>
 		public static readonly List<AdminNavMenuItem> RequiredGroups = [
 			new()
 			{

@@ -17,12 +17,33 @@ namespace Api.Payments
 	/// </summary>
 	public partial class PlacementConditions
 	{
+		/// <summary>
+		/// Pages where the placement appears
+		/// </summary>
 		public List<uint> Pages { get; set; }
+		/// <summary>
+		/// Specific categories during search where the placement appears
+		/// </summary>
 		public List<uint> SearchCategories { get; set; }
+		/// <summary>
+		/// Categories on which the placement appears
+		/// </summary>
 		public List<uint> Categories { get; set; }
+		/// <summary>
+		/// True if child categories are included.
+		/// </summary>
 		public bool IncludeChildren { get; set; } = true;
+		/// <summary>
+		/// Specific products where the placement appears
+		/// </summary>
 		public List<uint> Products { get; set; }
+		/// <summary>
+		/// Minimum price (specific product placements)
+		/// </summary>
 		public decimal? MinPrice { get; set; }
+		/// <summary>
+		/// Maximum price (specific product placements)
+		/// </summary>
 		public decimal? MaxPrice { get; set; }
 	}
 
@@ -31,7 +52,13 @@ namespace Api.Payments
 	/// </summary>
 	public class PromoPlacementConfig
 	{
+		/// <summary>
+		/// The type of promo placement - on a product page, category page etc.
+		/// </summary>
 		public string Type { get; set; }
+		/// <summary>
+		/// Conditions affecting if the placement appears on a particular page/ category etc.
+		/// </summary>
 		public PlacementConditions Conditions { get; set; }
 	}
 
