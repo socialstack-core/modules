@@ -98,7 +98,7 @@ const Quantity: React.FC<QuantityProps> = (props) => {
 	const cfg = getConfig<ProductConfig>("Product");
 	const allowSaleWhenOutOfStock = product.continueSellingWithNoStock;
 
-	const ctaLabel = props.ctaLabel?.length ? props.ctaLabel : `Add to order`;
+	const ctaLabel = props.ctaLabel?.length ? props.ctaLabel : `Add to Basket`;
     
 	const setQuantity = (newQty: int) => {
 
@@ -293,13 +293,31 @@ const Quantity: React.FC<QuantityProps> = (props) => {
 	}
 
 	const alertClasses = "ui-product-qty__alert" + (showAddConfirmation ? " ui-product-qty__alert--shown" : "");
+	
+	if(product?.hidden){
+		return <div className={qtyClasses.join(' ')}>
+			<div className="ui-product-qty__inner" style={{ 'anchor-name': anchorName }}>
+				<span className="ui-product-qty__na">
+					{`No longer available`}
+				</span>
+				{!isEditing && !readOnly && quantity>0 && <>
+					<Button sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__down"
+						aria-label={`Remove`} onClick={() => setQuantity(0)}>
+						<i className={"fr fr-trash-alt"}></i>
+					</Button>
+				</>}
+			</div>
+		</div>;
+	}
 
+	// NB: buttons have tabindex explicitly set to zero to prevent Safari from losing focus on click
+	// (especially important when this control is rendered within the main search dropdown)
 	return (
 		<div className={qtyClasses.join(' ')}>
 			<div className="ui-product-qty__inner" style={{ 'anchor-name': anchorName }}>
                 
 				{!isEditing && !readOnly && <>
-					<Button sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__down"
+					<Button tabindex="0" sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__down"
 						aria-label={`Reduce quantity`} onClick={() => reduceQuantity()}>
 						<i className={quantity > 1 ? "fr fr-minus" : "fr fr-trash-alt"}></i>
 					</Button>
@@ -329,7 +347,7 @@ const Quantity: React.FC<QuantityProps> = (props) => {
 
 						}} />
 
-					<Button sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__update" onClick={() => updateTypedQuantity()}
+					<Button tabindex="0" sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__update" onClick={() => updateTypedQuantity()}
 						onKeyDown={(e) => {
 
 							switch (e.key) {
@@ -355,7 +373,7 @@ const Quantity: React.FC<QuantityProps> = (props) => {
 					{quantity > 1 ? `${quantity} items added to basket` : `Added to basket`}
 				</div>
 
-				<Button sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__up"
+				<Button tabindex="0" sm={compact ? undefined : true} xs={compact ? true : undefined} className="ui-product-qty__up"
 					aria-label={noSelection ? undefined : `Increase quantity`} onClick={() => increaseQuantity()} disabled={disabled}>
 					{noSelection && !disabled && <>
 						{ctaLabel}
