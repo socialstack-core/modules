@@ -4,7 +4,8 @@ import Signpost from 'UI/ProductCategory/Signpost';
 /**
  * Props for the List component.
  */
-interface ListProps {
+interface ListProps
+ {
 	/**
 	 * The categories to list. Must have included 'primaryUrl'.
 	 */
@@ -24,11 +25,17 @@ const List: React.FC<ListProps> = (props) => {
 	}
 
 	return (
-		<div className="ui-productcategory-list">
-			{
-				content.map(category => <Signpost content={category} />)
-			}
-		</div>
+        <div className="ui-productcategory-list__wrapper">
+            <ul className="ui-productcategory-list ui-productcategory-list--large-thumbs">
+                {
+                    content.map(category => 
+                        <li className="ui-productcategory-list__category">
+                        <Signpost content={category} ctaLabel={category.name} />
+                        </li>
+                )
+                }
+            </ul>
+        </div>
 	);
 }
 

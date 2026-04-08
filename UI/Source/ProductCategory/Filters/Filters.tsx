@@ -1,12 +1,12 @@
-import {Product} from "Api/Product";
-import {ProductCategory} from "Api/ProductCategory";
-import {ProductCategoryFacet} from "UI/Product/Search/Facets";
+import { Product } from "Api/Product";
+import { ProductCategory } from "Api/ProductCategory";
+import { ProductCategoryFacet } from "UI/Product/Search/Facets";
 import Link from 'UI/Link'
 import Button from 'UI/Button'
 
 import { useMemo, useState } from "react";
-import {ApiList} from "UI/Functions/WebRequest";
-import {useRouter} from "UI/Router";
+import { ApiList } from "UI/Functions/WebRequest";
+import { useRouter } from "UI/Router";
 
 const ROOT_CATEGORY_ID: uint = 1 as uint;
 
@@ -125,7 +125,11 @@ const CategoryFilters: React.FC<CategoryFilterProps> = (props: CategoryFilterPro
 
 				if (idx >= maxCategoryListing) {
 					// hide any excess.
-					return;
+					return null;
+				}
+
+				if (category.isHidden) {
+					return null;
 				}
 
 				const treeNode = categoryTree.get(category.id);
@@ -170,6 +174,11 @@ const CategoryFilters: React.FC<CategoryFilterProps> = (props: CategoryFilterPro
 				// so we'll mimic the same behaviour here. 
 				// the root category isn't in this array
 				parentCategoryPath.map(category => {
+
+					if (category.isHidden) {
+						return null;
+					}
+
 					return (
 						<li className="category-treeview__item">
 							<Link xs href={category.primaryUrl + queryString}>
@@ -199,7 +208,11 @@ const CategoryFilters: React.FC<CategoryFilterProps> = (props: CategoryFilterPro
 
 							if (idx >= maxCategoryListing) {
 								// hide any excess.
-								return;
+								return null;
+							}
+
+							if (category.isHidden) {
+								return null;
 							}
 
 							return (
@@ -263,8 +276,7 @@ const getParentCategoryPath = (category: ProductCategory, categoryTree: Map<uint
 	// moving around the tree
 	// collection categories 
 	// until no parent exists.
-	while(current)
-	{
+	while (current) {
 		// push it to the path items array
 		pathItems.push(current.facet.category);
 
@@ -321,7 +333,7 @@ const buildCategoryTree = (collection: ApiList<Product>): Map<uint, CategoryTree
 		return map;
 	}
 	// also grab the facets
-	const facets           = collection.secondary.productCategoryFacets.results;
+	const facets = collection.secondary.productCategoryFacets.results;
 
 	// first iterate the categories, fill in the map,
 	// this doesn't populate children, but adds the category and its facet information
