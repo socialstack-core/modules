@@ -1,19 +1,17 @@
-using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
+using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Eventing;
-using System.Text.RegularExpressions;
-using Api.CanvasRenderer;
 using Api.Pages;
-using System;
-using System.Linq;
+using Api.Permissions;
 using Api.Startup;
 using Api.Startup.Routing;
-using static Api.Pages.PageController;
 using Api.Translate;
-using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using static Api.Pages.PageController;
 
 namespace Api.Payments
 {
@@ -27,13 +25,6 @@ namespace Api.Payments
 		private ProductAttributeValueService _attributeValues;
 		private RoleService _roles;
 		
-		/// <summary>
-		/// Added in as a cached list to allow all roles to be loaded
-		/// and checks put against each one to decide who can edit
-		/// an attribute, and who can't 
-		/// </summary>
-		private readonly Dictionary<Role, bool> _canEditAttribute = []; 
-
 		/// <summary>
 		/// The cached attribute tree. Use GetTree to obtain one instead of this directly.
 		/// </summary>
@@ -51,14 +42,14 @@ namespace Api.Payments
 			// Example admin page install:
 			InstallAdminPages("Product Attributes", "fa:fa-tags", ["id", "name"], null, "ecommerce");
 			
-			Events.Role.AfterUpdate.AddEventListener(OnRoleMutate);
-			Events.Role.AfterCreate.AddEventListener(OnRoleMutate);
+			Events.Role.AfterUpdate.AddEventListener(OnRoleMutate, 50);
+			Events.Role.AfterCreate.AddEventListener(OnRoleMutate, 50);
 			
 			Events.Role.AfterDelete.AddEventListener((ctx, role) =>
 			{
-				_canEditAttribute.Remove(role);
+				LoadCapability();
 				return ValueTask.FromResult(role);
-			});
+			}, 50);
 			
 			Events.Page.BeforePageInstall.AddEventListener((Context context, PageBuilder builder) =>
 			{
@@ -641,7 +632,9 @@ namespace Api.Payments
 			return OnRoleMutate(ctx, role);
 		}
 
-		private ValueTask<Role> OnRoleMutate(Context ctx, Role role)
+		private Capability _updateCapability;
+
+		private void LoadCapability()
 		{
 			var capability = Capabilities.GetAllCurrent().FirstOrDefault(cap => cap.Name == "productattribute_update");
 
@@ -650,9 +643,12 @@ namespace Api.Payments
 				throw new PublicException("Cannot find correct capability", "product-attribute/capability");
 			}
 
-			#warning MUST revisit this, it drops viewing user context
-			_canEditAttribute[role] = role.IsGranted(capability, new Context(1, 1, role.Id), new (), ContextFlags.None);
-			
+			_updateCapability = capability;
+		}
+
+		private ValueTask<Role> OnRoleMutate(Context ctx, Role role)
+		{
+			LoadCapability();
 			return ValueTask.FromResult(role);
 		}
 
@@ -732,7 +728,7 @@ namespace Api.Payments
 		{
 			Log.Info("productcategory", "Building attribute group structure");
 
-			await LoadRolesPermissions(ctx);
+			LoadCapability();
 
 			// get all groups 
 			var groups = await _groups.Where("", DataOptions.IgnorePermissions).ListAll(ctx);
@@ -796,23 +792,6 @@ namespace Api.Payments
 				KeyLookup = lookupBySlug,
 				Roots = roots
 			};
-		}
-
-		private async ValueTask LoadRolesPermissions(Context ctx)
-		{
-			var roles = await _roles.Where("CanViewAdmin = ?", DataOptions.IgnorePermissions).Bind(true).ListAll(ctx);
-			var capability = Capabilities.GetAllCurrent().FirstOrDefault(cap => cap.Name == "productattribute_update");
-
-			if (capability is null)
-			{
-				throw new PublicException("Cannot find correct capability", "product-attribute/capability");
-			}
-			
-			foreach (var role in roles)
-			{
-				#warning MUST revisit this, it drops viewing user context
-				_canEditAttribute[role] = role.IsGranted(capability, new Context(1, 1, role.Id), new (), ContextFlags.None);
-			}
 		}
 
 		/// <summary>
@@ -939,9 +918,7 @@ namespace Api.Payments
 
 		private string GetEditUrl(Context ctx, ProductAttributeNode node)
 		{
-			var canEdit = false;
-			_canEditAttribute.TryGetValue(ctx.Role, out canEdit);
-
+			var canEdit = ctx.Role.IsGranted(_updateCapability, ctx, new(), ContextFlags.None);
 			return "/en-admin/productattribute/" + node.Attribute.Id + (!canEdit ? "/values" : string.Empty);
 		}
 
