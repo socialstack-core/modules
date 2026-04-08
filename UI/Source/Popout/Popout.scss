@@ -1,0 +1,71 @@
+.popout-background {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: stretch;
+    z-index: 1000;
+    animation: fadeIn 300ms ease forwards;
+
+    .popout-content {
+        background-color: #fff;
+        height: 100%;
+        width: 20vw;
+        min-width: 300px;
+        padding: 2rem;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        position: relative;
+        animation-duration: 300ms;
+        animation-fill-mode: forwards;
+        animation-timing-function: ease;
+
+        &.left {
+            align-self: flex-start;
+            transform: translateX(-100%);
+            animation-name: slideInLeft;
+        }
+
+        &.right {
+            margin-left: auto;
+            transform: translateX(100%);
+            animation-name: slideInRight;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .popout-content {
+            width: 100%;
+            min-width: unset;
+            padding: 1.5rem;
+        }
+    }
+}
+
+// Animations
+@keyframes fadeIn {
+    from {
+        background-color: transparent;
+    }
+    to {
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+}
+
+@keyframes slideInLeft {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(0);
+    }
+}
