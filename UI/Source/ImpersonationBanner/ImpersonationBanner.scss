@@ -23,3 +23,11 @@ html.admin:has(.ui-impersonation-banner) {
 		font-weight: 700;
 	}
 }
+
+html.admin {
+
+	.ui-impersonation-banner {
+		grid-area: impersonation;
+	}
+
+}
