@@ -21,6 +21,7 @@ export type SearchProps<T extends Content<uint>> = {
     searchText?: string;
     name?: string;
     className?: string;
+    inputClassName?: string;
     'data-theme'?: string;
     endpoint?: (filter?: ListFilter, includes?: ApiIncludes) => Promise<ApiList<T>>;
     onInput?: (value: string) => void,
@@ -36,7 +37,7 @@ type NoFieldWhereQuery = {
  */
 const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
 
-    const { onFind, exclude } = props;
+    const { onFind, exclude, name } = props;
 	
 	let { onNoResults } = props;
 	
@@ -48,8 +49,10 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
     const [hidden, setHidden] = useState<boolean>(Boolean(props.startHidden));
     const [results, setResults] = useState<T[] | null>(null); // Typed results as T[]
     const [selected, setSelected] = useState<T | null>(null);
+    const [dropUp, setDropUp] = useState<boolean>(false);
 
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const suggestionsRef = useRef<HTMLDivElement | null>(null);
 
     // render the search result expanding any fields as neccessary
     const renderResult = props.onRender || ((result: any) => {
@@ -68,7 +71,7 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
         // when no minLength is passed
         if (!query) {
             setResults(null);
-			props.onQuery({
+			props?.onQuery?.({
 				query: field + ' contains ?',
 				args: [query]
 			}, query)
@@ -115,18 +118,36 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
         }
     }, [results, props])
 
+    useEffect(() => {
+        if (results && !props.onResults && inputRef.current && suggestionsRef.current) {
+            const inputRect = inputRef.current.getBoundingClientRect();
+            const suggestionsHeight = suggestionsRef.current.offsetHeight;
+            const spaceBelow = window.innerHeight - inputRect.bottom;
+            const spaceAbove = inputRect.top;
+
+            if (spaceBelow < (suggestionsHeight + 10) && spaceAbove > spaceBelow) {
+                setDropUp(true);
+            } else {
+                setDropUp(false);
+            }
+        } else if (!results) {
+            setDropUp(false);
+        }
+    }, [results, props.onResults]);
+
     const selectValue = (value: T) => {
         onFind && onFind(value);
         setSelected(value);
     };
 	
     return (
-        <div className={`search ${props.className}`} data-theme={props['data-theme'] || 'search-theme'}>
+		<div className={`search ${props.className}`} data-theme={props['data-theme'] || 'search-theme'}>
             <input
-                ref={inputRef}
+				ref={inputRef}
+				name={name}
                 onBlur={() => setResults(null)} // Clear results on blur
                 autoComplete="false"
-                className="form-control"
+                className={`form-control ui-form-control ${props.inputClassName || ''}`}
                 defaultValue={props.searchText}
                 placeholder={props.placeholder || 'Search...'}
                 type="text"
@@ -155,7 +176,7 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
                 }}
             />
             {results && !props.onResults && (
-                <div className="suggestions">
+                <div className={`suggestions ${dropUp ? 'suggestions-up' : ''}`} ref={suggestionsRef}>
                     {results.length ? (
                         results.map((result, i) => (
                             <button
