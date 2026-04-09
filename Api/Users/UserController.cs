@@ -7,8 +7,6 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using Api.Startup;
 using Microsoft.AspNetCore.Http;
-using Azure;
-using LetsEncrypt.Client.Json;
 
 namespace Api.Users
 {

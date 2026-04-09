@@ -1,5 +1,4 @@
 using Api.Configuration;
-using Api.ContentSync;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
@@ -42,7 +41,6 @@ namespace Api.CanvasRenderer
 		private bool Prebuilt;
 
 		private FrontendCodeServiceConfig _config;
-		private ContentSyncService _contentSync;
 		private FrontendFile? _cachedTypeMetadata;
 
 		/// <summary>
@@ -308,11 +306,6 @@ namespace Api.CanvasRenderer
 					}
 				}
 			}
-			else
-			{
-				// Attempt server ID substitution:
-				wsUrl = wsUrl.Replace("${server.id}", _contentSync.ServerId.ToString()).Replace("${server.id-1}", (_contentSync.ServerId-1).ToString());
-			}
 
 			var servicePaths = _config.DisableWebSocket ? "wsUrl=null;" : "wsUrl='" + wsUrl + "';";
 
@@ -366,9 +359,8 @@ namespace Api.CanvasRenderer
 		/// <summary>
 		/// Instanced automatically.
 		/// </summary>
-		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService, ContentSyncService contentSync)
+		public FrontendCodeService(LocaleService locales, TranslationService translations, Themes.ThemeService themeService)
 		{
-			_contentSync = contentSync;
 			_locales = locales;
 			_translations = translations;
 			_themes = themeService;

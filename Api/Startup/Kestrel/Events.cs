@@ -1,11 +1,7 @@
-using Api.Blogs;
-using Api.Permissions;
-using Api.Users;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
-using System.Collections.Generic;
 
 namespace Api.Eventing;
 
