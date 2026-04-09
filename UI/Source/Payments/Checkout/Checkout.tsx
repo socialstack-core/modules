@@ -5,7 +5,7 @@ import Link from 'UI/Link';
 import Form from 'UI/Form';
 import Alert from 'UI/Alert';
 import Loading from 'UI/Loading';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSession } from 'UI/Session';
 import { useRouter } from 'UI/Router';
 import useApi from 'UI/Functions/UseApi';
@@ -21,6 +21,7 @@ import ChallengeChecker from 'UI/Payments/Approval/ChallengeChecker';
 import Challenge from 'UI/Payments/Approval/Challenge';
 import Modal from 'UI/Modal';
 import DeliveryOptions from './DeliveryOptions';
+import ExternalPayment from 'UI/Payments/ExternalPayment';
 
 /**
  * Props for the Checkout component.
@@ -40,11 +41,14 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 	const { setPage, pageState } = useRouter();
 	const { query } = pageState;
 	var { shoppingCart, cartIsEmpty, emptyCart, lessTax, getCartId, cartIsDigitalOnly, addGuestDetails } = useCart();
-	
+
+	const ssFormRef = useRef<HTMLFormElement>(null);
+
 	// Does the cart contain any physical products or not?
 	const downloadsOnly = cartIsDigitalOnly ? cartIsDigitalOnly() : false;
 
 	const deferPayment = user ? (canPayLater ? canPayLater(session) : false) : false;
+	const paymentRequired = ((user && !deferPayment) || !user)
 	
 	const [deliveryAddress, setDeliveryAddress] = useState<Address | undefined>();
 	const [sameAsDelivery, setSameAsDelivery] = useState<boolean>(true);
@@ -56,9 +60,12 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 
 	const [challengeMetaData , setChallengeMetaData] = useState<PurchaseAndAction | undefined>();
 
-	// TODO: currently this infers acceptance as soon as the order is confirmed;
-	//       allow option to display this as a checkbox which needs to be actively selected
-	const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
+	const [acceptedTerms, setAcceptedTerms] = useState<boolean>(user ? true : false);
+	const [acceptedPrivacy, setAcceptedPrivacy] = useState<boolean>(user ? true : false);
+	
+	const [customerOrderReference, setCustomerOrderReference] = useState<string | undefined>(undefined);
+	const [contactName, setContactName] = useState<string | undefined>(undefined);
+	const [deliveryInformation, setDeliveryInformation] = useState<string | undefined>(undefined);
 
 	enum CheckoutStep {
 		OrderContents,
@@ -92,16 +99,36 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 		}
 	}
 
+	const findDefaultAddress = (
+	addresses: Address[],
+	addressType: 'delivery' | 'billing'
+	): Address | undefined => {
+		const flag = addressType === 'delivery' ? 'isDefaultDeliveryAddress' : 'isDefaultBillingAddress';
+
+		return addresses
+			.filter(a => a[flag] && Number.isFinite(Number(a.id)))
+			.sort((a, b) => Number(b.id) - Number(a.id))[0];
+	};
+
 	// Gets the billing and delivery addresses for a user 
 	useApi(() => !user ? Promise.resolve(undefined) : addressApi
 		.getCartAddresses()
 		.then(addrSet => {
-			var deliveryAddr = addrSet.results.find(addr => addr.isDefaultDeliveryAddress);
-			var billingAddr = addrSet.results.find(addr => addr.isDefaultBillingAddress);
+			setSavedAddresses(addrSet.results.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+
+			const deliveryAddr = findDefaultAddress(addrSet.results, 'delivery');
+			const billingAddr = findDefaultAddress(addrSet.results, 'billing');
 			
 			setDeliveryAddress(deliveryAddr);
 			setBillingAddress(billingAddr);
-            setSavedAddresses(addrSet.results);
+
+			if(deliveryAddr?.contact?.trim()) 
+			{
+				setContactName(deliveryAddr.contact);
+			} 
+			else if (billingAddr?.contact?.trim()) {
+				setContactName(billingAddr.contact);
+			}
 
 			if (billingAddr) {
 				setSameAsDelivery((billingAddr.anonKey == deliveryAddr?.anonKey));
@@ -125,19 +152,41 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 			return;
 		}
 
-		var deliveryAddr = guestDetails.addresses.find((addr: Address) => addr.isDefaultDeliveryAddress);
-		var billingAddr = guestDetails.addresses.find((addr: Address)  => addr.isDefaultBillingAddress);
+		var deliveryAddr : Address | undefined;
+
+		if (shoppingCart.deliveryAddressId > 0) {
+			deliveryAddr = guestDetails.addresses.find((addr: Address) => addr.id == shoppingCart.deliveryAddressId);
+			setDeliveryAddress(deliveryAddr);
+		} else {
+			deliveryAddr = findDefaultAddress(guestDetails.addresses, 'delivery');
+			setDeliveryAddress(deliveryAddr);
+		}
 		
-		setDeliveryAddress(deliveryAddr);
-		setBillingAddress(billingAddr);
-		setSavedAddresses(guestDetails.addresses);
+		var billingAddr : Address | undefined;
+
+		if (shoppingCart.billingAddressId > 0) {
+			billingAddr = guestDetails.addresses.find((addr: Address) => addr.id == shoppingCart.billingAddressId);
+			setBillingAddress(billingAddr);
+		} else {
+			billingAddr = findDefaultAddress(guestDetails.addresses, 'billing');
+			setBillingAddress(billingAddr);
+		}
+
+		setSavedAddresses(guestDetails.addresses.sort((a, b) => (a.name || '').localeCompare(b.name || '')));
+
+		if(deliveryAddr?.contact?.trim()) 
+		{
+			setContactName(deliveryAddr.contact);
+		} 
+		else if (billingAddr?.contact?.trim()) {
+			setContactName(billingAddr.contact);
+		}
 
 		if (billingAddr) {
 			setSameAsDelivery((billingAddr.anonKey == deliveryAddr?.anonKey));
 		} else {
 			setSameAsDelivery(true);
 		}		
-		
 	}, [shoppingCart]);	
 	
 		
@@ -185,14 +234,11 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 			return;
 		}
 
-		console.log('updating guest addresses in cart', savedAddresses);	
-		
 		guestDetails.addresses = savedAddresses;
 		
 		// save the updated guest details into the cart
 		addGuestDetails(guestDetails).then(() => {
 			// continue to guest checkout
-			console.log('updated cart with guest details');
 		}).catch(e => {
 			console.log('failed to add guest details to cart', e);
 		});
@@ -223,14 +269,14 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 				<li>
 					{/* order contents */}
 					<CheckoutSection title={`Order contents`} enabled={true}>
-						<ProductTable shoppingCart={shoppingCart} readOnly lessTax={lessTax} />
+                        <ProductTable tableFormat={true} shoppingCart={shoppingCart} readOnly lessTax={lessTax} />                        
 					</CheckoutSection>
 				</li>
 
 				<li>
 					{/* delivery address */}
 					<AddressSelection selectedTitle={`Delivering to`} unselectedTitle={`Select a delivery address`}
-						name='delivery' canAdd={user} savedAddresses={savedAddresses} 
+						name='delivery' canAdd={true} guestCanAdd={true} canEdit={true} savedAddresses={savedAddresses} 
 						value={deliveryAddress} setValue={setDeliveryAddress} setSavedAddresses={setSavedAddresses}addressType='delivery'
 						enabled={true}
 					/>
@@ -239,7 +285,7 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 				<li className={currentStep < CheckoutStep.BillingAddress ? "payment-checkout__step--disabled" : ""}>
 					{/* billing currentStep */}
 					<AddressSelection selectedTitle={`Billing Address`} unselectedTitle={`Select a billing address`}
-						name='billing' canAdd={user} savedAddresses={savedAddresses}
+						name='billing' savedAddresses={savedAddresses}
 						value={billingAddress} setValue={setBillingAddress} setSavedAddresses={setSavedAddresses}	
 						hasSame={true} isSame={sameAsDelivery} setSameAs={setSameAsDelivery} addressType='billing'
 						enabled={currentStep >= CheckoutStep.BillingAddress}
@@ -249,23 +295,98 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 				<li className={currentStep < CheckoutStep.DeliveryDate ? "payment-checkout__step--disabled" : ""}>
 					{/* delivery date */}
 					<CheckoutSection title={`Delivery`} enabled={currentStep >= CheckoutStep.DeliveryDate}>
-						{estimates ? <DeliveryOptions estimates={estimates} shoppingCart={shoppingCart} locale={locale} deliveryOption={deliveryOption} setDeliveryOption={setDeliveryOption}/> : <Loading />}
+						{estimates ? 
+							<DeliveryOptions 
+								estimates={estimates} 
+								shoppingCart={shoppingCart} 
+								locale={locale} 
+								deliveryOption={deliveryOption} 
+								setDeliveryOption={setDeliveryOption}
+								deliveryInformation={deliveryInformation}
+								setDeliveryInformation={setDeliveryInformation}								
+							/> 
+						: 
+							<Loading />
+						}
+					</CheckoutSection>
+				</li>
+
+				<li>
+					<CheckoutSection title={`Additional Information`} enabled={true}>
+						<Input type="text" 
+							label={`Contact Name`}
+							validate={['Required']}
+							defaultValue={contactName}
+							onChange={e => {
+								const input = (e.target as HTMLInputElement);
+								setContactName(input.value);
+							}}
+						/>
+						<Input type="text" 
+							label={`Purchase Order No. or Reference (Please use your name if PO Numbers are not required)`}
+							validate={['Required']}
+							defaultValue={customerOrderReference}
+							onChange={e => {
+								const input = (e.target as HTMLInputElement);
+								setCustomerOrderReference(input.value);
+							}}
+						/>
 					</CheckoutSection>
 				</li>
 			</ol>
+
+			{/* payment step (if necessary) also has its own submit button */}
+			{paymentRequired && paymentGateways.ownFormEnabled === false && paymentGateways.hostedPageEnabled === false &&
+				<ol className="payment-checkout__steps payment-checkout__steps--continued">
+					<li>
+						<CheckoutSection title={`Payment`} enabled={true}>
+							<ExternalPayment formRef={ssFormRef} disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms || !acceptedPrivacy ? true : undefined}/>
+						</CheckoutSection>
+					</li>
+				</ol>
+			}
+
 			<Form
 				action={user ? shoppingCartApi.checkout : shoppingCartApi.checkoutGuestCart}
+				formRef={ssFormRef}				
 				failedMessage={`Unable to purchase`}
 				loadingMessage={`Purchasing..`}
 				onValues={vals => {
-					var cartRef = getCartId!();
-					vals.shoppingCartId = cartRef.id;
-					vals.anonymousCartKey = cartRef.anonKey;
-					vals.deliveryOptionId = (deliveryOption?.id || 0) as int;
-					vals.deliveryAddressKey = deliveryAddress?.anonKey;
-					vals.billingAddressKey = sameAsDelivery ? deliveryAddress?.anonKey : billingAddress?.anonKey ;
+					return new Promise((success, reject) => {					
 
-					return vals;
+						if (estimates && !deliveryOption) {
+							// Required
+							reject({message: `Delivery option is required`, type: `field/required`} as PublicError);
+							return;
+						}
+
+						if (!contactName || contactName.trim().length == 0)
+						{
+							// Required
+							reject({message: `Contact Name is required`, type: `field/required`} as PublicError);
+							return;
+						}
+
+						if (!customerOrderReference || customerOrderReference.trim().length == 0)
+						{
+							// Required
+							reject({message: `Purchase Order No. or Reference is required`, type: `field/required`} as PublicError);
+							return;
+						}
+
+						var cartRef = getCartId!();
+						vals.nonce = shoppingCart?.revision;
+						vals.shoppingCartId = cartRef.id;
+						vals.anonymousCartKey = cartRef.anonKey;
+						vals.deliveryAddressKey = deliveryAddress?.anonKey;
+						vals.billingAddressKey = sameAsDelivery ? deliveryAddress?.anonKey : billingAddress?.anonKey ;
+						vals.deliveryOptionKey = deliveryOption!.anonKey;
+						vals.deliveryInformation = deliveryInformation; 
+						vals.customerOrderReference = customerOrderReference;       
+						vals.contactName = contactName;
+						
+						success(vals);
+					});
 				}}
 				onSuccess={(info : PurchaseAndAction) => {
 					if (info?.action) {
@@ -274,74 +395,52 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 					} else {
 						var status = info?.purchase?.status || 0;
 
-						if (status >= 200 && status < 300) {
-							if (status == 250) {
-								setChallengeMetaData(info);
-							} else {
+						if (status == 300) {
+							setChallengeMetaData(info);
+						}
+						else if (status == 201 || status == 202) {
 								// Clear cart:
 								emptyCart!();
 								if (info?.metaData.token && info?.metaData.token.length > 0) {
 									setPage(`/cart/purchases/token/${info?.metaData.token}?status=success`);
 								} else {
-									setPage(`/cart/purchases/${info?.purchase?.id}?status=success`);
+									setPage(`/cart/complete?status=success`);
 								}
-							}
 						} else if (status < 300) {
-							setPage(`/cart/complete?status=pending&ref=${info?.purchase?.reference}`);
+							if (info?.metaData.token && info?.metaData.token.length > 0) {
+								setPage(`/cart/purchases/token/${info?.metaData.token}?status=pending`);
+							} else {
+								setPage(`/cart/complete?status=pending`);
+							}
 						} else {
-							setPage(`/cart/complete?status=failed&ref=${info?.purchase?.reference}`);
+							if (info?.metaData.token && info?.metaData.token.length > 0) {
+								setPage(`/cart/purchases/token/${info?.metaData.token}`);
+						} else {
+								setPage('/cart/complete?status=failed');
+							}
 						}
 					}
 				}}
 			>
-				<ol className="payment-checkout__steps payment-checkout__steps--continued">
-					<li className={currentStep < CheckoutStep.PaymentMethod && currentStep != CheckoutStep.TransactionApproval ? "payment-checkout__step--disabled" : ""}>
-						{/* payment method */}
-						<CheckoutSection title={`Payment method`} enabled={currentStep >= CheckoutStep.PaymentMethod} >
-							{(user && deferPayment) ? <>
-								{`Buy now pay later: This order will be billed to your account.`}
-							</> :
-								<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
-							}
-						</CheckoutSection>
-					</li>
 
-					{/* terms and conditions / privacy policy */}
-					{/*
-					<li className={currentStep < CheckoutStep.TermsConditions ? "payment-checkout__step--disabled" : ""}>
-						<CheckoutSection title={`Review terms`} enabled={currentStep >= CheckoutStep.TermsConditions}>*/}
-							{/*
-							<Input type="checkbox" className="payment-checkout__terms"
-								checked={acceptedTerms ? true : undefined}
-								onChange={e => setAcceptedTerms(e.target.checked)} label={<>
-								{`By placing your order you agree to both the `}
-								<Link href="/terms-and-conditions" external>
-									{`terms and conditions`}
-								</Link>
-								{` and `}
-								<Link href="/privacy-policy" external>
-									{`privacy policy`}
-								</Link>.
-							</>} />
-							*/}
-							{/*
-							<p>
-								{`Please note, by placing your order you agree to both the `}
-								<Link href="/terms-and-conditions" external>
-									{`terms and conditions`}
-								</Link>
-								{` and `}
-								<Link href="/privacy-policy" external>
-									{`privacy policy`}
-								</Link>.
-							</p>
-						</CheckoutSection>
-					</li>
-					*/}
-				</ol>
+				{(!paymentRequired || (paymentRequired && paymentGateways.ownFormEnabled === true))  && 
+					<ol className="payment-checkout__steps payment-checkout__steps--continued">
+						<li className={currentStep < CheckoutStep.PaymentMethod && currentStep != CheckoutStep.TransactionApproval ? "payment-checkout__step--disabled" : ""}>
+							{/* payment method */}
+							<CheckoutSection title={`Payment`} enabled={currentStep >= CheckoutStep.PaymentMethod} >
+								{!paymentRequired ? <>
+									{`Buy now pay later: This order will be billed to your account.`}
+								</> :
+									<Input type='payment' name='paymentMethod' label='Payment method' validate={['Required']} />
+								}
+
+							</CheckoutSection>
+						</li>
+					</ol>
+				}
 
 				{challengeMetaData && challengeMetaData.metaData && challengeMetaData.metaData.challengeRequest && 
-					<Modal noHeader noFooter isExtraLarge visible>
+					<Modal className="payment-checkout__3ds" noHeader noFooter isExtraLarge visible>
 						{/* approval currentStep */}
 						<Challenge width={`100%`} height={`100%`} metaData={challengeMetaData.metaData} />
 						<ChallengeChecker metaData={challengeMetaData.metaData} 
@@ -360,22 +459,37 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 								} else if (result.status < 300) {
 									setPage(`/cart/complete?status=pending&ref=${challengeMetaData?.purchase?.reference}`);
 								} else {
-									setPage(`/cart/complete?status=failed&ref=${challengeMetaData?.purchase?.reference}`);
+									if (challengeMetaData?.metaData?.token && challengeMetaData?.metaData?.token.length > 0) {
+										setPage(`/cart/purchases/token/${challengeMetaData?.metaData.token}?status=failed`);
+									} else {
+										setPage(`/cart/purchases/${challengeMetaData?.purchase?.id}?status=failed`);
+									}
 								}
 							}}							
 						/> 
 					</Modal>
 				}
 
-				<div className="payment-checkout__footer">
-					<Button type="submit" disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms ? true : undefined}>
-						<i className="fal fa-fw fa-credit-card" />
-						<span>
-							{`Confirm Purchase`}
-						</span>
-					</Button>
-					{currentStep >= CheckoutStep.TermsConditions && <>
-						<small>
+				{/* merchant hosted payment page */}
+				{paymentRequired && paymentGateways.hostedPageEnabled &&
+					<ExternalPayment disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms || !acceptedPrivacy ? true : undefined} />
+				}
+
+				{/* hide the core submit if using card and merchants form */}
+				{(!paymentRequired || (paymentRequired && paymentGateways.ownFormEnabled === true))  && 
+					<div className="payment-checkout__footer">
+						<Button type="submit" disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms || !acceptedPrivacy ? true : undefined}>
+							<i className="fal fa-fw fa-credit-card" />
+							<span>
+								{`Confirm Purchase`}
+							</span>
+						</Button>
+					</div>
+				}
+
+				{currentStep >= CheckoutStep.TermsConditions && <>
+					{user ?
+						<small className="payment-checkout__note">
 							{`Please note, by placing your order you agree to both the `}
 							<Link href="/terms-and-conditions" external>
 								{`terms and conditions`}
@@ -384,10 +498,40 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 							<Link href="/privacy-policy" external>
 								{`privacy policy`}
 							</Link>.
-						</small>
-					</>}
-				</div>
+						</small>                
+					:<>
+						<Input noWrapper type="checkbox" className="payment-checkout__terms"
+							checked={acceptedTerms ? true : undefined}
+							validate={['Required']}
+							onChange={e => setAcceptedTerms(e.target.checked)} label={
+								<>
+									{`I confirm that I have read and agree to the `}
+									<Link href="/terms-and-conditions" external>
+										{`terms and conditions`}
+									</Link>
+								</>
+							}
+						/>
+
+						<Input noWrapper type="checkbox" className="payment-checkout__privacy"
+							checked={acceptedPrivacy ? true : undefined}
+							validate={['Required']}
+							onChange={e => setAcceptedPrivacy(e.target.checked)} label={
+								<>
+									{`I confirm that I have read the `}
+									<Link href="/privacy-policy" external>
+										{`privacy policy`}
+									</Link>.
+								</>
+							}
+						/>
+                    </>
+
+					}
+				</>}			
 			</Form>
+
+
 		</div>
 	</>;
 }
