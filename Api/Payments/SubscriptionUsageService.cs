@@ -36,7 +36,7 @@ namespace Api.Payments
                 return content;
             });
 
-            /*
+			/*
             Eventing.Events.ProductQuantity.BeforeAddToPurchase.AddEventListener(async (Context context, ProductQuantity pq, Purchase purchase) => {
 
                 // Is the purchase for a subscription?
@@ -81,7 +81,7 @@ namespace Api.Payments
                             }
 
                             // Add it to the quantity.
-                            prodQuant.Quantity += usage.MaximumUsageToday;
+                            prodQuant.Quantity += usage.UnitsUsed;
 
                             return new ValueTask();
                         }, pq);
@@ -92,9 +92,9 @@ namespace Api.Payments
             });
             */
 
-        }
+		}
 
-        /*
+		/*
         /// <summary>
         /// Creates a subscription in stripe for the given local subscription
         /// </summary>
@@ -135,5 +135,5 @@ namespace Api.Payments
         }
         */
 
-    }
+	}
 }

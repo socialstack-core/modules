@@ -20,9 +20,9 @@ namespace Api.Payments
         public uint SubscriptionId;
 
         /// <summary>
-        /// The maximum usage of the subscription today
+        /// The quantity used
         /// </summary>
-        public uint MaximumUsageToday;
+        public uint UnitsUsed;
 
         /// <summary>
 		/// The timeslot index that this subscription was last charged. Usually in months. 

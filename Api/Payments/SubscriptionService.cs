@@ -27,13 +27,15 @@ namespace Api.Payments
         private readonly EmailTemplateService _emails;
         private readonly AddressService _addresses;
         private readonly DeliveryOptionService _options;
+        private readonly ProductService _products;
+        private SubscriptionUsageService _subscriptionUsage;
 
         /// <summary>
         /// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
         /// </summary>
         public SubscriptionService(UserService users, ProductQuantityService productQuantities,
             PurchaseService purchases, PaymentMethodService paymentMethods, EmailTemplateService emails,
-            AddressService addresses, DeliveryOptionService options) : base(
+            AddressService addresses, DeliveryOptionService options, ProductService products) : base(
             Events.Subscription)
         {
             _users = users;
@@ -43,6 +45,7 @@ namespace Api.Payments
             _emails = emails;
             _addresses = addresses;
             _options = options;
+            _products = products;
 
             Events.Subscription.BeforeSettable.AddEventListener((Context ctx, JsonField<Subscription, uint> field) =>
             {
@@ -395,6 +398,9 @@ namespace Api.Payments
             {
                 try
                 {
+                    var previousTimeslot = GetTimeslotId(subscription.LastChargeUtc) - 1;
+                    var usageProducts = await GetUsageAdjustedSubscriptionProducts(context, subscription, previousTimeslot);
+
                     if (subscription.WillCancel)
                     {
                         // Cancelling this subscription.
@@ -410,11 +416,22 @@ namespace Api.Payments
                         var userRecipient = new Recipient(subscription.UserId, subscription.LocaleId);
                         _emails.Send(userRecipient, "subscription_cancelled");
 
-#warning TODO: charge overages if there are any. Must discount any pre-paid amounts.
+                        // Charge usage-based products only (base subscription was already prepaid)
+                        var usageOnlyProducts = usageProducts
+                            .Where(p => p.IsBilledByUsage)
+                            .Select(p => p.ProductQuantity)
+                            .ToList();
+
+                        if (usageOnlyProducts.Count > 0)
+                        {
+                            await ChargeSubscription(context, subscription, usageOnlyProducts);
+                        }
                     }
                     else
                     {
-                        await ChargeSubscription(context, subscription);
+                        // Normal renewal - charge all products with usage-adjusted quantities
+                        var allProducts = usageProducts.Select(p => p.ProductQuantity).ToList();
+                        await ChargeSubscription(context, subscription, allProducts);
                     }
                 }
                 catch (Exception e)
@@ -569,7 +586,8 @@ namespace Api.Payments
         /// </summary>
         /// <param name="context"></param>
         /// <param name="subscription"></param>
-        public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription)
+        /// <param name="products">Optional. If provided, these products will be charged instead of the subscription's default products.</param>
+        public async ValueTask<PurchaseAndAction> ChargeSubscription(Context context, Subscription subscription, List<ProductQuantity> products = null)
         {
             // First, has a purchase been raised for the subscription already?
             ulong timePeriodKey = (ulong)subscription.LastChargeUtc.Ticks;
@@ -618,7 +636,7 @@ namespace Api.Payments
 
 			// Copy the items from the subscription to the purchase.
 			// This prevents any risk of someone manipulating their cart during the fulfilment.
-			var inSub = await GetProducts(context, subscription);
+			var inSub = products ?? await GetProducts(context, subscription);
 
 			// Get the payment method from the subscription. Subscription charges can safely use IgnorePermissions.
 			PaymentMethod method = await _paymentMethods.Get(context, subscription.PaymentMethodId, DataOptions.IgnorePermissions);
@@ -765,5 +783,66 @@ namespace Api.Payments
 
 			return pQuantity;
         }
+
+        private uint GetTimeslotId(DateTime date)
+        {
+            var yearIndex = (uint)(date.Year - 2020);
+            var monthIndex = (uint)((yearIndex * 12) + (date.Month - 1));
+            return monthIndex;
+        }
+
+        private async ValueTask<List<UsageAdjustedProduct>> GetUsageAdjustedSubscriptionProducts(
+            Context context,
+            Subscription subscription,
+            uint previousTimeslot)
+        {
+            var products = await GetProducts(context, subscription);
+            var result = new List<UsageAdjustedProduct>();
+            _subscriptionUsage ??= Services.Get<SubscriptionUsageService>();
+
+            foreach (var pq in products)
+            {
+                var product = await _products.Get(context, pq.ProductId, DataOptions.IgnorePermissions);
+
+                if (product?.IsBilledByUsage == true)
+                {
+                    var usages = await _subscriptionUsage.Where(
+                        "SubscriptionId=? and ChargedTimeslotId=? and (ProductId=? or ProductId=0)",
+                        DataOptions.IgnorePermissions
+                    ).Bind(subscription.Id).Bind(previousTimeslot).Bind(pq.ProductId).Bind(0u).ListAll(context);
+
+                    pq.Quantity = (ulong)usages.Sum(u => u.UnitsUsed);
+                }
+
+                result.Add(new UsageAdjustedProduct
+                {
+                    ProductQuantity = pq,
+                    Product = product
+                });
+            }
+
+            return result;
+        }
+    }
+
+    /// <summary>
+    /// A product quantity with its associated product, used for usage-adjusted subscription products.
+    /// </summary>
+    public class UsageAdjustedProduct
+    {
+        /// <summary>
+        /// The product quantity with potentially adjusted quantity for usage-based billing.
+        /// </summary>
+        public ProductQuantity ProductQuantity { get; set; }
+
+        /// <summary>
+        /// The associated product entity.
+        /// </summary>
+        public Product Product { get; set; }
+
+        /// <summary>
+        /// True if this product is billed by usage (i.e. an overage product).
+        /// </summary>
+        public bool IsBilledByUsage => Product?.IsBilledByUsage ?? false;
     }
 }
