@@ -2067,7 +2067,7 @@ namespace Api.CanvasRenderer
 
 				var context = new Context();
 
-				await Events.ESLint.Change.Dispatch(context, change);
+				await Events.FrontendChange.Dispatch(context, change);
 
 				// Now (local time, because this is for developers).
 				Log.Ok("frontendcodeservice", "Done handling UI changes.");

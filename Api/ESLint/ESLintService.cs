@@ -32,7 +32,7 @@ namespace Api.ESLint
                 return ValueTask.FromResult(container);
             });
 
-            Events.ESLint.Change.AddEventListener((context, container) =>
+            Events.FrontendChange.AddEventListener((context, container) =>
             {
                 TryRunESLint();
                 return ValueTask.FromResult(container);

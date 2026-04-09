@@ -31,6 +31,11 @@ namespace Api.Eventing
 		/// </summary>
 		public static EventHandler<long> FrontendAfterUpdate;
 
+		/// <summary>
+		/// Triggers whenever a file edit caused the frontend to update.
+		/// </summary>
+		public static EventHandler<FilesystemChange> FrontendChange;
+
 	}
 
     /// <summary>
