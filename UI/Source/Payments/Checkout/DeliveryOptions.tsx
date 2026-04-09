@@ -18,7 +18,9 @@ interface DeliveryOptionsProps {
 	setActiveDeliveryDay?: React.Dispatch<React.SetStateAction<Date | undefined>>,
 	deliveryOption?: DeliveryOption | undefined,
 	setDeliveryOption?: React.Dispatch<React.SetStateAction<DeliveryOption | undefined>>,
-	estimates?: ApiList<DeliveryOption> | undefined
+	estimates?: ApiList<DeliveryOption> | undefined,
+	deliveryInformation?: string | undefined,
+	setDeliveryInformation?: React.Dispatch<React.SetStateAction<string | undefined>>
 }
 
 
@@ -29,7 +31,8 @@ interface DeliveryInformation {
 	currency: string,
 	deliveryCode: string,
 	requestedDeliveryDate: string,
-	forFreeDelivery: uint
+	forFreeDelivery: uint,
+	isFreeDelivery: boolean
 }
 
 /**
@@ -115,18 +118,18 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 	
 	const deliverySubtitle = `${formattedCurrentDeliveryDate}  |  ${formattedDeliveryCost}`;
 
-	return <div className="ui-business-orders-view__delivery">
+	return <div className="payment-checkout__delivery">
 		<h4>{deliverySubtitle}</h4>
 		
-		<div className="ui-business-orders-view__delivery-internal">
+		<div className="payment-checkout__delivery-internal">
 			{(standardCourierDelivery || saturdayCourierDelivery) && 
-				<div className={`ui-business-orders-view__delivery-tile "ui-business-orders-view__delivery-tile--premium"`}>
+				<div className={`payment-checkout__delivery-tile "payment-checkout__delivery-tile--premium"`}>
 
 					{standardCourierDelivery && <Input type="radio" sm noWrapper name="delivery-options" checked={selectedDeliveryOptionInfo?.deliveryCode === deliveryConfig?.standardCourierCode}
 						onClick={() => setDeliveryOption(standardCourierDelivery)} 
 						label={<>
-							<span className="ui-business-orders-view__delivery-option">
-								<span>{`Standard courier - Next day delivery`}</span>
+							<span className="payment-checkout__delivery-option">
+								<span>{`Standard Courier - Next Day Delivery`}</span>
 								<span>{formattedstandardCourierCost}</span>
 							</span>
 						</>} />}
@@ -134,14 +137,25 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 					{saturdayCourierDelivery && <Input type="radio" sm noWrapper name="delivery-options" checked={selectedDeliveryOptionInfo?.deliveryCode === deliveryConfig?.saturdayCourierCode}
 						onClick={() => setDeliveryOption(saturdayCourierDelivery)} 
 						label={<>
-							<span className="ui-business-orders-view__delivery-option">
-								<span>{`Saturday delivery`}</span>
+							<span className="payment-checkout__delivery-option">
+								<span>{`Saturday Delivery`}</span>
 								<span>{formattedSaturdayCourierCost}</span>
 							</span>
 						</>} />}
 				</div>
 			}				
 		</div>
+
+		{props.setDeliveryInformation && 
+			<Input type="text" 
+			label={`Delivery Instructions`}
+			defaultValue={props.deliveryInformation}
+			onChange={e => {
+				const input = (e.target as HTMLInputElement);
+				props.setDeliveryInformation(input.value);
+			}}
+		/>	
+		}
 	</div>;
 }
 
