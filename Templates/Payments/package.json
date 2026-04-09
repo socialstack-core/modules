@@ -1,8 +1,33 @@
 {
     "dependencies":[
-    	"UI/Payments",
+    	"Admin/Payments",
+		"Api/Address",
+		"Api/Payments",
+		"Api/SearchMetaData",
+		"Email/Cart",
+		"Email/Purchase",
+		"UI/Address",
+		"UI/Badge",
+		"UI/Breadcrumb",
+		"UI/Carousel",
+		"UI/DualRange",
+		"UI/Functions/ContactTools",
+		"UI/Functions/CurrencyTools",
 		"UI/Functions/Payments",
-		"Admin/Payments",
-		"Api/Payments"
+		"UI/Functions/PercentageTools",
+		"UI/Functions/ToggleFocusable",
+		"UI/Functions/UseScrollbarVisibility",
+		"UI/Lightbox",
+		"UI/LoadMore",
+		"UI/NotificationBadge",
+		"UI/Payments",
+		"UI/Popover",
+		"UI/Popout",
+		"UI/Product",
+		"UI/ProductCategory",
+		"UI/Promotion",
+		"UI/PromotionCycler",
+		"UI/ProductImage",
+		"UI/RecentSearches"
     ]
 }

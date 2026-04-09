@@ -1,0 +1,7 @@
+{
+    "dependencies":[
+    	"Api/TwoFactorGoogleAuth",
+		"UI/QrCode",
+		"UI/TwoFactorGoogleSetup"
+    ]
+}
