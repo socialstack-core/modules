@@ -167,8 +167,6 @@ namespace Api.Payments
 		/// </summary>
 		[DatabaseField(Length = 300)]
 		[Meta("image")]
-		// NB: this field is required on Product but not ProductTemplate
-		// so required state is handled by the field beforeget in ProductService.
 		public string FeatureRef;
 
 		/// <summary>

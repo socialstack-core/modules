@@ -100,14 +100,6 @@ namespace Api.Payments
 					field.Hide = true;
 				}
 
-				if (field.Name == "FeatureRef")
-				{
-					// Handle required state here as this field is not required on ProductTemplate
-					// (a child class of Product) but is required on Product itself.
-					field.Data["required"] = true;
-					field.Data["validate"] = "Required";
-				}
-
 				return new ValueTask<JsonField<Product, uint>>(field);
 			});
 
