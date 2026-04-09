@@ -27,7 +27,7 @@ const Developer: React.FC<{}> = () => {
 		var [who, setWho] = useState<int>();
 
 		useEffect(() => {
-			monitoringApi.whoAmI().then((response) => setWho(response.id))
+			monitoringApi.whoAmI ? monitoringApi.whoAmI().then((response) => setWho(response.id)) : setWho(1)
 		}, []);
 
 		if (!who) {
