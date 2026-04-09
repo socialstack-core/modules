@@ -20,6 +20,7 @@
 		"UI/Functions/UseScrollbarVisibility",
 		"UI/Lightbox",
 		"UI/LoadMore",
+		"UI/InputPrice",
 		"UI/NotificationBadge",
 		"UI/Payments",
 		"UI/Popover",
