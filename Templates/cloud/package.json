@@ -1,0 +1,6 @@
+{
+    "dependencies":[
+    	"Api/CloudHosts",
+		"Api/ContentSync"
+    ]
+}

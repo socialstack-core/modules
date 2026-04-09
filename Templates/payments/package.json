@@ -1,5 +1,6 @@
 {
     "dependencies":[
+		"taxonomy",
     	"Admin/Payments",
 		"Api/Address",
 		"Api/Payments",
