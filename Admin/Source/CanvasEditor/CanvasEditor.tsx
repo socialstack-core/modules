@@ -383,6 +383,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 								node: {
 									type: eleName,
 									typePropTypes: eleName ? propTypes?.codeModules?.[eleName] : undefined,
+									typeMeta: propTypes,
 									props: propValues
 								}
 							});

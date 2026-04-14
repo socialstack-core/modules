@@ -5,6 +5,7 @@ import getContentTypes from 'UI/Functions/GetContentTypes';
 import {
 	CodeModuleMeta,
 	PropTypeMeta,
+	TypeMeta,
 	isJsx,
 	getConstantUnion,
 	getContentPropType,
@@ -23,6 +24,7 @@ interface ContentNode {
 	typeName?: string;
 	type?: string;
 	typePropTypes?: CodeModuleMeta;
+	typeMeta?: TypeMeta;
 	props?: Record<string, unknown>;
 	_doFieldUpdate?: (fieldInfo: FieldInfo, value: unknown) => void;
 }
@@ -131,6 +133,7 @@ const PropEditor: React.FC<PropEditorProps> = ({ optionsVisibleFor }) => {
 		const dataValues = { ...contentNode.props };
 
 		const codeModuleMeta = contentNode.typePropTypes;
+		const typeMeta = contentNode.typeMeta;
 		const pt = codeModuleMeta?.propTypes;
 
 		if (pt) {
@@ -174,6 +177,7 @@ const PropEditor: React.FC<PropEditorProps> = ({ optionsVisibleFor }) => {
 
 	const renderOptionSet = (dataFields: Record<string, FieldInfo>, targetNode: ContentNode): React.ReactNode[] => {
 		const options: React.ReactNode[] = [];
+		const typeMeta = targetNode.typeMeta;
 
 		Object.keys(dataFields).forEach(fieldName => {
 			const fieldInfo = dataFields[fieldName];
@@ -235,7 +239,7 @@ const PropEditor: React.FC<PropEditorProps> = ({ optionsVisibleFor }) => {
 				}
 			}
 
-			const constantUnion = getConstantUnion(propType, codeModuleMeta ?? {} as CodeModuleMeta);
+			const constantUnion = getConstantUnion(propType, codeModuleMeta ?? {} as CodeModuleMeta, typeMeta);
 			const contentTypeName = getContentPropType(propType);
 
 			if (fieldName.endsWith("Ref") || isRefPropType(propType)) {

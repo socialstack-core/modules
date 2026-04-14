@@ -202,15 +202,20 @@ export function getArrayElementType(type: CodeModuleType) {
  * @param prop
  * @param module
  */
-export function getConstantUnion(prop: PropTypeMeta, module: CodeModuleMeta) {
+export function getConstantUnion(prop: PropTypeMeta, module: CodeModuleMeta, meta?: TypeMeta) {
     var propType = prop.type;
-	return getConstantUnionType(propType, module);
+	return getConstantUnionType(propType, module, meta);
 }
 
-export function getConstantUnionType(type: CodeModuleType, module: CodeModuleMeta){
+export function getConstantUnionType(type: CodeModuleType, module: CodeModuleMeta, meta?: TypeMeta){
     if (type.name == 'identifier' && type.instanceName) {
         // Lookup the identifier in the module, and pretend we received that type.
         var localType = getLocalType(type.instanceName, module);
+
+        if (!localType && meta) {
+            // Try global lookup if not found locally
+            localType = findTypeGlobally(type.instanceName, meta);
+        }
 
         if (!localType) {
             return null;
@@ -524,7 +529,7 @@ function expandPropTypes(meta: TypeMeta, module: CodeModuleMeta, type: CodeModul
 function findTypeGlobally(name: string, meta: TypeMeta) {
     for (var k in meta.codeModules) {
         var module = meta.codeModules[k];
-        var interfaceType = module.types.find(t => (t.name == 'class' || t.name == 'interface') && t.instanceName == name);
+        var interfaceType = module.types.find(t => (t.name == 'class' || t.name == 'interface' || t.name == 'union') && t.instanceName == name);
         if (interfaceType) {
             return interfaceType;
         }
