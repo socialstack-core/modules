@@ -432,9 +432,17 @@ namespace Api.CanvasRenderer
 			});
 
 			// Translation update from another node in the cluster:
-			Events.Translation.Received.AddEventListener((Context context, Translation translation, int mode) => {
-				ClearCaches();
+			Events.Translation.Invalidate.AddEventListener((Context context, Translation translation, uint id, CacheInvalidationType type) => {
+				if (CacheInvalidation.IsSingular(type))
+				{
+					ClearCaches();
+				}
 				return new ValueTask<Translation>(translation);
+			});
+
+			Events.Translation.AfterBulkInvalidate.AddEventListener((Context context, CacheInvalidationType type) => {
+				ClearCaches();
+				return new ValueTask<CacheInvalidationType>(type);
 			});
 
 			Events.FrontendjsAfterUpdate.AddEventListener((Context context, long buildtimestampMs) =>
@@ -453,7 +461,7 @@ namespace Api.CanvasRenderer
 		public long Version
 		{
 			get {
-				return UIBuilder.BuildTimestamp;
+				return UIBuilder == null ? 0 : UIBuilder.BuildTimestamp;
 			}
 		}
 		
@@ -463,7 +471,7 @@ namespace Api.CanvasRenderer
 		public string VersionString
 		{
 			get {
-				return UIBuilder.BuildTimestampString;
+				return UIBuilder == null ? "" : UIBuilder.BuildTimestampString;
 			}
 		}
 
