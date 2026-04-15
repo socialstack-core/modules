@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Timers;
+using Api.Contexts;
+using Api.Database;
+using Api.AutomationTasks;
+using Api.Startup;
+using Api.Eventing;
 
 namespace Api.Automations;
 
@@ -23,9 +28,12 @@ public class CronScheduler
 
 	private AutomationRunInfo _firstToRun;
 	private Timer _timer;
+	private Timer _leaseTimer;
 	private object _scheduleQ = new object();
 	private DateTime _lastUpdated;
 	private long _runningVersion;
+	private AutomationTaskService _taskService;
+
 	/// <summary>
 	/// The last time something was added to the schedule.
 	/// </summary>
@@ -41,6 +49,24 @@ public class CronScheduler
 	/// A readonly set of the automations by name.
 	/// </summary>
 	public Dictionary<string, AutomationRunInfo> AutomationsByName => _automationsByName;
+
+	private async ValueTask RefreshLeases()
+	{
+		var ctx = new Context(1, 0, 1);
+		var lockTil = DateTime.UtcNow.AddMinutes(1);
+
+		foreach (var runInfo in _automationsByName.Values)
+		{
+			if (runInfo.TaskId == 0 || runInfo.ActiveLease == null)
+			{
+				continue;
+			}
+
+			await _taskService.Update(ctx, runInfo.ActiveLease, (Context c, AutomationTask toUpdate, AutomationTask orig) => {
+				toUpdate.LockedUntilUtc = lockTil;
+			}, DataOptions.IgnorePermissions);
+		}
+	}
 
 	/// <summary>
 	/// Triggers an automation by its name.
@@ -104,46 +130,85 @@ public class CronScheduler
 			AddToScheduler(runInfo, nrt.Value);
 		}
 
-		// Globally shared timer.
-		if (_timer == null)
+		// Ensure started:
+		EnsureStart();
+	}
+
+	/// <summary>
+	/// Starts the timers as needed.
+	/// </summary>
+	private void EnsureStart()
+	{
+		// Globally shared timers.
+		if (_timer != null)
 		{
-			_timer = new Timer();
-			_timer.Elapsed += (object source, ElapsedEventArgs e) => {
-
-				var now = DateTime.UtcNow.Ticks;
-
-				// Likely running at least the first one.
-				lock (_scheduleQ)
-				{
-					var current = _firstToRun;
-
-					while (current != null)
-					{
-						var next = current.After;
-						//NextRunTicks is always set for scheduled entries.
-						var ticks = current.NextRunTicks.Value;
-
-						if (ticks < now)
-						{
-							// Remove it from the schedule queue:
-							_firstToRun = next;
-							current.After = null;
-							current.Scheduled = false;
-
-							// Trigger the automation, which will re-add it at its next run time:
-							TriggerScheduledAutomation(current);
-						}
-
-						current = next;
-					}
-				}
-				
-			};
-
-			_timer.Interval = 1000;
-			_timer.Enabled = true;
+			return;
 		}
 
+		if (Services.Started)
+		{
+			StartInternal();
+		}
+		else
+		{
+			Events.Service.AfterStart.AddEventListener((Context context, object svc) => {
+				StartInternal();
+				return new ValueTask<object>(svc);
+			}, 40);
+		}
+	}
+
+	private void StartInternal()
+	{
+		_taskService = Services.Get<AutomationTaskService>();
+
+		if (_taskService == null)
+		{
+			// CronScheduler waits until all services has started before starting itself so this should never happen.
+			// If it does, something is deeply broken with the service startup procedure.
+			throw new Exception("Task service is required by CronScheduler");
+		}
+
+		_leaseTimer = new Timer();
+		_leaseTimer.Elapsed += async (s, e) => await RefreshLeases();
+		_leaseTimer.Interval = 30000;
+		_leaseTimer.Enabled = true;
+
+		_timer = new Timer();
+		_timer.Elapsed += (object source, ElapsedEventArgs e) => {
+
+			var now = DateTime.UtcNow.Ticks;
+
+			// Likely running at least the first one.
+			lock (_scheduleQ)
+			{
+				var current = _firstToRun;
+
+				while (current != null)
+				{
+					var next = current.After;
+					//NextRunTicks is always set for scheduled entries.
+					var ticks = current.NextRunTicks.Value;
+
+					if (ticks < now)
+					{
+						// Remove it from the schedule queue:
+						_firstToRun = next;
+						current.After = null;
+						current.Scheduled = false;
+
+						// Trigger the automation, which will re-add it at its next run time:
+						TriggerScheduledAutomation(current);
+					}
+
+					current = next;
+				}
+			}
+				
+		};
+
+		_timer.Interval = 1000;
+		_timer.Enabled = true;
 	}
 
 	private void AddToScheduler(AutomationRunInfo runInfo, long newTicks)
@@ -209,33 +274,62 @@ public class CronScheduler
 		}
 
 		_ = Task.Run(async () => {
-			toRun.IsRunning = true;
-			toRun.LastRunFailed = false;
-
-			lock (_scheduleQ)
-			{
-				_runningVersion++;
-			}
+			var ctx = new Context(1, 0, 1);
+			var leaseObtained = false;
 
 			try
 			{
-				await toRun.Trigger();
+				leaseObtained = await _taskService.ObtainLease(ctx, toRun.Name, toRun);
 			}
-			catch (Exception ex)
+			catch (Exception e)
 			{
-				toRun.LastRunFailed = true;
-
-				var name = toRun.Name;
-				if (name == null)
-				{
-					name = "unnamed";
-				}
-                Log.Error("automations", ex, "An automation '" + name + "' failed.");
+				// Must not prevent automation from rescheduling etc.
+				Log.Error("automations", e, "Failed obtaining a lease");
 			}
 
-			// Scheduled was set to false when this task was popped from the queue
+			if (leaseObtained)
+			{
+				toRun.IsRunning = true;
+				toRun.LastRunFailed = false;
 
-			toRun.IsRunning = false;
+				lock (_scheduleQ)
+				{
+					_runningVersion++;
+				}
+
+				var success = true;
+
+				try
+				{
+					await toRun.Trigger();
+				}
+				catch (Exception ex)
+				{
+					success = false;
+					toRun.LastRunFailed = true;
+
+					var name = toRun.Name;
+					if (name == null)
+					{
+						name = "unnamed";
+					}
+					Log.Error("automations", ex, "An automation '" + name + "' failed.");
+				}
+				finally
+				{
+					toRun.IsRunning = false;
+
+					try
+					{
+						await _taskService.EndLease(ctx, toRun, success);
+					}
+					catch (Exception e)
+					{
+						// Must not prevent automation from rescheduling etc.
+						Log.Error("automations", e, "Failed to end a task lease");
+					}
+				}
+			}
 
 			lock (_scheduleQ)
 			{

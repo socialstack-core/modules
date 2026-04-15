@@ -1,4 +1,5 @@
 
+using Api.AutomationTasks;
 using Api.Contexts;
 using System;
 using System.Threading;
@@ -66,6 +67,16 @@ namespace Api.Automations
 		/// The next time this automation will run at (in ticks).
 		/// </summary>
 		internal long? NextRunTicks;
+
+		/// <summary>
+		/// The ID of the AutomationTask record. Set once by ObtainLease and never cleared.
+		/// </summary>
+		public uint TaskId;
+
+		/// <summary>
+		/// Current active lease, or null if this automation is not currently running.
+		/// </summary>
+		internal AutomationTask ActiveLease;
 
 		/// <summary>
 		/// Updates the next time this runs.
