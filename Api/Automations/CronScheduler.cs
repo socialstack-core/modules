@@ -113,29 +113,18 @@ public class CronScheduler
 					while (current != null)
 					{
 						var next = current.After;
-						var nrt = current.NextRunTicks;
+						//NextRunTicks is always set for scheduled entries.
+						var ticks = current.NextRunTicks.Value;
 
-						if (!nrt.HasValue)
+						if (ticks < now)
 						{
-							// Remove it. This shouldn't be here.
+							// Remove it from the schedule queue:
 							_firstToRun = next;
-							current.Scheduled = false;
 							current.After = null;
-						}
-						else
-						{
-							var ticks = nrt.Value;
+							current.Scheduled = false;
 
-							if (ticks < now)
-							{
-								// Remove it from the schedule queue:
-								_firstToRun = next;
-								current.After = null;
-								current.Scheduled = false;
-
-								// Trigger the automation, which will re-add it at its next run time:
-								TriggerScheduledAutomation(current);
-							}
+							// Trigger the automation, which will re-add it at its next run time:
+							TriggerScheduledAutomation(current);
 						}
 
 						current = next;
@@ -154,6 +143,7 @@ public class CronScheduler
 	{
 		if (runInfo.Scheduled)
 		{
+			Log.Warn("automation", "Scheduler collision: '" + runInfo.Name + "' attempted to schedule twice.");
 			return;
 		}
 
@@ -173,9 +163,10 @@ public class CronScheduler
 
 			while (current != null)
 			{
-				var ticks = current.NextRunTicks;
+				// NextRunTicks is always set in the queue.
+				var ticks = current.NextRunTicks.Value;
 
-				if (ticks.HasValue && ticks.Value > newTicks)
+				if (ticks > newTicks)
 				{
 					// This one is after the new automation.
 					// Insert the new automation before it.
@@ -211,12 +202,17 @@ public class CronScheduler
 		}
 
 		_ = Task.Run(async () => {
+			toRun.IsRunning = true;
+			toRun.LastRunFailed = false;
+
 			try
 			{
 				await toRun.Trigger();
 			}
 			catch (Exception ex)
 			{
+				toRun.LastRunFailed = true;
+
 				var name = toRun.Name;
 				if (name == null)
 				{
@@ -225,17 +221,23 @@ public class CronScheduler
                 Log.Error("automations", ex, "An automation '" + name + "' failed.");
 			}
 
+			// Scheduled was set to false when this task was popped from the queue
+
+			toRun.IsRunning = false;
+
 			// Update its next run time.
 			var nextRun = toRun.UpdateNextTicks();
 
 			if (nextRun.HasValue)
 			{
 				// Based on next run value, re-add scheduler queue.
-				AddToScheduler(toRun, nextRun.Value);
+				lock (_scheduleQ)
+				{
+					AddToScheduler(toRun, nextRun.Value);
+				}
 			}
 			else
 			{
-				toRun.Scheduled = false;
 				var name = toRun.Name;
 				if (name == null)
 				{

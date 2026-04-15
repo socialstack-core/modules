@@ -18,6 +18,16 @@ namespace Api.Automations
 		public string Cron;
 
 		/// <summary>
+		/// True if this cron is running.
+		/// </summary>
+		public bool IsRunning;
+
+		/// <summary>
+		/// True if this crons most recent run failed with an exception.
+		/// </summary>
+		public bool LastRunFailed;
+
+		/// <summary>
 		/// True if this runInfo has been added to the scheduler.
 		/// </summary>
 		internal bool Scheduled;
@@ -62,6 +72,11 @@ namespace Api.Automations
 		/// </summary>
 		public long? UpdateNextTicks()
 		{
+			if (Scheduled) {
+				// Must not recalculate if already scheduled.
+				return NextRunTicks;
+			}
+
 			var dt = DateTime.UtcNow;
 			var next = CronExpression.GetNextValidTimeAfter(dt);
 

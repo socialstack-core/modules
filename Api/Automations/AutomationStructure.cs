@@ -48,6 +48,20 @@ namespace Api.Automations
 		/// </summary>
 		public DateTime? LastTrigger => _runInfo.LastTrigger;
 
+		/// <summary>
+		/// True if the automation is running right now
+		/// </summary>
+		public bool IsRunning;
+
+		/// <summary>
+		/// True if the automation is scheduled
+		/// </summary>
+		public bool IsScheduled;
+
+		/// <summary>
+		/// True if this crons most recent run failed with an exception.
+		/// </summary>
+		public bool LastRunFailed;
 
 		/// <summary>
 		/// Creates an automation description object for the given run info.
@@ -57,5 +71,12 @@ namespace Api.Automations
 		{
 			_runInfo = runInfo;
 		}
-	}
+
+		/// <summary>
+		/// Next run time
+		/// </summary>
+		public DateTime? NextRun => _runInfo.NextRunTicks.HasValue 
+			? new DateTime(_runInfo.NextRunTicks.Value, DateTimeKind.Utc)
+			: null;
+		}
 }

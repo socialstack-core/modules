@@ -76,12 +76,16 @@ namespace Api.Automations
 			foreach (var kvp in cronScheduler.AutomationsByName)
 			{
 				var automation = kvp.Value;
+
 				structure.Results.Add(
 					new Automation(automation) {
 						Name = automation.Name,
+						IsRunning = automation.IsRunning,
+						IsScheduled = automation.Scheduled,
+						LastRunFailed = automation.LastRunFailed,
 						Description = automation.Description,
 						CronDescription = ExpressionDescriptor.GetDescription(automation.Cron),
-						Cron = automation.Cron,
+						Cron = automation.Cron
 					}
 				);
 			}
