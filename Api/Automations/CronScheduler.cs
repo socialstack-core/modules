@@ -25,10 +25,17 @@ public class CronScheduler
 	private Timer _timer;
 	private object _scheduleQ = new object();
 	private DateTime _lastUpdated;
+	private long _runningVersion;
 	/// <summary>
 	/// The last time something was added to the schedule.
 	/// </summary>
 	public DateTime LastUpdated => _lastUpdated;
+
+	/// <summary>
+	/// Returns a version that increments when running status changes.
+	/// Use this to invalidate caches that need fresh running state.
+	/// </summary>
+	public long RunningStatusVersion => _runningVersion;
 
 	/// <summary>
 	/// A readonly set of the automations by name.
@@ -205,6 +212,11 @@ public class CronScheduler
 			toRun.IsRunning = true;
 			toRun.LastRunFailed = false;
 
+			lock (_scheduleQ)
+			{
+				_runningVersion++;
+			}
+
 			try
 			{
 				await toRun.Trigger();
@@ -224,6 +236,11 @@ public class CronScheduler
 			// Scheduled was set to false when this task was popped from the queue
 
 			toRun.IsRunning = false;
+
+			lock (_scheduleQ)
+			{
+				_runningVersion++;
+			}
 
 			// Update its next run time.
 			var nextRun = toRun.UpdateNextTicks();

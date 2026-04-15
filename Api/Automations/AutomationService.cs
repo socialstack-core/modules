@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Api.Contexts;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -35,6 +35,7 @@ namespace Api.Automations
 		}
 
 		private DateTime _cacheTime;
+		private long _runningVersion;
 		private AutomationStructure _structure;
 
 		/// <summary>
@@ -54,11 +55,12 @@ namespace Api.Automations
 			}
 
 			var latestUpdate = cronScheduler.LastUpdated;
+			var runningVersion = cronScheduler.RunningStatusVersion;
 
 			if (_structure != null)
 			{
 				// Cache time ok?
-				if (_cacheTime == latestUpdate)
+				if (_cacheTime == latestUpdate && _runningVersion == runningVersion)
 				{
 					// yep!
 					return _structure;
@@ -67,6 +69,7 @@ namespace Api.Automations
 			}
 
 			_cacheTime = latestUpdate;
+			_runningVersion = runningVersion;
 			var structure = new AutomationStructure();
 			_structure = structure;
 

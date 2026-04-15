@@ -47,7 +47,13 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 				{`Schedule`}
 			</th>
 			<th>
+				{`Status`}
+			</th>
+			<th>
 				{`Last ran`}
+			</th>
+			<th>
+				{`Next run`}
 			</th>
 			<th>
 				{`Actions`}
@@ -59,6 +65,8 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 		return [
 			<col></col>,
 			<col></col>,
+			<col></col>,
+			<col></col>,
 			<col></col>
 		];
 	};
@@ -67,7 +75,9 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 		return <tr>
 			<td>{entry.name}{entry.description && entry.description.length > 0 && <><br /><small>{entry.description}</small></>}</td>
 			<td>{entry.cronDescription} ({entry.cron})</td>
+			<td>{entry.isRunning ? `Running` : `Idle`}</td>
 			<td>{entry.lastTrigger ? <Time date={entry.lastTrigger}/> : `None since startup`}</td>
+			<td>{entry.nextRun ? <Time absolute date={entry.nextRun}/> : `No run scheduled`}</td>
 			<td>
 				<Button disabled={running[entry.name]} sm outlined onClick={() => {
 					runAutomation(entry);
