@@ -31,12 +31,12 @@ namespace Api.AutomationTasks
 				Roles.Member.Grant("automationTask_create");
 				Roles.Public.Grant("automationTask_create");
 				Roles.Guest.Grant("automationTask_create");
+				*/
 				
 				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("automationTask_load", "automationTask_list");
 				Roles.Public.Revoke("automationTask_load", "automationTask_list");
 				Roles.Member.Revoke("automationTask_load", "automationTask_list");
-				*/
 				
 				return new ValueTask<object>(source);
 			}, 20);

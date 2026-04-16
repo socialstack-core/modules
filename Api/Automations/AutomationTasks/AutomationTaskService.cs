@@ -106,7 +106,6 @@ namespace Api.AutomationTasks
 			}
 
 			runInfo.ActiveLease = null;
-			Console.WriteLine("Ended a lease");
 
 			await Update(ctx, activeLease, (Context c, AutomationTask toUpdate, AutomationTask orig) =>
 			{
