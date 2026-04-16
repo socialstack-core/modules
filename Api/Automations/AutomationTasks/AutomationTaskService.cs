@@ -51,8 +51,13 @@ namespace Api.AutomationTasks
 				{
 					task = await Create(ctx, newTask, DataOptions.IgnorePermissions);
 				}
-				catch
+				catch(Exception e)
 				{
+					// This happens when two servers attempt to run a task for the first time at exactly the same time.
+					// Expected to be rare.
+
+					Log.Warn("automations", e, "Rare automation first time collision. You can ignore this if the error is for an already existing index key.");
+
 					task = await Where("AutomationName=?", DataOptions.IgnorePermissions)
 						.Bind(automationName)
 						.First(ctx);
