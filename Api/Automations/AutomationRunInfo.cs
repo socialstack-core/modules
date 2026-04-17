@@ -53,11 +53,6 @@ namespace Api.Automations
         /// </summary>
         public string Description;
 
-        /// <summary>
-        /// The context the automation uses.
-        /// </summary>
-        public Context Context = new Context(1,0,1);
-
 		/// <summary>
 		/// The set of event handlers on this run info.
 		/// </summary>
@@ -120,7 +115,7 @@ namespace Api.Automations
 		public async ValueTask Trigger()
 		{
 			lastTrigger = DateTime.UtcNow;
-			await Events.Dispatch(Context, this);
+			await Events.Dispatch(new Context(1, 0, 1), this);
 		}
 
 	}
