@@ -183,8 +183,6 @@
 			align-items: center;
 			flex-wrap: wrap;
 		}
-		padding-top: 0.5rem;
-		padding-bottom: 0.5rem;
 	}
 
 	&__footer {
@@ -199,6 +197,10 @@
 			> a.ui-link {
 				font-size: inherit;
 			}
+		}
+
+		.form-check.ui-check + .btn {
+			margin-top: px_to_rem(8);
 		}
 	}
 

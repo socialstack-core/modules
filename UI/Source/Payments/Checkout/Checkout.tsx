@@ -346,7 +346,7 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 				</ol>
 			}
 
-			<Form
+			<Form className="payment-checkout__footer"
 				action={user ? shoppingCartApi.checkout : shoppingCartApi.checkoutGuestCart}
 				formRef={ssFormRef}				
 				failedMessage={`Unable to purchase`}
@@ -470,6 +470,49 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 					</Modal>
 				}
 
+				{currentStep >= CheckoutStep.TermsConditions && <>
+					{user ?
+						<small className="payment-checkout__note">
+							{`Please note, by placing your order you agree to both the `}
+							<Link href="/terms-and-conditions" external>
+								{`terms and conditions`}
+							</Link>
+							{` and `}
+							<Link href="/privacy-policy" external>
+								{`privacy policy`}
+							</Link>.
+						</small>
+						: <>
+							<Input noWrapper type="checkbox" className="payment-checkout__terms"
+								checked={acceptedTerms ? true : undefined}
+								validate={['Required']}
+								onChange={e => setAcceptedTerms(e.target.checked)} label={
+									<>
+										{`I confirm that I have read and agree to the `}
+										<Link href="/terms-and-conditions" external>
+											{`terms and conditions`}
+										</Link>
+									</>
+								}
+							/>
+
+							<Input noWrapper type="checkbox" className="payment-checkout__privacy"
+								checked={acceptedPrivacy ? true : undefined}
+								validate={['Required']}
+								onChange={e => setAcceptedPrivacy(e.target.checked)} label={
+									<>
+										{`I confirm that I have read the `}
+										<Link href="/privacy-policy" external>
+											{`privacy policy`}
+										</Link>.
+									</>
+								}
+							/>
+						</>
+
+					}
+				</>}			
+
 				{/* merchant hosted payment page */}
 				{paymentRequired && paymentGateways.hostedPageEnabled &&
 					<ExternalPayment disabled={currentStep < CheckoutStep.TermsConditions || !acceptedTerms || !acceptedPrivacy ? true : undefined} />
@@ -487,50 +530,7 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 					</div>
 				}
 
-				{currentStep >= CheckoutStep.TermsConditions && <>
-					{user ?
-						<small className="payment-checkout__note">
-							{`Please note, by placing your order you agree to both the `}
-							<Link href="/terms-and-conditions" external>
-								{`terms and conditions`}
-							</Link>
-							{` and `}
-							<Link href="/privacy-policy" external>
-								{`privacy policy`}
-							</Link>.
-						</small>                
-					:<>
-						<Input noWrapper type="checkbox" className="payment-checkout__terms"
-							checked={acceptedTerms ? true : undefined}
-							validate={['Required']}
-							onChange={e => setAcceptedTerms(e.target.checked)} label={
-								<>
-									{`I confirm that I have read and agree to the `}
-									<Link href="/terms-and-conditions" external>
-										{`terms and conditions`}
-									</Link>
-								</>
-							}
-						/>
-
-						<Input noWrapper type="checkbox" className="payment-checkout__privacy"
-							checked={acceptedPrivacy ? true : undefined}
-							validate={['Required']}
-							onChange={e => setAcceptedPrivacy(e.target.checked)} label={
-								<>
-									{`I confirm that I have read the `}
-									<Link href="/privacy-policy" external>
-										{`privacy policy`}
-									</Link>.
-								</>
-							}
-						/>
-                    </>
-
-					}
-				</>}			
 			</Form>
-
 
 		</div>
 	</>;
