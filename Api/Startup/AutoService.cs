@@ -1205,7 +1205,7 @@ public partial class AutoService<T, ID> : AutoService, ContentStreamSource<T, ID
 	/// </summary>
 	public virtual async ValueTask<T> UpdateExact(Context context, T entityToUpdate, DataOptions options = DataOptions.Default)
 	{
-		if (options != DataOptions.IgnorePermissions)
+		if ((options & DataOptions.IgnorePermissions) == DataOptions.IgnorePermissions)
 		{
 			// Perform the permission test now:
 			EventGroup.BeforeUpdate.TestCapability(context, entityToUpdate);
@@ -1231,7 +1231,7 @@ public partial class AutoService<T, ID> : AutoService, ContentStreamSource<T, ID
 	/// <returns></returns>
 	public T StartUpdate(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
-		if (options != DataOptions.IgnorePermissions)
+		if ((options & DataOptions.IgnorePermissions) == DataOptions.IgnorePermissions)
 		{
 			// Perform the permission test now:
 			EventGroup.BeforeUpdate.TestCapability(context, entity);
