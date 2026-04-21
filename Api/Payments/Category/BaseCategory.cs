@@ -28,9 +28,6 @@ namespace Api.Payments
         /// <summary>
         /// The description of this product category.
         /// </summary>
-        [DatabaseField(Length = 200)]
-        [Data("required", true)]
-        [Data("validate", "Required")]
         public Localized<string> DescriptionHtml;
 
         /// <summary>
