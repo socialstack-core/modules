@@ -97,6 +97,20 @@
 
 	}
 
+	&__select-wrapper {
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(8);
+
+		.form-check.ui-check {
+			flex-shrink: 0;
+
+			.form-check-label {
+				display: none;
+			}
+		}
+	}
+
 }
 
 @supports (color: rgb(from red r g b)) {

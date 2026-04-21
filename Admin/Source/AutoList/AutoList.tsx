@@ -445,13 +445,18 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 									<td className={colClasses.join(' ')}>
 										{/* first column - selection */}
 										{index == 0 && <>
-											<Input type="checkbox" sm noWrapper label={hasValue ? value : `[No ${field.label || field.field}]`}
-												checked={!!bulkSelections[entry.id]}
-												onChange={(ev) => {
-													bulkSelections[entry.id] = (ev.target as HTMLInputElement).checked;
-													setBulkSelections({ ...bulkSelections })
-												}}
-											/>
+											<div className="autolist-table__select-wrapper">
+												<Input type="checkbox" sm noWrapper
+													checked={!!bulkSelections[entry.id]}
+													onChange={(ev) => {
+														bulkSelections[entry.id] = (ev.target as HTMLInputElement).checked;
+														setBulkSelections({ ...bulkSelections })
+													}}
+												/>
+												{hasValue && CustomRenderer && <CustomRenderer entity={entry} field={field.field} value={value} />}
+												{hasValue && !CustomRenderer && value}
+												{!hasValue && `[No ${field.label || field.field}]`}
+											</div>
 										</>}
 										{/* second column - link (utilises pseudo element to cover entire row) */}
 										{index == 1 && <>
