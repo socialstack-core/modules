@@ -29,6 +29,17 @@ interface CardFormProps {
 const CardForm: React.FC<CardFormProps> = (props: CardFormProps): React.ReactNode => {
 	const { readonly, last4, issuer, fieldName, paymentMethodId } = props;
 
+	const { session } = useSession();
+	var { user } = session;
+
+	var [number, setNumber] = useState('');
+	var [cvc, setCvc] = useState('');
+	var [name, setName] = useState('');
+	var [focus, setFocus] = useState('');
+	var [expiry, setExpiry] = useState('');
+	var [isAmexOrDinersClub, setIsAmexOrDinersClub] = useState(false);
+	var [canSave, setCanSave] = useState(false);
+
 	if (readonly) {
 		// If expiry is a number, map to mm/yy
 		var expr = props.expiry;
@@ -60,17 +71,6 @@ const CardForm: React.FC<CardFormProps> = (props: CardFormProps): React.ReactNod
 			}} />
 		</>;
 	}
-
-	const { session } = useSession();
-	var { user } = session;
-
-	var [number, setNumber] = useState('');
-	var [cvc, setCvc] = useState('');
-	var [name, setName] = useState('');
-	var [focus, setFocus] = useState('');
-	var [expiry, setExpiry] = useState('');
-	var [isAmexOrDinersClub, setIsAmexOrDinersClub] = useState(false);
-	var [canSave, setCanSave] = useState(false);
 
 	return <>
 		<div className="my-3">

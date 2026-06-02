@@ -44,7 +44,7 @@ interface CarouselProps {
 	/**
 	 * Passed through via props.
 	 */
-	selectedThumbnail?: CarouselItem
+	selectedThumbnail?: Product | CarouselItem
 }
 
 const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSelected, selectedThumbnail }: CarouselProps) => {

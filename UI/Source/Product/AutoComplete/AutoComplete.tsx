@@ -1,5 +1,5 @@
 import useApi from 'UI/Functions/UseApi';
-import searchApi, {ProductSearchType, SortDirection} from "Api/ProductSearchController";
+import { ProductSearchApi as searchApi, ProductSearchType, SortDirection } from "Api/Payments";
 import productApi, {Product} from 'Api/Product';
 import Link from 'UI/Link';
 import Image from 'UI/Image';
@@ -11,10 +11,10 @@ import {addToRecentSearches} from "UI/RecentSearches/SearchHistory";
  * Props for the AutoComplete component.
  */
 interface AutoCompleteProps {
-	customParameters?: Record<string,any>,
-    query:string,
-    pageSize?:number,
-	showInStockOnly? :boolean
+	customParameters?: Record<string, any>,
+	query: string,
+	pageSize?: number,
+	showInStockOnly?: boolean
 }
 
 /**
@@ -30,8 +30,8 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 		showInStockOnly = false
 	} = props;
 
-    const [products] = useApi(async () => {
-		
+	const [products] = useApi(async () => {
+
 		const products = await searchApi.faceted({
 			query: query,
 			pageOffset: 0 as int,
@@ -51,11 +51,11 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 			productApi.includes.primaryurl,
 			productApi.includes.calculatedprice
 		]);
-		
+
 		return products;
 
-    },[query])
-	
+	}, [query])
+
 	if(!products) {
 		return ('');
 	}
@@ -72,16 +72,17 @@ const AutoComplete: React.FC<AutoCompleteProps> = (props:AutoCompleteProps) => {
 	return (
 		<ul className="ui-product-autocomplete">
 			{products.results.map(content => {
+				const fileRef = content.featureRef;
 				return <li>
 					<div className="ui-product-autocomplete__item">
 						<Quantity product={content}/>
-						<Link tabindex="0"
+						<Link tabIndex={0}
 							href={content.primaryUrl || `/product/${content.slug}`} 
 							onClick={() => {
 								addToRecentSearches(query);
 							}}
 						>
-							<Image size={32} fileRef={content.featureRef} className="ui-product-autocomplete__img" />
+							{fileRef && <Image size={32} fileRef={fileRef} className="ui-product-autocomplete__img" />}
 							<span className="ui-product-autocomplete__name">
 								{content.name}
 							</span>

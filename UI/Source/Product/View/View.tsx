@@ -1,10 +1,10 @@
 import { Product } from 'Api/Product';
-import { PriceCurrency } from 'Api/Content';
+import { PriceCurrency } from 'Api/Payments';
 import ProductList from 'UI/Product/List';
 import ProductCarousel, { CarouselItem } from 'UI/Product/Carousel';
 import ProductAbout from 'UI/Product/About';
 import ProductAttributes from 'UI/Product/Attributes';
-import ProductPrice from 'UI/Product/Price';
+import ProductPrice, { CurrencyAmount } from 'UI/Product/Price';
 import ProductQuantity from 'UI/Product/Quantity';
 import ProductDownloads from 'UI/Product/Downloads';
 import ProductFAQs from 'UI/Product/FAQs';
@@ -49,10 +49,6 @@ type AdditionalActionProps = {
 const View: React.FC<ViewProps> = (props) => {
 	const { product, promotions } = props;
 
-	if (!product) {
-		return;
-	}
-
 	const { pageState, setPage, updateQuery } = useRouter();
 	const { query, url } = pageState;
 
@@ -62,7 +58,19 @@ const View: React.FC<ViewProps> = (props) => {
 
 	// Selected variant (if any) is..
 	const variantSku = query?.get("sku");
-	const currentVariant: Product | undefined = variantSku ? product.variants?.find(prod => prod.sku == variantSku) : undefined;
+	const currentVariant: Product | undefined = variantSku ? product?.variants?.find(prod => prod.sku == variantSku) : undefined;
+	
+	const [selectedThumbnail, setSelectedThumbnail] = useState<CarouselItem | Product>();
+
+	useEffect(() => {
+		// here we reset the selected thumbnail and load the variant one in.
+		setSelectedThumbnail((prev) => currentVariant ?? prev);
+	}, [variantSku, currentVariant]);
+
+	if (!product) {
+		return;
+	}
+
 	const downloadsSource = currentVariant || product;
 	const downloads = downloadsSource?.productDownloads?.filter((download: Upload) => download.ref);
 
@@ -89,14 +97,12 @@ const View: React.FC<ViewProps> = (props) => {
 	const showTab = (tab: ProductTab) => {
 
 		switch (tab) {
-			// only include about tab if we either have a description or FAQs to display
+			// only include about tab if we either have a description to display
 			case ProductTab.About:
 				const source = currentVariant || product;
 				const about = source?.descriptionHtml;
-				const faqs = source?.frequentlyAskedQuestionsJson;
-				const hasFaqs = faqs ? JSON.parse(faqs)?.length : false;
-
-				return about?.length || hasFaqs;
+				
+				return about?.length;
 
 			// only include details tab if we have attributes to display
 			case ProductTab.Details:
@@ -159,13 +165,6 @@ const View: React.FC<ViewProps> = (props) => {
 		updateQueryRef.current({ tab: target });
 	};
 
-	const [selectedThumbnail, setSelectedThumbnail] = useState<CarouselItem>();
-
-	useEffect(() => {
-		// here we reset the selected thumbnail and load the variant one in.
-		setSelectedThumbnail((prev) => currentVariant ?? prev);
-	}, [variantSku, currentVariant]);
-
 	// variant checks
 	const hasVariants = (product.variants ?? [])?.length > 0;
 
@@ -225,7 +224,7 @@ const View: React.FC<ViewProps> = (props) => {
 					})
 				]}
 					includeCurrent
-					currentLabel={product?.name}
+					currentLabel={product?.name ?? undefined}
 				/>
 			</>}
 
@@ -247,7 +246,7 @@ const View: React.FC<ViewProps> = (props) => {
 				// changes, this doesn't change the selected product
 				// discovered by the attribute matrix, this is just
 				// for looking at the different variants.
-			onThumbSelected={(thumbInfo: CarouselItem) => {
+			onThumbSelected={(thumbInfo: Product | CarouselItem) => {
 					setSelectedThumbnail(thumbInfo);
 				}}
 			/>
@@ -315,7 +314,7 @@ const View: React.FC<ViewProps> = (props) => {
 
 				{/* price */}
 				<ProductPrice product={currentVariant || product}
-					override={hasVariants && !currentVariant ? cheapestPrice : undefined}
+					override={hasVariants && !currentVariant ? cheapestPrice as CurrencyAmount : undefined}
 					isFrom={!!hasVariants && !currentVariant} />
 
 				{/* quantity / add to cart, only present if there is no variants or a variant is selected. */}

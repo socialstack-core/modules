@@ -4,7 +4,7 @@ import ProductImage from 'UI/ProductImage';
 import Link from 'UI/Link';
 import ProductPrice, { CurrencyAmount } from 'UI/Product/Price';
 import ProductStock from 'UI/Product/Stock';
-import Alert from 'UI/Alert';
+import Alert, { AlertType } from 'UI/Alert';
 import Button from 'UI/Button';
 import { useCart } from 'UI/Payments/CartSession';
 
@@ -73,11 +73,11 @@ const BasketItem: React.FC<BasketItemProps> = (props) => {
 	const { content, hideQuantity, disableLink, priceOverride, showRemove, readOnly,
 		qtyOverride, onChangeQuantity, customContent } = props;
 
+	var { addToCart } = useCart();
+
 	if (!content) {
 		return;
 	}
-
-	var { addToCart } = useCart();
 
 	let isFeatured = content.isFeatured;
 	let featuredLabel = props.featuredLabel || `Recommended`;
@@ -105,7 +105,7 @@ const BasketItem: React.FC<BasketItemProps> = (props) => {
 				  * reference 512px image as the image is shown @ 100% width when the shopping cart is viewed on mobile;
 				  * this is sized down via CSS to a more appropriate size for the main cart view / sidebar
 				  */}
-				<ProductImage size={512} fileRef={content.featureRef} className="ui-product-basket-item__img" />
+				{content.featureRef && <ProductImage size={512} fileRef={content.featureRef} className="ui-product-basket-item__img" />}
 
 				{/* category */}
 				{categoryName && categoryName.length > 0 && <>
@@ -138,7 +138,7 @@ const BasketItem: React.FC<BasketItemProps> = (props) => {
 				<ProductStock product={content} />
 
 				{/* custom content */}
-				{customContent && customContent.length > 0 && <>
+				{!!customContent && <>
 					<span className="ui-product-basket-item__custom">
 						{customContent}
 					</span>
@@ -150,16 +150,16 @@ const BasketItem: React.FC<BasketItemProps> = (props) => {
 
 				{showRemove && <>
 					<Button xs outlined variant="danger" className="ui-product-basket-item__remove"
-						title={`Remove`} onClick={() => onChangeQuantity ? onChangeQuantity(0 as int) : addToCart(content.id, 0)}>
+						title={`Remove`} onClick={() => onChangeQuantity ? onChangeQuantity(0 as int) : addToCart!(content.id, 0 as int, false)}>
 						<i className='fr fr-trash-alt' />
 					</Button>
 				</>}
 			</div>
 
 			{/* product notices */}
-			{content.productNotices?.length > 0 && <div className="ui-product-basket-item__notices">
+			{!!content.productNotices && <div className="ui-product-basket-item__notices">
 				{content.productNotices.map(notice => (
-					<Alert variant={notice.type}>{notice.message}</Alert>
+					<Alert variant={notice.type as AlertType}>{notice.message}</Alert>
 				))}
 			</div>}
 		</div>

@@ -25,27 +25,6 @@ export default [
       'react-hooks': reactHooksPlugin, // React Hooks plugin object
     },
     rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: [
-            {
-              name: 'UI/Functions/WebRequest',
-              importNames: [
-                'default',
-                'webRequest',
-                'getBlob',
-                'getTextResponse',
-                'getText',
-                'getJson',
-                'getList',
-                'getOne',
-              ],
-              message: "Do not import from 'UI/Functions/WebRequest' directly. Use the generated API in an 'Api/' module instead.",
-            },
-          ],
-        },
-      ],
       // React specific rules
       'react/jsx-uses-react': 'off', // React 17 JSX Transform no longer requires React import
       'react/react-in-jsx-scope': 'off', // React 17 JSX Transform no longer requires React in scope

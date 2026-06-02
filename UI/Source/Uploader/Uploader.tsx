@@ -366,7 +366,7 @@ export default function Uploader(props: UploaderProps) {
 		return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 	};
 
-	const renderBulkUploadUI = () => {
+	const renderBulkUploadUI = (id: string) => {
 		var uploaderClasses = ['uploader', 'uploader--multiple'];
 
 		if (props.compact) {
@@ -384,8 +384,6 @@ export default function Uploader(props: UploaderProps) {
 		if (draggedOver) {
 			uploaderClasses.push("uploader--drag-target");
 		}
-
-		const id = props.id || useId();
 
 		return <div className={uploaderClasses.join(' ')}>
 			{/* prompt to upload */}
@@ -510,8 +508,12 @@ export default function Uploader(props: UploaderProps) {
 
 	var isMultiple = props.multiple;
 
+	const componentId = useId();
+	const id = props.id || componentId;
+
 	if (isMultiple) {
-		return renderBulkUploadUI();
+
+		return renderBulkUploadUI(id);
 	}
 
 	var hasRef = ref && ref.length ? true : false;
@@ -611,8 +613,6 @@ export default function Uploader(props: UploaderProps) {
 	}
 
 	var currentXhr = fileIndex == undefined ? xhr : (files[fileIndex] ? files[fileIndex].xhr : undefined);
-
-	const id = props.id || useId();
 
 	const iconClassName = props.iconOnly ? (
 		props.currentRef && typeof props.currentRef === 'string' &&

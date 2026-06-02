@@ -160,13 +160,12 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		);
 	};
 
-	// If we have pre-parsed items, render directly
-	if (preParsedItems) {
-		return renderItems(preParsedItems);
-	}
-
 	// Otherwise, load the menu by key or id
 	const [navMenu] = useApi<NavMenu | undefined>(() => {
+		if (preParsedItems) {
+			return Promise.resolve(undefined);
+		}
+
 		if (props.id) {
 			return navMenuApi.load(props.id as int);
 		}
@@ -185,8 +184,13 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		}
 
 		return Promise.resolve(undefined);
-	}, [props.id, props.menuKey, props.contentOrKey]);
+	}, [preParsedItems, props.id, props.menuKey, props.contentOrKey]);
 
+	// If we have pre-parsed items, render directly
+	if (preParsedItems) {
+		return renderItems(preParsedItems);
+	}
+	
 	if (!navMenu) {
 		return <Loading />;
 	}

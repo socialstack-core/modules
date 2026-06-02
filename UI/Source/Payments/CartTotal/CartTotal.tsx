@@ -12,7 +12,7 @@ import { useCart } from "UI/Payments/CartSession";
 /**
  * Props for the CartTotal component.
  */
-interface CartTotal {
+interface CartTotalProps {
 	/**
 	 * basket contents
 	 */
@@ -29,19 +29,19 @@ interface CartTotal {
 	hideCTAs?: boolean
 }
 
+type GuestUsersConfig = {
+	isEnabled?: boolean
+};
+
 /**
  * The CartTotal React component.
  * @param props React props.
  */
 const CartTotal: React.FC<CartTotalProps> = (props) => {
 	var { shoppingCart, emptyCart, hideCTAs } = props;
-	var [showEmptyCartPrompt, setShowEmptyCartPrompt] = useState(null);
+	var [showEmptyCartPrompt, setShowEmptyCartPrompt] = useState<boolean>(false);
 
 	var pricedCart = shoppingCart?.cartContents;
-
-	if (!pricedCart || !pricedCart.contents.length) {
-		return;
-	}
 
 	const { setPage } = useRouter();
 
@@ -57,6 +57,10 @@ const CartTotal: React.FC<CartTotalProps> = (props) => {
 	}
 
 	const { lessTax } = useCart();
+
+	if (!pricedCart || !pricedCart.contents.length) {
+		return null;
+	}
 
 	//var itemSet = pricedCart.contents;
 	var currencyCode = pricedCart.currencyCode;
@@ -95,7 +99,7 @@ const CartTotal: React.FC<CartTotalProps> = (props) => {
 			*/}
 			<p className="shopping-cart__total-row">
 				<span>{lessTax ? `Total (ex VAT)` : `Total (inc VAT)`}</span>
-				{formatCurrency(lessTax ? shoppingCart.cartContents?.totalLessTax : shoppingCart.cartContents?.total, { currencyCode })}
+				{formatCurrency((lessTax ? shoppingCart.cartContents?.totalLessTax : shoppingCart.cartContents?.total) || 0 as int, { currencyCode })}
 			</p>
 
 			{discounts.length > 0 && <>
@@ -114,7 +118,7 @@ const CartTotal: React.FC<CartTotalProps> = (props) => {
 
 			<p className="shopping-cart__total-row shopping-cart__total-row--grand">
 				<span>{`Total`}</span>
-				{formatCurrency(shoppingCart.cartContents?.total, { currencyCode })}
+				{formatCurrency(shoppingCart.cartContents?.total || 0, { currencyCode })}
 			</p>
 
 			{!lessTax && (
@@ -124,7 +128,7 @@ const CartTotal: React.FC<CartTotalProps> = (props) => {
 				</p>
 			)}
 
-			{Boolean(shoppingCart?.cartContents?.errorCode) ? <Alert variant={'danger'}>{shoppingCart.cartContents.errorMessage}</Alert> : null}
+			{Boolean(shoppingCart?.cartContents?.errorCode) ? <Alert variant={'danger'}>{shoppingCart.cartContents?.errorMessage}</Alert> : null}
 
 			{!hideCTAs && <>
 				<div className="shopping-cart__total-cta">
@@ -166,7 +170,7 @@ const CartTotal: React.FC<CartTotalProps> = (props) => {
 			<ConfirmDialog variant="danger" isOpen={showEmptyCartPrompt} title={`Empty Basket`} onClose={() => setShowEmptyCartPrompt(false)}
 				confirmText={`Empty`}
 				confirmCallback={() => {
-					emptyCart();
+					emptyCart!();
 					setShowEmptyCartPrompt(false);
 				}}>
 				<p>{`This will remove all selected products from your shopping basket.`}</p>

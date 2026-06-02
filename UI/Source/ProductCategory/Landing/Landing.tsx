@@ -1,10 +1,9 @@
 import { useSession } from 'UI/Session';
 import { useState } from "react";
 import productCategoryApi, { ProductCategory } from 'Api/ProductCategory';
-import businessApi, { Business } from 'Api/Business';
 import useApi from "UI/Functions/UseApi";
 import List from 'UI/ProductCategory/List';
-import Breadcrumb from 'UI/Breadcrumb';
+import Breadcrumb, { Crumb } from 'UI/Breadcrumb';
 
 /**
  * Props for the Landing component.
@@ -23,18 +22,15 @@ const Landing: React.FC<LandingProps> = (props) => {
 		productCategory
 	} = props;
 
-
-	if (!productCategory)
-	{
-		return(``);
-	}
-
 	const [productSubCategories, setProductSubCategories] = useState<ProductCategory[]>();
 
 	const { session } = useSession();
 	var { user, role } = session;
 	
 	useApi(() => {
+		if (!productCategory) {
+			return Promise.resolve();
+		}
 		var query = 'ParentId=?';
 		var args: (number | number[])[] = [Number(productCategory.id)];
 
@@ -52,20 +48,24 @@ const Landing: React.FC<LandingProps> = (props) => {
 		]).then(results => {
 			setProductSubCategories(results.results);
 		});
-	}, [productCategory.id]);
+	}, [productCategory?.id]);
 	
 	const breadcrumbs = productCategory ? [
 		{
 			name: 'Home',
 			href: '/'
-		}, 
+		} as Crumb, 
 		...(productCategory.breadcrumb ?? []).map(breadcrumb => {
 			return ({
 				name: breadcrumb.name,
 				href: breadcrumb.primaryUrl
-			})
+			} as Crumb)
 		})
-	]: [];
+	] : [] as Crumb[];
+
+	if (!productCategory) {
+		return (``);
+	}
 
 	return (
 		<>

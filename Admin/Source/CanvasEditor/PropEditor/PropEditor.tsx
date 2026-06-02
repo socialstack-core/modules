@@ -102,7 +102,7 @@ const PropEditor: React.FC<PropEditorProps> = ({ optionsVisibleFor }) => {
 		});
 	};
 
-	const getContentTypeDropdown = (): React.ReactNode => {
+	const ContentTypeDropdown : React.FC = () => {
 		const [contentTypes, setContentTypes] = useState<{ name: string }[]>([]);
 
 		useEffect(() => {
