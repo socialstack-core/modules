@@ -3,16 +3,13 @@ using Api.CsvExport;
 using Api.Database;
 using Api.Permissions;
 using Api.Startup;
-using Api.Startup.Routing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-
 
 /// <summary>
 /// A convenience controller for defining common endpoints like create, list, delete etc. Requires an AutoService of the same type to function.
@@ -64,7 +61,7 @@ public partial class AutoController<T,ID>
 		{
 			fileName = fileName.Trim();
 
-			if (!IsValidCsvFileNameRegex(fileName))
+			if (!IsValidCsvExportFileName(fileName))
 			{
 				throw new PublicException("Invalid file name", "filename/requires_csv");
 			}
@@ -88,7 +85,7 @@ public partial class AutoController<T,ID>
 	// (\.csv)             - Exactly one dot followed by 'csv'
 	// $                   - End of the string
 	// RegexOptions.IgnoreCase - Makes the check case-insensitive (e.g., works for .CSV)
-	private static readonly Regex CsvNameRegex = new Regex(
+	private static readonly Regex CsvExportNameRegex = new Regex(
 		@"^[a-zA-Z0-9_-]+(\.csv)$",
 		RegexOptions.IgnoreCase | RegexOptions.Compiled
 	);
@@ -99,7 +96,7 @@ public partial class AutoController<T,ID>
 	/// </summary>
 	/// <param name="fileName">The file name provided by the user.</param>
 	/// <returns>True if the name is valid; otherwise, false.</returns>
-	private static bool IsValidCsvFileNameRegex(string fileName)
+	private static bool IsValidCsvExportFileName(string fileName)
 	{
 		if (string.IsNullOrWhiteSpace(fileName))
 		{
@@ -108,7 +105,7 @@ public partial class AutoController<T,ID>
 
 		// We use Trim() here to allow users to accidentally include leading/trailing spaces
 		// but the core Regex must match the content *after* trimming.
-		return CsvNameRegex.IsMatch(fileName.Trim());
+		return CsvExportNameRegex.IsMatch(fileName.Trim());
 	}
 }
 
