@@ -1,5 +1,5 @@
 import getEndpointType from 'UI/Functions/GetEndpointType';
-import { Content } from 'Api/Content';
+import { Content } from 'Api/Database';
 
 interface ContentChangeOptions {
 	deleted: boolean;
@@ -17,14 +17,14 @@ export interface ContentChangeDetail {
 	change: any;
 	endpoint: string;
 	endpointType: string;
-	entity: Content;
+	entity: Content<uint>;
 }
 
 /*
 * Trigger a content change event for the given entity.
 * Either it was edited, or is new.
 */
-export default function contentChange<T extends Content>(entity: T, endpoint: string, changeDetail: ContentChangeOptions) {
+export default function contentChange<T extends Content<uint>>(entity: T, endpoint: string, changeDetail: ContentChangeOptions) {
 
 	var detail = {} as ContentChangeDetail;
 

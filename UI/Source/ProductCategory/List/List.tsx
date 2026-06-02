@@ -27,13 +27,11 @@ const List: React.FC<ListProps> = (props) => {
 	return (
         <div className="ui-productcategory-list__wrapper">
             <ul className="ui-productcategory-list ui-productcategory-list--large-thumbs">
-                {
-                    content.map(category => 
-                        <li className="ui-productcategory-list__category">
-                        <Signpost content={category} ctaLabel={category.name} />
-                        </li>
-                )
-                }
+				{content.map((category: ProductCategory) => 
+                    <li className="ui-productcategory-list__category">
+						<Signpost content={category} />
+                    </li>
+				)}
             </ul>
         </div>
 	);

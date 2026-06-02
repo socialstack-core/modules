@@ -1,5 +1,5 @@
 import getConfig from 'UI/Config';
-import OpayoController from 'Api/OpayoController';
+import {OpayoApi} from 'Api/Payments';
 import OpayoExternal from './OpayoExternal';
 
 var _opayo = null; // Lazy loaded opayo API instance.
@@ -129,7 +129,7 @@ if (isEnabled) {
 	paymentGateways.onGetMerchantKey = () => {
 		// Returning a promise will make the card form load until the promise resolves.
 		return ensureLoaded().then(() => {
-			return OpayoController.getMerchantSessionKey().then(data => {
+			return OpayoApi.getMerchantSessionKey().then(data => {
 				const merchantSessionKey = data.merchantSessionKey;
 
 				return new Promise((success, reject) => {
@@ -191,7 +191,7 @@ if (isEnabled) {
 		// Returning a promise will make the card form load until the promise resolves.
 		return ensureLoaded().then(() => {
 			
-			return OpayoController.getMerchantSessionKey().then(data => {
+			return OpayoApi.getMerchantSessionKey().then(data => {
 			
 				const merchantSessionKey = data.merchantSessionKey;
 

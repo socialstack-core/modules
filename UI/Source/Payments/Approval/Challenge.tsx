@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
-import { ValidationMetaData } from 'Api/ShoppingCart';
+
+export type ValidationMetaData = {
+	challengeUrl?: string;
+	challengeRequest?: string;
+	sessionToken?: string;
+	token?: string;
+};
 
 type ChallengeProps = {
     metaData: ValidationMetaData | undefined;

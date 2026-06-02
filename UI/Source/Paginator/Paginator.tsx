@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from "react";
 import Icon from 'UI/Icon';
+import Button from 'UI/Button';
 
 const MAX_PAGES = 5;
 
@@ -213,25 +214,25 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 						{/* first page */}
 						{showFirstLastNav &&
 							<li className="page-item first-page">
-								<button type="button" className="page-link" onClick={() => changePage(1)}
+								<Button className="page-link" sm onClick={() => changePage(1)}
 									disabled={currentPage <= 1} title={`First page`}>
 									{firstIcon}
 									<span className="sr-only">
 										{`First page`}
 									</span>
-								</button>
+								</Button>
 							</li>
 						}
 						{/* previous page */}
 						{showPrevNextNav &&
 							<li className="page-item prev-page">
-								<button type="button" className="page-link" onClick={() => changePage(currentPage - 1)}
+								<Button className="page-link" sm onClick={() => changePage(currentPage - 1)}
 									disabled={currentPage <= 1} title={`Previous page`}>
 									{prevIcon}
 									<span className="sr-only">
 										{`Previous page`}
 									</span>
-								</button>
+								</Button>
 							</li>
 						}
 
@@ -241,25 +242,25 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 						{/* next page */}
 						{showPrevNextNav &&
 							<li className="page-item next-page">
-								<button type="button" className="page-link" onClick={() => changePage(currentPage + 1)}
+								<Button className="page-link" sm onClick={() => changePage(currentPage + 1)}
 									disabled={currentPage == totalPages} title={`Next page`}>
 									{nextIcon}
 									<span className="sr-only">
 										{`Next page`}
 									</span>
-								</button>
+								</Button>
 							</li>
 						}
 						{/* last page */}
 						{showFirstLastNav &&
 							<li className="page-item last-page">
-								<button type="button" className="page-link" onClick={() => changePage(totalPages)}
+								<Button className="page-link" sm onClick={() => changePage(totalPages)}
 									disabled={currentPage == totalPages} title={`Last page`}>
 									{lastIcon}
 									<span className="sr-only">
 										{`Last page`}
 									</span>
-								</button>
+								</Button>
 							</li>
 						}
 					</ul>
@@ -310,17 +311,17 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 
         return <li className={pageClass}>
             {!isCurrentPage && !isEmpty &&
-                <button type="button" className="page-link" onClick={() => changePage(page)}>
+                <Button className="page-link" sm onClick={() => changePage(page)}>
                     {page}
-                </button>
+                </Button>
             }
             {isCurrentPage && !isEmpty &&
-                <span className="page-link">
+                <span className="btn ui-btn btn--sm page-link">
 					{page}
 				</span>
             }
             {isEmpty &&
-                <span className="page-link empty">
+				<span className="btn ui-btn btn--sm page-link empty">
 					&nbsp;
 				</span>
             }

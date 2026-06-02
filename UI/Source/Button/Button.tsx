@@ -3,7 +3,7 @@
  * @icon fal fa-mouse-pointer
  * @description A clickable button.
  */
-interface ButtonProps extends React.HTMLAttributes<HTMLElement>  {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>  {
 
 	/**
 	 * True if the button is disabled.
@@ -13,7 +13,7 @@ interface ButtonProps extends React.HTMLAttributes<HTMLElement>  {
 	/**
 	 * The type of tag to use on the button itself.
 	 */
-	tag?: React.ElementType,
+	tag?: 'button' | 'input' | 'a',
 
 	/**
 	 * optional additional class name(s)
@@ -24,6 +24,8 @@ interface ButtonProps extends React.HTMLAttributes<HTMLElement>  {
 	 * The button type.
 	 */
 	type?: 'button' | 'reset' | 'submit',
+
+	buttonType?: 'button' | 'reset' | 'submit',
 
 	/**
 	 * Optional href if it is a link
@@ -99,26 +101,11 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 	let externalLink = props.externalLink?.trim();
 
 	if (!externalLink?.length) {
-		externalLink = false;
+		externalLink = undefined;
 	}
 
 	var classes = className ? className.split(" ") : [];
-	var Tag = tag ? tag : "button";
-
-	switch (Tag) {
-		case 'button':
-		case 'a':
-		case 'input':
-			break;
-
-		default:
-			Tag = "button";
-			break;
-	}
-
-	if (href) {
-		Tag = "a";
-	}
+	var Tag = href ? "a" : (tag || "button");
 
 	if (!buttonType) {
 		buttonType = "button";
@@ -174,7 +161,7 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 
 	var btnClass = classes.join(" ");
 
-	const openInNewTab = (url) => {
+	const openInNewTab = (url: string) => {
 
 		if (url.startsWith("//")) {
 			url = url.substring(2);
@@ -191,7 +178,7 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 		window.open(url, "_blank", "noopener noreferrer");
 	};
 
-	function handleMouseDown(e) {
+	function handleMouseDown(e: React.MouseEvent<HTMLElement>) {
 
 		if (!externalLink) {
 			return;
@@ -199,7 +186,7 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 
 		// middle-clicking links works OOTB, so ignore those
 		// only apply this to buttons acting as links
-		if (e.target.nodeName != "A" && variant == "link") {
+		if ((e.target as HTMLElement).nodeName != "A" && variant == "link") {
 
 			if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
 				openInNewTab(externalLink);
@@ -209,7 +196,7 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 
 	}
 
-	function handleKeyDown(e) {
+	function handleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
 
 		if (!externalLink) {
 			return;
@@ -219,6 +206,10 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 			openInNewTab(externalLink);
 		}
 	}
+
+	// Forced any required 
+	const mouseDown: any = (e: any) => handleMouseDown(e as React.MouseEvent<HTMLElement>);
+	const keyDown: any = (e: any) => handleKeyDown(e as React.KeyboardEvent<HTMLElement>);
 
 	return (
 		<Tag className={btnClass}
@@ -232,9 +223,9 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 			rel={href && external ? "noopener noreferrer" : undefined}
 			type={Tag == "a" ? undefined : buttonType}
 			role={Tag == "a" ? "button" : undefined}
-			onMouseDown={(e) => handleMouseDown(e)}
-			onKeyDown={(e) => handleKeyDown(e)}
-			{...props}
+			onMouseDown={mouseDown}
+			onKeyDown={keyDown}
+			{...(props as any)}
 		>
 			{children}
 		</Tag>

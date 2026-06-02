@@ -58,11 +58,13 @@ const Date: React.FC<CustomInputTypeProps<"date">> = (props) => {
 		};
 	}, [props.inputRef]);
 
-	const clickHandler = (e) => {
+	const clickHandler = (e: MouseEvent) => {
+		const target = e.target as HTMLInputElement;
+
 		// open the native browser picker
-		if ('showPicker' in HTMLInputElement.prototype) {
+		if (target && 'showPicker' in HTMLInputElement.prototype) {
 			try {
-				e.target.showPicker();
+				target.showPicker();
 			} catch (error) {
 				console.error("Datepicker could not be shown", error);
 			}
@@ -83,7 +85,7 @@ const Date: React.FC<CustomInputTypeProps<"date">> = (props) => {
 				if (v == "") {
 					return null;
 				}
-				return new Date(Date.parse(v));
+				return new globalThis.Date(globalThis.Date.parse(v));
 			};
 		}
 	};

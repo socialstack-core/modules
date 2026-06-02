@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { ValidationMetaData } from 'Api/ShoppingCart';
+import { ValidationMetaData } from './Challenge';
 
 type ChallengePageProps = {
 	metaData: ValidationMetaData | undefined;
@@ -38,8 +38,8 @@ const ChallengePage: React.FC<ChallengePageProps> = (props: ChallengePageProps):
 		<input type="hidden" name="creq" defaultValue={metaData?.challengeRequest} />
 		<input type="hidden" name="threeDSSessionData" defaultValue={metaData?.sessionToken} />          
 		<noscript>
-			<p>3D Secure challenge requires JavaScript. Click the button below to continue.</p>
-			<button type="submit">Continue</button>
+			<p>{`3D Secure challenge requires JavaScript. Click the button below to continue.`}</p>
+			<button type="submit">{`Continue`}</button>
 		</noscript>
 		</form>
 	</div>

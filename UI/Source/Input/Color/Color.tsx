@@ -2,7 +2,8 @@ import Default, { DefaultInputType } from 'UI/Input/Default';
 import { useState } from 'react';
 
 type ColorInputType = DefaultInputType & {
-	allowTransparency?: boolean
+	allowTransparency?: boolean,
+	noSelection?: string
 };
 
 // Registering 'color' as being available
@@ -16,7 +17,7 @@ declare global {
 const Color: React.FC<CustomInputTypeProps<"color">> = (props) => {
 	const [renderCount, setRenderCount] = useState<number>(0);
 	const { field, icon, helpFieldId, onInputRef, inputRef, validationFailure } = props;
-	const { allowTransparency, onChange, className, ...attribs } = field;
+	const { allowTransparency, onChange: fieldOnChange, className, ...attribs } = field;
 
 	var input = inputRef as HTMLInputElement;
 
@@ -51,7 +52,7 @@ const Color: React.FC<CustomInputTypeProps<"color">> = (props) => {
 				className={(className || "form-control ui-form-control") + (validationFailure ? ' is-invalid' : '')}
 				aria-describedby={helpFieldId}
 				type="text"
-				onInput={onChange}
+				onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 				style={{ display: "none" }}
 				{...attribs}
 			/>
@@ -62,7 +63,7 @@ const Color: React.FC<CustomInputTypeProps<"color">> = (props) => {
 
 	let colorClasses = ['input wrapper', 'color-input'];
 
-	if (attribs.noSelection?.length > 0 && colorValue == attribs.noSelection) {
+	if (attribs.noSelection?.length && colorValue == attribs.noSelection) {
 		colorClasses.push('color-input--unset');
 	}
 

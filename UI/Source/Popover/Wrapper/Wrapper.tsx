@@ -1,8 +1,20 @@
+interface PopoverWrapperProps {
+	/**
+	 * optional additional classes
+	 */
+	className?: string,
+
+	/**
+	 * 
+	 */
+	children: React.ReactNode | React.ReactNode[];
+}
+
 /**
  * The Wrapper React component.
  * @param props React props.
  */
-const PopoverWrapper: React.FC = (props) => {
+const PopoverWrapper: React.FC<React.PropsWithChildren<PopoverWrapperProps>> = (props) => {
 	const wrapperClasses = ['ui-popover__wrapper'];
 
 	if (props.className?.length) {

@@ -261,6 +261,34 @@ $btn-variants: (
 		--btn-gap: var(--btn-xl-gap, #{$default-btn-xl-gap});
 	}
 
+	&.btn-ghost,
+	&.btn-outlined-ghost {
+		background-color: transparent;
+		/*color: var(--site-fg, #aaa);*/
+		color: inherit;
+		border-color: transparent;
+
+		&:focus-visible {
+			box-shadow: 0 0 0 .25rem rgba(0 0 0 / .25);
+		}
+
+		&:hover:not(:disabled) {
+			background-color: rgba(0 0 0 / .0625);
+			/*color: var(--site-fg, #aaa);*/
+			color: inherit;
+		}
+
+	}
+
+	&.btn-outlined-ghost {
+
+		&:hover:not(:disabled) {
+			background-color: transparent;
+			border-color: rgba(0 0 0 / .25);
+		}
+
+	}
+
 }
 
 a.btn {
@@ -407,6 +435,35 @@ fieldset:disabled .btn {
 			--btn-border-radius: var(--btn-sm-border-radius, #{$default-btn-sm-border-radius});
 			--btn-icon: var(--btn-sm-icon, #{$default-btn-sm-icon});
 			--btn-gap: var(--btn-sm-gap, #{$default-btn-sm-gap});
+		}
+
+	}
+
+}
+
+@media (prefers-color-scheme: dark) {
+
+	.btn {
+
+		&.btn-ghost,
+		&.btn-outlined-ghost {
+
+			&:focus-visible {
+				box-shadow: 0 0 0 .25rem rgba(255 255 255 / .25);
+			}
+
+			&:hover:not(:disabled) {
+				background-color: rgba(255 255 255 / .0625);
+			}
+
+		}
+
+		&.btn-outlined-ghost {
+
+			&:hover:not(:disabled) {
+				border-color: rgba(255 255 255 / .25);
+			}
+
 		}
 
 	}

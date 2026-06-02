@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { AutoApi, ApiIncludes } from 'Api/ApiEndpoints';
-import { Content } from 'Api/Content';
-import { ApiList } from 'UI/Functions/WebRequest';
+import { AutoController } from 'Api/Startup';
+import { Content } from 'Api/Database';
+import { ApiList, ApiIncludes } from 'UI/Functions/WebRequest';
 import Loading from 'UI/Loading';
 
 
@@ -13,7 +13,7 @@ export type SelectInputType = React.SelectHTMLAttributes<HTMLSelectElement> & {
 	displayField?: string,
 	contentTypeValue?: string,
 	filter?: any,
-	onDisplay?: (c: Content) => React.ReactNode
+	onDisplay?: (c: Content<uint>) => React.ReactNode
 }
 
 // Registering 'select' as being available
@@ -24,7 +24,7 @@ declare global {
 }
 
 const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
-	const [options, setOptions] = useState<ApiList<Content> | null>(null);
+	const [options, setOptions] = useState<ApiList<Content<uint>> | null>(null);
 
 	const { field, validationFailure, onInputRef } = props;
 	let { onChange, contentType, noSelectionValue, clearable, children,
@@ -46,7 +46,7 @@ const Select: React.FC<CustomInputTypeProps<"select">> = (props) => {
 			return;
 		}
 
-		var api = module.default as AutoApi<Content, ApiIncludes>;
+		var api = module.default as AutoController<Content<uint>, uint>;
 		api.list(filter).then(setOptions);
 
 	}, [contentType, filter]);

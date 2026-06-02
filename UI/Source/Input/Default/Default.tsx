@@ -25,7 +25,7 @@ interface DefaultProps {
 const Default: React.FC<DefaultProps> = (props) => {
 	const { config, field, type } = props;
 	const { help, helpFieldId, validationFailure, icon, onInputRef } = config;
-	const { className, onChange, ...attribs } = field;
+	const { className, onChange: fieldOnChange, ...attribs } = field;
 	const id = config.id || field.id;
 
 	const fieldMarkup = (
@@ -35,7 +35,7 @@ const Default: React.FC<DefaultProps> = (props) => {
 			ref={(el) => onInputRef && onInputRef(el as HTMLElement)}
 			className={(className || "form-control ui-form-control") + (validationFailure ? ' is-invalid' : '')}
 			aria-describedby={help ? helpFieldId : undefined}
-			onInput={onChange}
+			onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 			{...attribs}
 		/>
 	);

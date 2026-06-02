@@ -7,8 +7,6 @@ import Dialog from 'UI/Dialog';
 import Button from 'UI/Button';
 import { useState, useEffect, useRef } from 'react'; 
 
-type ActionFunc<FieldType> = (fields: FieldType) => Promise<ResponseType>;
-
 type HTMLFormControlElement =
 	| HTMLInputElement
 	| HTMLTextAreaElement
@@ -18,7 +16,7 @@ type HTMLFormControlElement =
  * Props for the Form component.
  */
 interface FormProps<ResponseType, FieldType> extends React.HTMLAttributes<HTMLFormElement> {
-	action: ActionFunc<FieldType>,
+	action: (fields: FieldType) => Promise<ResponseType>,
 	resetOnSubmit?: boolean,
 	submitOnReset?: boolean,
 	failedMessage?: React.ReactNode,
@@ -31,14 +29,14 @@ interface FormProps<ResponseType, FieldType> extends React.HTMLAttributes<HTMLFo
 	md?: boolean,
 	lg?: boolean,
 	xl?: boolean,
-	formRef?: React.RefObject<HTMLFormElement>,
+	formRef?: React.RefObject<HTMLFormElement | null>,
 	className?: string,
+	autoComplete?: string,
 	showFailureDialog?: boolean,
 	onSuccess?: (response: ResponseType) => void,
 	onFailed?: (e: PublicError) => void,
-	onValues?: (values: FieldType, setAction: (newAction: ActionFunc<FieldType>) => void) => FieldType | Promise<FieldType>,
-	onSubmitted?: (values: FieldType) => void,
-	onInvalidCapture?: (e: React.FormEvent<HTMLFormControlElement>) => void,
+	onValues?: (values: FieldType, setAction: (newAction: (fields: FieldType) => Promise<ResponseType>) => void) => FieldType | Promise<FieldType>,
+	onSubmitted?: (values: FieldType) => void
 }
 
 /**
@@ -60,7 +58,6 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 		onSubmitted,
 		onSuccess,
 		onFailed,
-		onInvalidCapture,
 		formRef,
 		showFailureDialog,
 		onValues,
@@ -101,7 +98,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 			let _action = action;
 
 			if (onValues) {
-				const result = onValues(values, (newAction: ActionFunc<FieldType>) => {
+				const result = onValues(values, (newAction: (fields: FieldType) => Promise<ResponseType>) => {
 					_action = newAction;
 				});
 				values = result instanceof Promise ? await result : result;
@@ -141,9 +138,9 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 	let failureMessage = failed ? (failed.message || failedMessage) : undefined;
 	var showFormResponse = !!(loadingMessage || submitLabel || failedMessage);
 	var submitDisabled = loading || (submitEnabled !== undefined && submitEnabled != true);
-
-	const sizes = ['xs', 'sm', 'md', 'lg', 'xl'];
 	const formClasses = ['form', 'ui-form'];
+
+	const sizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 
 	sizes.forEach(size => {
 		if (props[size]) {
@@ -157,7 +154,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 
 	return <>
 		{showFailureDialog && <>
-			<Dialog title={`Warning`} isOpen={showFormResponse && failureMessage} onClose={() => setFailed(null)}>
+			<Dialog title={`Warning`} isOpen={showFormResponse && !!failureMessage} onClose={() => setFailed(null)}>
 				{failureMessage}
 				<Dialog.Footer>
 					<Button onClick={() => setFailed(null)}>
@@ -170,7 +167,6 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 			className={formClasses.join(' ')}
 			onSubmit={onSubmit}
 			onReset={onReset}
-			onInvalidCapture={onInvalidCapture}
 			ref={internalFormRef}
 			method={"post"}
 			{...attribs}

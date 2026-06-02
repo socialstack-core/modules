@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { ApiIncludes } from 'Api/Includes';
-import { ListFilter, Content } from 'Api/Content'
-import { ApiList } from 'UI/Functions/WebRequest';
+import { ListFilter } from 'Api/Startup';
+import { Content } from 'Api/Database';
+import { ApiList, ApiIncludes } from 'UI/Functions/WebRequest';
+import Button from 'UI/Button';
 
 export type SearchProps<T extends Content<uint>> = {
     startHidden?: boolean;
     value?: string;
     minLength?: number;
     exclude?: uint[];
-    includes?: ApiIncludes;
+    includes?: ApiIncludes[];
     field?: string;
     limit?: number;
     onResults?: (results: T[]) => void;
@@ -16,14 +17,14 @@ export type SearchProps<T extends Content<uint>> = {
     onFind?: (result: T) => void;
     // this should render some DOM when called
     // the usage in the component is an LTR op. 
-    onRender?: (result: T) => React.ReactElement | void;
+    onRender?: (result: T) => React.ReactNode;
     placeholder?: string;
     searchText?: string;
     name?: string;
     className?: string;
     inputClassName?: string;
     'data-theme'?: string;
-    endpoint?: (filter?: ListFilter, includes?: ApiIncludes) => Promise<ApiList<T>>;
+    endpoint?: (filter: ListFilter, includes?: ApiIncludes[]) => Promise<ApiList<T>>;
     onInput?: (value: string) => void,
 	onNoResults?: () => React.ReactNode
 };
@@ -73,7 +74,9 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
             setResults(null);
 			props?.onQuery?.({
 				query: field + ' contains ?',
-				args: [query]
+                args: [query],
+                pageSize: 1000 as uint,
+                pageIndex: 0 as uint
 			}, query)
             return;
         }
@@ -87,7 +90,9 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
         
         var filter : ListFilter = {
             query: field + " contains ?",
-            args: [query]
+            args: [query],
+            pageSize: 100 as int,
+            pageIndex: 0 as int
         };
 
         const { includes } = props;
@@ -179,16 +184,10 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
                 <div className={`suggestions ${dropUp ? 'suggestions-up' : ''}`} ref={suggestionsRef}>
                     {results.length ? (
                         results.map((result, i) => (
-                            <button
-                                type="button"
-                                key={i}
-                                onMouseDown={() => selectValue(result)}
-                                className="btn suggestion"
-                            >
+                            <Button key={i} onMouseDown={() => selectValue(result)} className="suggestion">
                                 {/* Customize the display of the result here */}
                                 {result && renderResult(result as any)}
-
-                            </button>
+                            </Button>
                         ))
                     ) : (
                         onNoResults()

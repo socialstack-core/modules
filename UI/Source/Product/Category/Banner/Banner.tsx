@@ -23,10 +23,12 @@ const Banner: React.FC<BannerProps> = (props) => {
 		return;
 	}
 
-	const featureInfo = category.featureRef ? fileRef.parse(category.featureRef) : {};
+	const featureInfo = category.featureRef ? fileRef.parse(category.featureRef) : { focalX: 50, focalY: 50 };
+	const focalX = featureInfo?.focalX || 50;
+	const focalY = featureInfo?.focalY || 50;
 	const backgroundStyle = category.featureRef ? {
 		backgroundImage: `url(${fileRef.getUrl(category.featureRef)})`,
-		backgroundPosition: `${featureInfo.focalX}% ${featureInfo.focalY}%`
+		backgroundPosition: `${focalX}% ${focalY}%`
 	} : {};
 
 	return (

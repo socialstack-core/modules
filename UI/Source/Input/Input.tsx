@@ -1,20 +1,22 @@
-import Default from 'UI/Input/Default';
+// import Default from 'UI/Input/Default';
 import { useState, useEffect } from 'react';
 
 var gId = 1;
 var inputTypes = window.inputTypes;
 
-type InputProps<T extends keyof InputPropsRegistry> = InputPropsRegistry[T] & {
+export type InputProps<T extends keyof InputPropsRegistry> = InputPropsRegistry[T] & {
 	type: T;
+	id?: string;
 	onValidationFailure?: (er: PublicError) => React.ReactNode;
 	noWrapper?: boolean;
-	validate?: string[];
+	validate?: (string | ((input: string | boolean) => PublicError | undefined))[];
 	groupClassName?: string;
 	labelPosition?: 'above' | 'below';
 	validateErrorLocation?: 'above' | 'below';
 	helpPosition?: 'above' | 'below';
 	contentType?: string;
 	inline?: boolean;
+	required?: boolean;
 	autoFocus?: boolean;
 	hideRequiredStar?: boolean;
 	label?: React.ReactNode;
@@ -54,14 +56,13 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 		onBlur,
 		onChange,
 		onInputRef,
+		onCanvasChange,
 		...customAttribs // InputProps
 	} = props;
 
-	let field = customAttribs as InputPropsRegistry[T];
+	let field: InputPropsRegistry[T] = (customAttribs as any) as InputPropsRegistry[T];
 
-	let {
-		id
-	} = customAttribs;
+	let id = props.id;
 
 	const [fieldId] = useState(() => 'form-field-' + (gId++));
 	const [validationFailure, setValidationFailure] = useState<PublicError | null>(null);
@@ -97,7 +98,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 		const skipTypes = ['radio', 'checkbox', 'button', 'submit', 'reset'];
 
 		// no label available
-		if (!label || !label.length) {
+		if (!label || (typeof label == "string" && !label.length)) {
 			return null;
 		}
 
@@ -269,7 +270,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 
 		if (type == 'canvas') {
 
-			Handler = inputTypes['canvas'] as React.FC<CustomInputTypeProps<T> & { onCanvasChange?: (source: string) => void }>
+			Handler = inputTypes['canvas'] as React.FC<CustomInputTypeProps<T>>;
 
 			return <Handler
 				setValidationFailure={setValidationFailure}
@@ -284,7 +285,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 				onInputRef={setRef}
 				onChange={props.onChange}
 				onCanvasChange={props.onCanvasChange}
-				required={field.required}
+				required={props.required}
 				validate={props.validate}
 			/>;
 		} else {
@@ -300,7 +301,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 				inputRef={inputRef}
 				onInputRef={setRef}
 				onChange={props.onChange}
-				required={field.required}
+				required={props.required}
 				validate={props.validate}
 			/>;
 		}

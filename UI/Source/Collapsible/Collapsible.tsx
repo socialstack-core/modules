@@ -1,5 +1,6 @@
 import Dropdown, { DropdownItem } from 'UI/Dropdown';
 import Input from 'UI/Input';
+import Button from 'UI/Button';
 import { useState } from 'react';
 
 /**
@@ -230,9 +231,10 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 		if (e.defaultPrevented) {
 			return;
 		}
-		var name = (e.target as HTMLElement).nodeName;
+		const htmlTarget = e.target as HTMLElement;
+		var name = htmlTarget.nodeName;
 
-		if (name == 'DIALOG' || e.target.closest("dialog")) {
+		if (name == 'DIALOG' || htmlTarget.closest("dialog")) {
 			e.preventDefault();
 			e.stopPropagation();
 			return;
@@ -313,7 +315,7 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 					</span>}
 					{props.buttons?.map(button => {
 							var variant = button.variant || 'primary';
-							var btnClass = 'btn btn-sm btn-outline-' + variant;
+							var btnClass = 'btn ui-btn btn-sm btn-outline-' + variant;
 
 							// split button
 							if (button.children && button.children.length) {
@@ -331,12 +333,12 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 
 							// standard button
 							if (button.onClick instanceof Function) {
-								return <button type="button" className={btnClass} onClick={button.onClick} title={button.text} disabled={button.disabled}>
+								return <Button className={btnClass} onClick={button.onClick} title={button.text} disabled={button.disabled}>
 									{button.icon}
 									<span className={button.showLabel ? '' : 'sr-only'}>
 										{button.text}
 									</span>
-								</button>;
+								</Button>;
 							}
 
 							return <a href={button.onClick} className={btnClass} title={button.text} target={button.target}>

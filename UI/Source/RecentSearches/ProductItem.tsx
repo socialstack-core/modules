@@ -2,6 +2,7 @@ import { Product } from "Api/Product";
 import Image from 'UI/Image';
 import Link from 'UI/Link';
 import ProductQuantity from "UI/Payments/ProductQuantity";
+// @ts-ignore
 import defaultImageRef from './image_placeholder.png';
 
 /**
@@ -57,10 +58,8 @@ const RecentSearchProductItem: React.FC<RecentSearchProductItemProps> = (
     const { product, existingQty = 0, onAddToCart } = props;
     
     return (
-        <div className={'recent-searches-product-item'}>
-            <Link
-                href={product.slug!}
-            >
+        <div className="recent-searches-product-item">
+            <Link href={product.slug!}>
                 {/* Product thumbnail (placeholder) */}
                 <Image fileRef={defaultImageRef} />
     
@@ -70,7 +69,7 @@ const RecentSearchProductItem: React.FC<RecentSearchProductItemProps> = (
             {/* Quantity selector (display only; no handler wired up yet) */}
             <ProductQuantity
                 product={product}
-                quantity={existingQty}
+                quantity={existingQty as int}
             />
         </div>
     );

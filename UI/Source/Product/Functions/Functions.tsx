@@ -1,4 +1,5 @@
 import { Product } from 'Api/Product';
+import { PriceCurrency } from 'Api/Payments';
 import { Price } from 'Api/Price';
 
 /**
@@ -7,7 +8,7 @@ import { Price } from 'Api/Price';
  * @returns array of pricing tiers
  */
 function getPriceTiers(product: Product) {
-	var tiers = [];
+	var tiers : PriceCurrency[] = [];
 
 	if (product?.calculatedPrice) {
 		var calculatedPrice = product.calculatedPrice;
@@ -28,21 +29,19 @@ function getPriceTiers(product: Product) {
  * @param currentQuantity
  * @returns matching price tier index
  */
-function getPriceTierForQuantity(product: Product, currentQuantity: Number) {
+function getPriceTierForQuantity(product: Product, currentQuantity: number) {
 	const priceTiers = getPriceTiers(product);
 
 	// default if no tier matches
-	let matchedIndex: Number = 0;
+	let matchedIndex: int = 0 as int;
 
-	priceTiers.forEach((tier: Price, index: Number) => {
-
+	priceTiers.forEach((tier: PriceCurrency, index: number) => {
 		if (currentQuantity >= tier.minimumQuantity) {
-			matchedIndex = index;
+			matchedIndex = index as int;
 		}
-
 	});
 
-	return matchedIndex;
+	return matchedIndex as int;
 }
 
 /**

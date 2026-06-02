@@ -1,9 +1,10 @@
 import Loading from 'UI/Loading';
+import Button from 'UI/Button';
 import CardForm from 'UI/Payments/CardForm';
 import {isoConvert} from 'UI/Functions/DateTools';
 import { useState, useEffect } from 'react';
 import paymentMethodApi, { PaymentMethod } from 'Api/PaymentMethod';
-import Default, { DefaultInputType } from 'UI/Input/Default';
+import { DefaultInputType } from 'UI/Input/Default';
 import { useSession } from 'UI/Session';
 
 type PaymentInputType = DefaultInputType & {
@@ -123,11 +124,9 @@ const PaymentGateway: React.FC<CustomInputTypeProps<"payment">> = (props) => {
 	return <>
 		<CardForm fieldName={field.name} readonly last4={selectedMethod.name} issuer={selectedMethod.issuer} expiry={selectedMethod.expiryUtc} paymentMethodId={selectedMethod.id} />
 		<center style={{padding: '1rem'}}>
-			<button onClick={() => {
-				setSelectedMethod(undefined);
-			}} className="btn btn-secondary">
+			<Button variant="secondary" onClick={() => setSelectedMethod(undefined)}>
 				{`Use a different card`}
-			</button>
+			</Button>
 		</center>
 	</>;
 }

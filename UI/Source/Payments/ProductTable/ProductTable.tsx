@@ -1,12 +1,12 @@
 import { formatCurrency } from "UI/Functions/CurrencyTools";
 import Alert from 'UI/Alert';
+import { Product, LineItem } from 'Api/Payments';
 import { recurrenceText } from 'UI/Functions/Payments';
 import BasketItem from 'UI/Product/BasketItem';
-import { ShoppingCart } from 'Api/ShoppingCart';
-import CartTotal from 'UI/Payments/CartTotal';
+import CartTotal, { PartialCart } from 'UI/Payments/CartTotal';
 import ProductPrice from "UI/Product/Price";
-import { PriceCurrency } from "Api/Content";
 import Quantity from "UI/Product/Quantity";
+//import Button from 'UI/Button';
 
 /**
  * Props for the ProductTable component.
@@ -15,7 +15,7 @@ interface ProductTableProps {
 	/**
 	 * basket contents
 	 */
-	shoppingCart: ShoppingCart,
+	shoppingCart: PartialCart,
 
 	/** 
 	 * set true if exclusive of VAT
@@ -33,6 +33,11 @@ interface ProductTableProps {
 	tableFormat?: boolean
 }
 
+export type ExtendedLineItem = LineItem & {
+	id?: uint,
+	product: Product
+};
+
 /**
  * The ProductTable React component.
  * @param props React props.
@@ -41,7 +46,7 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 	var { shoppingCart, readOnly, lessTax, tableFormat } = props;
 	var pricedCart = shoppingCart?.cartContents;
 
-	if (!pricedCart || !pricedCart.contents.length) {
+	if (!pricedCart || !pricedCart.contents?.length) {
 		return <Alert type="info">
 			{readOnly ? <>
 				{`This purchase is empty`}
@@ -78,7 +83,8 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 						</tr>
 					</thead>
 					<tbody>
-						{itemSet.map(lineItem => {
+						{itemSet?.map(item => {
+							const lineItem = item as ExtendedLineItem;
 							var product = lineItem.product;
 
 							// subscription
@@ -91,10 +97,10 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 							const totalAmount = lessTax ? lineItem.totalLessTax : lineItem.total;
 
 							return <>
-								<tr key={String(lineItem.id)}>
+								<tr key={String(lineItem.id || lineItem.productQuantityId)}>
 									<td>{product?.sku}</td>
 									<td>{product?.name}</td>
-									<td>{lineItem.product?.primaryCategory?.name ?? "-"}</td>
+									<td>{product?.primaryCategory?.name ?? "-"}</td>
 									{/*
 									<td className="ui-table__col--currency ui-table__col--right">
 										<ProductPrice
@@ -120,7 +126,6 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 										<ProductPrice
 											product={product}
 											currentPriceOnly={true}
-											compact={true}
 											override={{
 												currencyCode: currencyCode ?? "GBP",
 												amount: totalAmount
@@ -133,14 +138,15 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 					</tbody>
 				</table>
 			</div>
-			<CartTotal shoppingCart={shoppingCart} lessTax={lessTax} hideCTAs={true} />
+			<CartTotal shoppingCart={shoppingCart} hideCTAs={true} />
 		</>;
 	}
 
 	return <>
 		<ul className="shopping-cart__table">
 
-			{itemSet.map(lineItem => {
+			{itemSet.map(item => {
+				const lineItem = item as ExtendedLineItem;
 				var product = lineItem.product;
 
 				// subscription
@@ -167,12 +173,12 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 							{formattedCost}
 						</td>
 						{!readOnly && <td className="actions-column">
-							<button type="button" className="btn btn-small btn-outline-danger" title={`Remove`}
+							<Button sm outlined variant="danger" title={`Remove`}
 								onClick={() => {
 									addToCart(product.id, 0)
 								}}>
 								<Icon type='fa-trash' />
-							</button>
+							</Button>
 						</td>}
 					</li>;
 					*/}
@@ -183,7 +189,7 @@ const ProductTable: React.FC<ProductTableProps> = (props) => {
 					<BasketItem content={product}
 						disableLink={false} // prevent clicking to view product details - potentially allow this, but open in a new window?
 						priceOverride={{
-							currencyCode: currencyCode,
+							currencyCode: currencyCode || '',
 							amount: lessTax ? lineItem.totalLessTax : lineItem.total
 						}}
 						qtyOverride={lineItem.quantity}

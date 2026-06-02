@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = (props) => {
 				{currentVariant?.name || product.name}
 			</h1>
 
-			{role?.canViewAdmin && (product?.notes || currentVariant?.notes) && (
+			{role?.canViewAdmin && currentVariant && (product?.notes || currentVariant.notes) && (
 				<ProductNotes product={product} variant={currentVariant}/>
 			)}
 
@@ -58,7 +58,7 @@ const ProductNotes: React.FC<{ product: Product, variant: Product }> = (props) =
 	const MAX_LENGTH = 200;
 
 	const renderNotes = (
-		notes: string | undefined,
+		notes: string | undefined | null,
 		showMore: boolean,
 		setShowMore: React.Dispatch<React.SetStateAction<boolean>>
 	) => {
@@ -71,11 +71,7 @@ const ProductNotes: React.FC<{ product: Product, variant: Product }> = (props) =
 			<p className="ui-product-header__note-text">
 				{displayText}
 				{isLong && (
-					<Button
-						type="button"
-						className="ui-product-header__show-more"
-						onClick={() => setShowMore((prev) => !prev)}
-					>
+					<Button className="ui-product-header__show-more" onClick={() => setShowMore((prev) => !prev)}>
 						{showMore ? "Show less" : "Show more"}
 					</Button>
 				)}
@@ -87,7 +83,7 @@ const ProductNotes: React.FC<{ product: Product, variant: Product }> = (props) =
 		<div className="ui-product-header__notes">
 			<h2 className="ui-product-header__notes-title">
 				<i className="fr fr-information-circle" />
-				Notes
+				{`Notes`}
 			</h2>
 
 			{renderNotes(product?.notes, showMoreProductNotes, setShowMoreProductNotes)}
@@ -96,11 +92,11 @@ const ProductNotes: React.FC<{ product: Product, variant: Product }> = (props) =
 	);
 };
 
-const ProductPricing: React.FC<{ product: Product, locale: Locale, lessTax: boolean }> = (props) => {
+const ProductPricing: React.FC<{ product: Product, locale?: Locale, lessTax?: boolean }> = (props) => {
 	const { product, locale, lessTax } = props;
 	const priceTiers = getPriceTiers(product);
 
-	if (!priceTiers || priceTiers.length <= 1) {
+	if (!priceTiers || priceTiers.length <= 1 || !locale) {
 		return;
 	}
 
@@ -120,7 +116,7 @@ const ProductPricing: React.FC<{ product: Product, locale: Locale, lessTax: bool
 				</tr>
 			</thead>
 			<tbody>
-				{priceTiers.map((tier, i) => {
+				{priceTiers.map((tier, i: number) => {
 					const isLastTier = (i + 1 == priceTiers.length);
 					const from = Math.max(tier.minimumQuantity, 1);
 					const to = isLastTier ? ` or more` : priceTiers[i + 1].minimumQuantity - 1;

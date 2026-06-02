@@ -93,6 +93,42 @@ $paginator_justify_content: center;
 		}
 
 	}
+
+	.pagination {
+
+		.ui-btn {
+			border-radius: 0;
+			background: var(--primary-fg);
+			color: var(--primary);
+			padding: 0;
+			aspect-ratio: 1;
+			border-color: #dee2e6;
+
+			&:hover {
+				background: #e9ecef;
+			}
+		}
+
+		> li {
+
+			&:first-child .ui-btn {
+				border-top-left-radius: .25rem;
+				border-bottom-left-radius: .25rem;
+			}
+
+			&:last-child .ui-btn {
+				border-top-right-radius: .25rem;
+				border-bottom-right-radius: .25rem;
+			}
+
+			&.active .ui-btn {
+				background: var(--primary);
+				color: var(--primary-fg);
+			}
+
+		}
+
+	}
 	
 }
 

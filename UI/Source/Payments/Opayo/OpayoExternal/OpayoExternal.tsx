@@ -22,7 +22,7 @@ const OpayoExternal: React.FC<OpayoExternalProps> = (props) => {
         disabled
 	} = props;
 
-	var paymentGateways = global.paymentGateways = global.paymentGateways || {};
+	var paymentGateways = globalThis.paymentGateways = globalThis.paymentGateways || {};
 
 	useEffect(() => {
 		if (!paymentMethod || paymentGateways.hostedPageEnabled) {

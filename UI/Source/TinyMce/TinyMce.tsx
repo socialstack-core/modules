@@ -1,11 +1,22 @@
-﻿import {lazyLoad} from 'UI/Functions/WebRequest';
-import tinyMceRef from './static/tinymce.min.js';
+import { lazyLoad } from 'UI/Functions/WebRequest';
+// @ts-ignore
+import tinyMceRef from './static/tinymce.min.js'; // Imports as a URL-like string
 import {getUrl} from 'UI/FileRef';
-import {PublicError} from "UI/Failed";
+import { PublicError } from "UI/Failed";
+import { DefaultInputType } from "UI/Input/Default";
 import { useEffect, useRef, useState } from 'react';
-import themeRef from './static/themes/socialstack.css';
+// @ts-ignore
+import themeRef from './static/themes/socialstack.css'; // Imports as a URL-like string
+import { EditorConfig, TinyMCE, Editor } from './editor.js';
 
-// Root placeholder component - renders as root-content in TinyMCE
+type TinyMceInputType = DefaultInputType & TinyMceProps;
+
+declare global {
+	interface InputPropsRegistry {
+		'html': TinyMceInputType,
+		'htmlstring': TinyMceInputType
+	}
+}
 
 inputTypes.html = function (props) {
 	const { field } = props;
@@ -30,6 +41,11 @@ interface TinyMceProps {
 	 * true if menu bar should be hidden
 	 */
 	showMenubar?: boolean,
+
+	/**
+	 * Initial value to populate the editor with (HTML)
+	 */
+	defaultValue?: string,
 
 	/**
 	 * menu item options
@@ -119,27 +135,32 @@ interface TinyMceProps {
 	/**
 	 * true if editor should be resizable (true, false or "both")
 	 */
-	resizable?: string | boolean,
+	resizable?: "both" | boolean,
 
 	/**
 	 * plugins
 	 */
-	plugins: string,
+	plugins?: string,
 
 	/**
 	 * mentions lookup URL
 	 */
-	mentionsLookupUrl: string,
+	mentionsLookupUrl?: string,
 
 /**
 	 * mentions query
 	 */
-	mentionsQuery: string,
+	mentionsQuery?: string,
 
 	/**
 	 * true if editor should allow react-component elements
 	 */
-	allowsReact?: boolean
+	allowsReact?: boolean,
+
+	onSetup?: (editor: Editor) => void,
+	onChange?: (evt: any) => void,
+
+	required?: boolean | string
 }
 
 const TinyMce: React.FC<TinyMceProps> = props => {
@@ -188,7 +209,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 	// if document.body is undefined, we're on server-side rendering for the main UI front-end;
 	// if document.body is defined, check for the "admin" class on the HTML tag to differentiate between admin / UI
-	const TINYMCE_DEFAULTS = document?.body?.parentElement.classList.contains("admin") ? TINYMCE_DEFAULTS_ADMIN : TINYMCE_DEFAULTS_UI;
+	const TINYMCE_DEFAULTS = document?.body?.parentElement?.classList.contains("admin") ? TINYMCE_DEFAULTS_ADMIN : TINYMCE_DEFAULTS_UI;
 
 	const {
 		toolbar = TINYMCE_DEFAULTS['toolbar'],
@@ -215,10 +236,10 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		...otherProps
 	} = props;
 
-	const textareaRef = useRef(null);
-	const editorRef = useRef(null);
-	const [editor, setEditor] = useState(null);
-	const timeoutRef = useRef(null);
+	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+	const editorRef = useRef<any | null>(null);
+	const [editor, setEditor] = useState<any | null>(null);
+	const timeoutRef = useRef<number | undefined>(undefined);
 
 	useEffect(() => {
 
@@ -228,20 +249,20 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 		const textarea = textareaRef.current;
 		const doc = textarea.ownerDocument;
-		const win = doc.defaultView || doc.parentWindow;
-		let tinyMceUrl = getUrl(tinyMceRef);
+		const win = doc.defaultView || ((doc as any).parentWindow as Window);
+		let tinyMceUrl = getUrl(tinyMceRef as string) || '';
 
 		// Cordova fix
 		if (tinyMceUrl[0] !== '/') {
 			tinyMceUrl = './' + tinyMceUrl;
 		}
 
-		lazyLoad(tinyMceUrl, win).then(imported => {
-			const tinymce = win.tinymce;
+		lazyLoad(tinyMceUrl).then((imported:any) => {
+			const tinymce: TinyMCE = (win as any).tinymce as TinyMCE;
 			tinymce.baseURL = tinyMceUrl.replace(/\/tinymce\.min\.js/gi, '');
 			tinymce.suffix = '.min';
 			return initEditor(textarea, tinymce);
-		}).then(editors => {
+		}).then((editors:any) => {
 			editorRef.current = editors[0];
 			setEditor(editors[0]);
 		});
@@ -255,42 +276,34 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		};
 	}, []);
 
-	const omit = (obj, fields) => {
-		const out = {}
-
-		Object.keys(obj).forEach(key => {
-			if (fields.includes(key)) {
-				return;
-			}
-			out[key] = obj[key];
-		})
-		return out;
-	};
-
-	const isValidUrl = (string) => {
+	const isValidUrl = (str: string) => {
 		try {
-			const url = new URL(string);
+			const url = new URL(str);
 			return true;
 		} catch (err) {
 			return false;
 		}
 	};
 
-	const initEditor = (target, tinymce) => {
-		const contentCss = [getUrl(themeRef)];
+	const initEditor = (target: HTMLTextAreaElement, tinymce: TinyMCE) => {
+		const contentCss: string[] = [];
+		const themeUrl = getUrl(themeRef as string);
+		themeUrl && contentCss.push(themeUrl);
+
 		const parentLinks = document?.querySelectorAll('link[rel="stylesheet"]');
 		parentLinks.forEach((link) => {
-			if (link.href.includes('main.css')) {
-				contentCss.push(link.href);
+			const anchor = (link as HTMLAnchorElement);
+			if (anchor.href.includes('main.css')) {
+				contentCss.push(anchor.href);
 			}
 		});
 
-	const getScrollParent = (node) => {
-		if (node === null || node === document.body) {
+	const getScrollParent = (node: HTMLElement | null) => {
+		if (!node || node === document.body) {
 			return window;
 		}
 
-		const isScrollable = (el) => {
+		const isScrollable = (el: HTMLElement) => {
 			const style = window.getComputedStyle(el);
 			const overflowY = style.getPropertyValue('overflow-y') || style.getPropertyValue('overflow');
 			const hasScrollStyle = /(auto|scroll)/.test(overflowY);
@@ -302,13 +315,13 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		if (isScrollable(node)) {
 			return node;
 		} else {
-			return getScrollParent(node.parentNode);
+			return getScrollParent(node.parentElement);
 		}
 	};
 
-	const dockEditorHeader = (editor) => {
-		const container = editor.getContainer();
-		const header = container?.querySelector('.tox-editor-header');
+	const dockEditorHeader = (editor: any) => {
+		const container = editor.getContainer() as HTMLElement;
+		const header = container?.querySelector('.tox-editor-header') as HTMLElement;
 
 		if (!container || !header) {
 			return;
@@ -321,7 +334,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		const updateHeaderStyles = () => {
 			const rect = container.getBoundingClientRect();
 			const scrollParent = getScrollParent(container);
-			const scrollParentDistance = scrollParent == window ? window.scrollY : scrollParent.scrollTop;
+			const scrollParentDistance = scrollParent == window ? window.scrollY : (scrollParent as HTMLElement).scrollTop;
 
 			if (rect.width > 0) {
 				header.style.position = 'fixed';
@@ -357,7 +370,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		});
 	};
 
-	const hasLoadingDiv = (parent) => {
+	const hasLoadingDiv = (parent : HTMLElement) => {
 
 		if (!parent) {
 			return false;
@@ -367,7 +380,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		return firstElement?.nodeName == "DIV" && firstElement.classList.contains("loading");
 	};
 
-	const config = {
+	const config: EditorConfig = {
 			target,
 			toolbar,
 			promotion: false,
@@ -376,7 +389,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			autoresize_overflow_padding: 0,
 			selection_toolbar_sticky: true,
 			scroll_into_view_on_focus: false,
-			statusbar: showElementPath || showWordCount || resizable,
+			statusbar: showElementPath || showWordCount || !!resizable,
 			elementpath: showElementPath,
 			resize: resizable,
 
@@ -387,14 +400,13 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			mentionsLookupUrl,
 			mentionsQuery,
 
-			branding: false,
 			content_css: contentCss,
 
 			contextmenu: props.contextMenu,
 
 			schema: props.allowsReact ? 'html5' : undefined,
 			automatic_uploads: true,
-			images_upload_handler: (blobInfo, progress) => new Promise((resolve, failure) => {
+			images_upload_handler: (blobInfo:any, progress: (val:number) => void) => new Promise((resolve, failure) => {
 				const xhr = new XMLHttpRequest();
 				var ep = props.uploadEndpoint || "upload/create";
 				var apiUrl = (window as any).ingestUrl || (window as any).apiHost || '';
@@ -426,7 +438,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 					var location = getUrl(json.result?.ref);
 
 					// This 'location' string is what gets inserted into the src/data attribute
-					resolve(location);
+					resolve(location || '');
 				};
 
 				xhr.onerror = () => {
@@ -447,16 +459,16 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 			formats: props.allowsReact ? {
 				reactComponent: {
-					tag_names: ['react-component'],
+					block: 'react-component',
 					attributes: ['data-name', 'data-props', 'contenteditable', 'data-mounted', 'class']
 				},
 				rootContent: {
-					tag_names: ['root-content'],
+					block: 'root-content',
 					attributes: ['data-name', 'data-props', 'contenteditable', 'data-placeholder', 'class']
 				}
 			} : undefined,
 
-			setup: (editor) => {
+			setup: (editor: Editor) => {
 				props.onSetup && props.onSetup(editor);
 
 				editor.on('init', () => {
@@ -469,8 +481,8 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 							return;
 						}
 
-						const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-						const reactComponent = iframeDoc?.body.querySelector("react-component");
+						const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+						const reactComponent = iframeDoc?.body.querySelector("react-component") as HTMLElement;
 
 						if (!hasLoadingDiv(reactComponent)) {
 							dockEditorHeader(editor);
@@ -494,7 +506,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 				});
 
-				editor.on('Paste Change input Undo Redo', (e) => {
+				editor.on('Paste Change input Undo Redo', (e: any) => {
 					if (onChange) {
 						clearTimeout(timeoutRef.current);
 						timeoutRef.current = setTimeout(() => {
@@ -632,7 +644,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			// If this option is set to false, the protocol and host of the document_base_url is added for relative links.
 			config.remove_script_host = true;
 
-			config.urlconverter_callback = (url, node, on_save, name) => {
+			config.urlconverter_callback = (url: string, node: any, on_save: any, name: string) => {
 				// Guard against non-string values (null, undefined, etc.)
 				if (typeof url !== 'string' || !url) {
 					return url;
@@ -693,7 +705,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 					*/
 
 					input.onchange = function () {
-						const file = this.files[0];
+						const file = (this as HTMLInputElement).files![0];
 						const reader = new FileReader();
 
 						reader.onload = function () {
@@ -703,13 +715,16 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 							  necessary, as we are looking to handle it internally.
 							*/
 							const id = 'blobid' + (new Date()).getTime();
-							const blobCache = tinymce.activeEditor.editorUpload.blobCache;
-							const base64 = reader.result.split(',')[1];
-							const blobInfo = blobCache.create(id, file, base64);
-							blobCache.add(blobInfo);
+							const blobCache = tinymce.activeEditor?.editorUpload.blobCache;
+							const base64 = (reader.result as string)?.split(',')[1];
+							const blobInfo = blobCache?.create(id, file, base64);
 
-							// call the callback and populate the Title field with the file name
-							cb(blobInfo.blobUri(), { title: file.name });
+							if (blobInfo) {
+								blobCache?.add(blobInfo);
+
+								// call the callback and populate the Title field with the file name
+								cb(blobInfo.blobUri(), { title: file.name });
+							}
 						};
 
 						reader.readAsDataURL(file);
@@ -820,7 +835,8 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 	useEffect(() => {
 		if (textareaRef.current) {
 
-			textareaRef.current.onGetValue = (val, ele) => {
+			// @ts-ignore
+			textareaRef.current.onGetValue = (val: string, ele: HTMLElement) => {
 				if (ele === textareaRef.current && editor) {
 					const htmlContent = editor.getContent();
 
@@ -829,7 +845,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 					}
 
 					if (typeof required === 'string') {
-						var mtd = require("UI/Functions/Validation/" + valType).default;
+						var mtd = require("UI/Functions/Validation/" + required).default;
 						var error = mtd(htmlContent);
 
 						if (error) {
@@ -846,13 +862,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 	return (
 		<textarea className="form-control ui-form-control textarea--tinymce"
 			ref={textareaRef}
-
-			// reason for this:
-			// the required attribute requires the textarea to be focusable, when "display: none" is in effect
-			// it isn't focusable, "display:none" happens due to tinymce, so instead I've omitted
-			// the required attribute, and handled it the same way the common Input component handles it
-			// @see https://stackoverflow.com/questions/22148080/an-invalid-form-control-with-name-is-not-focusable	
-			{...omit(otherProps, ['required'])}
+			{...otherProps}
 		/>
 	);
 }

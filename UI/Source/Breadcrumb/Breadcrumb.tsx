@@ -1,5 +1,6 @@
 import Link from 'UI/Link';
 import Help from 'UI/Help';
+import PromotionCycler, { InlinePromotion } from 'UI/PromotionCycler';
 
 export type Crumb = {
 	name: string,
@@ -19,7 +20,17 @@ interface BreadcrumbProps {
 
 	crumbs?: Crumb[],
 
-	help?: HtmlString
+	help?: HtmlString,
+
+	/**
+	 * Promotions info
+	 * (as of April 2026, only used by UI/Products/View)
+	 */
+	promotions?: InlinePromotion[],
+	currentProductId?: int,
+	currentProductPriceInPence?: int,
+	currentCategoryId?: int,
+	currentCategoryBreadcrumbs?: any[]
 }
 
 /**
@@ -27,7 +38,11 @@ interface BreadcrumbProps {
  * @param props React props.
  */
 const Breadcrumb: React.FC<BreadcrumbProps> = (props) => {
-	const { includeCurrent, crumbs, currentLabel, help } = props;
+	const {
+		includeCurrent, crumbs, currentLabel, help,
+		promotions, currentProductId, currentProductPriceInPence,
+		currentCategoryId, currentCategoryBreadcrumbs
+	} = props;
 
 	if (!crumbs) {
 		return null;
@@ -56,9 +71,10 @@ const Breadcrumb: React.FC<BreadcrumbProps> = (props) => {
 				</li>
 			</>}
 		</menu>
-		{help?.length > 0 && <>
+		{!!help && <>
 			<Help content={help} />
 		</>}
+		{promotions && promotions.length > 0 && <PromotionCycler promotions={promotions} currentProductId={currentProductId} currentProductPriceInPence={currentProductPriceInPence} currentCategoryId={currentCategoryId} currentCategoryBreadcrumbs={currentCategoryBreadcrumbs} />}
 	</nav>;
 }
 

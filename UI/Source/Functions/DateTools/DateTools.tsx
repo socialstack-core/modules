@@ -1,3 +1,8 @@
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = MINUTE_MS * 60;
+const DAY_MS = HOUR_MS * 24;
+const WEEK_MS = 7 * DAY_MS;
+
 /**
  * Date ordinal for the given index. e.g. 1 is '1st', 2 is '2nd' etc.
  * @param i
@@ -289,7 +294,47 @@ function isSameDay(d1: Date, d2: Date) {
 		d1.getUTCDate() === d2.getUTCDate();
 }
 
+/**
+ * Returns a text description of the duration between two given dates (e.g. "3 weeks, 1 day, 14 minutes")
+ * @param d1
+ * @param d2
+ * @param locale
+ * @param style	 can be one of "long", "short", "narrow" or "digital" (defaults to "long")
+ * style examples:
+ *   long:	  "1 hour, 30 minutes"
+ *   short:	  "1 hr, 30 min"
+ *   narrow:  "1h 30m"
+ *   digital: "01:30:00"
+ * @returns
+ */
+function getDurationString(d1: Dateish, d2: Dateish, locale: string, style: string = 'long') : string {
+	var date1 = isoConvert(d1);
+	var date2 = isoConvert(d2);
+	const diffInMs = Math.abs(date2.valueOf() - date1.valueOf());
+
+	// Calculate units
+	const duration = {
+		weeks: Math.floor(diffInMs / WEEK_MS),
+		days: Math.floor((diffInMs % WEEK_MS) / DAY_MS),
+		hours: Math.floor((diffInMs % DAY_MS) / HOUR_MS),
+		minutes: Math.floor((diffInMs % HOUR_MS) / MINUTE_MS)
+	};
+
+	// @ts-ignore
+	const formatter = new Intl.DurationFormat(locale, {
+		style: style,
+		values: 'nonzero' // hide any empty units
+	});
+
+	return formatter.format(duration) as string;
+}
+
 export {
+	MINUTE_MS,
+	HOUR_MS,
+	DAY_MS,
+	WEEK_MS,
+
 	ordinal,
 	dayNames,
 	shortDayNames,
@@ -310,5 +355,6 @@ export {
 	ticks,
 	toLocaleUTCDateString,
 	toLocaleUTCTimeString,
-	isSameDay
+	isSameDay,
+	getDurationString
 };

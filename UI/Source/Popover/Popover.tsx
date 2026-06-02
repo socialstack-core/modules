@@ -1,4 +1,5 @@
 import PopoverWrapper from 'UI/Popover/Wrapper';
+// @ts-ignore
 import popoverPolyfillJs from './static/popover.min.js';
 import { lazyLoad } from 'UI/Functions/WebRequest';
 import { getUrl } from 'UI/FileRef';
@@ -10,6 +11,13 @@ export type PopoverAutoClose = 'never' | 'always' | 'when-bg-disabled';
 const DEFAULT_METHOD = 'auto';
 const DEFAULT_ALIGNMENT = 'left';
 
+export { PopoverWrapper };
+
+// Define the shape of the Ref value (Preact component instance style)
+export interface PreactComponentRef {
+	base: HTMLElement;
+}
+
 /**
  * Props for the Popover component.
  */
@@ -18,6 +26,8 @@ interface PopoverProps {
 	 * popover alignment (see PopoverAlignment for supported options) 
 	 */
 	alignment?: PopoverAlignment,
+
+	ref?: React.RefObject<PreactComponentRef | null>,
 
 	/**
 	 * auto (default)
@@ -31,7 +41,7 @@ interface PopoverProps {
 	 * NB: not to be used until we find a workaround for Firefox/Safari which currently don't support this
 	 * 
 	 */
-	method?: string,
+	method?: "" | "auto" | "manual",
 
 	/**
 	 * optional additional classes
@@ -41,7 +51,7 @@ interface PopoverProps {
 	/**
 	 * unique ID
 	 */
-	id: string,
+	id?: string,
 
 	/**
 	 * set true if background should blur when popover is open
@@ -84,7 +94,7 @@ interface PopoverProps {
 	/**
 	 * The HTML wrapping tag to use (defaults to div if not supplied)
 	 */
-	tag?: string,
+	tag?: 'div' | 'span',
 
 	/**
 	 * set true to disable scroll position locking on popover display
@@ -127,7 +137,7 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 
 	const alignment = props.alignment || DEFAULT_ALIGNMENT;
 	const bgDisabledWidth = props.bgDisabledWidth || 1024;
-	const popoverRef = useRef<HTMLElement | undefined>(undefined);
+	const popoverRef = useRef<HTMLElement>(null);
 
 	// TODO: investigate use of scrollbar-gutter: stable to prevent page content horizontally shifting
 
@@ -225,7 +235,7 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 		// check: iOS versions prior to v17 don't support popover API
 		// lazy-load polyfill if required
 		if (!isPopoverApiSupported()) {
-			lazyLoad(getUrl(popoverPolyfillJs)!);
+			lazyLoad(getUrl(popoverPolyfillJs as string)!);
 		}
 
 		document.addEventListener("click", docClickHandler);
@@ -354,10 +364,10 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 
 						// if we tabbed away from the first focusable item, wrap to the end
 						if (e.target == els[0]) {
-							els[els.length - 1].focus();
+							(els[els.length - 1] as HTMLElement).focus();
 						} else if (e.target == els[els.length - 1]) {
 							// if we tabbed away from the last focusable item, wrap to the start
-							els[0].focus();
+							(els[0] as HTMLElement).focus();
 						}
 
 					} else {
@@ -372,7 +382,8 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 	// checks for clicks within the popover - handy for auto-closing on selections made
 	const clickHandler = (e: Event) => {
 		// was this click event via a child link or button?
-		const isInteractiveTarget = e.target?.closest('.ui-link, .ui-btn');
+		const ele = e.target as HTMLElement;
+		const isInteractiveTarget = ele?.closest('.ui-link, .ui-btn');
 
 		if (!isInteractiveTarget) {
 			return;
@@ -380,13 +391,13 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 
 		switch (closeOnInteractiveClick) {
 			case 'always':
-				popoverRef.current.hidePopover();
+				popoverRef.current?.hidePopover();
 				break;
 
 			case 'when-bg-disabled':
 
 				if (window.innerWidth < bgDisabledWidth) {
-					popoverRef.current.hidePopover();
+					popoverRef.current?.hidePopover();
 				}
 
 				break;
@@ -404,11 +415,12 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 		if (closeOnInteractiveClick == "when-bg-disabled") {
 
 			if (window.innerWidth < bgDisabledWidth) {
-				const isOutsidePopover = !popoverRef.current.contains(e.target);
-				const isTrigger = e.target?.popoverTargetElement == popoverRef.current;
+				const ele = e.target as HTMLInputElement;
+				const isOutsidePopover = !popoverRef.current?.contains(ele);
+				const isTrigger = ele?.popoverTargetElement == popoverRef.current;
 
 				if (isOutsidePopover && !isTrigger) {
-					popoverRef.current.hidePopover();
+					popoverRef.current?.hidePopover();
 				}
 
 			}
@@ -459,15 +471,14 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 
 	useScrollLockPopover();
 
-	const Tag = !tag?.length ? "div" : tag;
+	const Tag = tag || "div";
 
 	return (
-		<Tag className={popoverClasses.join(' ')} popover={method} id={id} ref={popoverRef}>
+		<Tag className={popoverClasses.join(' ')} popover={method} id={id} ref={popoverRef as React.RefObject<any>}>
 			{children}
 		</Tag>
 	);
 }
 
-PopoverRoot.Wrapper = PopoverWrapper;
 const Popover = PopoverRoot;
 export default Popover;

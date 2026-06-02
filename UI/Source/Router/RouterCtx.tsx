@@ -1,4 +1,4 @@
-import { PageStateResult } from 'Api/Page';
+import { PageStateResult } from 'Api/Pages';
 import { createContext, useContext } from 'react';
 
 export interface PageState extends PageStateResult {

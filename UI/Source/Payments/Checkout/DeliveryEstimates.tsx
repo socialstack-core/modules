@@ -1,4 +1,5 @@
 import deliveryOptionApi, { DeliveryOption } from 'Api/DeliveryOption';
+import { DeliveryEstimate } from 'Api/Payments';
 import { ApiList } from 'UI/Functions/WebRequest';
 import { formatCurrency } from "UI/Functions/CurrencyTools";
 import { addMinutes } from "UI/Functions/DateTools";
@@ -28,7 +29,7 @@ const DeliveryEstimates: React.FC<DeliveryEstimatesProps> = (props) => {
 	return <div className="payment-checkout__delivery-estimates">
 		{estimates.results.map(estimate => {
 			// Unpack the estimate:
-			var estimateDetail = JSON.parse(estimate.informationJson || '');
+			var estimateDetail = JSON.parse(estimate.informationJson || '') as DeliveryEstimate;
 
 			// A singular delivery option can contain 1 or more
 			// (usually 1) delivery on different days.
@@ -36,7 +37,13 @@ const DeliveryEstimates: React.FC<DeliveryEstimatesProps> = (props) => {
 			// For example, you can choose to get things as soon as possible with 5/6 items showing up tomorrow
 			// and 1/6 the day after. Or you can choose to get all 6 the day after.
 
-			return <Input type="radio" name={"delivery_estimate"} value={estimate.id.toString()} checked={value?.id == estimate.id} noWrapper
+			return <Input
+				type="radio"
+				name={"delivery_estimate"}
+				//@ts-ignore
+				value={estimate.id.toString()}
+				checked={value?.id == estimate.id}
+				noWrapper
 				onChange={() => setValue(estimate)}
 				label={estimateDetail.deliveries.map(deliveryInfo => {
 					// DeliveryInfo C# type, in DeliveryEstimate.cs

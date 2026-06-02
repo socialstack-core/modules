@@ -5,7 +5,7 @@ import Button from 'UI/Button';
 /**
  * Props for the link component.
  */
-interface LinkProps extends React.HTMLAttributes<HTMLAnchorElement> {
+interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 	/**
 	 * True if the link is disabled.
 	 */
@@ -15,11 +15,6 @@ interface LinkProps extends React.HTMLAttributes<HTMLAnchorElement> {
 	 * optional additional class name(s)
 	 */
 	className?: string,
-
-	/**
-	 * The href for the link itself.
-	 */
-	href?: string,
 
 	/**
 	 * True if the link should be the extra small style.
@@ -75,7 +70,7 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	const { locale } = session;
 
 	var children = children;
-	var url = useTokens(href);
+	var url = useTokens(href || '');
 
 	if (url) {
 		// if url contains :// it must be as-is (which happens anyway).
@@ -121,6 +116,7 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	// sizing
 	if (styleAsButton) {
 		return <>
+			{/* @ts-ignore */}
 			<Button className={className} href={href} variant={variant} disabled={disabled}
 				outlined={outlined} allowWrap={false} xs={xs} sm={sm} md={md} lg={lg} xl={xl} {...attribs}>
 				{children}

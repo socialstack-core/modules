@@ -18,7 +18,7 @@ interface AdminTriggerProps {
  */
 const AdminTrigger: React.FC<React.PropsWithChildren<AdminTriggerProps>> = props => {
 	
-	const { session } = useSession();
+	const { session, setSession } = useSession();
 	var { user, realuser, role } = session;
 	
 	// not logged in
@@ -52,7 +52,7 @@ const AdminTrigger: React.FC<React.PropsWithChildren<AdminTriggerProps>> = props
 	</>;
 
 	function endImpersonation(e: React.MouseEvent<HTMLButtonElement>) {
-		userApi.unpersonate().then(response => {
+		userApi.unpersonate(setSession).then(response => {
 			window.location.reload();
 		});
 	}

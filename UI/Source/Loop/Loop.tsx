@@ -1,9 +1,8 @@
-import { ApiList } from 'UI/Functions/WebRequest';
+import { ApiList, ApiIncludes, ApiInclude } from 'UI/Functions/WebRequest';
 import Failure from 'UI/Failed';
 import Paginator from 'UI/Paginator';
-import { AutoController, ListFilter } from 'Api/Content';
-import { ApiIncludes } from 'Api/Includes'
-import { Content } from 'Api/Content';
+import { AutoController, AutoControllerInt, ListFilter } from 'Api/Startup';
+import { Content } from 'Api/Database';
 import { ContentChangeDetail } from 'UI/Functions/ContentChange';
 import useApi from 'UI/Functions/UseApi';
 import { useEffect, useState } from 'react';
@@ -121,10 +120,10 @@ function mapWhere(where: any, args: any[]) {
 /**
  * Converts where and on into a query formatted filter.
  * */
-export function mapWhereToQuery(data: any): ListFilter | null {
+export function mapWhereToQuery(data: any): ListFilter | undefined {
 
 	if (!data) {
-		return null;
+		return undefined;
 	}
 
 	// Data exists - does it have a where style filter?
@@ -177,31 +176,17 @@ export function mapWhereToQuery(data: any): ListFilter | null {
 		data = d2;
 	}
 
-	return data;
+	return data || undefined;
 }
 
 /**
- * Props for the Loop component.
+ * Base props for the Loop component.
  */
-export interface LoopProps<T extends Content<uint>, I extends ApiIncludes> {
+type LoopBaseProps<T> = {
 
-	/**
-	 * Loop will pull data from the specified api. Alternatively if you need something other than an 
-	 * api source, use source instead.
-	 */
-	over?: AutoController<T, I>;
+	includes?: ApiInclude[];
 
-	/**
-	 * An alternative to 'over', where you can specify a custom data source function.
-	 * @param filter
-	 * @param includes
-	 * @returns
-	 */
-	source?: (filter?: Filter<T>, includes?: I[]) => Promise<ApiList<T>>;
-
-	includes?: I[];
-
-	filter?: any;
+	filter?: ListFilter;
 
 	paged?: LoopPageConfig | boolean;
 
@@ -232,7 +217,7 @@ export interface LoopProps<T extends Content<uint>, I extends ApiIncludes> {
 	 * @returns
 	 */
 	loader?: () => React.ReactNode;
-	
+
 	/**
 	 * Custom message when no results are found.
 	 * @returns
@@ -282,13 +267,30 @@ export interface LoopProps<T extends Content<uint>, I extends ApiIncludes> {
 	 * Optionally provide a layout function which handles any 
 	 * necessary surrounding structure and the paginator placement (if there is one).
 	 */
-	onLayout?: (content: React.ReactNode, results: T[] | null, status: LoopStatus, paginator?: React.ReactNode, pageConfig?: LoopPageConfig) => React.ReactNode 
+	onLayout?: (content: React.ReactNode, results: T[] | null, status: LoopStatus, paginator?: React.ReactNode, pageConfig?: LoopPageConfig) => React.ReactNode
 }
+
+// Define the version where 'over' is used
+type LoopOverProps<T extends Content<uint>> = LoopBaseProps<T> & {
+	over: AutoControllerInt<T>;
+	source?: never; // Explicitly disallow source here
+}
+
+// Define the version where 'source' is used
+type LoopSourceProps<T> = LoopBaseProps<T> & {
+	over?: never; // Explicitly disallow over here
+	source: (filter?: ListFilter, includes?: ApiInclude[]) => Promise<ApiList<T>>;
+}
+
+export type LoopProps<T> =
+	T extends Content<uint>
+	? LoopOverProps<T> | LoopSourceProps<T>
+	: LoopSourceProps<T>;
 
 /**
  * This component repeatedly renders its child using either an explicit array of data or an endpoint.
  */
-const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T, I>) => {
+const Loop = <T,>(props: LoopProps<T>) => {
 	const { onLayout } = props;
 
 	const [pageIndex, setPageIndex] = useState(props.filter?.pageIndex || props.defaultPage || 1);
@@ -310,9 +312,12 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 		var source : Promise<ApiList<T>> | null = null;
 
 		if (props.over) {
-			source = props.over.list(mapWhereToQuery(filter), props.includes);
+			var mappedFilter = mapWhereToQuery(filter);
+			const overApi = props.over as AutoController<T, uint>;
+			source = mappedFilter ? overApi.list(mappedFilter, props.includes) : overApi.listAll(props.includes);
 		} else if (props.source) {
-			source = props.source(mapWhereToQuery(filter), props.includes);
+			const srcFunction = props.source as (filter?: ListFilter, includes?: ApiInclude[]) => Promise<ApiList<T>>;
+			source = srcFunction(mapWhereToQuery(filter) as (ListFilter | undefined), props.includes);
 		}
 
 		if (!source) {
@@ -327,7 +332,7 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 			var results = list.results;
 
 			if (props.onResults) {
-				results = props.onResults(results, list);
+				results = props.onResults(results, list) as T[];
 			}
 
 			if (props.reverse) {
@@ -362,7 +367,7 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 	useEffect(() => {
 		var onContentUpdate = (e: CustomEvent<ContentChangeDetail>) => {
 			const changeInfo = e.detail;
-			const entity = changeInfo.entity as T;
+			const entity = changeInfo.entity as Content<uint>;
 
 			if (!results || !entity) {
 				return;
@@ -370,7 +375,10 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 
 			if (changeInfo.deleted) {
 				var postDeleteResults = results
-					.filter(content => !(content.type == entity.type && content.id == entity.id));
+					.filter(content => {
+						const ct = (content as Content<uint>);
+						return !(ct.type == entity.type && ct.id == entity.id)
+					});
 
 				if (postDeleteResults.length != results.length) {
 					setResults(postDeleteResults);
@@ -380,7 +388,8 @@ const Loop = <T extends Content<uint>, I extends ApiIncludes>(props: LoopProps<T
 				var changed = false;
 				var updatedResults = results
 					.map(content => {
-						if (content.type == entity.type && content.id == entity.id) {
+						const ct = (content as Content<uint>);
+						if (ct.type == entity.type && ct.id == entity.id) {
 							changed = true;
 							return changeInfo.entity as T;
 						} else {

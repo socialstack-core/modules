@@ -1,5 +1,5 @@
 import Link from 'UI/Link';
-import { getUrl, parse, FileRefInfo } from 'UI/FileRef';
+import { getUrl, parse, FileRefInfo, FileRefIsh } from 'UI/FileRef';
 import { decode, drawImageDataOnNewCanvas } from 'UI/Functions/Blurhash';
 import getConfig from 'UI/Config';
 
@@ -16,7 +16,7 @@ export type ImageAlignment = "none" | "left" | "right" | "center";
  */
 export interface ImageProps {
     onClick?: React.MouseEventHandler<HTMLImageElement>, 
-	fileRef: FileRef, 
+	fileRef: FileRefIsh, 
 	/**
 	 * If provided, this image displays if the 
 	 * device is portrait and the base fileRef if it is landscape.

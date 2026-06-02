@@ -2,12 +2,23 @@
  * return number of decimal places for given currencyCode (e.g. 2 for GBP)
  * @param {any} locale
  */
-const fractionDigits = (currencyCode, localeCode) => {
+const fractionDigits = (currencyCode: string, localeCode?: string) => {
 	return new Intl.NumberFormat(localeCode, {
 		style: 'currency',
 		currency: currencyCode,
 	}).resolvedOptions().maximumFractionDigits;
 };
+
+type IntlCurrencyDisplay = "symbol" | "narrowSymbol" | "code" | "name";
+type CurrencyDisplayOption = IntlCurrencyDisplay | "none";
+
+interface CurrencyOptions {
+	currencyCode?: string | null;
+	localeCode?: string;
+	currencyDisplay?: CurrencyDisplayOption | false;
+	hideDecimals?: boolean;
+	hideSymbol?: boolean;
+}
 
 /**
  * format currency value
@@ -29,31 +40,36 @@ const fractionDigits = (currencyCode, localeCode) => {
  * for example, to render an amount purchased in a foreign currency:
  * formatCurrency(12345, { currencyCode: "EUR" })
  */
-const formatCurrency = (value, options) => {
+
+const formatCurrency = (value: number, options: CurrencyOptions) => {
 	options = options || {};
-	const { currencyCode, localeCode } = options;
+	const { currencyCode, localeCode: locale } = options;
 
 	if (!currencyCode) {
 		throw new Error('currency reqd.');
 	}
 
-	var currencyFractionDigits = fractionDigits(currencyCode, localeCode);
+	var currencyFractionDigits = fractionDigits(currencyCode, locale) ?? 2;
 	var hideSymbol = options.hideSymbol || (options.currencyDisplay != undefined && (options.currencyDisplay == "none" || options.currencyDisplay == false));
 
 	var divisor = Math.pow(10, currencyFractionDigits);
 
 	if (hideSymbol) {
-		return (value / divisor).toLocaleString(localeCode, {
+		return (value / divisor).toLocaleString(locale, {
 			minimumFractionDigits: currencyFractionDigits,
 			maximumFractionDigits: currencyFractionDigits
 		});
 
     }
 
-	return new Intl.NumberFormat(localeCode, {
+	const validCurrencyDisplay: IntlCurrencyDisplay | undefined = options.currencyDisplay === "none" || options.currencyDisplay === false
+		? undefined
+		: options.currencyDisplay;
+
+	return new Intl.NumberFormat(locale, {
 		style: 'currency',
 		currency: currencyCode,
-		currencyDisplay: !hideSymbol && options.currencyDisplay ? options.currencyDisplay : undefined,
+		currencyDisplay: validCurrencyDisplay,
 		minimumFractionDigits: options.hideDecimals ? 0 : undefined,
 		maximumFractionDigits: options.hideDecimals ? 0 : undefined
 	}).format(value / divisor);
@@ -77,7 +93,7 @@ const formatCurrency = (value, options) => {
  * for example, to render "POA" in a foreign currency:
  * formatPOA({ currencyCode: "EUR" })
  */
-const formatPOA = (options) => {
+const formatPOA = (options: CurrencyOptions) => {
 	options = options || {};
 	const { currencyCode, localeCode } = options;
 
@@ -85,10 +101,14 @@ const formatPOA = (options) => {
 		throw new Error('currency reqd.');
 	}
 
+	const poaCurrencyDisplay: IntlCurrencyDisplay | undefined = options.currencyDisplay === "none" || options.currencyDisplay === false
+		? undefined
+		: options.currencyDisplay;
+
 	var formatter = new Intl.NumberFormat(localeCode, {
 		style: 'currency',
 		currency: currencyCode,
-		currencyDisplay: options.currencyDisplay ? options.currencyDisplay : undefined,
+		currencyDisplay: poaCurrencyDisplay,
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 0
 	});

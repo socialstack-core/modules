@@ -21,7 +21,7 @@ interface PriceProps {
 	/**
 	 * Overriding quantity to display
 	 */
-	qtyOverride?: Number,
+	qtyOverride?: number,
 
 	/**
 	 * true if this a "from" price (i.e. the product has variants)
@@ -36,12 +36,12 @@ interface PriceProps {
 	/**
 	 * optional multiplier (used to show total value for [n] items - see order view)
 	 */
-	multiple?: int
+	multiple?: int,
 
 	/**
 	 * Should we show the sell units? Defaults to true
 	 */
-	showSellUnit: boolean
+	showSellUnit?: boolean
 }
 
 export interface CurrencyAmount {
@@ -106,7 +106,7 @@ const Price: React.FC<PriceProps> = ({showSellUnit = true, ...props}) => {
 	return (
 		<span className="ui-product-price">
 			{!currentPriceOnly && hasOptions && <span className="ui-product-price--from">{`From`}</span>}
-			{formatCurrency(amount, { currencyCode })}
+			{formatCurrency(amount as number, { currencyCode })}
 			<span className="white-space--nowrap">{lessTax ? `ex VAT` : `inc VAT`} {sellUnit}</span>
 			{!currentPriceOnly && oldPrice > 0 && <span className="ui-product-price--was">{`Was ${formatCurrency(oldPrice, { currencyCode })}`}</span>}
 		</span>

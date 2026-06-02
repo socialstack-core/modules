@@ -91,13 +91,13 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
       var(--range-track-background) ${(toPosition) / (rangeDistance) * 100}%, 
       var(--range-track-background) 100%)`;
 
-	function changeFromSlider(e) {
-		const newValue = stepToValue(parseInt(e.target.value, 10));
+	function changeFromSlider(e: React.FormEvent<HTMLInputElement>) {
+		const newValue = stepToValue(parseInt((e.target as HTMLInputElement).value, 10));
 		setFromValue(newValue > toValue ? toValue : newValue);
 	}
 
-	function changeToSlider(e) {
-		const newValue = stepToValue(parseInt(e.target.value, 10));
+	function changeToSlider(e: React.FormEvent<HTMLInputElement>) {
+		const newValue = stepToValue(parseInt((e.target as HTMLInputElement).value, 10));
 		setToValue(newValue < fromValue ? fromValue : newValue);
 	}
 
@@ -113,12 +113,12 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
 		rangeClasses.push('ui-dual-range--aligned');
 	}
 
-	function valueToStep(value) {
+	function valueToStep(value: number) {
 		var stepValue = (maxValue - minValue) / steps;
 		return Math.round((value - minValue) / stepValue);
 	}
 
-	function stepToValue(step) {
+	function stepToValue(step: number) {
 		var stepValue = (maxValue - minValue) / steps;
 		return minValue + (step * stepValue);
 	}
@@ -167,7 +167,7 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
 					</>}
 				</div>
 				{showReset && <>
-					<Button xs outlined asLink onClick={() => resetRange()} className="ui-dual-range__reset">
+					<Button xs outlined onClick={() => resetRange()} className="ui-dual-range__reset">
 						{resetLabel}
 					</Button>
 				</>}

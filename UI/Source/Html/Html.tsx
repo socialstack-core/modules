@@ -19,7 +19,7 @@ interface HtmlProps extends React.HTMLAttributes<HTMLSpanElement> {
 const Html: React.FC<HtmlProps> = ({ tag, content, ...props }) => {
 
 	if (!content?.length) {
-		content = props.children;
+		content = props.children as string;
 	}
 
 	if (!content?.length) {

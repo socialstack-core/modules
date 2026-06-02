@@ -14,9 +14,9 @@ interface ImpersonationBannerProps {
 const ImpersonationBanner: React.FC<ImpersonationBannerProps> = (props) => {
 	const { session } = useSession();
 	var { user, realuser } = session;
-	var isImpersonating = realuser && (user.id != realuser.id);
+	var isImpersonating = realuser && (user?.id != realuser.id);
 
-	if (!isImpersonating) {
+	if (!isImpersonating || !user) {
 		return;
 	}
 

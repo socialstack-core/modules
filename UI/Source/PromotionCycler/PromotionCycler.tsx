@@ -34,8 +34,8 @@ const isValidCondition = (
 		const hasExactMatch = currentSearchCategoryId && conditions.searchCategories.includes(currentSearchCategoryId);
 		
 		if (!hasExactMatch) {
-			// If includeChildren is true, also check parent categories
-			if (conditions.includeChildren && currentCategoryBreadcrumbs?.length) {
+			// If includeChildren is true (default), also check parent categories
+			if (conditions.includeChildren !== false && currentCategoryBreadcrumbs?.length) {
 				const parentIds = currentCategoryBreadcrumbs.map(c => c.id as int);
 				const hasParentMatch = conditions.searchCategories.some(catId => parentIds.includes(catId));
 				if (!hasParentMatch) {
@@ -51,8 +51,8 @@ const isValidCondition = (
 		const hasExactMatch = currentCategoryId && conditions.categories.includes(currentCategoryId);
 		
 		if (!hasExactMatch) {
-			// If includeChildren is true, also check parent categories
-			if (conditions.includeChildren && currentCategoryBreadcrumbs?.length) {
+			// If includeChildren is true (default), also check parent categories
+			if (conditions.includeChildren !== false && currentCategoryBreadcrumbs?.length) {
 				const parentIds = currentCategoryBreadcrumbs.map(c => c.id as int);
 				const hasParentMatch = conditions.categories.some(catId => parentIds.includes(catId));
 				if (!hasParentMatch) {

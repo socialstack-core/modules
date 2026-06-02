@@ -24,7 +24,7 @@ declare global {
 
 const Radio: React.FC<CustomInputTypeProps<"radio">> = (props) => {
 	const { field, validationFailure, label, onInputRef, helpFieldId } = props;
-	const { className, flipped, xs, sm, md, lg, xl, groupVariant, groupIcon, solid, onChange, ...attribs } = field;
+	const { className, flipped, xs, sm, md, lg, xl, groupVariant, groupIcon, solid, onChange: fieldOnChange, ...attribs } = field;
 	const generatedId = useId();
 	const id = attribs.id || generatedId;
 
@@ -83,7 +83,7 @@ const Radio: React.FC<CustomInputTypeProps<"radio">> = (props) => {
 				className="btn-check"
 				type="radio"
 				autoComplete="off"
-				onInput={onChange}
+				onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 				{...attribs}
 				id={id}
 			/>
@@ -103,7 +103,7 @@ const Radio: React.FC<CustomInputTypeProps<"radio">> = (props) => {
 				className={inputClass}
 				aria-describedby={helpFieldId}
 				type="radio"
-				onInput={onChange}
+				onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 				{...attribs}
 				id={id} />
 			<label className="form-check-label" htmlFor={id}>

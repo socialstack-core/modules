@@ -1,4 +1,5 @@
 import {getUrl} from 'UI/FileRef';
+// @ts-ignore TS7016
 import chartJsRef from './static/chart.js';
 import { useRef, useEffect } from 'react';
 
@@ -12,7 +13,7 @@ function loadChartJs(){
 	return chartJsLoading = new Promise((success, reject) => {
 		// Chart.js is lazy loaded. Go get it now:
 		var script = document.createElement("script") as HTMLScriptElement;
-		script.src = getUrl(chartJsRef)!;
+		script.src = getUrl(chartJsRef as string)!;
 		script.onload = () => {
 			success((window as any).Chart);
 		};

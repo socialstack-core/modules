@@ -1,6 +1,8 @@
 import UIButton from 'UI/Button';
 
-type ButtonInputType = React.ButtonHTMLAttributes<HTMLButtonElement>;
+type ButtonInputType = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+	variant?: string
+};
 
 // Registering 'button' as being available
 declare global {

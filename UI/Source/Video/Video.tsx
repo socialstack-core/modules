@@ -14,7 +14,8 @@ export interface VideoProps {
 	width?: number | string,
 	height?: number | string,
 	autoHeight?: boolean,
-	autoplay?: boolean
+	autoplay?: boolean,
+	size?: string
 }
 
 const Video: React.FC<VideoProps> = (props) => {
@@ -80,7 +81,7 @@ const Video: React.FC<VideoProps> = (props) => {
 			controls
 		>
 			<source
-				src={getUrl(props.fileRef as any, {url: true} as any)}
+				src={getUrl(props.fileRef as any, {url: true, size: props.size} as any)}
 				type="video/mp4"
 			/>
 			{`Your browser does not support this video.`}

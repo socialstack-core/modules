@@ -63,12 +63,12 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 	const id = props.id || "carousel";
 	const itemsId = `${id}_items`;
 
-	const carouselRef = useRef();
-	const scrollContainerRef = useRef();
-	const btnBackRef = useRef();
-	const btnNextRef = useRef();
+	const carouselRef = useRef<HTMLElement>(null);
+	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const btnBackRef = useRef<HTMLButtonElement>(null);
+	const btnNextRef = useRef<HTMLButtonElement>(null);
 
-	const [scrollBehaviour, setScrollBehaviour] = useState<string>('smooth');
+	const [scrollBehaviour, setScrollBehaviour] = useState<ScrollBehavior>('smooth');
 
 	useEffect(() => {
 
@@ -104,7 +104,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 			entries.forEach(entry => {
 				// entry.intersectionRatio is between 0 and 1
 				// Map it directly to opacity
-				entry.target.style.opacity = entry.intersectionRatio;
+				(entry.target as HTMLElement).style.opacity = entry.intersectionRatio.toString();
 			});
 		}, {
 			root: scrollContainerRef.current,
@@ -170,7 +170,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 		return getSizeInPixels(style, isVertical() ? "--ui-carousel-item-height" : "--ui-carousel-item-width");
 	}
 
-	function getSizeInPixels(computedStyle, varName) {
+	function getSizeInPixels(computedStyle:CSSStyleDeclaration, varName: string) {
 		const size = computedStyle.getPropertyValue(varName);
 
 		if (!size || !size.length) {
@@ -186,7 +186,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 		return parseFloat(match[1]) * (match[2] == 'rem' ? 16 : 1);
 	}
 
-	function scrollCarousel(amount) {
+	function scrollCarousel(amount: number) {
 
 		if (!scrollContainerRef?.current) {
 			return;
@@ -256,7 +256,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 
 	}
 
-	function keyHandler(e) {
+	function keyHandler(e: KeyboardEvent) {
 
 		if (!scrollContainerRef?.current) {
 			return;
@@ -328,7 +328,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 
 	};
 
-	function wheelHandler(e) {
+	function wheelHandler(e: WheelEvent) {
 		e.preventDefault();
 
 		const scrollAmount = getScrollAmount();
@@ -351,7 +351,7 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 	}
 
 	return (
-		<section className={classNames.join(' ')} aria-roledescription="carousel" ariaLabel={ariaLabel} ariaLabelledBy={ariaLabelledBy} id={id} ref={carouselRef}>
+		<section className={classNames.join(' ')} aria-roledescription="carousel" aria-label={ariaLabel} aria-labelledby={ariaLabelledBy} id={id} ref={carouselRef}>
 			<div className={`${baseClass}__internal`}>
 				{/* commented until UI/Button ref forwarding support sorted
 				<Button outlined className={`${baseClass}__back`} ariaControls={itemsId} aria-label={`Show previous items`} 
@@ -359,12 +359,12 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 					<i className="fr fr-chevron-left"></i>
 				</Button>
 				*/}
-				<button class="btn ui-btn btn-outline-primary ui-carousel__back" ariaLabel={`Show previous items`} type="button"
-					ariaControls={itemsId} onClick={() => scrollCarousel(-getScrollAmount())} ref={btnBackRef}>
-					<i class="fr fr-chevron-left"></i>
+				<button className="btn ui-btn btn-outline-primary ui-carousel__back" aria-label={`Show previous items`} type="button"
+					aria-controls={itemsId} onClick={() => scrollCarousel(-getScrollAmount())} ref={btnBackRef}>
+					<i className="fr fr-chevron-left"></i>
 				</button>
 
-				<div id={itemsId} className={`${baseClass}__scroll-container`} tabIndex="-1" aria-live="polite" ref={scrollContainerRef}>
+				<div id={itemsId} className={`${baseClass}__scroll-container`} tabIndex={-1} aria-live="polite" ref={scrollContainerRef}>
 					{children}
 				</div>
 				{/* commented until UI/Button ref forwarding support sorted
@@ -373,9 +373,9 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 					<i className="fr fr-chevron-right"></i>
 				</Button>
 				*/}
-				<button class="btn ui-btn btn-outline-primary ui-carousel__next" ariaLabel={`Show next items`} type="button"
-					ariaControls={itemsId} onClick={() => scrollCarousel(getScrollAmount())} ref={btnNextRef}>
-					<i class="fr fr-chevron-right"></i>
+				<button className="btn ui-btn btn-outline-primary ui-carousel__next" aria-label={`Show next items`} type="button"
+					aria-controls={itemsId} onClick={() => scrollCarousel(getScrollAmount())} ref={btnNextRef}>
+					<i className="fr fr-chevron-right"></i>
 				</button>
 			</div>
 		</section>

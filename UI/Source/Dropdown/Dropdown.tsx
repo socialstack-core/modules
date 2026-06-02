@@ -95,7 +95,7 @@ interface DropdownProps {
 	/**
 	 * Items inside the dropdown
 	 */
-	items: DropdownItem[]
+	items: (DropdownItem | null)[]
 }
 
 /**

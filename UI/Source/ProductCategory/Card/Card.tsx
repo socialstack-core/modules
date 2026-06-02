@@ -1,6 +1,7 @@
 import { ProductCategory } from 'Api/ProductCategory';
 import Image from 'UI/Image';
 import Link from 'UI/Link';
+// @ts-ignore
 import defaultImageRef from './image_placeholder.png';
 
 /**
@@ -24,6 +25,10 @@ const Card: React.FC<CardProps> = (props) => {
 	const { content } = props;
 	const ctaLabel = props.ctaLabel || `View range`;
 
+	if (!!content.primaryUrl) {
+		console.warn('Invalid Card primaryUrl: ', content);
+	}
+
 	return (
 		<div className="ui-productcategory-card">
 			<Image className="ui-productcategory-card__image" size={512} fileRef={content.productImageRef || content.featureRef || defaultImageRef} />
@@ -32,12 +37,14 @@ const Card: React.FC<CardProps> = (props) => {
 					{content.name}
 				</p>
 
-				<Link className="ui-productcategory-card__link" href={content.primaryUrl}>
-					<span>
-						{ctaLabel}
-					</span>
-					<i className="fr fr-arrow-right"></i>
-				</Link>
+				{content.primaryUrl && <>
+					<Link className="ui-productcategory-card__link" href={content.primaryUrl}>
+						<span>
+							{ctaLabel}
+						</span>
+						<i className="fr fr-arrow-right"></i>
+					</Link>
+				</>}
 			</div>
 		</div>
 	);

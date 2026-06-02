@@ -7,8 +7,8 @@ import { Address } from 'Api/Address';
 interface AddressCardProps {
 	address: Address,
 	selectedAddress?: Address,
-	onChange: Function,
-	name: string,
+	onChange?: React.ChangeEventHandler<Element, Element>,
+	name?: string,
     readonly: boolean,
     displayName?: boolean
 }
@@ -36,7 +36,7 @@ const AddressCard: React.FC<AddressCardProps> = (props) => {
 				{address.postcode && <span>{address.postcode}</span>}
 			</address>
 		:
-		<Input type="radio" name={name} value={address.id.toString()} checked={selectedAddress?.id == address.id} noWrapper
+		<Input type="radio" name={name} checked={selectedAddress?.id == address.id} noWrapper
 			onChange={onChange}
 			label={<>
 				<address className="payment-checkout__address">

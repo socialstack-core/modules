@@ -1,6 +1,7 @@
 import { ProductCategory } from 'Api/ProductCategory';
 import Image from 'UI/Image';
 import Link from 'UI/Link';
+// @ts-ignore
 import defaultImageRef from './image_placeholder.png';
 
 /**
@@ -20,10 +21,14 @@ interface SignpostProps {
 const Signpost: React.FC<SignpostProps> = (props) => {
 	const { content } = props;
 
+	if (!!content.primaryUrl) {
+		console.warn('Invalid Signpost primaryUrl: ', content);
+		return;
+	}
+
 	return (
 		<div className="ui-productcategory-signpost">
-			
-			<Link href={content.primaryUrl}>
+			<Link href={content.primaryUrl!}>
 				<div className="ui-productcategory-signpost__wrapper">
 					<div className="ui-productcategory-signpost__image">
 						<Image size={200} fileRef={content.productImageRef || content.featureRef || defaultImageRef} />

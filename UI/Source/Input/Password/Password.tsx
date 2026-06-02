@@ -16,7 +16,7 @@ declare global {
 
 const Password: React.FC<CustomInputTypeProps<"password">> = (props) => {
 	const { field, onInputRef, helpFieldId, validationFailure } = props;
-	const { onChange, className, noVisibilityButton, visible, ...attribs } = field;
+	const { onChange: fieldOnChange, className, noVisibilityButton, visible, ...attribs } = field;
 	let [pwVisible, setPwVisible] = useState(false);
 
 	if (visible !== undefined) {
@@ -31,7 +31,7 @@ const Password: React.FC<CustomInputTypeProps<"password">> = (props) => {
 				className={(className || "form-control ui-form-control") + (validationFailure ? ' is-invalid' : '')}
 				aria-describedby={helpFieldId}
 				type={pwVisible ? 'text' : 'password'}
-				onInput={onChange}
+				onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 				{...attribs}
 			/>
 			{!noVisibilityButton && (

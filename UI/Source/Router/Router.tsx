@@ -1,7 +1,8 @@
-import pageApi, { PageStateResult } from 'Api/Page';
+import pageApi from 'Api/Page';
+import { PageStateResult } from 'Api/Pages';
+import { Content } from 'Api/Database';
 import Canvas from 'UI/Canvas';
 import { ContentChangeDetail } from 'UI/Functions/ContentChange';
-import { WebSocketMessageDetail } from 'UI/Functions/WebSocket';
 import { expandIncludes } from 'UI/Functions/WebRequest';
 import getBuildDate from 'UI/Functions/GetBuildDate';
 import AdminTrigger from 'UI/AdminTrigger';
@@ -176,7 +177,7 @@ const Router: React.FC<{}> = () => {
 			}
 
 			if (res.po) {
-				res.po = expandIncludes(res.po);
+				(res as any).po = expandIncludes(res.po);
 			}
 
 			var pgState = { url, ...res, query: new URLSearchParams(location.search) };
@@ -273,7 +274,7 @@ const Router: React.FC<{}> = () => {
 	useEffect(() => {
 		
 		const onContentChange = (e: Event) => {
-			var { po } = pageState;
+			const po = pageState.po as Content<uint>;
 			var ce = e as CustomEvent<ContentChangeDetail>;
 			var detail = ce.detail;
 			if (po && po.type == detail.endpointType && po.id == detail.entity.id){
@@ -283,8 +284,8 @@ const Router: React.FC<{}> = () => {
 		};
 		
 		const onWsMessage = (e : Event) => {
-			var { po } = pageState;
-			var ce = e as CustomEvent<WebSocketMessageDetail>;
+			const po = pageState.po as Content<uint>;
+			var ce = e as CustomEvent<any>;
 			var message = ce.detail;
 			if(po && po.type == message.type && po.id == message.entity.id){
 				var pgState = {...pageState, po: message.entity};
@@ -337,7 +338,7 @@ const Router: React.FC<{}> = () => {
 				setPage: go,
 				changeQuery,
 				getPageIncludes: () => {
-					return pageState?.page?.primaryContentIncludes;
+					return pageState?.page?.primaryContentIncludes || undefined;
 				},
 				updateQuery: (update: Record<string, string | number | boolean | (string | number | boolean)[] | null | undefined>) => {
 					const urlParams = new URLSearchParams(pageState.query);
@@ -376,7 +377,7 @@ const Router: React.FC<{}> = () => {
 				},
 
 				setPrimaryObject: (obj: any) => {
-					var { po } = pageState;
+					const po = pageState.po as Content<uint>;
 					if (!po || !obj) {
 						return;
 					}

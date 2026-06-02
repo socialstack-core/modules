@@ -140,7 +140,7 @@ interface TabsWrapperProps {
 	sticky?: boolean,
 }
 
-export function TabsWrapper({ children, fullWidth, sticky }: TabsWrapperProps): JSX.Element {
+export function TabsWrapper({ children, fullWidth, sticky }: TabsWrapperProps) {
 	var tabClasses = ['ui-page__tabs'];
 
 	if (fullWidth) {
@@ -162,7 +162,7 @@ interface TabsLinksWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsLinksWrapper({ children }: TabsLinksWrapperProps): JSX.Element {
+export function TabsLinksWrapper({ children }: TabsLinksWrapperProps) {
 	return (
 		<div className="ui-page__tab-links">
 			{children}
@@ -174,7 +174,7 @@ interface TabsLinkWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsLinkWrapper({ children }: TabsLinkWrapperProps): JSX.Element {
+export function TabsLinkWrapper({ children }: TabsLinkWrapperProps) {
 	return (
 		<div className="ui-page__tab-link">
 			{children}
@@ -186,7 +186,7 @@ interface TabsPanelsWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsPanelsWrapper({ children }: TabsPanelsWrapperProps): JSX.Element {
+export function TabsPanelsWrapper({ children }: TabsPanelsWrapperProps) {
 	return (
 		<div className="ui-page__tab-panels">
 			{children}
@@ -200,7 +200,7 @@ interface TabsPanelWrapperProps {
 	selected?: boolean;
 }
 
-export function TabsPanelWrapper({ id, children, selected }: TabsPanelWrapperProps): JSX.Element {
+export function TabsPanelWrapper({ id, children, selected }: TabsPanelWrapperProps) {
 	return (
 		<div className={"ui-page__tab-panel" + (selected ? ' selected' : '')} id={id}>
 			{children}

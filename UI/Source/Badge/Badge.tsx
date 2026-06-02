@@ -1,3 +1,5 @@
+export type BadgeType = "primary" | "secondary" | "success" | "danger" | "warning" | "info";
+
 /**
  * Props for the Badge component.
  */
@@ -5,7 +7,7 @@ interface BadgeProps {
 	/**
 	 * The style variant, "primary", "secondary" etc.  Badge defaults to a nondescript greyscale theme if none selected
 	 */
-	variant?: "primary" | "secondary" | "success" | "danger" | "warning" | "info",
+	variant?: BadgeType,
 
 	/**
 	 * set true if badge should be extra small

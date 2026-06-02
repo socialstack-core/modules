@@ -26,7 +26,6 @@ declare global {
 	interface InputPropsRegistry {
 		'datetime-local': DateTimeInputType;
 		'datetime': DateTimeInputType;
-		'date': DateTimeInputType;
 		'time': DateTimeInputType;
 	}
 }
@@ -62,11 +61,13 @@ const Datetime: React.FC<CustomInputTypeProps<"datetime-local">> = (props) => {
 		};
 	}, [props.inputRef]);
 
-	const clickHandler = (e) => {
+	const clickHandler = (e: MouseEvent) => {
+		const target = e.target as HTMLInputElement;
+
 		// open the native browser picker
-		if ('showPicker' in HTMLInputElement.prototype) {
+		if (target && 'showPicker' in HTMLInputElement.prototype) {
 			try {
-				e.target.showPicker();
+				target.showPicker();
 			} catch (error) {
 				console.error("Datepicker could not be shown", error);
 			}

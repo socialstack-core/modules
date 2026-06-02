@@ -1,5 +1,4 @@
-import Canvas from "UI/Canvas"
-import { DefaultInputType } from "UI/Input/Default";
+import Canvas from "UI/Canvas";
 
 declare global {
     interface InputPropsRegistry {

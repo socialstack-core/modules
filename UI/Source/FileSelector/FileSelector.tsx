@@ -1,5 +1,4 @@
 import Loop from 'UI/Loop';
-import Container from 'UI/Container';
 import Row from 'UI/Row';
 import Image from 'UI/Image';
 import Dialog from 'UI/Dialog';
@@ -7,48 +6,71 @@ import Button from 'UI/Button';
 import Uploader from 'UI/Uploader';
 import * as fileRef from 'UI/FileRef';
 import IconSelector from 'UI/FileSelector/IconSelector';
-import Dropdown from 'UI/Dropdown';
+import useApi from 'UI/Functions/UseApi';
+import Dropdown, { DropdownItem } from 'UI/Dropdown';
 import Alert from 'UI/Alert';
 import Col from 'UI/Column';
 import Input from 'UI/Input';
 import Search from 'UI/Search';
-import uploadApi from 'Api/Upload';
+import uploadApi, { Upload } from 'Api/Upload';
+import { Tag } from 'Api/Tag';
+import { ListFilter } from 'Api/Startup';
+import { ApiInclude, ApiList } from 'UI/Functions/WebRequest';
 import { useEffect, useState, useRef } from "react";
+import { DefaultInputType } from "UI/Input/Default";
 
-var inputTypes = global.inputTypes = global.inputTypes || {};
 let lastId = 0;
 
 const CLOSEST_MULTIPLE = 2;
-const PREVIEW_SIZE = 512;
+const PREVIEW_SIZE = 512 as int;
 
 var searchFields = ['originalName', 'alt', 'author', 'id'];
 
-window.inputTypes['file'] = window.inputTypes['image'] = function (props) {
-	const { field } = props;
+type FileInputType = {
+	accept?: string,
+	name?: string,
+	value?: string|null,
+	defaultValue?: string | null,
+	onChange?: (e: FileSelectEvent) => void,
+	onBlur?: (e: React.FocusEvent) => void
+};
+
+declare global {
+	interface InputPropsRegistry {
+		'file': FileInputType,
+		'image': FileInputType,
+		'icon': FileInputType,
+		'upload': FileInputType,
+		'nopaging': FileInputType
+	}
+}
+
+const FileSelectorInput: React.FC<CustomInputTypeProps<"file">> = (props) => {
+	const { field, onInputRef } = props;
 	return (
 		<FileSelector
 			{...field}
-			onInputRef={props.onInputRef}
+			onInputRef={onInputRef ? el => onInputRef(el as HTMLElement) : undefined}
 		/>
 	);
 };
 
-window.inputTypes['icon'] = function (props) {
+const IconSelectorInput: React.FC<CustomInputTypeProps<"icon">> = (props) => {
 	const { field } = props;
-	
-	const [icon, setIcon] = useState(field.defaultValue);
-	const ref = useRef(null);
+
+	const [icon, setIcon] = useState<string | null | undefined>(field.defaultValue);
+	const ref = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		props.onInputRef && props.onInputRef(ref.current);
+		props.onInputRef && props.onInputRef(ref.current!);
 	}, [ref.current]);
-	
+
 	return (
 		<>
-			<input required={props.required} type={'hidden'} name={field.name} ref={ref} value={icon} />
+			<input required={props.required} type={'hidden'} name={field.name} ref={ref} value={icon || ''} />
 			<FileSelector
 				iconOnly
-				{...props}
+				{...field}
 				onChange={(value) => {
 					setIcon(value.target.value);
 					field.onChange && field.onChange(value);
@@ -59,205 +81,96 @@ window.inputTypes['icon'] = function (props) {
 	);
 };
 
-window.inputTypes['upload'] = function (props) {
-	const { field } = props;
+const UploadSelectorInput: React.FC<CustomInputTypeProps<"upload">> = (props) => {
+	const { field, onInputRef } = props;
 	return (
 		<FileSelector
 			browseOnly
 			{...field}
-			onInputRef={props.onInputRef}
+			onInputRef={onInputRef ? el => onInputRef(el as HTMLElement) : undefined}
 		/>
 	);
 };
 
-window.inputTypes['nopaging'] = function (props) {
-	const { field } = props;
+const NoPagingSelectorInput: React.FC<CustomInputTypeProps<"nopaging">> = (props) => {
+	const { field, onInputRef } = props;
 	return (
 		<FileSelector
 			disablePaging
 			{...field}
-			onInputRef={props.onInputRef}
+			onInputRef={onInputRef ? el => onInputRef(el as HTMLElement) : undefined}
 		/>
 	);
 };
 
-/**
- * Select a file from a users available uploads, outputting a ref.
- * You can use <Input type="file" .. /> to obtain one of these.
- */
-const FileSelector = (props) => {
-	var ref = props.value || props.defaultValue;
-	const [updatedRef, setUpdatedRef] = useState(ref);
-	const [editedRefData, setEditedRefData] = useState();
-	const [showUploadModal, setShowUploadModal] = useState();
-	const [fileType, setFileType] = useState('all');
-	const [searchFilter, setSearchFilter] = useState();
-	const [filterTagId, setFilterTagId] = useState();
-	const [showIconModal, setShowIconModal] = useState(false);
-	const [originalName, setOriginalName] = useState('');
-	const currentRef = updatedRef !== undefined ? updatedRef : ref;
+window.inputTypes['file'] = FileSelectorInput;
+window.inputTypes['image'] = FileSelectorInput;
+window.inputTypes['icon'] = IconSelectorInput;
+window.inputTypes['upload'] = UploadSelectorInput;
+window.inputTypes['nopaging'] = NoPagingSelectorInput;
+
+type ModalFileType = "all" | "img" | "vid" | "audio" | "doc" | "other";
+
+export type FileSelectEvent = {
+	target: {
+		value: string | undefined,
+		upload: Upload | undefined,
+	}
+};
+
+type FileSelectorProps = {
+	value?: string|null,
+	defaultValue?: string|null,
+	showActive?: boolean,
+	iconOnly?: boolean,
+	browseOnly?: boolean,
+	uploadOnly?: boolean,
+	isPrivate?: boolean,
+	compact?: boolean,
+	disablePaging?: boolean,
+	maxSize?: number,
+	url?: string,
+	name?: string,
+	id?: string,
+	onInputRef?: React.Ref<HTMLInputElement>,
+	onChange?: (e: FileSelectEvent) => void,
+	requestOpts?: { headers?: Record<string, string> }
+};
+
+type EditedRefData = {
+	alt: string,
+	focalX: number,
+	focalY: number,
+	author: string
+};
+
+type UploadTagsProps = {
+	combinedFilter: ListFilter,
+	filterTagId: uint | null,
+	setFilterTagId: (tagId: uint | null) => void
+};
+
+const UploadTags: React.FC<UploadTagsProps> = (props) => {
+	const { combinedFilter, filterTagId, setFilterTagId } = props;
 	
-	const newId = () => {
-		lastId++;
-		return `fileselector${lastId}`;
-	}
+	const [tags] = useApi(() => uploadApi.list(combinedFilter, [uploadApi.includes.tags]).then(uploads => {
 
-	const showRef = (ref, size) => {
-		var parsedRef = fileRef.parse(ref);
-		var size = size || 256;
-		var targetSize = size;
-		//var minSize = size == 256 ? 238 : size;
+		const tagids: uint[] = [];
+		const tags: Tag[] = [];
 
-		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a placeholder icon.
-		var canShowImage = parsedRef.isImage();
-
-		if (canShowImage) {
-			var argW = parsedRef.getNumericArg('w', 0);
-			var argH = parsedRef.getNumericArg('h', 0);
-			if ((argW && argW < size) && (argH && argH < size)) {
-				targetSize = undefined;
-			}
-
-		}
-
-		return canShowImage ?
-			<Image fileRef={ref} size={targetSize} portraitCheck /> :
-			<span className="fal fa-4x fa-file"></span>;
-	}
-
-	const updateValue = (e, newRef) => {
-		if (e) {
-			e.preventDefault();
-		}
-
-		var originalName = newRef ? newRef.originalName : '';
-
-		if (!newRef) {
-			newRef = '';
-		}
-		
-		if (newRef.result && newRef.result.ref) {
-			// Accept upload objects also.
-			newRef = newRef.result.ref;
-		} else if (newRef.ref) {
-			newRef = newRef.ref;
-		}
-
-		setEditedRefData(null);
-		setUpdatedRef(newRef);
-		setShowUploadModal(false);
-		setOriginalName(originalName);
-		props.onChange && props.onChange({ target: { value: newRef } });
-	}
-
-	const saveUpdates = (e) => {
-		var pr = fileRef.parse(currentRef);
-		pr.setNumericArg('fx', editedRefData.focalX);
-		pr.setNumericArg('fy', editedRefData.focalY);
-		pr.setArg('au', editedRefData.author);
-		pr.setArg('al', editedRefData.alt);
-		
-		var newRef = pr.toString();
-		setUpdatedRef(newRef);
-		setEditedRefData(null);
-	}
-
-	const showEditModal = () => {
-		var refInfo = fileRef.parse(currentRef);
-
-		setEditedRefData({
-			author: refInfo.author,
-			alt: refInfo.altText,
-			focalX: refInfo.focalX,
-			focalY: refInfo.focalY
+		uploads.results?.map(media => {
+			media.tags?.map(tag => {
+				if (!tagids.includes(tag.id)) {
+					tagids.push(tag.id);
+					tags.push(tag);
+				}
+			});
 		});
-	}
 
-	const renderEditModal = () => {
-		var parsedRef = fileRef.parse(currentRef);
-		var isImage = parsedRef.isImage();
-		var isVideo = parsedRef.isVideo();
-		var title = `Edit`;
+		return tags;
+	}), []);
 
-		return <>
-			<Dialog title={title} isOpen={!!editedRefData} onClose={() => setEditedRefData(null)} className="media-center__upload-dialog">
-				<Row>
-					<Col sizeMd='8'>
-						<Alert type='info'>
-							{`Click the image to set its focal point.`}
-						</Alert>
-						<div className='media-center__preview-wrapper'>
-							<div className="media-center__preview"
-								onClick={(e) => {
-									var imagePreviewRect = e.target.getBoundingClientRect();
-									setEditedRefData({
-										...editedRefData,
-										focalX: CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
-										focalY: CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
-									});
-								}}>
-								{showRef(currentRef, PREVIEW_SIZE)}
-								{isImage && !isVideo && <>
-									<div className="media-center__preview-crosshair" style={{
-										left: editedRefData?.focalX + '%',
-										top: editedRefData?.focalY + '%'
-									}}></div>
-								</>}
-							</div>
-						</div>
-					</Col>
-
-					<Col sizeMd='4'>
-						<div className="media-center__metadata">
-
-							<div className="form-text media-center__alt">
-								<Input type="text" label={`Author/Photographer`} value={editedRefData?.author} onChange={e => {
-									setEditedRefData({
-										...editedRefData,
-										author: e.target.value
-									});
-								}} />
-							</div>
-
-							<div className="form-text media-center__alt">
-								<Input type="text" label={`Alternative Text`} value={editedRefData?.alt} onChange={e => {
-									setEditedRefData({
-										...editedRefData,
-										alt: e.target.value
-									});
-								}} />
-							</div>
-
-							{isImage && !isVideo &&
-								<div className="form-text media-center__focal-point">
-									<Button sm variant="secondary" outlined onClick={() => {
-										setEditedRefData({
-											...editedRefData,
-											focalX: 50,
-											focalY: 50
-										});
-									}}>
-										<i className="fal fa-fw fa-sync"></i>{`Reset focal point`}
-									</Button>
-								</div>
-							}
-
-						</div>
-					</Col>
-				</Row>
-				<Dialog.Footer>
-					<Button outlined onClick={() => setEditedRefData(null)}>
-						{`Cancel`}
-					</Button>
-					<Button onClick={() => saveUpdates()}>
-						{`Save`}
-					</Button>
-				</Dialog.Footer>
-			</Dialog>
-		</>;
-	}
-
-	const renderTag = (tag) => {
+	const renderTag = (tag: Tag) => {
 
 		if (!tag || !tag.name || tag.name.length == 0) {
 			return;
@@ -279,28 +192,203 @@ const FileSelector = (props) => {
 		);
 	}
 
-	const renderTags = (combinedFilter) => {
-		var tagids = [];
-		var tags = [];
-		
-		return (
-			<ul className='file-selector__tags'>
-				<Loop over={uploadApi} filter={combinedFilter} includes={[uploadApi.includes.tags]} onResults={results => {
-					results.map(media => {
-						media.tags?.map(tag => {
-							if (!tagids.includes(tag.id)) {
-								tagids.push(tag.id);
-								tags.push(tag);
-							}
-						});
-					});
+	return (
+		<ul className='file-selector__tags'>
+			{!!tags && tags.map(renderTag)}
+		</ul>
+	)
+}
 
-					return tags;
-				}}>
-					{renderTag}
-				</Loop>
-			</ul>
-		)
+/**
+ * Select a file from a users available uploads, outputting a ref.
+ * You can use <Input type="file" .. /> to obtain one of these.
+ */
+const FileSelector = (props : FileSelectorProps) => {
+	const ref : string = props.value || props.defaultValue || '';
+	const [updatedRef, setUpdatedRef] = useState<string | null>(ref);
+	const [editedRefData, setEditedRefData] = useState<EditedRefData | null>(null);
+	const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
+	const [fileType, setFileType] = useState <ModalFileType>('all');
+	const [searchFilter, setSearchFilter] = useState<string | null>(null);
+	const [filterTagId, setFilterTagId] = useState<uint | null>(null);
+	const [showIconModal, setShowIconModal] = useState<boolean>(false);
+	const [originalName, setOriginalName] = useState<string | undefined>('');
+	const currentRef = (updatedRef !== undefined ? updatedRef : ref) || '';
+	
+	const newId = () => {
+		lastId++;
+		return `fileselector${lastId}`;
+	}
+
+	const showRef = (ref: fileRef.FileRefIsh, size: int) => {
+		var parsedRef = fileRef.parse(ref);
+		size = size || 256 as int;
+		var targetSize : number | undefined = size;
+		//var minSize = size == 256 ? 238 : size;
+
+		if (!parsedRef) {
+			return null;
+		}
+
+		// Check if it's an image/ video/ audio file. If yes, a preview is shown. Otherwise it'll be a placeholder icon.
+		var canShowImage = parsedRef.isImage();
+
+		if (canShowImage) {
+			var argW = parsedRef.getNumericArg('w', 0);
+			var argH = parsedRef.getNumericArg('h', 0);
+			if ((argW && argW < size) && (argH && argH < size)) {
+				targetSize = undefined;
+			}
+
+		}
+
+		return canShowImage ?
+			<Image fileRef={ref} size={targetSize} /> :
+			<span className="fal fa-4x fa-file"></span>;
+	}
+
+	const updateValue = (e: React.MouseEvent<Element> | null, newRef?: Upload) => {
+		if (e) {
+			e.preventDefault();
+		}
+
+		var originalName = newRef ? newRef.originalName : '';
+
+		setEditedRefData(null);
+		setUpdatedRef(newRef ? newRef.ref : '');
+		setShowUploadModal(false);
+		setOriginalName(originalName || undefined);
+		props.onChange && props.onChange({ target: { value: newRef?.ref || undefined, upload: newRef } });
+	}
+
+	const updateTextualValue = (newRef?: string) => {
+		setEditedRefData(null);
+		setUpdatedRef(newRef || '');
+		setShowUploadModal(false);
+		setOriginalName('');
+		props.onChange && props.onChange({ target: { value: newRef, upload: undefined } });
+	};
+
+	const saveUpdates = () => {
+		var pr = fileRef.parse(currentRef);
+		if (!pr) {
+			return;
+		}
+		pr.setNumericArg('fx', editedRefData!.focalX);
+		pr.setNumericArg('fy', editedRefData!.focalY);
+		pr.setArg('au', editedRefData!.author);
+		pr.setArg('al', editedRefData!.alt);
+		
+		var newRef = pr.toString();
+		setUpdatedRef(newRef);
+		setEditedRefData(null);
+	}
+
+	const showEditModal = () => {
+		var refInfo = fileRef.parse(currentRef);
+
+		if (!refInfo) {
+			return;
+		}
+
+		setEditedRefData({
+			author: refInfo.author,
+			alt: refInfo.altText,
+			focalX: refInfo.focalX,
+			focalY: refInfo.focalY
+		});
+	}
+
+	const renderEditModal = () => {
+		var parsedRef = fileRef.parse(currentRef);
+
+		if (!parsedRef) {
+			return null;
+		}
+
+		var isImage = parsedRef.isImage();
+		var isVideo = parsedRef.isVideo();
+		var title = `Edit`;
+
+		return <>
+			<Dialog title={title} isOpen={!!editedRefData} onClose={() => setEditedRefData(null)} className="media-center__upload-dialog">
+				<Row>
+					<Col sizeMd='8'>
+						<Alert type='info'>
+							{`Click the image to set its focal point.`}
+						</Alert>
+						<div className='media-center__preview-wrapper'>
+							<div className="media-center__preview"
+								onClick={(e) => {
+									const anyE = e as any;
+									const offsetX = anyE.offsetX as number;
+									const offsetY = anyE.offsetY as number;
+									var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
+									setEditedRefData({
+										...editedRefData,
+										focalX: CLOSEST_MULTIPLE * Math.round((offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE),
+										focalY: CLOSEST_MULTIPLE * Math.round((offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE)
+									} as EditedRefData);
+								}}>
+								{showRef(currentRef, PREVIEW_SIZE)}
+								{isImage && !isVideo && <>
+									<div className="media-center__preview-crosshair" style={{
+										left: editedRefData?.focalX + '%',
+										top: editedRefData?.focalY + '%'
+									}}></div>
+								</>}
+							</div>
+						</div>
+					</Col>
+
+					<Col sizeMd='4'>
+						<div className="media-center__metadata">
+
+							<div className="form-text media-center__alt">
+								<Input type="text" label={`Author/Photographer`} value={editedRefData?.author} onChange={e => {
+									setEditedRefData({
+										...editedRefData,
+										author: (e.target as HTMLInputElement).value
+									} as EditedRefData);
+								}} />
+							</div>
+
+							<div className="form-text media-center__alt">
+								<Input type="text" label={`Alternative Text`} value={editedRefData?.alt} onChange={e => {
+									setEditedRefData({
+										...editedRefData,
+										alt: (e.target as HTMLInputElement).value
+									} as EditedRefData);
+								}} />
+							</div>
+
+							{isImage && !isVideo &&
+								<div className="form-text media-center__focal-point">
+									<Button sm variant="secondary" outlined onClick={() => {
+										setEditedRefData({
+											...editedRefData,
+											focalX: 50,
+											focalY: 50
+										} as EditedRefData);
+									}}>
+										<i className="fal fa-fw fa-sync"></i>{`Reset focal point`}
+									</Button>
+								</div>
+							}
+
+						</div>
+					</Col>
+				</Row>
+				<Dialog.Footer>
+					<Button outlined onClick={() => setEditedRefData(null)}>
+						{`Cancel`}
+					</Button>
+					<Button onClick={() => saveUpdates()}>
+						{`Save`}
+					</Button>
+				</Dialog.Footer>
+			</Dialog>
+		</>;
 	}
 
 	const renderHeader = () => {
@@ -319,7 +407,7 @@ const FileSelector = (props) => {
 					label={`File Type`}
 					noWrapper
 					value={fileType}
-					onChange={(e) => setFileType(e.target.value)}>
+					onChange={(e) => setFileType((e.target as HTMLSelectElement).value as ModalFileType)}>
 					<option key="all" value="all">
 						{`All`}
 					</option>
@@ -352,23 +440,30 @@ const FileSelector = (props) => {
 		</>;
 	}
 
-	var hasRef = currentRef && currentRef.length;
-	var filename = hasRef ? fileRef.parse(currentRef).ref : "";
+	var hasRef = !!(currentRef && currentRef.length);
+	var filename = hasRef ? fileRef.parse(currentRef)!.ref : "";
 	
 	if (originalName) {
 		filename = originalName;
 	}
 
-	var source;
+	var source: (filter?: ListFilter, includes?: ApiInclude[]) => Promise<ApiList<Upload>>;
+
 	if (props.showActive) {
-		source = (filter, includes) => uploadApi.active(filter, includes);
+		source = (filter?: ListFilter, includes?: ApiInclude[]) => uploadApi.active(includes);
 	}else{
-		source = (filter, includes) => uploadApi.list(filter, includes);
+		source = (filter?: ListFilter, includes?: ApiInclude[]) => filter ? uploadApi.list(filter, includes) : uploadApi.listAll(includes);
 	}
 
 	// do we need to search ?
-	var combinedFilter = { sort: { field: 'CreatedUtc', direction: 'desc' } };;
-	combinedFilter.args = [];
+	var combinedFilter = {
+		sort: {
+			field: 'CreatedUtc',
+			direction: 'desc'
+		},
+		query: '',
+		args: []
+	} as ListFilter;
 
 	if (filterTagId) {
 		combinedFilter.query = "Tags contains ?"
@@ -449,11 +544,11 @@ const FileSelector = (props) => {
 		{/* upload browser */}
 		{showUploadModal && <Dialog isOpen={showUploadModal} onClose={() => setShowUploadModal(false)} className="image-select-dialog">
 			<Dialog.Header>
-				<h2 class="ui-dialog__title">
+				<h2 className="ui-dialog__title">
 					{`Select an Upload`}
 				</h2>
 				{renderHeader()}
-				{renderTags(combinedFilter)}
+				<UploadTags combinedFilter={combinedFilter} filterTagId={filterTagId} setFilterTagId={setFilterTagId} />
 			</Dialog.Header>
 
 			<div className="file-selector__grid">
@@ -463,12 +558,12 @@ const FileSelector = (props) => {
 						entry => {
 							// NB: API has been seen to report valid images with isImage=false
 							//var isImage = entry.isImage;
-							var isImage = fileRef.isImage(entry.ref);
+							var isImage = fileRef.isImage(entry.ref!);
 
 							// default to 256px preview
-							var renderedSize = 256;
-							var imageWidth = parseInt(entry.width, 10);
-							var imageHeight = parseInt(entry.height, 10);
+							var renderedSize : number | undefined = 256;
+							var imageWidth = entry.width || 0;
+							var imageHeight = entry.height || 0;
 							var previewClass = "file-selector__preview ";
 
 							// render image < 256px if original image size was smaller
@@ -479,10 +574,10 @@ const FileSelector = (props) => {
 							}
 
 							return <>
-								<div class="loop-item">
-									<Button allowWrap title={entry.originalName} className="file-selector__item" onClick={(e) => updateValue(e, entry)}>
+								<div className="loop-item">
+									<Button allowWrap title={entry.originalName ?? undefined} className="file-selector__item" onClick={(e) => updateValue(e, entry)}>
 										<div className={previewClass}>
-											{isImage && <Image fileRef={entry.ref} size={renderedSize} />}
+											{isImage && <Image fileRef={entry.ref!} size={renderedSize} />}
 											{!isImage && (
 												<i className="fal fa-4x fa-file"></i>
 											)}
@@ -516,7 +611,7 @@ const FileSelector = (props) => {
 			}}
 			onSelected={
 				icon => {
-					updateValue(null, icon);
+					updateTextualValue(icon);
 				}
 			}
 		/>
@@ -533,7 +628,7 @@ const FileSelector = (props) => {
 			maxSize={props.maxSize}
 			iconOnly={props.iconOnly}
 			onUploaded={
-				file => updateValue(null, file)
+				file => updateValue(null, file.result)
 			} />
 
 		{/* options (browse, preview, remove) */}
@@ -541,15 +636,15 @@ const FileSelector = (props) => {
 			{!props.browseOnly && <>
 
 				{props.uploadOnly &&
-					<button type="button" className="btn btn-primary file-selector__select" onClick={() => setShowUploadModal(true)}>
+					<Button className="file-selector__select" onClick={() => setShowUploadModal(true)}>
 						{`Select upload`}
-					</button>
+					</Button>
 				}
 
 				{props.iconOnly &&
-					<button type="button" className="btn btn-primary file-selector__select" onClick={() => setShowIconModal(true)}>
+					<Button className="file-selector__select" onClick={() => setShowIconModal(true)}>
 						{`Select icon`}
-					</button>
+					</Button>
 				}
 
 				{!props.uploadOnly && !props.iconOnly &&
@@ -560,7 +655,7 @@ const FileSelector = (props) => {
 								text: `Select from uploads`
 							},
 							hasRef ? {
-								onClick: () => updateValue(null, null),
+								onClick: () => updateValue(null, undefined),
 								text: `Remove`
 							} : null,
 							(hasRef && !props.iconOnly) ? {
@@ -581,7 +676,7 @@ const FileSelector = (props) => {
 			</>}
 			{hasRef && <>
 				{!props.iconOnly && <>
-					<a href={fileRef.getUrl(currentRef)} alt={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
+					<a href={fileRef.getUrl(currentRef)} title={filename} className="btn btn-primary file-selector__link" target="_blank" rel="noopener noreferrer">
 						{`View file`}
 					</a>
 				</>}

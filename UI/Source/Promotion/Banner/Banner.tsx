@@ -59,17 +59,17 @@ const Banner: React.FC<BannerProps> = (props) => {
 	return (
 		<div className={bannerClasses.join(' ')} style={backgroundStyle}>
 			<div className="ui-promo-banner__internal">
-				{title?.length > 0 && <>
+				{!!title && <>
 					<h3 className="ui-promo-banner__title">
 						{title}
 					</h3>
 				</>}
-				{description?.length > 0 && <>
+				{!!description && <>
 					<Html>
 						{description}
 					</Html>
 				</>}
-				{ctaLabel?.length > 0 && ctaLink?.length > 0 && <>
+				{!!ctaLabel && !!ctaLink && <>
 					<Link href={ctaLink} variant="primary">
 						{ctaLabel}
 					</Link>

@@ -1,22 +1,33 @@
 import Loop, { LoopProps, LoopStatus, LoopPageConfig } from 'UI/Loop';
-import { AutoApi, ApiIncludes } from 'Api/ApiEndpoints';
-import { Content, VersionedContent } from 'Api/Content';
+import { Content } from 'Api/Database';
 
 /**
  * Props for the Table component.
  */
-interface TableProps<T extends Content<uint>, I extends ApiIncludes> extends LoopProps<T, I> {
+type TableProps<T> = LoopProps<T> & {
 	/**
 	 * Optionally used to render a caption for the table
 	 * @returns
 	 */
-	onCaption?: React.ReactNode,
+	onCaption?: () => React.ReactNode,
 
 	/**
 	 * Optionally used to render your table's header.
 	 * @returns
 	 */
 	onHeader?: (results: T[] | null) => React.ReactNode,
+
+	/**
+	 * Optionally used to render your table's header.
+	 * @returns
+	 */
+	onFooter?: (results: T[] | null) => React.ReactNode,
+
+	/**
+	 * Optionally used to render your table's colgroup section.
+	 * @returns
+	 */
+	colGroups?: (results: T[] | null) => React.ReactNode,
 
 	/**
 	 * Keep table header in view upon scrolling table out of viewport
@@ -51,37 +62,25 @@ interface TableProps<T extends Content<uint>, I extends ApiIncludes> extends Loo
 	/**
 	 * True if the table should be the extra large style.
 	 */
-	xl?: boolean,
-
-	/**
-	 * set true to render paginator only (no overview)
-	 */
-	paginatorOnly?: boolean,
-
-	/**
-	 * set true to render overview only (no paginator)
-	 */
-	overviewOnly?: boolean,
-
-	/** 
-	 * set true to have paginator dock to bottom of parent
-	 */
-	dockBottom?: boolean
+	xl?: boolean
 }
 
 /**
  * The Table React component. Each child function should return a <tr> with the desired column arrangement inside it.
  * @param props React props.
  */
-const Table = <T extends VersionedContent<uint>, I extends ApiIncludes>(props: TableProps<T, I>) => {
+const Table = <T extends Content<uint>>(props: TableProps<T>) => {
 
 	const {
 		onCaption,
 		onHeader,
+		onFooter,
 		className,
 		sticky,
 		captionAbove,
 		xs, sm, md, lg, xl,
+		children,
+		colGroups,
 		...loopProps
 	} = props;
 
@@ -119,8 +118,10 @@ const Table = <T extends VersionedContent<uint>, I extends ApiIncludes>(props: T
 		tableClasses.push(className);
 	}
 
+	// Any is required on the props: the prop types are validated when Table is called.
+	// typescript is just unable to guarantee the type constraint as it passes through here.
 	return (
-		<Loop {...loopProps} onLayout={(content: React.ReactNode, results: T[] | null, loopStatus: LoopStatus, paginator?: React.ReactNode, pageCfg?: LoopPageConfig) => {
+		<Loop {...(loopProps as any)} onLayout={(content: React.ReactNode, results: T[] | null, loopStatus: LoopStatus, paginator?: React.ReactNode, pageCfg?: LoopPageConfig) => {
 			// Optionally use loopStatus to hide the header etc if it is actually empty/loading.
 
 			const table = <table className={tableClasses.join(' ')}>
@@ -130,9 +131,15 @@ const Table = <T extends VersionedContent<uint>, I extends ApiIncludes>(props: T
 				{onHeader && <thead>
 					{onHeader(results)}
 				</thead>}
+				{colGroups && <colgroup>
+					{colGroups(results)}
+				</colgroup>}
 				<tbody>
 					{content}
 				</tbody>
+				{onFooter && <tfoot>
+					{onFooter(results)}
+				</tfoot>}
 			</table>;
 
 			if (paginator) {
@@ -146,7 +153,7 @@ const Table = <T extends VersionedContent<uint>, I extends ApiIncludes>(props: T
 
 			return table;
 		}}>
-			{loopProps.children}
+			{children}
 		</Loop>
 	);
 }

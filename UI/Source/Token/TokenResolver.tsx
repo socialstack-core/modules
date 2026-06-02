@@ -46,7 +46,7 @@ export function resolveValue(
 			return '';
 		}
 		var index = pageState.tokenNames.indexOf(fields.join('.'));
-		return (index == null || index == -1) ? '' : (pageState.tokens ? pageState.tokens[index] : '');
+		return (index == null || index == -1) ? '' : (pageState.tokens ? (pageState.tokens[index] || '') : '');
 	} else if (mode == "theme") {
 		return 'var(--' + fields.join('-') + ')';
 	} else if (mode == "customdata" || mode == "primary") {

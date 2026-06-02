@@ -2,6 +2,7 @@ import { Product } from 'Api/Product';
 import {useEffect, useMemo, useRef} from "react";
 import Image from 'UI/Image';
 import Video from 'UI/Video';
+// @ts-ignore
 import defaultImageRef from './image_placeholder.png';
 import {Upload} from "Api/Upload";
 import { isVideo } from 'UI/FileRef';
@@ -38,7 +39,7 @@ interface CarouselProps {
 	 * When a thumb is changed.
 	 * @param item
 	 */
-	onThumbSelected?: (item: CarouselItem) => void
+	onThumbSelected?: (item: Product | CarouselItem) => void
 
 	/**
 	 * Passed through via props.
@@ -79,14 +80,14 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 			})	
 		});
 		
-		return [...mainImages, ...additionalImages, ...productVariantsAdditionalImages];
+		return [...mainImages, ...additionalImages, ...productVariantsAdditionalImages] as CarouselItem[];
 		// product is its only dependency.
 	}, [product])
 	
 	// this ref exists to add a scroll into view
 	// call to the highlighted product, this scrolls
 	// the pane towards whichever variant is selected. 
-	const activeThumbnailRef = useRef<HTMLDivElement>(null);
+	const activeThumbnailRef = useRef<HTMLLabelElement>(null);
 	
 	useEffect(() => {
 		if (activeThumbnailRef.current) {
@@ -128,10 +129,10 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 	// and renders it, when a featureRef isn't present, it renders
 	// a default image. Mostly unmodified from its previous state
 	// except it returns a full element as opposed to a fragment. 
-	const renderImage = (item: CarouselItem) => {
+	const renderImage = (item: Product | CarouselItem) => {
 		
 		if (item.featureRef) {
-			const refIsVideo = item.contentRef && isVideo(item.contentRef, true);
+			const refIsVideo = (item as CarouselItem).contentRef && isVideo((item as CarouselItem).contentRef!, true);
 
 			return (
 				<details className="ui-product-images__slide">
@@ -146,7 +147,7 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 					</summary>
 					<div className="ui-product-images__slide-content" onClick={(e) => handleLightboxClick(e)}>
 						{refIsVideo ?
-							<Video width={1024} fileRef={item.contentRef} autoHeight={true} autoplay={true} /> :
+							<Video width={1024} fileRef={(item as CarouselItem).contentRef} autoHeight={true} autoplay={true} /> :
 							<Image size={1024} fileRef={item.featureRef} lazyLoad={true} />
 						}
 					</div>
@@ -166,8 +167,6 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 	
 	const currentChosenIndex = allItems.findIndex((item) => item.featureRef === selectedThumbnail?.featureRef);
 	
-	console.log({ currentChosenIndex })
-
 	return (
 		<div className={productImagesClasses.join(' ')}>
 			{hasRelatedImages && <>

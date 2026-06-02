@@ -1,4 +1,5 @@
-import Image, {ImageProps} from "UI/Image";
+import Image, { ImageProps } from "UI/Image";
+// @ts-ignore
 import fallbackImage from './image_placeholder.png';
 
 export type ProductImageProps = ImageProps;

@@ -65,28 +65,32 @@ const PromoCode: React.FC<PromoCodeProps> = (props) => {
 		</>;
 	};
 
-	const updateApplyCodeEnabled = (e) => {
-		setApplyCodeEnabled(e.target.value.trim().length);
+	const updateApplyCodeEnabled = (e: React.ChangeEvent<Element>) => {
+		setApplyCodeEnabled(!!(e.target as HTMLInputElement).value.trim().length);
 	}
 
 	if (!cartIsEmpty || cartIsEmpty()) {
 		return null;
 	}
 
+	type CouponFields = {
+		coupon: string
+	};
+
 	return <>
 		<fieldset className="shopping-cart__promo fieldset--bordered">
 			<legend>
 				{shoppingCart?.coupon ? `Active coupon` : `Have a promotional code? Enter it here`}
 			</legend>
-			<Form className="shopping-cart__promo-form" action={(fields) => setCoupon(fields.coupon)}
+			<Form className="shopping-cart__promo-form" action={(fields : CouponFields) => setCoupon!(fields.coupon)}
 				successMessage={`Coupon applied`} failedMessage={`Unable to apply coupon`}>
 				<Input type='text' name='coupon' placeholder={`Enter promotional code`} noWrapper readOnly={shoppingCart?.coupon ? true : undefined}
-					onChange={(e) => updateApplyCodeEnabled(e)} value={shoppingCart?.coupon?.token} />
+					onChange={(e:React.ChangeEvent<Element>) => updateApplyCodeEnabled(e)} value={shoppingCart?.coupon?.token || undefined} />
 				{!shoppingCart?.coupon && <>
 					<Input type="submit" label={`Apply Code`} noWrapper disabled={applyCodeEnabled ? undefined : true} />
 				</>}
 				{shoppingCart?.coupon && <>
-					<Input type="reset" variant="danger" label={`Remove Code`} noWrapper onClick={() => setCoupon(null)} />
+					<Input type="reset" variant="danger" label={`Remove Code`} noWrapper onClick={() => setCoupon!(null)} />
 				</>}
 			</Form>
 			{renderCouponDetails(shoppingCart?.coupon)}

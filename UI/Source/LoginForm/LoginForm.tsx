@@ -6,6 +6,7 @@ import Canvas from 'UI/Canvas';
 import Spacer from 'UI/Spacer';
 import Alert from 'UI/Alert';
 import Icon from 'UI/Icon';
+import Button from 'UI/Button';
 import { useSession } from 'UI/Session';
 import { useRouter } from 'UI/Router';
 import { useState, useEffect } from 'react';
@@ -62,7 +63,7 @@ export default (props : LoginFormProps) => {
 
 	var onClickResendVerificationEmail = () => {
 		userApi.resendVerificationEmail(setSession, {
-			email: user?.email
+			email: user?.email || null
 		}).then(() => {
 			setEmailVerificationSent(true);
 		});
@@ -103,8 +104,9 @@ export default (props : LoginFormProps) => {
 
 		return (<>
 			<div style={{display: moreRequired ? 'none' : 'initial'}}>
-				<Input label = {props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)}  name="emailOrUsername" placeholder={emailOnly ? `Email` : `Email or username`} type={emailOnly ? 'email' : 'text'} validate={validate} />
-				<Input label = {props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate = {validatePassword} />
+				<Input label={props.noLabels ? null : (emailOnly ? `Email` : `Email or username`)} name="emailOrUsername"
+					placeholder={emailOnly ? `Email` : `Email or username`} type={emailOnly ? 'email' : 'text'} validate={validate} />
+				<Input label={props.noLabels ? null : `Password`} name="password" placeholder={`Password`} type="password" validate={validatePassword} />
 				{row}
 			</div>
 			<Spacer height={ 20 } />
@@ -120,14 +122,19 @@ export default (props : LoginFormProps) => {
 
 	if (emailVerificationRequired) {
 		return <div className="login-form">
-			<p>`You need to verify your email to continue. Please follow the instructions in the email, or you can resend the email by pressing the button below.`</p>
+			<p>
+				{`You need to verify your email to continue. Please follow the instructions in the email, or you can resend the email by pressing the button below.`}
+			</p>
+
 			{!emailVerificationSent
 				? 
-					<button className="btn btn-primary" onClick={e => onClickResendVerificationEmail()}>
-						`Resend email`
-					</button>
+					<Button onClick={e => onClickResendVerificationEmail()}>
+						{`Resend email`}
+					</Button>
 				: 
-					<p>`Email sent!`</p>
+				<p>
+					{`Email sent!`}
+				</p>
 			}
 		</div>;
 	}

@@ -349,14 +349,15 @@ const buildCategoryTree = (collection: ApiList<Product>): Map<uint, CategoryTree
 			children: []
 		});
 	})
-	// second time around we have all the relevant category data setup, 
-	// we iterate over entries, 
-	// ignore any TS errors saying "forEach" doesn't exist on 
+	// second time around we have all the relevant category data setup,
+	// we iterate over entries,
+	// ignore any TS errors saying "forEach" doesn't exist on
 	// MapIterator<uint, CategoryTreeNode>, it most certainly does.
 	// the entry is destructured here, noticed the first argument
-	// is omitted, this is by design, the node represents the 
+	// is omitted, this is by design, the node represents the
 	// node holding the facet & children
-	map.entries().forEach(([, node]) => {
+	// @ts-ignore
+	map.entries().forEach(([, node ]) => {
 
 		// destructure facet from the node, each node has facet & children
 		const { facet } = node;

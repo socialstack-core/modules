@@ -1,5 +1,5 @@
 import Alert from "UI/Alert";
-import {Content} from "Api/Content";
+import {Content} from "Api/Database";
 
 /**
  * Available component packs for entities.

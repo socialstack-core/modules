@@ -23,6 +23,11 @@ interface FAQsProps {
 	currentVariant?: Product;
 }
 
+interface QuestionAnswer {
+	q: string,
+	a: string
+}
+
 /**
  * The product FAQs React component.
  * Renders a list of associated product FAQs.
@@ -30,15 +35,15 @@ interface FAQsProps {
  * @param props React component props.
  */
 const FAQs: React.FC<FAQsProps> = ({ title, product, currentVariant }) => {
-	const faqsSource = currentVariant || product;
+	const faqsSource : Product | undefined = currentVariant || product;
 
-	var faqs = faqsSource.frequentlyAskedQuestionsJson;
+	var faqSrc = faqsSource?.frequentlyAskedQuestionsJson;
 
-	if (!faqs) {
+	if (!faqSrc) {
 		return;
 	}
 
-	faqs = JSON.parse(faqs);
+	var faqs = JSON.parse(faqSrc) as QuestionAnswer[];
 
 	if (!faqs?.length) {
 		return;

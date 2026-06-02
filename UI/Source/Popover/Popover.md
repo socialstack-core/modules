@@ -35,7 +35,7 @@ this at larger resolutions (such as tablet landscape and desktop), but no room a
 
 ```tsx
 
-	<Popover.Wrapper>
+	<PopoverWrapper>
 		{/* note, the associated trigger doesn't need to be a) before the popover or b) even a sibling,
 		    but it does need to be parented by the wrapper component.  Styling will ensure the trigger
 			is automatically hidden if there's enough room to display the associated popover
@@ -52,9 +52,9 @@ this at larger resolutions (such as tablet landscape and desktop), but no room a
 		<Popover id="search_filters" tabletLandscapeVisible>
 			{/* search filters content */}
 		</Popover>
-	</Popover.Wrapper>
+	</PopoverWrapper>
 
 ```
 
-One caveat to the above - when using the Popover.Wrapper, ensure there's only one popover within the content
+One caveat to the above - when using the PopoverWrapper, ensure there's only one popover within the content
 (otherwise _all_ popovers within that block will be affected).

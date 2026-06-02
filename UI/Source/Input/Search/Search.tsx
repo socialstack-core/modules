@@ -17,7 +17,9 @@ const Search: React.FC<CustomInputTypeProps<"search">> = (props) => {
 
 	let fieldMarkup: React.ReactNode;
 
-	fieldMarkup = <Default type="search" className={hideIcon ? "search-input--no-icon" : undefined} config={props} field={field} />;
+	let fullClassName = hideIcon ? "search-input--no-icon" + (className ? " " + className : "") : className;
+
+	fieldMarkup = <Default type="search" config={props} field={{ ...field, className: fullClassName }} />;
 
 	return fieldMarkup;
 }

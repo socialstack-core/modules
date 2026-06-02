@@ -23,7 +23,7 @@ const ExternalPayment: React.FC<ExternalPaymentProps> = (props) => {
     const [error, setError] = useState<PublicError | undefined>();
 	const [paymentMethod, setPaymentMethod] = useState<PaymentMethod| undefined>();
 
-	var paymentGateways = global.paymentGateways = global.paymentGateways || {};
+	var paymentGateways = globalThis.paymentGateways = globalThis.paymentGateways || {};
 
 	useEffect(() => {
 

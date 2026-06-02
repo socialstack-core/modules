@@ -2,7 +2,13 @@ import { expand, CanvasNode } from 'UI/Functions/CanvasExpand';
 import Alert from 'UI/Alert';
 import { useRouter, PageState } from 'UI/Router/RouterCtx';
 import { useSession } from 'UI/Session';
-import { useErrorBoundary, useEffect, useState, useMemo } from 'react'; // useErrorBoundary is a preact function.
+import {
+	// @ts-ignore TS2305
+	useErrorBoundary, // useErrorBoundary is a preact function.
+	useEffect,
+	useState,
+	useMemo
+} from 'react';
 import { resolveSingular } from 'UI/Token/TokenResolver';
 
 var uniqueKey = 1;
@@ -53,7 +59,12 @@ interface CanvasProps {
 	 * @param node
 	 * @returns
 	 */
-	onRenderNode?: (node : CanvasNode) => CanvasNode | undefined | null
+	onRenderNode?: (node: CanvasNode) => CanvasNode | undefined | null,
+
+	/**
+	 * A forced update counter (unused by the Canvas component itself)
+	 */
+	forcedUpdate?: number
 }
 
 interface CanvasDataStore {

@@ -20,10 +20,10 @@ const Textarea: React.FC<CustomInputTypeProps<"textarea">> = (props) => {
 			{...field}
 			ref={(el: HTMLTextAreaElement) => onInputRef && onInputRef(el as HTMLElement)}
 			className={(field.className || "form-control ui-form-control") + (props.validationFailure ? ' is-invalid' : '')}
-			onInput={e => {
+			onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
 				var ele = e.target as HTMLTextAreaElement;
 				setLength(ele.textLength);
-				field.onInput && field.onInput(e);
+				field.onInput && field.onInput(e as React.InputEvent<HTMLTextAreaElement>);
 				field.onChange && field.onChange(e as React.ChangeEvent<HTMLTextAreaElement>);
 			}}
 		/>

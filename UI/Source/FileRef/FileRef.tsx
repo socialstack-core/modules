@@ -99,6 +99,10 @@ function basicUrl(refInfo : FileRefInfo, options: FileRefOptions) {
     return qualifiedUrl;
 }
 
+type PageRouterConfig = {
+    hash?: string
+};
+
 /**
  * Handles files present in the source tree.
  * @param refInfo
@@ -185,7 +189,7 @@ function contentFile(refInfo: FileRefInfo, options: FileRefOptions) {
     var type = isPublic ? idealType(refInfo, options.ideal) : refInfo.fileType;
 
     if (options.forceImage && isPublic) {
-        if (!type || imgTypes.indexOf(type) == -1) {
+        if (!type || imageTypes.indexOf(type) == -1) {
             // Use the transcoded webp ver:
             type = 'webp';
         }
@@ -219,7 +223,7 @@ var protocolHandlers : Record<string, FileRefHandler> = {
 /**
  * A textual or parsed file ref.
  */
-type FileRefIsh = FileRef | FileRefInfo;
+export type FileRefIsh = FileRef | FileRefInfo;
 
 /**
  * A protocol handler for a file ref. Returns the URL.
@@ -454,7 +458,7 @@ export class FileRefInfo {
      * @param webOnly True if it should only check web compat image filetypes.
      * @returns
      */
-	isImage(webOnly: boolean) {
+	isImage(webOnly?: boolean) {
 		if (this.fileType) {
 			return ((webOnly ? MEDIA_TYPES.image.web : MEDIA_TYPES.image.all).indexOf(this.fileType) != -1);
         }
@@ -467,7 +471,7 @@ export class FileRefInfo {
      * @param webOnly True if it should only check web compat video filetypes.
      * @returns
      */
-    isVideo(webOnly: boolean) {
+    isVideo(webOnly?: boolean) {
         if (this.fileType) {
 			return ((webOnly ? MEDIA_TYPES.video.web : MEDIA_TYPES.video.all).indexOf(this.fileType) != -1);
         }
@@ -480,7 +484,7 @@ export class FileRefInfo {
 	 * @param webOnly True if it should only check web compat audio filetypes.
 	 * @returns
 	 */
-	isAudio(webOnly: boolean) {
+	isAudio(webOnly?: boolean) {
 		if (this.fileType) {
 			return ((webOnly ? MEDIA_TYPES.audio.web : MEDIA_TYPES.audio.all).indexOf(this.fileType) != -1);
 		}
@@ -493,7 +497,7 @@ export class FileRefInfo {
 	 * @param webOnly True if it should only check web compat document filetypes.
 	 * @returns
 	 */
-	isDocument(webOnly: boolean) {
+	isDocument(webOnly?: boolean) {
 		if (this.fileType) {
 			return ((webOnly ? MEDIA_TYPES.document.web : MEDIA_TYPES.document.all).indexOf(this.fileType) != -1);
 		}
@@ -604,7 +608,7 @@ export function isRef(ref : FileRefIsh) {
 /*
 * Convenience method for identifying image refs.
 */
-export function isImage(ref: FileRefIsh, webOnly: boolean) {
+export function isImage(ref: FileRefIsh, webOnly?: boolean) {
     var info = parse(ref);
     return info ? info.isImage(webOnly) : false;
 }
@@ -615,7 +619,7 @@ export function isImage(ref: FileRefIsh, webOnly: boolean) {
  * @param webOnly True if it should only check for web compatible videos.
  * @returns
  */
-export function isVideo(ref: FileRefIsh, webOnly: boolean) {
+export function isVideo(ref: FileRefIsh, webOnly?: boolean) {
     var info = parse(ref);
     return info ? info.isVideo(webOnly) : false;
 }
@@ -626,7 +630,7 @@ export function isVideo(ref: FileRefIsh, webOnly: boolean) {
  * @param webOnly True if it should only check for web compatible audio.
  * @returns
  */
-export function isAudio(ref: FileRefIsh, webOnly: boolean) {
+export function isAudio(ref: FileRefIsh, webOnly?: boolean) {
 	var info = parse(ref);
 	return info ? info.isAudio(webOnly) : false;
 }
@@ -637,7 +641,7 @@ export function isAudio(ref: FileRefIsh, webOnly: boolean) {
 * @param webOnly True if it should only check for web compatible documents.
 * @returns
 */
-export function isDocument(ref: FileRefIsh, webOnly: boolean) {
+export function isDocument(ref: FileRefIsh, webOnly?: boolean) {
 	var info = parse(ref);
 	return info ? info.isDocument(webOnly) : false;
 }
@@ -648,7 +652,7 @@ export function isDocument(ref: FileRefIsh, webOnly: boolean) {
 * @param webOnly True if it should only check for web compatible file types.
 * @returns
 */
-export function isOther(ref: FileRefIsh, webOnly: boolean) {
+export function isOther(ref: FileRefIsh, webOnly?: boolean) {
 	var info = parse(ref);
 
 	return info ? !info.isImage(webOnly) && !info.isVideo(webOnly) && !info.isAudio(webOnly) && !info.isDocument(webOnly) : false;

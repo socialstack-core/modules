@@ -76,6 +76,13 @@
 		}
 
 	}
+
+	// default promo banner to hidden
+	// (as of April 2026, this is only used within UI/Product/View which displays this where necessary)
+	.ui-promotion {
+		display: none;
+	}
+
 }
 
 @media only screen and (min-width: 600px) {

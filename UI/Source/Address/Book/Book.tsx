@@ -90,7 +90,7 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 				</h2>
 				<Form action={addressApi.create} submitLabel={`Add Address`}
 				onValues={values => {
-					values.addressType = addressType;
+					values!.addressType = addressType as int;
 					return values;
 				}}
 
@@ -108,7 +108,7 @@ const Book: React.FC<BookProps> = (props: BookProps) => {
 			</section>
 
 			{confirmDelete && <>
-				<ConfirmDialog variant="danger" isOpen={confirmDelete} onClose={() => setConfirmDelete(null)}
+				<ConfirmDialog variant="danger" isOpen={!!confirmDelete} onClose={() => setConfirmDelete(null)}
 					confirmCallback={() => {
 						return addressApi.delete(confirmDelete.id).then(() => {
 							setConfirmDelete(null);

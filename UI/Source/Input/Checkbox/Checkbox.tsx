@@ -33,7 +33,7 @@ interface CheckboxProps {
 const Checkbox: React.FC<CheckboxProps> = (props) => {
 	const { field, config } = props;
 	const { label, validationFailure, onInputRef, helpFieldId } = config;
-	let { isSwitch, flipped, xs, sm, md, lg, xl, groupVariant, groupIcon, solid, className, onChange, style, ...attribs } = field;
+	let { isSwitch, flipped, xs, sm, md, lg, xl, groupVariant, groupIcon, solid, className, onChange: fieldOnChange, style, ...attribs } = field;
 	const generatedId = useId();
 	const id = attribs.id || generatedId;
 	
@@ -93,7 +93,7 @@ const Checkbox: React.FC<CheckboxProps> = (props) => {
 				className="btn-check"
 				type="checkbox"
 				autoComplete="off"
-				onInput={onChange}
+				onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 				{...attribs}
 				id={id}
 			/>
@@ -113,11 +113,12 @@ const Checkbox: React.FC<CheckboxProps> = (props) => {
 					className={inputClass}
 					aria-describedby={helpFieldId}
 					type="checkbox"
-					onInput={onChange}
+					onInput={fieldOnChange as unknown as React.InputEventHandler<HTMLInputElement>}
 					{...attribs}
 					role={isSwitch ? "switch" : undefined}
 					id={id}
 					// haptic support for Safari
+					// @ts-ignore
 					switch={isSwitch ? true : undefined}
 			/>
 			<label className="form-check-label" htmlFor={id}>

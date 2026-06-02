@@ -9,7 +9,7 @@ const CheckoutSection: React.FC<React.PropsWithChildren<CheckoutSectionProps>> =
 
 	return <>
 		<section className="payment-checkout__section">
-			{title?.length > 0 && <>
+			{!!title && <>
 				<h2 className="payment-checkout__subtitle">
 					{title}
 				</h2>

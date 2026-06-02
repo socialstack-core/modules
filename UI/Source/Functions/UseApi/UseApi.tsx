@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 
 const useApi = <T,>(loader: () => Promise<T>, deps?: React.DependencyList) => {
-    const state = useState<T>(() => {
+    const state = useState<T | null>(() => {
         // Todo: attempt to obtain data from SSR content response
         return null as T;
     });

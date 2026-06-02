@@ -84,8 +84,8 @@ const AllDownloads: React.FC<AllDownloadProps> = (props) => {
 			
 			{/* downloads */}
 			<menu className="ui-product-view__downloads-list">
-				{downloads.map((download: Upload) => {
-					if (!download.ref) {
+				{downloads.map((download?: Upload) => {
+					if (!(download?.ref)) {
 						return;
 					}
 
@@ -161,8 +161,8 @@ const AllCOSHHDownloads: React.FC<AllDownloadProps> = (props) => {
 			
 			{/* downloads */}
 			<menu className="ui-product-view__downloads-list">
-				{downloads.map((download: Upload) => {
-					if (!download.ref) {
+				{downloads.map((download?: Upload) => {
+					if (!(download?.ref)) {
 						return;
 					}
 

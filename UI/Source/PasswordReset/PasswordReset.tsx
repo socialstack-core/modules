@@ -5,14 +5,15 @@ import Input from 'UI/Input';
 import { useState, useEffect } from 'react';
 import {useSession} from 'UI/Session';
 import { useRouter } from 'UI/Router';
-import passwordResetRequestApi, { NewPassword } from 'Api/PasswordResetRequest';
+import passwordResetRequestApi from 'Api/PasswordResetRequest';
+import { NewPassword } from 'Api/PasswordResetRequests';
 
 /**
  * Props for the password reset form.
  */
 interface PasswordResetProps {
 	token: string,
-	onSuccess?:(s:SessionResponse)=>void
+	onSuccess?:(s:Session)=>void
 }
 
 /**
@@ -31,7 +32,7 @@ const PasswordReset: React.FC<PasswordResetProps> = (props) => {
 	var [failed, setFailed] = useState<PublicError|null>(null);
 	var [password, setPassword] = useState('');
 
-	const validatePasswordMatch = (value : string): PublicError | undefined => {
+	const validatePasswordMatch = (value : string | boolean): PublicError | undefined => {
 		if (password != value) {
 			return {
 				type: 'password/no-match',
@@ -70,10 +71,6 @@ const PasswordReset: React.FC<PasswordResetProps> = (props) => {
 					submitLabel={`Set My Password`}
 					action={(np:NewPassword) => passwordResetRequestApi.loginWithToken(setSession, token, np)}
 					onSuccess={response => {
-						// Response is the new context.
-						// Set to global state:
-						setSession(response);
-							
 						if(props.onSuccess){
 							props.onSuccess(response);
 						}else{
@@ -103,7 +100,7 @@ const PasswordReset: React.FC<PasswordResetProps> = (props) => {
 
 					<fieldset>
 						<Input
-							autocomplete="new-password"
+							autoComplete="new-password"
 							type='password'
 							name='newPasswordConfirm'
 							label={`Confirm Password`}

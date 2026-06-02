@@ -1,5 +1,5 @@
 import Default, { DefaultInputType } from 'UI/Input/Default';
-import { useRef } from "react";
+import { useState } from "react";
 
 type RangeInputType = DefaultInputType & {
 	/** 
@@ -33,30 +33,41 @@ declare global {
 const Range: React.FC<CustomInputTypeProps<"range">> = (props) => {
 	const { field, helpFieldId, onInputRef, inputRef, validationFailure } = props;
 	const { min, max, step, disableFill, onChange, className, ...attribs } = field;
-	const rangeRef = useRef();
+	const [rangeRef, setRangeRef] = useState<HTMLInputElement | null>(null);
 
 	/**
 	 * overlays gradient to show filled area from 0-value
 	 */
-	function updateGradient(rangeValue) {
+	function updateGradient(rangeValue: string) {
+		const value = parseInt(rangeValue, 10);
 
-		if (disableFill) {
+		if (disableFill || isNaN(value)) {
 			return;
 		}
 
-		const percentage = (rangeValue - min) / (max - min) * 100;
-		rangeRef.current?.style.setProperty('--percentage', percentage + '%');
+		const maxValue: number = !max ? 100 : max;
+		const minValue: number = !min ? 1 : min;
+
+		const percentage = (value - minValue) / (maxValue - minValue) * 100;
+		rangeRef?.style.setProperty('--percentage', percentage + '%');
 	}
 
 	// TODO: preset background gradient based on initial value
-	//updateGradient(value);
+	// useEffect(() => { updateGradient(value); }, []);
 
 	let fieldMarkup: React.ReactNode;
 
-	// TODO: ensure ref / onInput are supported
 	fieldMarkup = <>
-		<Default type="range" config={props} field={field} ref={rangeRef} onInput={(e) => {
-			updateGradient(e.target.value);
+		<Default type="range" config={{
+			...props,
+			onInputRef: (el: HTMLElement) => {
+				setRangeRef(el as HTMLInputElement);
+			}
+		}} field={{
+			...field,
+			onInput: (e: React.InputEvent<HTMLInputElement>) => {
+				updateGradient(e.currentTarget.value);
+			}
 		}} />
 	</>;
 

@@ -43,12 +43,12 @@ const Cart: React.FC<CartProps> = (props) => {
 			{loading && <Loading />}
 
 			{!loading && <>
-				<ProductTable shoppingCart={shoppingCart} addToCart={addToCart} lessTax={lessTax} />
+				<ProductTable shoppingCart={shoppingCart!} lessTax={lessTax} />
 
 				{!cartEmpty && (customFooter || <>
 					<div className="shopping-cart__internal">
-						<PromoCode shoppingCart={shoppingCart} />
-						<CartTotal shoppingCart={shoppingCart} emptyCart={emptyCart} lessTax={lessTax} />
+						<PromoCode shoppingCart={shoppingCart!} />
+						<CartTotal shoppingCart={shoppingCart!} emptyCart={emptyCart} />
 					</div>
 				</>)}
 

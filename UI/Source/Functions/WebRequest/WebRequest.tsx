@@ -2,7 +2,7 @@
 import store from 'UI/Functions/Store';
 import contentChange from 'UI/Functions/ContentChange';
 import { PublicError } from 'UI/Failed';
-import { Content } from 'Api/Content';
+import { Content } from 'Api/Database';
 
 /**
  * Underlying error type from the server. Use PublicError in the frontend instead.
@@ -82,6 +82,24 @@ interface WebRequestOptions {
 	 */
 	method?: string;
 }
+
+export class ApiIncludes {
+    private text: string = '';
+
+    constructor(existing: string = '', addition: string = ''){
+        this.text = (existing.length != 0) ? existing : '';
+        if (addition.length != 0) {
+             if (this.text != ''){
+                this.text += '.'
+             }
+             this.text += addition;
+        }
+    }
+
+    toString(){ return this.text }
+}
+
+export type ApiInclude = ApiIncludes | string;
 
 /**
  * Expands include set on API returned results.
@@ -218,6 +236,17 @@ export function lazyLoad(url: string) {
 }
 
 /**
+* Builds an ?includes (or &includes if isAmp is true) query string.
+*/
+export function includeString(includes?:ApiInclude[], isAmp?: boolean){
+	if(!includes || !Array.isArray(includes) || !includes.length){
+		return '';
+	}
+	
+	return (isAmp ? '&' : '?') + 'includes=' + includes.join(',');
+}
+
+/**
  * Gets a raw blob.
  */
 export function getBlob(origUrl: string, data?: any, opts?: WebRequestOptions): Promise<Blob> {
@@ -279,7 +308,7 @@ export function getJson<T>(origUrl: string, data?: any, opts?: WebRequestOptions
 /**
  * Gets a potentially paginated list fragment. Expands any present includes for you.
  */
-export function getList<T extends Content<uint>>(origUrl: string, data?: any, opts?: WebRequestOptions) {
+export function getList<T>(origUrl: string, data?: any, opts?: WebRequestOptions) {
 	return getJson<ApiList<T>>(origUrl, data, opts)
 		.then(apiList => {
 			var result = expandIncludes<ApiList<T>>(apiList);
@@ -301,7 +330,7 @@ export function getList<T extends Content<uint>>(origUrl: string, data?: any, op
  * Handles API endpoints (load, delete, update) which return {"result": T, "includes": ...}.
  * Expands includes in to the object for you, and then returns it.
  */
-export function getOne<T extends Content<uint>>(origUrl: string, data?: any, opts?: WebRequestOptions) {
+export function getOne<T>(origUrl: string, data?: any, opts?: WebRequestOptions) {
 	return getJson<ApiContent<T>>(origUrl, data, opts)
 		.then(apiContent => {
 			var result = expandIncludes<T>(apiContent);
@@ -323,14 +352,14 @@ export function getOne<T extends Content<uint>>(origUrl: string, data?: any, opt
 			} else if (data) {
 				method = 'post';
 			}
-				
-			var cont = result as Content<uint>;
+			
+			var cont = (result as any) as Content<uint>;
 
 			if (cont.id && cont.type && method != 'get') {
 
 				// If method was 'delete' then this entity was deleted.
 				// Otherwise, as it's not specified, contentchange will establish if it was added or deleted based on the given url.
-				contentChange(result, origUrl, { deleted: (method == 'delete'), updated: false, added: false, created: false });
+				contentChange(cont, origUrl, { deleted: (method == 'delete'), updated: false, added: false, created: false });
 			}
 
 			return result;

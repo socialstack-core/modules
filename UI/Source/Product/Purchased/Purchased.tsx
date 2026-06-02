@@ -1,4 +1,4 @@
-import { ProductStat } from 'Api/Content';
+import { ProductStat } from 'Api/BusinessProductStats';
 import { Product } from 'Api/Product';
 import Time from 'UI/Time';
 
@@ -19,7 +19,7 @@ interface PurchaseProps {
 const Purchase: React.FC<PurchaseProps> = (props) => {
 	const { product } = props;
 
-	const stats:ProductStat = (product?.businessProductStats || undefined);
+	const stats:ProductStat | undefined = (product?.businessProductStats || undefined);
 
     if (!stats) {
         return ('');

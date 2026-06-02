@@ -1,5 +1,6 @@
-import ProductTable from 'UI/Payments/ProductTable';
+import ProductTable, { ExtendedLineItem } from 'UI/Payments/ProductTable';
 import { Purchase } from 'Api/Purchase';
+import { ProductQuantityPricing } from 'Api/Payments';
 import Complete from 'UI/Payments/Complete';
 
 /**
@@ -31,7 +32,13 @@ const View: React.FC<BasicInstructionProps> = (props) => {
 		<h1>
 			{`Details about your purchase`}
 		</h1>
-		<ProductTable readonly shoppingCart={{items:purchase.productQuantities}} />
+		<ProductTable readOnly shoppingCart={{
+			cartContents: ({
+				contents: purchase.productQuantities?.map(pq => {
+					return (pq as any) as ExtendedLineItem;
+				}) || []
+			} as any) as ProductQuantityPricing
+		}} />
 	</>;
 }
 

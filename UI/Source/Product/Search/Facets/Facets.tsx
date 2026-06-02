@@ -9,7 +9,8 @@ export interface ProductPriceFacet {
 
 export interface ProductCategoryFacet {
 	count: int;
-	category: ProductCategory
+	category: ProductCategory;
+	productCategoryId: int;
 }
 
 export interface AttributeValueFacet {

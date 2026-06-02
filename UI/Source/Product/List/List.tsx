@@ -15,7 +15,7 @@ interface ListProps {
 	/** 
 	 * determines if products should be shown in small thumbnail, large thumbnail or grid format
 	 */
-	viewStyle?: string
+	viewStyle?: "list" | "small-thumbs" | "large-thumbs",
 
 	/**
 	 * Adds a paginator to the product list.
@@ -61,7 +61,8 @@ const List: React.FC<ListProps> = (props: ListProps) => {
 		<div className="ui-product-list__wrapper">
 			{promotions && promotions.length > 0 && (
 				<div className="ui-product-list__promotion" style={{ marginBottom: '1rem' }}>
-					<PromotionCycler promotions={promotions} currentCategoryId={currentCategoryId} currentSearchCategoryId={currentCategoryId} currentCategoryBreadcrumbs={currentCategoryBreadcrumbs} />
+					<PromotionCycler promotions={promotions} currentCategoryId={currentCategoryId as int} currentSearchCategoryId={currentCategoryId as int}
+						currentCategoryBreadcrumbs={currentCategoryBreadcrumbs} />
 				</div>
 			)}
 			<ul className={productListClasses.join(' ')}>

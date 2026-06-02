@@ -83,7 +83,7 @@ const AddressBook: React.FC<AddressBookProps> = (props) => {
 			</div>
 
 			{confirmDelete && <>
-				<ConfirmDialog variant="danger" isOpen={confirmDelete} onClose={() => setConfirmDelete(null)}
+				<ConfirmDialog variant="danger" isOpen={true} onClose={() => setConfirmDelete(null)}
 					confirmCallback={() => {
 						return addressApi.delete(confirmDelete.id).then(() => {
 							setConfirmDelete(null);

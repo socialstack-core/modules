@@ -53,6 +53,11 @@ interface PromotionProps {
 	promoOffsetY?: number,
 
 	/**
+	 * render promotion image clipped / offset (default is to display full image)
+	 */
+	promoClipped?: boolean,
+
+	/**
 	 * set true to switch all white pixels within promo image to transparency
 	 */
 	removeWhiteBackground?: boolean,
@@ -110,7 +115,7 @@ const Promotion: React.FC<PromotionProps> = (props) => {
 	const promoRef = inlinePromo ? inlinePromo.featureRef : props.featureRef;
 	const promoOffsetX = inlinePromo ? 0 : props.promoOffsetX;
 	const promoOffsetY = inlinePromo ? 0 : props.promoOffsetY;
-	const removeWhiteBackground = false;
+	const removeWhiteBackground = props.removeWhiteBackground;
 
 	const title = inlinePromo?.name || props.title;
 	const description = inlinePromo?.description || props.description;
@@ -131,6 +136,10 @@ const Promotion: React.FC<PromotionProps> = (props) => {
 
 	if (removeWhiteBackground) {
 		classNames.push(`${baseClass}--white-to-transparent`);
+	}
+
+	if (props.promoClipped) {
+		classNames.push(`${baseClass}--clipped`);
 	}
 
 	if (className?.trim().length) {

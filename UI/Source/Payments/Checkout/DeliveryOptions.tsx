@@ -35,6 +35,11 @@ interface DeliveryInformation {
 	isFreeDelivery: boolean
 }
 
+interface DeliveryDayConfig {
+	standardCourierCode: string,
+	saturdayCourierCode: string
+}
+
 /**
  * The DeliveryOptions React component.
  * @param props React props.
@@ -54,7 +59,7 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 	const [selectedDeliveryOptionInfo, setSelectedDeliveryOptionInfo] = useState<DeliveryInformation | undefined>();
 
 
-	const getDeliveryFromMap = (code: string) => {
+	const getDeliveryFromMap = (code?: string) => {
 		let result: DeliveryOption | undefined
 
 		deliveryOptionMap?.forEach((value, key) => {
@@ -67,15 +72,15 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 	};
 
 	//Get individual delivery options
-	const standardCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig.standardCourierCode),[deliveryOptionMap]);
-	const saturdayCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig.saturdayCourierCode),[deliveryOptionMap]);
+	const standardCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig?.standardCourierCode),[deliveryOptionMap]);
+	const saturdayCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig?.saturdayCourierCode),[deliveryOptionMap]);
 
 	//Extract costs from delivery options
 	const standardCourierCost = standardCourierDelivery ? deliveryOptionMap?.get(standardCourierDelivery)!.price : undefined;
-	const formattedstandardCourierCost = formatCurrency(standardCourierCost, {currencyCode});
+	const formattedstandardCourierCost = standardCourierCost ? formatCurrency(standardCourierCost, {currencyCode}) : '';
 	
     const saturdayCourierCost = saturdayCourierDelivery ? deliveryOptionMap?.get(saturdayCourierDelivery)!.price : undefined;
-	const formattedSaturdayCourierCost = formatCurrency(saturdayCourierCost, {currencyCode});
+	const formattedSaturdayCourierCost = saturdayCourierCost ? formatCurrency(saturdayCourierCost, { currencyCode }) : '';
 
 	useEffect(() => {
 		if(!estimates){
@@ -113,7 +118,8 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 		});
 	}
 
-	const formattedDeliveryCost = formatCurrency(selectedDeliveryOptionInfo?.price, { currencyCode } );
+	const sdoPrice = selectedDeliveryOptionInfo?.price;
+	const formattedDeliveryCost = sdoPrice ? formatCurrency(sdoPrice, { currencyCode } ) : '';
 	const formattedCurrentDeliveryDate = (activeDeliveryDay ? formatDate(activeDeliveryDay) : "");
 	
 	const deliverySubtitle = `${formattedCurrentDeliveryDate}  |  ${formattedDeliveryCost}`;
@@ -152,7 +158,7 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 			defaultValue={props.deliveryInformation}
 			onChange={e => {
 				const input = (e.target as HTMLInputElement);
-				props.setDeliveryInformation(input.value);
+				props.setDeliveryInformation!(input.value);
 			}}
 		/>	
 		}

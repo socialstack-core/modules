@@ -1,4 +1,7 @@
-const CLOSE_PREFIX : string = 'btn-close';
+/**
+ * NB: DEPRECATED - use UI/Button with close prop
+ */
+const CLOSE_PREFIX: string = 'btn-close';
 
 /**
  * Props for the Header component.

@@ -74,9 +74,9 @@ const Attributes: React.FC<AttributesProps> = ({ title, product, currentVariant 
 		}
 
 		acc[name].push({
-			value: value,
-			featureRef: featureRef,
-			units: attribute.units,
+			value: value || undefined,
+			featureRef: featureRef || undefined,
+			units: attribute.units || undefined,
 		});
 
 		return acc;

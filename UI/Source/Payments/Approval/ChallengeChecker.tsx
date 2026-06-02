@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 
-import { ValidationMetaData } from 'Api/ShoppingCart';
-import purchaseApi, {PurchaseStatus} from 'Api/Purchase';
+import { ValidationMetaData } from './Challenge';
+import purchaseApi from 'Api/Purchase';
+import { PurchaseStatus } from 'Api/Payments';
 
 type ChallengeCheckerProps = {
 	metaData: ValidationMetaData | undefined;
@@ -21,7 +22,7 @@ const ChallengeChecker: React.FC<ChallengeCheckerProps> = (props: ChallengeCheck
 		// calls the purchase controller to check the purchase status
 		// should be updated via a callback from the provider 
 		const update = () => {
-			purchaseApi.approvalStatus(metaData?.token)
+			purchaseApi.approvalStatus(metaData?.token || null)
 			.then((result: PurchaseStatus) => {
 				console.log('Approval check ', result.status)
 				

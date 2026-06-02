@@ -1,7 +1,7 @@
 import { Address } from 'Api/Address';
 
 // ISO 3166-1 alpha-2 country code -> international dialing code
-const dialingCodes = {
+const dialingCodes : Record<string, string> = {
 	AF: "+93",
 	AL: "+355",
 	DZ: "+213",
@@ -237,12 +237,11 @@ const dialingCodes = {
 	ZW: "+263",
 };
 
-function getDialingCode(locale: string) {
+function getDialingCode(locale?: string | null) {
 	// default to en-GB
-	var localeCode = locale?.length ? locale : "en-GB";
-	const region = localeCode.split("-").pop().toUpperCase();
-
-	return dialingCodes[region] || "";
+	const localeCode = locale || "en-GB";
+	const region = localeCode.split("-").pop()?.toUpperCase();
+	return region ? (dialingCodes[region] || "") : "";
 }
 
 /**
@@ -252,7 +251,7 @@ function getDialingCode(locale: string) {
  * @param link (optional) relative contact link (e.g. "/contact-us")
  * @returns given contact number in "tel:+441234567890" format if available, falling back to link
  */
-function getContactLink(number: string, locale: string, link?: string) {
+function getContactLink(number: string, locale?: string | null, link?: string) {
 	let input = number?.trim();
 
 	if (!input?.length) {
