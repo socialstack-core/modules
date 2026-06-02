@@ -2,5 +2,7 @@
 	<ItemGroup>
 		<Compile Remove="$(MSBuildThisFileDirectory)/Search/MongoDBSearch/**/*.cs" />
 		<Compile Include="$(MSBuildThisFileDirectory)/Search/MongoDBSearch/**/*.cs" Condition="Exists('$(MSBuildThisFileDirectory)../DatabaseMongoDB')" />
+		<Compile Remove="$(MSBuildThisFileDirectory)/DatabaseIndices/**/*.cs" />
+		<Compile Include="$(MSBuildThisFileDirectory)/DatabaseIndices/**/*.cs" Condition="Exists('$(MSBuildThisFileDirectory)../Payments')" />
 	</ItemGroup>
 </Project>
