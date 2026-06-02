@@ -41,7 +41,7 @@ const headingStyle: React.CSSProperties = {
 	fontWeight: 600
 };
 
-const Alert: React.FC<PropsWithChildren<AlertProps>> = (props) => {
+const Alert: React.FC<React.PropsWithChildren<AlertProps>> = (props) => {
 	const { variant = 'info', title, children } = props;
 	const palette = EMAIL_VARIANT_STYLES[variant] ?? EMAIL_VARIANT_STYLES.info;
 

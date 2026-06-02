@@ -63,12 +63,17 @@ const ProductList: React.FC<ProductListProps> = ({lessTax = true, ...props}) => 
 					const pq = shoppingCart.productQuantities?.find(pq => pq?.id == lineItem.productQuantityId);
 					var product = pq?.product;
 
+					if (!product) {
+						console.warn("Invalid product: ", pq);
+						return;
+					}
+
 					const totalAmount = lessTax ? lineItem.totalLessTax : lineItem.total;					
 				
 					return (
 						<tr key={id}>
 							<td style={emailStyles.productTableCell}>
-								<Image plain={true} size={64} fileRef={product?.featureRef} />
+								<Image plain={true} size={64} fileRef={product?.featureRef || ''} />
 							</td>
 							<td style={emailStyles.productTableCell}>
 								{product?.sku}
