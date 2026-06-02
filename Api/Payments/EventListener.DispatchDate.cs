@@ -4,8 +4,23 @@ using Api.Startup;
 
 namespace Api.Payments
 {
-	public partial class EventListeners
+	/// <summary>
+	/// Inits dispatch date.
+	/// </summary>
+	[EventListener]
+	public partial class EventListenersDispatchDate
 	{
+		private PurchaseService _purchaseService = null;
+
+		/// <summary>
+		/// Instanced automatically.
+		/// </summary>
+		public EventListenersDispatchDate()
+		{
+			InitDispatchDateHook();
+		}
+
+
 		/// <summary>
 		/// Handles dispatch dates for deliveries. 
 		/// When all deliveries have been delivered, the purchase they're on moves to being complete.

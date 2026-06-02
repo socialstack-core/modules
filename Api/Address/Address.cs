@@ -8,12 +8,16 @@ namespace Api.Addresses;
 /// An Address
 /// </summary>
 public partial class Address : VersionedContent<uint>
-{
-    /// <summary>
+{    /// <summary>
     /// Descriptive name for the address home,work business etc 
     /// </summary>
     public string Name;
-
+	
+    /// <summary>
+    /// Random string that grants anonymous users with the appropriate cart access to this address
+    /// </summary>
+    public string AnonKey;
+	
     /// <summary>
     /// The type of address payment/business (0 = payment/1 = business)
     /// </summary>

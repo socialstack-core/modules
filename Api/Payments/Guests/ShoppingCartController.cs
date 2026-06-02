@@ -117,26 +117,13 @@ public partial class ShoppingCartController
 			// Move to ordered state:
 			cart = await carts.Update(context, cart, (Context ctx, ShoppingCart toUpdate, ShoppingCart original) =>
 			{
-				if (!toUpdate.SubmittedUtc.HasValue)
-				{
-					toUpdate.SubmittedUtc = DateTime.UtcNow;
-				}
-
 				toUpdate.DeliveryInformation = checkoutInfo.DeliveryInformation;
 				toUpdate.ContactName = checkoutInfo.ContactName;
 				toUpdate.CustomerOrderReference = checkoutInfo.CustomerOrderReference;
 
 				toUpdate.GuestUserId = guestUser.Id;
-				toUpdate.SubmittedOrderId = info.Purchase.Id;
 				toUpdate.GatewayPublicJson = info.Purchase.GatewayPublicJson;
 
-				if (info.Purchase.OrderNumber > 0)
-				{
-					toUpdate.OrderNumber = info.Purchase.OrderNumber;
-					toUpdate.OrderNumberLookup = info.Purchase.OrderNumberLookup;
-				}
-
-				toUpdate.SubmitStatus = 200;
 			}, DataOptions.IgnorePermissions);
 		}
 

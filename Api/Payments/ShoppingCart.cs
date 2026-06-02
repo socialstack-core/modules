@@ -16,6 +16,21 @@ namespace Api.Payments
 	public partial class ShoppingCart : VersionedContent<uint>
 	{
 		/// <summary>
+		/// Optionally override the billing address. If not specified the default address is used.
+		/// </summary>
+		public uint BillingAddressId;
+
+		/// <summary>
+		/// Optionally override the delivery address. If not specified the default address is used.
+		/// </summary>
+		public uint DeliveryAddressId;
+
+		/// <summary>
+		/// Delivery option selected for this cart
+		/// </summary>
+		public uint DeliveryOptionId;
+
+		/// <summary>
 		/// True if the cart has been checked out. It's immutable at that point.
 		/// It could, however, be cloned. This is if someone wants to buy the same thing again for example.
 		/// </summary>

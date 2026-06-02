@@ -1,5 +1,4 @@
-﻿using AngleSharp.Dom;
-using Api.AvailableEndpoints;
+﻿using Api.AvailableEndpoints;
 using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Database;

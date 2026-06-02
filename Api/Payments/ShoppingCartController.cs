@@ -14,8 +14,9 @@ namespace Api.Payments
     /// <summary>Handles shoppingCart endpoints.</summary>
     [Route("v1/shoppingCart")]
 	public partial class ShoppingCartController : AutoController<ShoppingCart>
-    {
-
+	{
+		private DeliveryOptionService _options = null;
+		
 		/// <summary>
 		/// Applies a coupon to the shopping cart.
 		/// </summary>
@@ -132,19 +133,12 @@ namespace Api.Payments
 				// Move to ordered state:
 				cart = await (_service as ShoppingCartService).Update(context, cart, (Context ctx, ShoppingCart toUpdate, ShoppingCart original) =>
 				{
-					if (!toUpdate.SubmittedUtc.HasValue)
-					{
-						toUpdate.SubmittedUtc = DateTime.UtcNow;
-					}
-
 					if (toUpdate.UserId == 0)
 					{
 						toUpdate.UserId = ctx.UserId;
 					}
 
 					toUpdate.GatewayPublicJson = info.Purchase.GatewayPublicJson;
-					toUpdate.SubmittedOrderId = info.Purchase.Id;
-					toUpdate.SubmitStatus = 200;
 				}, DataOptions.IgnorePermissions);
 			}
 

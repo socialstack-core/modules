@@ -56,6 +56,16 @@ namespace Api.Payments
 	/// </summary>
 	public partial class DeliveryEstimate
 	{
+        /// <summary>
+        /// Delivery code
+        /// </summary>
+        public string DeliveryCode;
+
+        /// <summary>
+        /// Requested delivery date
+        /// </summary>
+        public DateOnly RequestedDeliveryDate;
+
 		/// <summary>
 		/// The set of usually 1 deliveries in this estimation.
 		/// </summary>

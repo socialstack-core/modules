@@ -136,7 +136,7 @@ public partial class AutoController<T, ID>
 	/// Format: "Id,Reference"
 	/// If null or empty, returns an empty list.
 	/// </summary>
-	private static List<string> ParseKeyFields(string? value)
+	private static List<string> ParseKeyFields(string value)
 	{
 		var result = new List<string>();
 		if (string.IsNullOrWhiteSpace(value))

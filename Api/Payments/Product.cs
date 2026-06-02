@@ -77,6 +77,12 @@ namespace Api.Payments
 		[Data("sortOrder", "1")]
 		public uint ProductType;
 
+        /// <summary>
+        /// Is this product hidden from customers
+        /// </summary>
+        [Data("label", "Product is hidden")]
+        public bool Hidden;
+
 		/// <summary>
 		/// The name of the product
 		/// </summary>

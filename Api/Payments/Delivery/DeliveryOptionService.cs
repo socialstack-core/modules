@@ -33,7 +33,19 @@ namespace Api.Payments
 				return option;
 			});
 		}
-		
+
+		/// <summary>
+		/// Get the delivery option from the anonKey
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public async ValueTask<DeliveryOption> GetFromKey(Context context, string key)
+		{
+			return await Where("AnonKey = ?", DataOptions.IgnorePermissions)
+				.Bind(key).First(context);
+		}
+
 	}
     
 }
