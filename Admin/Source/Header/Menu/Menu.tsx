@@ -15,7 +15,7 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 
 	const [items] = useApi(
 		() =>
-			adminNavMenuApi.list().then((response) =>
+			adminNavMenuApi.listAll().then((response) =>
 				[...(response.results ?? [])].sort((a, b) =>
 					(a.title ?? "").localeCompare(b.title ?? "", undefined, { sensitivity: "base" })
 				)

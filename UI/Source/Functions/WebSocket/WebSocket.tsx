@@ -288,7 +288,7 @@ class WebSocketHandler {
 	started = false;
 	typeCount = 0;
 	ws: WebSocket | undefined;
-	onConnectedMessages: ArrayBufferLike[] = [];
+	onConnectedMessages: Uint8Array<ArrayBuffer>[] = [];
 	messageTypes: Record<string, MessageHandler[]> = {};
 	pingInterval: number | undefined;
 	_opcodes: Record<uint, OpCodeHandler> = {};
@@ -423,11 +423,11 @@ class WebSocketHandler {
 	
 	}
 
-	getAsBuffer(obj: any){
+	getAsBuffer(obj: any) : Uint8Array<ArrayBuffer>{
 		if(obj && obj.toBuffer){
 			// It was already a writer. Just set its payload size:
 			obj.setSize();
-			return obj.toBuffer();
+			return obj.toBuffer() as Uint8Array<ArrayBuffer>;
 		}
 		var json = JSON.stringify(obj);
 	

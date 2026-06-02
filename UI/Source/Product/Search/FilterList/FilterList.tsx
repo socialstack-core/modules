@@ -146,7 +146,7 @@ interface CategorySearchProps {
 	/**
 	 * Do something when the filter changes.
 	 */
-	setSelectedAttributeValues: (values: ProductAttributeValue[]) => void
+	setSelectedAttributeValues?: (values: ProductAttributeValue[]) => void
 }
 
 const CategoryFilterList: React.FC<CategorySearchProps> = ({ facets, noBorder, setSelectedAttributeValues, ...props }) => {

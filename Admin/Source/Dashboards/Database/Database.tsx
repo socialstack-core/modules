@@ -84,7 +84,7 @@ const Database: React.FC<{}> = (): React.ReactNode => {
 						action={(values: any) => stdOutApi.runQuery({ query: values.query })}
 						loadingMessage={`Running query..`}
 						submitLabel={`Execute Query`}
-						onSuccess={(response: ResponseType) => {
+						onSuccess={(response: string) => {
 							var run = JSON.parse(response) as any;
 
 							if (!window.recordSets) {
@@ -101,7 +101,7 @@ const Database: React.FC<{}> = (): React.ReactNode => {
 						}}
 					>
 						<Input
-							type='sql'
+							type='textarea'
 							name='query'
 						/>
 					</Form>

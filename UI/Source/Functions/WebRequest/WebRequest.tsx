@@ -434,7 +434,7 @@ function _fetch(origUrl: string, data? : any, opts? : WebRequestOptions) {
 	} else if ((FormData && data instanceof FormData) || (Uint8Array && data instanceof Uint8Array)) {
 		req = fetch(url, {
 			method: opts && opts.method ? opts.method : 'post',
-			body: data,
+			body: data as BodyInit,
 			mode,
 			credentials,
 			headers

@@ -10,24 +10,26 @@ import Input from 'UI/Input';
 import DualRange from 'UI/DualRange';
 import Promotion from 'UI/Promotion';
 import { useSession } from 'UI/Session';
-import searchApi, {ProductSearchAppliedFacet, ProductSearchType, SortDirection} from "Api/ProductSearchController";
+import { Product } from 'Api/Product';
+import { ProductSearchApi as searchApi, ProductSearchAppliedFacet, ProductSearchType, SortDirection } from "Api/Payments";
 import {ProductAttributeValue } from "Api/ProductAttributeValue";
 import {useRouter} from "UI/Router";
 import { AttributeFacetGroup, AttributeValueFacet, ProductCategoryFacet, ProductPriceFacet} from "UI/Product/Search/Facets";
 import FilterList, {CategoryFilterList} from "UI/Product/Search/FilterList";
-import Breadcrumb from "UI/Breadcrumb";
+import Breadcrumb, { Crumb } from "UI/Breadcrumb";
 import Button from "UI/Button";
-import Popover from "UI/Popover";
+import Popover, { PopoverWrapper } from "UI/Popover";
 import LoadMore  from "UI/LoadMore";
 import LazyLoader  from "UI/LazyLoader";
 import {SearchCriteria, useRouterCriteria } from "./UseRouterCriteria";
 import store from 'UI/Functions/Store';
+import { ApiList } from 'UI/Functions/WebRequest';
 import Link from "UI/Link";
 import {ProductCardAfterItem} from "../types";
 import Landing from 'UI/ProductCategory/Landing';
 import PromotionCycler, {InlinePromotion} from 'UI/PromotionCycler';
 
-const MAX_VISIBLE_CATEGORIES = 3;
+const MAX_VISIBLE_CATEGORIES = 3 as int;
 const ROOT_CATEGORY_ID: uint = 1 as uint;
 
 /**
@@ -115,7 +117,7 @@ const Search: React.FC<SearchProps> = (props) => {
  * The Product Search React component.
  * @param props React props.
  */
-const ProductSearch: React.FC<CheckoutProps> = (props) => {
+const ProductSearch: React.FC<SearchProps> = (props) => {
 	const { 
 		productCategory ,
 		customParameters,
@@ -166,12 +168,12 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 		skipResetOnFirstLoad: true
 	});
    
-	const [minPrice, setMinPrice] = useState<double>(null);
-	const [maxPrice, setMaxPrice] = useState<double>(null);
+	const [minPrice, setMinPrice] = useState<double | null>(null);
+	const [maxPrice, setMaxPrice] = useState<double | null>(null);
 
     // price range, will get set by results
-    const [lowestPrice, setLowestPrice] = useState<double>(null);
-	const [highestPrice, setHighestPrice] = useState<double>(null);
+	const [lowestPrice, setLowestPrice] = useState<double | null>(null);
+	const [highestPrice, setHighestPrice] = useState<double | null>(null);
 
 
 
@@ -181,7 +183,8 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 	const [hasMore, setHasMore] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const [products, setProducts] = useApi(async () => {
+	const [products, setProducts] = useState<ApiList<Product> | undefined>();
+	useApi(async () => {
 		if (window.SERVER) {
 			console.log('initial load');
 			await loadProducts();
@@ -233,7 +236,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 				appliedFacets.push(
 				{ 
 					mapping : "attributes",
-					ids
+					ids: ids as int[]
 				});
 			}
 		}
@@ -299,7 +302,6 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
                 productApi.includes.primaryurl,
 				productApi.includes.calculatedprice,
 				productApi.includes.primaryCategory,
-				productApi.includes.businessproductconfig,
 
 				// Plus then includes on the facets (the attribute and category selectors)
 				productApi.includes.productCategoryFacets,
@@ -317,7 +319,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 			setProducts(prev => {
 				const safePrev = prev ?? { results: [] };
 
-				const seen = new Set(safePrev.results.map(p => p.Id));
+				const seen = new Set(safePrev.results.map(p => p.id));
 				const merged = [...safePrev.results];
 				for (const p of newproducts.results) {
 					if (!seen.has(p.id)) {
@@ -416,21 +418,21 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 	// the component props and into a seperate
 	// const up here, the ticket requires a home link
 	// so added the requirements in below. 
-	const breadcrumbs = productCategory ? [
+	const breadcrumbs:Crumb[] = productCategory ? [
 		{
 			name: 'Home',
 			href: '/'
 		}, 
 		...(productCategory.breadcrumb ?? []).map(breadcrumb => {
 			return ({
-				name: breadcrumb.id === ROOT_CATEGORY_ID ? `All Products` : breadcrumb.name,
-				href: breadcrumb.primaryUrl
+				name: breadcrumb.id === ROOT_CATEGORY_ID ? `All Products` : breadcrumb.name || '',
+				href: breadcrumb.primaryUrl || ''
 			})
 		})
 	]: [];
 
 	let locale = session.locale ? session.locale.code : undefined;	
-	const resultCount = (products?.totalResults || 0).toLocaleString(locale);
+	const resultCount = (products?.totalResults || 0).toLocaleString(locale || '');
 
     // get values from url/router criteria
 	const showInStockOnly = !!criteria.inStockOnly;
@@ -444,13 +446,13 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 			values.map(v => ({
 				productAttributeId: Number(key) as uint,
 				id: v
-			}))
+			} as ProductAttributeValue))
 		);
 
 		console.log('selected facets' , selectedFacets);
 	}
 	
-	const changeView = (viewType: string) => {
+	const changeView = (viewType: "list" | "small-thumbs" | "large-thumbs") => {
 		store.set('productViewType', viewType);
 		setCriteria({ view: viewType });
 	}
@@ -474,7 +476,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 					<Breadcrumb crumbs={breadcrumbs} />
 				</>}
 
-				<Popover.Wrapper className="ui-product-search">
+				<PopoverWrapper className="ui-product-search">
 					<h1 className="ui-page__title ui-product-search__title">
 						{criteria && criteria.q ? (
 							<>
@@ -484,7 +486,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 									// when the search is contextual, show "in {categoryName}"
 									productCategory ? <>
 										{` in `}
-										<Link className={'contextual-category'} href={productCategory.primaryUrl}>{productCategory.name}</Link>
+										<Link className={'contextual-category'} href={productCategory.primaryUrl || ''}>{productCategory.name}</Link>
 									</> 
 									// otherwise just leave it at "{resultCount} results for {query}"	
 									: null
@@ -560,16 +562,15 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 								</fieldset>
 							}
 
-							{highestPrice && 
+							{highestPrice &&
 								<DualRange
-									className="ui-product-search__price"
 									aligned
 									label={`Price`}
 									numberFormat={GBPound}
-									min={lowestPrice}
+									min={lowestPrice === null ? undefined : lowestPrice}
 									max={highestPrice}
-									steps="20"
-									defaultFrom={minPrice}
+									steps={20}
+									defaultFrom={minPrice === null ? undefined : minPrice}
 									defaultTo={maxPrice || highestPrice}
 								onChange={(from: number, to: number) => {
 										var range: PriceRange = {};
@@ -604,7 +605,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 												<FilterList
 													selectedAttributeValues={selectedFacets}
 													facets={facet.facetValues}
-													units={facet.attribute.units}
+													units={facet.attribute.units ?? undefined}
 													maxVisible={4 as int}
 													setSelectedAttributeValues={(selectedFacets) => {
 														handleUpdatedFacets(selectedFacets);
@@ -649,7 +650,6 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 								noWrapper label={`List`}
 								groupIcon="fr-list"
 								groupVariant="primary"
-								value='list'
 								checked={viewStyle == 'list'}
 								onChange={() => {
 									changeView('list')
@@ -662,7 +662,6 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 								label={`Small thumbnails`}
 								groupIcon="fr-th-list"
 								groupVariant="primary"
-								value='small-thumbs'
 								checked={viewStyle == 'small-thumbs'}
 								onChange={() => {
 									changeView('small-thumbs')
@@ -674,7 +673,6 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 								label={`Large thumbnails`}
 								groupIcon="fr-grid"
 								groupVariant="primary"
-								value='large-thumbs'
 								checked={viewStyle == 'large-thumbs'}
 								onChange={() => {
 									changeView('large-thumbs')
@@ -722,7 +720,7 @@ const ProductSearch: React.FC<CheckoutProps> = (props) => {
 						)}
 
 					/>
-				</Popover.Wrapper>
+				</PopoverWrapper>
 			</div>
 
 		</>

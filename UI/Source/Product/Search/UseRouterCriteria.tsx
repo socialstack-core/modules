@@ -8,7 +8,7 @@ export type SearchCriteria = {
 	min?: number;
 	max?: number;
 	sort?: string;
-	view?: string;
+	view?: "list" | "small-thumbs" | "large-thumbs";
 	inStockOnly?: boolean;
 	hiddenProducts?:boolean;
     

@@ -21,7 +21,7 @@ interface PrimaryButtonProps {
 * A large, centered button.
 */
 const PrimaryButton: React.FC<PrimaryButtonProps> = ({ label, target }) => {
-	var href = useTokens(target, {});
+	var href = useTokens(target || '', {});
 	
 	return <table role="presentation" cellSpacing={0} style={{ padding: "8px;", margin: "auto" }} cellPadding={0} border={0} align="center">
 		<tbody>

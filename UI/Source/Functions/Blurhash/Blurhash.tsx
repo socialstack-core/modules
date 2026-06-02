@@ -214,7 +214,7 @@ var drawImageDataOnNewCanvas = (imgData: Uint8ClampedArray, width: int, height: 
 	const ctx = canvas.getContext("2d");
 	canvas.width = width;
 	canvas.height = height;
-	ctx?.putImageData(new ImageData(imgData, width, height), 0, 0);
+	ctx?.putImageData(new ImageData(imgData as ImageDataArray, width, height), 0, 0);
 	return canvas;
 };
 
