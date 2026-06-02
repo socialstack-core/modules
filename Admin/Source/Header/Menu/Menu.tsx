@@ -5,7 +5,6 @@ import Icon, { IconRef } from "UI/Icon";
 import Link from "UI/Link";
 import Input from "UI/Input";
 import Alert from "UI/Alert";
-//import Button from 'UI/Button';
 
 export type AdminNavMenuProps = {
 };
@@ -14,15 +13,21 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 	const [filter, setFilter] = useState<string>("");
 	const [viewType, setViewType] = useState<"list" | "grid">("list");
 
-	const [items] = useApi(() =>
-			adminNavMenuApi.listAll(),
+	const [items] = useApi(
+		() =>
+			adminNavMenuApi.list().then((response) =>
+				[...(response.results ?? [])].sort((a, b) =>
+					(a.title ?? "").localeCompare(b.title ?? "", undefined, { sensitivity: "base" })
+				)
+			),
 		[]
 	);
 
 	// filter results
 	const filteredItems = useMemo(() => {
+		
 		if (filter) {
-			return items?.results?.filter((item) => {
+			return items?.filter((item) => {
 				// allow categories/groups
 				if (item.parentId == 0) {
 					return true;
@@ -33,8 +38,8 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 				return false;
 			})
 		}
-		
-		return items?.results;
+
+		return items;
 	}, [items, filter]);
 
 	return (
@@ -99,12 +104,18 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 							{/*
 			<div className="nav-toggle-bar">
 				<div className={'inner'}>
-					<Button className={viewType === "list" ? "active" : ""} onClick={() => setViewType("list")}>
+					<button
+						className={viewType === "list" ? "active" : ""}
+						onClick={() => setViewType("list")}
+					>
 						<Icon type="fa:list" /> List
-					</Button>
-					<Button className={viewType === "grid" ? "active" : ""} onClick={() => setViewType("grid")}>
+					</button>
+					<button
+						className={viewType === "grid" ? "active" : ""}
+						onClick={() => setViewType("grid")}
+					>
 						<Icon type="fa:th" /> Grid
-					</Button>
+					</button>
 				</div>
 			</div>
 */}

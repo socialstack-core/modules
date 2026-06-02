@@ -380,10 +380,19 @@ public partial class AutoService<T, ID>
 					try
 					{
 						var value = ConvertValue(config, csvValue, jsonField);
-                        if (config.Mode != ImportMode.Create) {
+                        
+						if (config.Mode != ImportMode.Create) {
 						    convertedValues[csvColumn] = (jsonField, value);
                         }
-						jsonField.FieldInfo.SetValue(entity, value);
+
+						if (jsonField.PropertySet != null)
+						{
+							jsonField.PropertySet.Invoke(entity, new object[] { value });
+						}
+						else if (jsonField.FieldInfo != null)
+						{
+							jsonField.FieldInfo.SetValue(entity, value);
+						}
 
 						// Track key field values for lookup
 						if (keyFieldNames.Contains(jsonField.Name))
@@ -622,7 +631,16 @@ public partial class AutoService<T, ID>
 		}
 		else if (targetType == typeof(bool) || targetType == typeof(bool?))
 		{
-			return bool.Parse(value);
+			var trimmed = value.Trim();
+			if (trimmed.Equals("on", StringComparison.OrdinalIgnoreCase) ||  trimmed.Equals("y", StringComparison.OrdinalIgnoreCase) || trimmed == "1")
+			{
+				return true;
+			}
+			if (trimmed.Equals("off", StringComparison.OrdinalIgnoreCase) || trimmed.Equals("n", StringComparison.OrdinalIgnoreCase) || trimmed == "0")
+			{
+				return false;
+			}
+			return bool.Parse(trimmed);
 		}
 		else if (targetType == typeof(DateTime) || targetType == typeof(DateTime?))
 		{

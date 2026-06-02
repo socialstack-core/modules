@@ -57,7 +57,7 @@ namespace Api.NavMenus
 					builder == null ||
 					!builder.IsAdmin ||
 					string.IsNullOrEmpty(builder.Url) ||
-					builder.PageType != CommonPageType.AdminList
+					(builder.PageType != CommonPageType.AdminList && builder.PageType != CommonPageType.AdminLanding)
 				)
 				{
 					// Non-admin list builder.
@@ -282,11 +282,7 @@ namespace Api.NavMenus
 				}
 			}
 
-			grantedMenuItems.Sort((a, b) => a.Title[0] - b.Title[0]);
-
 			return grantedMenuItems;
 		}
-
-
 	}
 }

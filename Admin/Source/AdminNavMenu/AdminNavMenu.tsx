@@ -3,7 +3,6 @@ import useApi from "UI/Functions/UseApi";
 import adminNavMenuApi, { AdminNavMenuItem } from "Api/AdminNavMenuItem";
 import Icon, { IconRef } from "UI/Icon";
 import Link from "UI/Link";
-import Button from 'UI/Button';
 
 export type AdminNavMenuProps = {
 	navOpen: boolean;
@@ -13,8 +12,13 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = ({ navOpen }) => {
 	const [filter, setFilter] = useState<string>("");
 	const [viewType, setViewType] = useState<"list" | "grid">("list");
 
-	const [items] = useApi(() =>
-			adminNavMenuApi.listAll(),
+	const [items] = useApi(
+		() =>
+			adminNavMenuApi.list().then((response) =>
+				[...(response.results ?? [])].sort((a, b) =>
+					(a.title ?? "").localeCompare(b.title ?? "", undefined, { sensitivity: "base" })
+				)
+			),
 		[]
 	);
 
@@ -22,7 +26,7 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = ({ navOpen }) => {
 	const filteredItems = useMemo(() => {
 		
 		if (filter) {
-			return items?.results?.filter((item) => {
+			return items?.filter((item) => {
 				// allow categories/groups
 				if (item.parentId == 0) {
 					return true;
@@ -34,7 +38,7 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = ({ navOpen }) => {
 			})
 		}
 		
-		return items?.results;
+		return items;
 	}, [items, filter]);
 
 	return (
@@ -91,20 +95,28 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = ({ navOpen }) => {
 
 			{/* Sticky Bottom Toggle */}
 			<div className="nav-toggle-bar">
-				<div className="inner">
-					<Button className={viewType === "list" ? "active" : ""} onClick={() => setViewType("list")}>
-						<Icon type="fa:list" /> {`List`}
-					</Button>
-					<Button className={viewType === "grid" ? "active" : ""} onClick={() => setViewType("grid")}>
-						<Icon type="fa:th" /> {`Grid`}
-					</Button>
+				<div className={'inner'}>
+					<button
+						className={viewType === "list" ? "active" : ""}
+						onClick={() => setViewType("list")}
+					>
+						<Icon type="fa:list" /> List
+					</button>
+					<button
+						className={viewType === "grid" ? "active" : ""}
+						onClick={() => setViewType("grid")}
+					>
+						<Icon type="fa:th" /> Grid
+					</button>
 				</div>
 			</div>
 		</aside>
 	);
 };
 
-const AdminNavMenuSingleItem: React.FC<{ item: AdminNavMenuItem }> = ({item}) => {
+const AdminNavMenuSingleItem: React.FC<{ item: AdminNavMenuItem }> = ({
+																		  item,
+																	  }) => {
 	return (
 		<div className="admin-nav-menu-item">
 			<Link href={item.url ?? '#'}>

@@ -690,7 +690,7 @@ namespace Api.Permissions{
 				var listType = typeof(List<>).MakeGenericType(elementType);
 				return Activator.CreateInstance(listType, iEnum);
 			}
-			
+
 			if (val is ulong)
 			{
 				// Ulong does not actually exist in mongo and the driver will quietly convert this to a binary string, which then fails to match on Int64
@@ -699,7 +699,7 @@ namespace Api.Permissions{
 				var ulongVal = (ulong)val;
 				return (long)ulongVal;
 			}
-			
+
 			return val;
 		}
 

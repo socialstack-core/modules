@@ -7,6 +7,11 @@ namespace Api.Pages
 	public partial class CommonPageType
 	{
 		/// <summary>
+		/// General admin pages 
+		/// </summary>
+		public static readonly CommonPageType AdminLanding = new CommonPageType("admin_landing");
+
+		/// <summary>
 		/// Admin pages of the form /en-admin/{CONTENT_TYPE_NAME}
 		/// </summary>
 		public static readonly CommonPageType AdminList = new CommonPageType("admin_list");
