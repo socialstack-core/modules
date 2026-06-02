@@ -1,9 +1,8 @@
-import Tile from "Admin/Tile";
 import { useState } from "react"
 import Alert from "UI/Alert";
 import Form from "UI/Form";
 import Input from "UI/Input";
-import stdOutApi from "Api/StdOutController";
+import {StdOutApi as stdOutApi} from "Api/Startup";
 import AdminPage from "Admin/AdminPage";
 import Html from "UI/Html";
 
@@ -85,7 +84,7 @@ const Database: React.FC<{}> = (): React.ReactNode => {
 						action={(values: any) => stdOutApi.runQuery({ query: values.query })}
 						loadingMessage={`Running query..`}
 						submitLabel={`Execute Query`}
-						onSuccess={response => {
+						onSuccess={(response: ResponseType) => {
 							var run = JSON.parse(response) as any;
 
 							if (!window.recordSets) {

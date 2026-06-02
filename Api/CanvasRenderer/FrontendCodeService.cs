@@ -432,17 +432,9 @@ namespace Api.CanvasRenderer
 			});
 
 			// Translation update from another node in the cluster:
-			Events.Translation.Invalidate.AddEventListener((Context context, Translation translation, uint id, CacheInvalidationType type) => {
-				if (CacheInvalidation.IsSingular(type))
-				{
-					ClearCaches();
-				}
-				return new ValueTask<Translation>(translation);
-			});
-
-			Events.Translation.AfterBulkInvalidate.AddEventListener((Context context, CacheInvalidationType type) => {
+			Events.Translation.Received.AddEventListener((Context context, Translation translation, int mode) => {
 				ClearCaches();
-				return new ValueTask<CacheInvalidationType>(type);
+				return new ValueTask<Translation>(translation);
 			});
 
 			Events.FrontendjsAfterUpdate.AddEventListener((Context context, long buildtimestampMs) =>
