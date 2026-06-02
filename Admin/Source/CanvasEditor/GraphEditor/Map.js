@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Icon from 'UI/Icon';
+import Button from 'UI/Button';
 
 function clamp(min, value, max) {
     return Math.max(min, Math.min(value, max));
@@ -399,12 +400,12 @@ export class MapInteractionControlled extends Component {
         }
 
         return <div className="overhead-ui">
-            <button type="button" className="btn btn-secondary zoom zoom-out" onPointerUp={() => this.changeScale(step)}>
+            <Button variant="secondary" className="zoom zoom-out" onPointerUp={() => this.changeScale(step)}>
                 <Icon type='plus' />
-            </button>
-            <button type="button" className="btn btn-secondary zoom zoom-in" onPointerUp={() => this.changeScale(-step)}>
+            </Button>
+            <Button variant="secondary" className="zoom zoom-in" onPointerUp={() => this.changeScale(-step)}>
                 <Icon type='minus' />
-            </button>
+            </Button>
         </div>;
     }
 

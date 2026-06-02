@@ -70,12 +70,12 @@ const Selector: React.FC<SelectorProps> = (props) => {
 	const [templates, setTemplates] = useState<AdminTemplate[] | undefined>();
 
 	useEffect(() => {
-		templateApi.list(templateType ? {
+		(templateType ? templateApi.list({
 			query: 'TemplateType=?',
 			args: [templateType],
 			pageSize: 200 as uint,
 			pageIndex: 0 as uint
-		} : undefined).then(apiTemplates => {
+		}) : templateApi.listAll()).then(apiTemplates => {
 
 			const allTemplates: AdminTemplate[] = [];
 

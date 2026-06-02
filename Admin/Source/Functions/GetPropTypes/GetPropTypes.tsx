@@ -2,7 +2,7 @@
 // eslint-disable-next-line no-restricted-imports
 import { getJson } from 'UI/Functions/WebRequest';
 import templateApi from 'Api/Template';
-import autoformApi, {AutoFormField} from 'Api/AutoFormController'
+import {AutoFormApi, AutoFormField} from 'Api/AutoForms';
 
 export interface TypeMeta {
     /**
@@ -725,7 +725,7 @@ export const getEmailTemplates = async (): Promise<TemplateModule[]> => {
 export const getEntities = async (): Promise<CodeModuleType[]> => {
 	try {
 		// Call the API to fetch all available content forms
-		const result = await autoformApi.allContentForms();
+        const result = await AutoFormApi.allContentForms();
 
 		// Extract the content types from the result (or default to an empty array)
 		const contentTypes = result?.contentTypes ?? [];
@@ -737,11 +737,11 @@ export const getEntities = async (): Promise<CodeModuleType[]> => {
 
 		// Map the remaining content types into CodeModuleType objects
 		const entities: CodeModuleType[] = filtered.map((contentType) => ({
-			name: contentType.name,
-			instanceName: contentType.name,
+			name: contentType.name || '',
+            instanceName: contentType.name || '',
 			fields: result?.forms?.find(object => object.contentType === contentType.name)?.fields?.map((apiField: AutoFormField) => {
 				return ({
-					name: apiField.fieldName
+					name: apiField.fieldName || ''
 				} as CodeModuleTypeField)
 			}) as CodeModuleTypeField[]
 		}));

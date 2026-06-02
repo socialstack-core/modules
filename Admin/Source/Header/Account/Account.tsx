@@ -40,7 +40,7 @@ import { useSession } from "UI/Session"; // Custom hook to manage session state 
 // =========================
 
 import userApi, { User } from "Api/User";   // API functions for user operations (logout, impersonate, etc.)
-import { ListFilter } from "Api/Content";   // Filtering model for fetching user lists
+import { ListFilter } from "Api/Startup";   // Filtering model for fetching user lists
 
 // =========================
 // Utilities
@@ -93,13 +93,15 @@ const Account = () => {
 	// =========================
 	// Derived State
 	// =========================
-	const listFilter: Partial<ListFilter> = {};
+	let listFilter: ListFilter | undefined = undefined;
 
 	if (impersonationFilter) {
 		// Magic incantation to fetch users whose 
 		// FullName, Username, or Email match the query
-		listFilter.query = 'FullName contains ? or Username contains ? or Email contains ?';
-		listFilter.args = [impersonationFilter, impersonationFilter, impersonationFilter];
+		listFilter = {
+			query: 'FullName contains ? or Username contains ? or Email contains ?',
+			args: [impersonationFilter, impersonationFilter, impersonationFilter]
+		} as ListFilter;
 	}
 
 	// =========================

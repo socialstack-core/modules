@@ -1,4 +1,5 @@
 import Input from 'UI/Input';
+import Button from 'UI/Button';
 import Loading from 'UI/Loading';
 import MapInteraction from './Map';
 import { colorAsHsl, typeCompatibility, getType, isDefaultType } from './Types';
@@ -512,17 +513,17 @@ function DraggableItem(props) {
 			</span>
 			<div className="entry-header__controls">
 				{!node.root && <>
-					<button type="button" className="btn btn-outline-dark btn-sm" onClick={() => {
+					<Button variant="dark" sm outlined onClick={() => {
 						setRootNode(node, nodes);
 						props.updatedNodes([...props.nodes]);
 					}} title={`Set as main output`}>
 						<i className="fa fa-fw fa-sitemap"></i>
-					</button>
+					</Button>
 				</>}
-				<button type="button" className="btn btn-outline-danger btn-sm" onClick={() => node.root ? setCantDeleteModal(true) : setShowConfirmDialog(node)}
+				<Button variant="danger" sm outlined onClick={() => node.root ? setCantDeleteModal(true) : setShowConfirmDialog(node)}
 			title={`Remove node`}>
 					<i className="fa fa-fw fa-trash"></i>
-				</button>
+				</Button>
 			</div>
 	</div>
 		<div className="entry-content">
@@ -608,11 +609,11 @@ function DraggableItem(props) {
 						</span>
 					</>}
 					{hasValue ?
-						<button type="button" className="btn btn-sm btn-outline-danger" onClick={() => {
+						<Button variant="danger" sm outlined onClick={() => {
 							onUpdate(null);
 						}}>
 							<i className="fa fa-fw fa-times"></i>
-						</button>
+						</Button>
 						: (fieldMeta.onRender ?
 							fieldMeta.onRender(currentValue, onUpdate, niceName(fieldMeta.name)) :
 							defaultFieldInput(currentValue, onUpdate, niceName(fieldMeta.name)))}
@@ -1055,24 +1056,20 @@ export function GraphEditorCore(props){
 					
 					return <header className="graph-editor__ui">
 						<div className="zoom-widget">
-							<button title={`Zoom out`} type="button" className="btn" onPointerUp={() => map.changeScale(-step)}>
+							<Button title={`Zoom out`} onPointerUp={() => map.changeScale(-step)}>
 								-
-							</button>
+							</Button>
 							<span className="zoom-level" onPointerUp={() => { map.resetScale() }}>
 								{map.getScale()}%
 							</span>
-							<button title={`Zoom in`} type="button" className="btn" onPointerUp={() => map.changeScale(step)}>
+							<Button title={`Zoom in`} onPointerUp={() => map.changeScale(step)}>
 								+
-							</button>
+							</Button>
 						</div>
-						<button title={`Add node`} type="button" className="btn btn-sm btn-primary graph-ui-btn" onPointerUp={addNode}>
+						<Button title={`Add node`} sm className="graph-ui-btn" onPointerUp={addNode}>
 							<i className="far fa-fw fa-plus"></i> {`Add`}
-						</button>
-						{/*<button title="Save" type="button" className="btn graph-ui-btn" onPointerUp={props.onSave}>Save (temp)</button>
-						{selected && <>
-						<button title="Delete" type="button" className="btn graph-ui-btn" onPointerUp={deleteItem}><i className='fa fa-trash' /></button>
-						</>}*/}
-						</header>;
+						</Button>
+					</header>;
 				}
 			}
 			nodes={nodes}
@@ -1162,9 +1159,9 @@ export function GraphEditorCore(props){
 				{`Unable to remove this node as it's currently set as the main output. Please first assign a different node as the main output to be able to delete this node.`}
 			</p>
 			<footer className="cant-delete-modal__footer">
-				<button type="button" className="btn btn-primary" onClick={() => setCantDeleteModal(false)}>
+				<Button onClick={() => setCantDeleteModal(false)}>
 					{`Close`}
-				</button>
+				</Button>
 			</footer>
 		</Modal>}
 	</div>;

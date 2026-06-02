@@ -3,8 +3,15 @@ import Input from 'UI/Input';
 import Modal from 'UI/Modal';
 import Form from 'UI/Form';
 import Html from 'UI/Html';
+import Button from 'UI/Button';
 
 interface EditorProps {
+	readonly?: boolean,
+	value?: string,
+	defaultValue?: string,
+	hideLabel?: boolean,
+	label?: React.ReactNode,
+	name?: string
 }
 
 type Faq = {
@@ -16,6 +23,21 @@ type Faq = {
 	 * The answer, a HTML string.
 	 */
 	a: string,
+	/**
+	 * A non-global number representing a unique FAQ in this array.
+	 */
+	id: uint
+};
+
+type FaqForm = {
+	/**
+	 * The question, an as-is string.
+	 */
+	faqQuestion: string,
+	/**
+	 * The answer, a HTML string.
+	 */
+	faqAnswer: string,
 	/**
 	 * A non-global number representing a unique FAQ in this array.
 	 */
@@ -69,7 +91,7 @@ const Editor: React.FC<EditorProps> = (props) => {
 					<th>
 						{`Answer`}
 					</th>
-					<th colSpan="2">
+					<th colSpan={2}>
 						{`Actions`}
 					</th>
 				</tr>
@@ -87,22 +109,22 @@ const Editor: React.FC<EditorProps> = (props) => {
 							{!readonly &&
 								<>
 									<td>
-										<button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
+										<Button sm outlined className="btn-entry-select-action btn-view-entry" title={`Edit`}
 											onClick={e => {
 												e.preventDefault();
 												setEntityToEdit(faq);
 											}}>
 											<i className="fal fa-fw fa-edit"></i> <span>{`Edit`}</span>
-										</button>
+										</Button>
 									</td>
 									<td>
-									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
-										onClick={e => {
-											e.preventDefault();
-											onRemove(faq);
-										}}>
+										<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry" title={`Remove`}
+											onClick={e => {
+												e.preventDefault();
+												onRemove(faq);
+											}}>
 											<i className="fal fa-fw fa-times"></i> <span>{`Remove`}</span>
-										</button>
+										</Button>
 									</td>
 								</>
 							}
@@ -113,7 +135,7 @@ const Editor: React.FC<EditorProps> = (props) => {
 		</table>
 		<footer className="admin-multiselect__footer">
 			{!readonly &&
-				<button type="button" className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry new-faq-button"
+				<Button sm outlined className="btn-entry-select-action btn-new-entry new-faq-button"
 					onClick={e => {
 						e.preventDefault();
 						setEntityToEdit({
@@ -124,7 +146,7 @@ const Editor: React.FC<EditorProps> = (props) => {
 					}}
 				>
 					<i className="fal fa-fw fa-plus"></i> {`New FAQ`}
-				</button>
+				</Button>
 			}
 		</footer>
 		<input type="hidden" name={props.name} value={value && value.length ? JSON.stringify(value) : ''} />
@@ -138,13 +160,13 @@ const Editor: React.FC<EditorProps> = (props) => {
 				}}
 			>
 				<Form
-					onSubmitted={entity => {
-						const newFaq = {
+					action={(entity : FaqForm) => {
+						const newFaq : Faq = {
 							q: entity.faqQuestion,
 							a: entity.faqAnswer,
-							id: entityToEdit.id || nextId()
+							id: entityToEdit.id || nextId() as uint
 						};
-
+						
 						let existingIndex = -1;
 
 						if (entityToEdit.id) {
@@ -169,6 +191,8 @@ const Editor: React.FC<EditorProps> = (props) => {
 
 						// Clear editing one
 						setEntityToEdit(undefined);
+
+						return Promise.resolve(newFaq);
 					}}
 					submitLabel={entityToEdit.id ? `Update` : `Create`}
 				>

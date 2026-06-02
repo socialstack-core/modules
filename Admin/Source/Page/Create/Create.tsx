@@ -77,7 +77,7 @@ const CreatePage: React.FC = (): React.ReactElement => {
 								name={'description'}
 								label={`Page Description`}
 							/>
-							<TemplateSelector name='pageTemplate' templateType={1} label={`Page Template`} onChange={setSelectedTemplate} />
+							<TemplateSelector name='pageTemplate' templateType={1 as int} label={`Page Template`} onChange={setSelectedTemplate} />
 							<Button type='submit'>{`Create page`}</Button>
 						</Form>
 					</Column>

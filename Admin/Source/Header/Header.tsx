@@ -1,5 +1,7 @@
-import logo from './logo.svg'
-import logoSmall from './logo-small.svg'
+// @ts-ignore
+import logo from './logo.svg';
+// @ts-ignore
+import logoSmall from './logo-small.svg';
 import Image from "UI/Image";
 import Button from "UI/Button";
 import Link from "UI/Link";
@@ -16,7 +18,7 @@ type HeaderProps = {
 const Header: React.FC<HeaderProps> = (props) => {
 	const { session } = useSession();
 	var { user, realuser } = session;
-	var isImpersonating = realuser && (user.id != realuser.id);
+	var isImpersonating = realuser && (user?.id != realuser.id);
 
 	return <>
 		<header className="admin-page__header">

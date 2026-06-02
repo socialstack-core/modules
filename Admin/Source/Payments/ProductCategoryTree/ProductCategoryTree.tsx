@@ -9,7 +9,7 @@ import Loading from "UI/Loading";
 import { MultiSelectBox } from "./MultiSelect";
 
 import productCategoryApi, {ProductCategory} from "Api/ProductCategory";
-import searchApi, {ProductSearchAppliedFacet, ProductSearchType, SortDirection} from "Api/ProductSearchController";
+import {ProductSearchApi as searchApi, ProductSearchAppliedFacet, ProductSearchType, SortDirection} from "Api/Payments";
 import { ProductIncludes} from "Api/Includes";
 import productApi, { Product } from "Api/Product";
 import { ApiList } from "UI/Functions/WebRequest";
@@ -50,7 +50,7 @@ export default function ProductCategoryTree({ noCreate }: ProductCategoryTreePro
 
 	const { pageState, updateQuery } = useRouter();
 
-	const queryText = pageState.query?.get("q");
+	const queryText = pageState.query?.get("q") || '';
 	const [viewType, setViewType] = useState<PageViewType>(queryText ? "list" : "tree");
 	const path = pageState.query?.get("path") || "";
 	const breadcrumbs = buildBreadcrumbs("/en-admin/product", "Products", path, "/en-admin/product");
@@ -99,7 +99,6 @@ export default function ProductCategoryTree({ noCreate }: ProductCategoryTreePro
 						label={`Tree`}
 						groupIcon="fr-grid"
 						groupVariant="primary"
-						value='tree'
 						checked={viewType == 'tree'}
 						onChange={() => setViewType('tree')}
 						name="view-style"
@@ -110,7 +109,6 @@ export default function ProductCategoryTree({ noCreate }: ProductCategoryTreePro
 						label={`List`}
 						groupIcon="fr-th-list"
 						groupVariant="primary"
-						value='list'
 						checked={viewType == 'list'}
 						onChange={() => setViewType('list')}
 						name="view-style"
@@ -166,11 +164,11 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 	const [selectedAttributeValues, setSelectedAttributeValues] = useState<ProductAttributeValue[]>([]);
 	const [selectedCategories, setSelectedCategories] = useState<ProductCategory[]>([]);
 	const [loading, setLoading] = useState<boolean>(false);
-	const [sortOrder, setSortOrder] = useState<SortField>({ field: null, direction: 'asc' }); // relevance by default
+	const [sortOrder, setSortOrder] = useState<SortField>({ field: '', direction: 'asc' }); // relevance by default
 	const { pageState, updateQuery } = useRouter();
     const { session } = useSession();
 	const { query } = pageState;
-	const queryText = query?.get("q");
+	const queryText = query?.get("q") || '';
 
 	// grab the current page
 	const currentPage: uint = (pageState.query?.has("page") ? parseInt(pageState.query?.get("page") ?? "1") : 1) as uint;
@@ -223,7 +221,7 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 		if (!queryText && !selectedCategories.length && !appliedFacets.length) {
 			appliedFacets.push({
 				mapping: 'productcategories',
-				ids: [1]
+				ids: [1 as int]
 			})
 		}
 
@@ -236,7 +234,10 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 				minPrice: undefined,
 				maxPrice: undefined,
 				inStockOnly: false,
-                isAdminPanel:true,
+				isAdminPanel: true,
+				includePriceStats: false,
+				includeDynamicBoosts: false,
+				hideInactiveProducts: false,
 				searchType: ProductSearchType.Reductive,
 				sortOrder: {
 					field: sortOrder.field,
@@ -266,7 +267,7 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 		})
 	}
 
-	let locale = session.locale ? session.locale.code : undefined;	
+	let locale = session.locale?.code || undefined;	
 	const resultCount = (searchResults?.totalResults || 0).toLocaleString(locale);
 
 	if (loading) {
@@ -285,7 +286,7 @@ const ProductListView: React.FC<ProductListViewProps> = (props: ProductListViewP
 				/>
 			)}
 
-			{searchResults?.totalResults > 0 &&
+			{(searchResults ? searchResults.totalResults > 0 : false) &&
 				<>
 					<div>
 						{`${resultCount} results`}
@@ -452,7 +453,7 @@ const SearchAttributeFilter: React.FC<ProductAttributeFilterProps> = (props: Pro
 									setSelectedAttributeValues(selectedAttributeValues.filter(val => val.id != valueId));
 								}
 							}}
-							defaultText={productAttribute.name}
+							defaultText={productAttribute.name || ''}
 							value={selectedAttributeValues.map(sav => sav.id)}
 							options={uniqueAttributeValues(values).map((val: ProductAttributeValue) => {
 								return {
@@ -491,7 +492,7 @@ const CategoryFilter: React.FC<CategoryFilterProps> = (props) => {
 				onSetValue={(valueId: int, added: boolean) => {
 					if (added) {
 						// Add value with ID #valueId
-						var category = categoryFacets.find(val => val.category?.id == valueId)?.category;
+						var category = categoryFacets.find((val: ProductCategoryFacet) => val.category?.id == valueId)?.category;
 
 						if (category) {
 							setSelectedCategories([...value, category]);

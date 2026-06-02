@@ -1,6 +1,9 @@
 import Table from 'UI/Table';
 import Time from 'UI/Time';
 import Link from 'UI/Link';
+import { Content } from 'Api/Database';
+import { ApiInclude } from 'UI/Functions/WebRequest';
+import { AutoController, ListFilter } from 'Api/Startup';
 import { User } from 'Api/User';
 
 /**
@@ -22,15 +25,15 @@ const userLabel = (id: uint, user?: User) => {
  * The List React component.
  * @param props React props.
  */
-const List: React.FC<ListProps> = (props) => {
+const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) => {
 
 	// Api is expected to be an ApiEndpoints object.
-	var api = require('Api/' + props.contentType).default;
+	var api = require('Api/' + props.contentType).default as AutoController<T, uint>;
 
-	const renderEmpty = (colspan) => {
+	const renderEmpty = (colspan: int) => {
 		return <>
 			<tr>
-				<td colspan={colspan}>
+				<td colSpan={colspan}>
 					<span className="ui-not-found">
 						{`None found`}
 					</span>
@@ -169,7 +172,7 @@ const List: React.FC<ListProps> = (props) => {
 	return (
 		<div className="ui-revisions-list">
 			<Table
-				source={api.revisionList}
+				source={(filter?: ListFilter, includes?: ApiInclude[]) => filter ? api.revisionList(filter, includes) : api.revisionListAll(includes)}
 				className="drafts-table"
 				includes={['creatorUser', 'realUser']}
 				filter={{
@@ -180,7 +183,7 @@ const List: React.FC<ListProps> = (props) => {
 						direction: 'desc'
 					}
 				}}
-				orNone={() => renderEmpty(3)}
+				orNone={() => renderEmpty(3 as int)}
 				onCaption={renderDraftCaption}
 				captionAbove
 				onHeader={renderDraftHeader}
@@ -190,7 +193,7 @@ const List: React.FC<ListProps> = (props) => {
 			</Table>
 
 			<Table
-				source={api.revisionList}
+				source={(filter?: ListFilter, includes?: ApiInclude[]) => filter ? api.revisionList(filter, includes) : api.revisionListAll(includes)}
 				className="history-table"
 				includes={['creatorUser', 'realUser']}
 				filter={{
@@ -201,7 +204,7 @@ const List: React.FC<ListProps> = (props) => {
 						direction: 'desc'
 					}
 				}}
-				orNone={() => renderEmpty(4)}
+				orNone={() => renderEmpty(4 as int)}
 				onCaption={renderHistoryCaption}
 				captionAbove
 				onHeader={renderHistoryHeader}

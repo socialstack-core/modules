@@ -33,7 +33,7 @@ const AddEditTemplateInfo: React.FC<AddEditTemplateInfoProps> = ({ existing }) =
 				type="text"
 				label="Key"
 				name="key"
-				defaultValue={existing?.key}
+				defaultValue={existing?.key || ''}
 				readOnly={Boolean(existing?.key)}
 			/>
 
@@ -42,7 +42,7 @@ const AddEditTemplateInfo: React.FC<AddEditTemplateInfoProps> = ({ existing }) =
 				type="text"
 				label="Title"
 				name="title"
-				defaultValue={existing?.title}
+				defaultValue={existing?.title || ''}
 			/>
 
 			{/* Template Description */}
@@ -50,7 +50,7 @@ const AddEditTemplateInfo: React.FC<AddEditTemplateInfoProps> = ({ existing }) =
 				type="textarea"
 				label="Description"
 				name="description"
-				defaultValue={existing?.description}
+				defaultValue={existing?.description || ''}
 			/>
 		</div>
 	);

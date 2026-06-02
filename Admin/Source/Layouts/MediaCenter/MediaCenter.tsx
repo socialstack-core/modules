@@ -4,8 +4,6 @@ import Row from 'UI/Row';
 import Column from 'UI/Column';
 import Input from 'UI/Input';
 import Image from 'UI/Image';
-import Loading from 'UI/Loading';
-import Search from 'UI/Search';
 import Uploader from 'UI/Uploader';
 import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import Dialog from 'UI/Dialog';
@@ -16,7 +14,7 @@ import {useState, useMemo, useRef} from 'react';
 import { Tag } from 'Api/Tag';
 import {useRouter} from "UI/Router";
 import Debounce from "UI/Functions/Debounce";
-import {ListFilter} from "Api/Content";
+import { ListFilter, AutoControllerInt } from "Api/Startup";
 import AdminPage from "Admin/AdminPage";
 import Footer from "Admin/Footer";
 import Button from 'UI/Button';
@@ -71,7 +69,11 @@ const getStringSearchParam = (name: string, currentParams: URLSearchParams, fall
 	return currentParams.get(name)!;
 }
 
-const MediaCenter = (props) => {
+type MediaCenterProps = {
+    defaultPage?: int
+};
+
+const MediaCenter = (props : MediaCenterProps) => {
     
     // added in updateQuery and pageState to allow state hydration 
     // from the query params, allows the nice use of back buttons
@@ -145,7 +147,7 @@ const MediaCenter = (props) => {
         }
 
         return canShowImage ?
-            <Image fileRef={ref} size={targetSize} portraitCheck /> :
+            <Image fileRef={ref} size={targetSize} /> :
             <span className={fileClassName}></span>;
 
     }
@@ -191,6 +193,7 @@ const MediaCenter = (props) => {
         );
     }
 
+    /*
     const renderHeader = (allContent) => {
         // Header (Optional)
         var heads = fields.map(field => {
@@ -257,6 +260,7 @@ const MediaCenter = (props) => {
             </th>
         ].concat(heads);
     }
+    */
 
     const getSelectedCount = () => {
         if (!bulkSelections) {
@@ -311,10 +315,10 @@ const MediaCenter = (props) => {
         </>;
 
         return <>
-            <div className="media-center__list-item" title={entry.originalName}>
+            <div className="media-center__list-item" title={entry.originalName ?? undefined}>
                 {checkbox}
                 <label className="btn btn-outline-secondary" htmlFor={id}>
-                    {showRef(entry.ref)}
+                    {showRef(entry.ref || '')}
                     <span className="media-center__id badge bg-secondary rounded-pill">
                         {entry.usageCount && entry.usageCount > 0 &&
                             <span className="media-center__usage">
@@ -326,25 +330,25 @@ const MediaCenter = (props) => {
                 </label>
 
                 {/* allow image properties (such as focal point) to be set */}
-                    <button type="button" className="btn btn-sm btn-primary media-center__original-filename" data-clamp="2"
+                    <Button sm className="media-center__original-filename" data-clamp="2"
                     onClick={() => {
                         setUploadModal({
                             bulkUploaded: false,
-                            existingFileRef: entry.ref,
+                            existingFileRef: entry.ref ?? undefined,
                             uploadMode: UPLOAD_SINGLE,
                             uploadId: entry.id,
                             focalX: focalX,
                             focalY: focalY,
-                            alt: entry.alt,
-                            coverImageRef: entry.coverImageRef,
-                            author: entry.author,
-                            originalName: entry.originalName,
+							alt: entry.alt ?? undefined,
+							coverImageRef: entry.coverImageRef ?? undefined,
+							author: entry.author ?? undefined,
+							originalName: entry.originalName ?? undefined,
                             transcodeState: entry.transcodeState,
                             tags: entry.tags
                         });
                     }}>
                         {`Edit - `}{entry.originalName}
-                    </button>
+                    </Button>
 
             </div>
         </>;
@@ -485,9 +489,13 @@ const MediaCenter = (props) => {
 									<div className='media-center__preview-wrapper'>
 										<div className="media-center__preview"
 											onClick={(e) => {
-												var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
-												const newFx = CLOSEST_MULTIPLE * Math.round((e.offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE);
-												const newFy = CLOSEST_MULTIPLE * Math.round((e.offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE);
+                                                var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
+                                                const anyE = e as any;
+                                                const offsetX = anyE.offsetX as number;
+                                                const offsetY = anyE.offsetY as number;
+
+												const newFx = CLOSEST_MULTIPLE * Math.round((offsetX / imagePreviewRect.width * 100) / CLOSEST_MULTIPLE);
+												const newFy = CLOSEST_MULTIPLE * Math.round((offsetY / imagePreviewRect.height * 100) / CLOSEST_MULTIPLE);
 
 												setUploadModal({ ...uploadModal, focalX: newFx, focalY: newFy });
 											}}>
@@ -514,7 +522,9 @@ const MediaCenter = (props) => {
 											return;
 										}
 
-										if (!e.result.isImage) {
+                                        const upload = e.result!;
+
+										if (!upload.isImage) {
 											window.location.reload();
 											return;
 										}
@@ -522,8 +532,8 @@ const MediaCenter = (props) => {
 											...uploadModal,
 											focalX: 50,
 											focalY: 50,
-											existingFileRef: e.result.ref,
-											uploadId: e.result.id,
+											existingFileRef: upload.ref || undefined,
+											uploadId: upload.id,
 										});
 									}} />
 							</>}
@@ -564,12 +574,12 @@ const MediaCenter = (props) => {
 
 										{isImage && !isVideo &&
 											<div className="form-text media-center__focal-point">
-												<div class="mb-3">
+												<div className="mb-3">
 													<label htmlFor="form-field-focal-point" className="form-label ui-form-label">
 														{`Focal Point`}
 													</label>
 													<div className="input-group">
-														<Input value={`${focalX}%, ${focalY}%`} readonly noWrapper />
+														<Input type="text" value={`${focalX}%, ${focalY}%`} readOnly noWrapper />
 														<Button sm variant="secondary" outlined id="form-field-focal-point" onClick={() => {
 															setUploadModal({ ...uploadModal, focalX: 50, focalY: 50 });
 														}}>
@@ -583,11 +593,10 @@ const MediaCenter = (props) => {
 											</div>
 										}
 
-										<MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`} showCreateOrEditModal={true}
+										<MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`}
 											onChange={e => {
-												setUploadModal({ ...uploadModal, tags: e.fullValue });
-											}}>
-										</MultiSelect>
+												setUploadModal({ ...uploadModal, tags: (e.fullValue as any) as Tag[] });
+											}} />
 
 									</div>
 
@@ -639,14 +648,15 @@ const MediaCenter = (props) => {
     // here we build up the filter that the loop component uses. 
     // a query will not always be present, however we do always 
     // have a start and a page limit, so these exist as absolutes.
-    const filter: Partial<ListFilter> = {
+    const filter: ListFilter = {
         pageSize,
         pageIndex,
         sort: {
             field: 'id',
             direction: 'desc'
 		},
-		args: []
+        args: [],
+        query: ''
     } 
     
     // when a string is empty, in an if condition, it's executed as false, 
@@ -660,7 +670,7 @@ const MediaCenter = (props) => {
         // so when the query partially matches the alt or
         // author, results show for anything that matches. 
         filter.query = 'originalName contains ? or author contains ? or alt contains ?';
-        filter.args.push(searchFilter, searchFilter, searchFilter)
+        filter.args?.push(searchFilter, searchFilter, searchFilter)
 	}
 
 	if (fileType?.length && fileType != 'all') {
@@ -673,23 +683,23 @@ const MediaCenter = (props) => {
 		switch (fileType) {
 
 			case 'img':
-				filter.args.push(fileRef.allImageTypes);
+				filter.args?.push(fileRef.allImageTypes);
 				break;
 
 			case 'vid':
-				filter.args.push(fileRef.allVideoTypes);
+				filter.args?.push(fileRef.allVideoTypes);
 				break;
 
 			case 'audio':
-				filter.args.push(fileRef.allAudioTypes);
+				filter.args?.push(fileRef.allAudioTypes);
 				break;
 
 			case 'doc':
-				filter.args.push(fileRef.allDocumentTypes);
+				filter.args?.push(fileRef.allDocumentTypes);
 				break;
 
 			case 'other':
-				filter.args.push(fileRef.allImageTypes.concat(fileRef.allVideoTypes, fileRef.allAudioTypes, fileRef.allDocumentTypes));
+				filter.args?.push(fileRef.allImageTypes.concat(fileRef.allVideoTypes, fileRef.allAudioTypes, fileRef.allDocumentTypes));
 				break;
 		}
 
@@ -748,8 +758,8 @@ const MediaCenter = (props) => {
 					value={pageSize}
 					onChange={(ev) => {
 						const target: HTMLSelectElement = ev.target as HTMLSelectElement;
-						var val = parseInt(target.value, 10);
-						val = isNaN(val) ? 20 : val;
+						var val = parseInt(target.value, 10) as int;
+						val = isNaN(val) ? 20 as int : val;
 
 						setPageSize(val);
 						updateQuery({ limit: val, page: 1 });
@@ -763,11 +773,11 @@ const MediaCenter = (props) => {
 			</AdminPage.Filters>
 			<AdminPage.Content>
 				<div className="media-center__list">
-					<Loop
+                    <Loop
+                        // iterates over uploadApi.list 
+                        over={uploadApi}
 						// enables pagination
 						paged paginatorOnly dockBottom
-						// iterates over uploadApi.list 
-						over={uploadApi}
 						// set the key based off index
 						key={'page-' + pageIndex}
 						// pass the generated filter based off the current query string

@@ -5,6 +5,7 @@ import Icon, { IconRef } from "UI/Icon";
 import Link from "UI/Link";
 import Input from "UI/Input";
 import Alert from "UI/Alert";
+//import Button from 'UI/Button';
 
 export type AdminNavMenuProps = {
 };
@@ -14,15 +15,14 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 	const [viewType, setViewType] = useState<"list" | "grid">("list");
 
 	const [items] = useApi(() =>
-			adminNavMenuApi.list(),
+			adminNavMenuApi.listAll(),
 		[]
 	);
 
 	// filter results
 	const filteredItems = useMemo(() => {
-		
 		if (filter) {
-			return items.results?.filter((item) => {
+			return items?.results?.filter((item) => {
 				// allow categories/groups
 				if (item.parentId == 0) {
 					return true;
@@ -99,18 +99,12 @@ const AdminNavMenu: React.FC<AdminNavMenuProps> = () => {
 							{/*
 			<div className="nav-toggle-bar">
 				<div className={'inner'}>
-					<button
-						className={viewType === "list" ? "active" : ""}
-						onClick={() => setViewType("list")}
-					>
+					<Button className={viewType === "list" ? "active" : ""} onClick={() => setViewType("list")}>
 						<Icon type="fa:list" /> List
-					</button>
-					<button
-						className={viewType === "grid" ? "active" : ""}
-						onClick={() => setViewType("grid")}
-					>
+					</Button>
+					<Button className={viewType === "grid" ? "active" : ""} onClick={() => setViewType("grid")}>
 						<Icon type="fa:th" /> Grid
-					</button>
+					</Button>
 				</div>
 			</div>
 */}

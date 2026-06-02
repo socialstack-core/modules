@@ -1,6 +1,8 @@
 import Table from 'UI/Table';
 import Time from 'UI/Time';
 import Link from 'UI/Link';
+import {ApiInclude} from 'UI/Functions/WebRequest';
+import {ListFilter} from 'Api/Startup';
 
 /**
  * Props for the Drafts component.
@@ -22,7 +24,7 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 	const renderEmpty = () => {
 		return <>
 			<tr>
-				<td colspan={3}>
+				<td colSpan={3}>
 					<span className="ui-not-found">
 						{`None found`}
 					</span>
@@ -73,7 +75,7 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 				</h2>
 			</>}
 			<Table
-				source={api.revisionList}
+				source={(filter?: ListFilter, includes?: ApiInclude[]) => filter ? api.revisionList(filter, includes) : api.revisionListAll(includes)}
 				className="drafts-table"
 				includes={['creatorUser']}
 				filter={{

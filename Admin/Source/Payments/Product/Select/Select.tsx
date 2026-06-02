@@ -1,7 +1,7 @@
-import ContentSelect from 'Admin/ContentSelect'
+import ContentSelect, { ContentSelectProps } from 'Admin/ContentSelect';
 import productApi, { Product } from 'Api/Product';
 
-export default function ProductSelect(props) {
+export default function ProductSelect(props: ContentSelectProps<Product>) {
 	
 	return (
 		<ContentSelect

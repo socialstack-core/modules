@@ -19,7 +19,7 @@ const ImpersonateButton = (props: ImpersonateProps): React.ReactNode => {
 	const [loading, setLoading] = useState<boolean>(false);
 	const userId: uint = content?.id;
 
-	const impersonateUser = (e) => {
+	const impersonateUser = (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setLoading(true);
@@ -40,13 +40,8 @@ const ImpersonateButton = (props: ImpersonateProps): React.ReactNode => {
 			{loading ? (
 				<Loading />
 			) : <>
-					<Button 
-						type="button"
-						variant="primary"
-						onClick={impersonateUser}
-						disabled={loading}
-					>
-							{`Impersonate`}
+					<Button variant="primary" onClick={impersonateUser} disabled={loading}>
+						{`Impersonate`}
 					</Button>
 				</>
 			}

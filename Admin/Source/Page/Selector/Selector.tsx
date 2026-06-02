@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import Dialog from 'UI/Dialog';
 import Button from 'UI/Button';
 import Link from 'UI/Link';
-import pageApi, { RouterNodeMetadata, TreeNodeDetail } from 'Api/Page';
+import pageApi from 'Api/Page';
+import { TreeNodeDetail } from 'Api/Pages';
+import { RouterNodeMetadata } from 'Api/Startup/Routing';
 import Loading from 'UI/Loading';
 
 export type PageSelectorValue = {
@@ -35,7 +37,7 @@ export default function PageSelector(props: PageSelectorProps) {
 
 	function loadNode(nodePath: string) {
 		setLoading(true);
-		pageApi.getRouterTreeNodePath(nodePath || '').then((result: TreeNodeDetail) => {
+		pageApi.getRouterTreeNodePath(nodePath || '').then((result: TreeNodeDetail | null) => {
 			setCurrentNode(result);
 			setLoading(false);
 		}).catch(() => {
@@ -50,7 +52,7 @@ export default function PageSelector(props: PageSelectorProps) {
 
 		var newPage: PageSelectorValue = {
 			id: node.contentId,
-			title: node.childKey || node.name || '',
+			title: node.name || node.childKey || '',
 			url: node.fullRoute || ''
 		};
 
@@ -251,15 +253,12 @@ export default function PageSelector(props: PageSelectorProps) {
 					<li key={entry.id} className="admin-pageselector__entry">
 						<div className="admin-pageselector__entry-content">
 							<span className="admin-pageselector__entry-title">{entry.title}</span>
-							<span className="admin-pageselector__entry-url">{entry.url}</span>
 						</div>
-						<button
-							type="button"
-							className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry"
+						<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry"
 							title={`Remove`}
 							onClick={(e) => { e.preventDefault(); handleRemove(entry); }}>
 							<i className="fal fa-fw fa-times"></i>
-						</button>
+						</Button>
 					</li>
 				))}
 			</ul>

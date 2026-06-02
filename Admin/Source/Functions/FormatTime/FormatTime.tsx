@@ -5,7 +5,7 @@ import * as dateTools from 'UI/Functions/DateTools';
 */
 const longMonths = [`January`, `February`, `March`, `April`, `May`, `June`, `July`, `August`, `September`, `October`, `November`, `December`];
 
-export default function FormatTime(dateish : Dateish, format : string, noTime = false, delimiter : string | null = null, noDate = false, isHtml = false){
+export default function FormatTime(dateish : Dateish, format : string | undefined, noTime = false, delimiter : string | null = null, noDate = false, isHtml = false){
     if (!dateish || (noDate && noTime)){
         return '-';
     }

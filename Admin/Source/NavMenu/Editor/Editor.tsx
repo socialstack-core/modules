@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import Input from 'UI/Input';
+import Button from 'UI/Button';
 import Collapsible from 'UI/Collapsible';
 import { IconRef } from 'UI/Icon';
-import FileSelector from 'UI/FileSelector';
+import FileSelector, { FileSelectEvent } from 'UI/FileSelector';
 
 interface NavMenuItem {
 	id: string;
@@ -197,8 +198,8 @@ const Editor: React.FC<EditorProps> = (props) => {
 			setItems(prev => addChild(item.id, prev));
 		};
 
-		const handleIconChange = (e: { target: { value: string } }) => {
-			setLocalIconRef(e.target.value);
+		const handleIconChange = (e: FileSelectEvent) => {
+			setLocalIconRef(e.target.value || '');
 		};
 
 		const isDragging = dragId === item.id;
@@ -301,20 +302,12 @@ const Editor: React.FC<EditorProps> = (props) => {
 							<option value="newtab">{`New tab`}</option>
 						</Input>
 						<div className="nav-menu-item-actions">
-							<button
-								type="button"
-								className="btn btn-sm btn-outline-primary"
-								onClick={handleSave}
-							>
+							<Button sm outlined onClick={handleSave}>
 								<i className="fal fa-fw fa-check"></i> {`Save`}
-							</button>
-							<button
-								type="button"
-								className="btn btn-sm btn-outline-secondary"
-								onClick={handleCancel}
-							>
+							</Button>
+							<Button sm outlined variant="secondary" onClick={handleCancel}>
 								{`Undo`}
-							</button>
+							</Button>
 						</div>
 					</div>
 				</Collapsible>
@@ -351,13 +344,9 @@ const Editor: React.FC<EditorProps> = (props) => {
 
 			{!readonly && (
 				<footer className="nav-menu-footer">
-					<button
-						type="button"
-						className="btn btn-sm btn-outline-primary"
-						onClick={addNewItem}
-					>
+					<Button sm outlined onClick={addNewItem}>
 						<i className="fal fa-fw fa-plus"></i> {`Add item`}
-					</button>
+					</Button>
 				</footer>
 			)}
 

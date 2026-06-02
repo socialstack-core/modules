@@ -1,5 +1,6 @@
 // Define distinct types for each form mode
-import {Content, ListFilter} from "Api/Content";
+import {Content} from "Api/Database";
+import {ListFilter} from "Api/Startup";
 
 /**
  * Represents the type of an auto form page.
@@ -21,7 +22,7 @@ export type AutoFormButtonExtension = {
      * @param content The content object, strongly typed to `Content<uint>`.
      * @param setPage Optional page navigation function.
      */
-    onClick?: (content: Content<uint>, setPage?: (url: string) => void) => void;
+    onClick?: (content?: Content<uint>, setPage?: (url: string) => void) => void;
 
     /** Optional href to turn the button into a link. */
     href?: string;

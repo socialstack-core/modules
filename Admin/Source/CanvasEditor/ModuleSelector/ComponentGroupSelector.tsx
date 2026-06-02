@@ -1,3 +1,4 @@
+import Button from 'UI/Button';
 import Modal from 'UI/Modal';
 import Loading from 'UI/Loading';
 import componentGroupApi from 'Api/ComponentGroup';
@@ -20,10 +21,7 @@ export default function ComponentGroupSelector(props: { selectOpenFor: boolean; 
 	
 	useEffect(() => {
 		if (selectOpenFor && !groups) {
-			componentGroupApi.list({
-				pageSize: 1000 as uint,
-				pageIndex: 0 as uint
-			}).then((result: any) => {
+			componentGroupApi.listAll().then((result: any) => {
 				setGroups(result.results || []);
 			});
 		}
@@ -44,9 +42,8 @@ export default function ComponentGroupSelector(props: { selectOpenFor: boolean; 
 					<div className="module-group">
 						<div className="module-group__internal">
 							{groups.map(group => (
-								<button
-									type="button"
-									className="btn module-tile"
+								<Button
+									className="module-tile"
 									key={group.id}
 									onClick={() => {
 										onSelected && onSelected(group);
@@ -60,7 +57,7 @@ export default function ComponentGroupSelector(props: { selectOpenFor: boolean; 
 										<div className="module-tile__title">{formatTitle(group.name) || group.key}</div>
 										<div className="module-tile__subtitle">{group.key}</div>
 									</div>
-								</button>
+								</Button>
 							))}
 						</div>
 					</div>

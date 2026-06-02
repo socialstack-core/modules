@@ -16,7 +16,7 @@ const RegisterForm: React.FC<RegisterFormProps> = (props: RegisterFormProps): Re
 	const [success, setSuccess] = useState<boolean | null>();
 	var [password, setPassword] = useState('');
 
-	const validatePasswordMatch = (value : string): PublicError | undefined => {
+	const validatePasswordMatch = (value : string | boolean): PublicError | undefined => {
 		if (password != value) {
 			return {
 				type: 'password/no-match',
@@ -93,7 +93,7 @@ const RegisterForm: React.FC<RegisterFormProps> = (props: RegisterFormProps): Re
 
 			<fieldset>
 				<Input
-					autocomplete="new-password"
+					autoComplete="new-password"
 					type='password'
 					name='newPasswordConfirm'
 					label={`Confirm Password`}

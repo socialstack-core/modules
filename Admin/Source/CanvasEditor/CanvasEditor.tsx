@@ -21,7 +21,29 @@ interface CanvasEditorProps {
 	[key: string]: any;
 }
 
-function RootContent(props) {
+type RootContentProps = {
+	name?: string;
+}
+
+declare module 'react' {
+	namespace JSX {
+		interface IntrinsicElements {
+			'root-content': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+				'data-name'?: string;
+				'data-placeholder'?: string;
+				contentEditable?: boolean | "true" | "false";
+			};
+			'react-component': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+				'data-name'?: string;
+				'data-props'?: string;
+				'data-mounted'?: boolean;
+				contentEditable?: boolean | "true" | "false";
+			};
+		}
+	}
+}
+
+function RootContent(props : React.PropsWithChildren<RootContentProps>) {
 	const { name, children } = props;
 
 	return <root-content data-name={name} contentEditable={true} data-placeholder={`Add content to ${name}..`} className="root-content mce-content-body">
@@ -145,6 +167,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 					const loadedContent = loadReact(childEl);
 					const compName = childEl.getAttribute('data-name');
 					const propValues = childEl.getAttribute('data-props');
+					// @ts-ignore
 					convertedComp = <react-component data-name={compName} data-props={propValues} data-mounted={true} contentEditable={false}>
 						{loadedContent}
 					</react-component>;
@@ -162,6 +185,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 						}
 					});
 
+					// @ts-ignore
 					convertedComp = <Comp {...propAttribs}>
 						{loadRootValue(childEl)}
 					</Comp>;
@@ -261,9 +285,9 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 				contextMenu='link insertWidgetMenu'
 				defaultValue={initialHtml}
 				toolbar='bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | grid_insert | insertWidget'
-				allowFullscreen={true}
-				dockHeader={true}
-				onSetup={(editor: any) => {
+				allowFullscreen={props.fullscreen}
+				dockHeader={props.fullscreen}
+				onSetup={editor => {
 					editorRef.current = editor;
 
 					editor.ui.registry.addButton('insertWidget', {
@@ -299,16 +323,23 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 								el.setAttribute('data-mounted', 'true');
 								el.setAttribute('contenteditable', 'false');
 								el.innerHTML = '';
+								// @ts-ignore
 								React.render(
-									// @ts-ignore
 									<sessionCtx.Provider value={session}>
 										<routerCtx.Provider value={{
 											canGoBack: () => false,
 											pageState: {
 												url: '',
-												oldVersion: false,
-												query: new URLSearchParams()
-											},
+												primaryContentIncludes: null,
+                                                oldVersion: false,
+                                                query: new URLSearchParams(),
+                                                redirect: null,
+                                                description: null,
+                                                title: null,
+                                                po: undefined,
+                                                tokenNames: [],
+                                                tokens: []
+                                            },
 											setPage: () => { },
 											changeQuery: () => { },
 											getPageIncludes: () => {
@@ -406,7 +437,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 							const container = range.startContainer;
 
 							// Find if we are inside a root-content element
-							const rootNode = editor.dom.getParent(container, 'root-content');
+							const rootNode = editor.dom.getParent(container, 'root-content') as HTMLElement;
 
 							if (rootNode) {
 								// If there's only one character left or it's nearly empty
@@ -470,7 +501,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 							} />
 					}
 					<Dialog.Footer>
-						<Button type="button" onClick={() => setPropsOpenFor(null)}>
+						<Button onClick={() => setPropsOpenFor(null)}>
 							{`Close`}
 						</Button>
 						<Button type="submit">

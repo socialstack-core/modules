@@ -1,21 +1,22 @@
 import { getAll as getAllPropTypes, TypeMeta, CodeModuleMeta } from 'Admin/Functions/GetPropTypes';
 import { getComponentFilter } from './ComponentGroups';
 
-type ComponentSet = {
+export type ComponentSet = {
 	modules: ComponentInfo[],
 	directories: ComponentDirectory[],
 	directoryLookup: Record<string, ComponentDirectory>
 };
 
-type ComponentDirectory = {
+export type ComponentDirectory = {
 	name: string,
 	modules: ComponentInfo[],
 	path: string[]
 };
 
-type ComponentInfo = {
+export type ComponentInfo = {
 	name: string,
 	publicName: string,
+	priority?: int,
 	props: CodeModuleMeta,
 	directory: ComponentDirectory,
 	moduleClass: any /** The react render func, but can be either a class or a function */

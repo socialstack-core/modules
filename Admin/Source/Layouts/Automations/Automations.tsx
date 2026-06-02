@@ -1,10 +1,11 @@
 import Table from 'UI/Table';
 import { Filter } from 'UI/Loop';
 import Time from 'UI/Time';
-import automationsApi, { Automation } from 'Api/AutomationController';
+import { AutomationApi as automationsApi, Automation } from 'Api/Automations';
+import { ListFilter } from 'Api/Startup';
 import { useState } from 'react';
-import { ApiIncludes } from 'Api/Includes';
-import { ApiList } from 'UI/Functions/WebRequest';
+import { ApiList, ApiInclude } from 'UI/Functions/WebRequest';
+import { Content } from 'Api/Database';
 import AdminPage from "Admin/AdminPage";
 import Button from 'UI/Button';
 
@@ -17,19 +18,20 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 	var runAutomation = (entry : Automation) => {
 		
 		entry.lastTrigger = new Date().toISOString();
-		
+		const name = entry.name || '';
+
 		var newRunning = {...running};
-		newRunning[entry.name] = true;
+		newRunning[name] = true;
 		_latest = newRunning;
 		setRunning(newRunning);
 		
 		var doneRunning = () => {
 			var run = {..._latest};
-			delete run[entry.name];
+			delete run[name];
 			setRunning(run);
 		};
 
-		automationsApi.execute(entry.name).then(() => {
+		automationsApi.execute(name).then(() => {
 			doneRunning();
 		}).catch(e => {
 			console.error(e);
@@ -71,7 +73,9 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 		];
 	};
 	
-	var renderEntry = (entry: Automation) => {
+	var renderEntry = (content: Content<int>) => {
+		const entry = (content as any) as Automation;
+		const name = entry.name || '';
 		return <tr>
 			<td>{entry.name}{entry.description && entry.description.length > 0 && <><br /><small>{entry.description}</small></>}</td>
 			<td>{entry.cronDescription} ({entry.cron})</td>
@@ -79,7 +83,7 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 			<td>{entry.lastTrigger ? <Time date={entry.lastTrigger}/> : `None since startup`}</td>
 			<td>{entry.nextRun ? <Time absolute date={entry.nextRun}/> : `No run scheduled`}</td>
 			<td>
-				<Button disabled={running[entry.name]} sm outlined onClick={() => {
+				<Button disabled={running[name]} sm outlined onClick={() => {
 					runAutomation(entry);
 				}}>
 					{`Run Now`}
@@ -114,8 +118,8 @@ const Automations: React.FC<React.PropsWithChildren<{}>> = (props) => {
 		]} />
 		<AdminPage.ContentWrapper>
 			<AdminPage.Content>
-				<Table source={(filter?: Filter<Automation>, includes?: ApiIncludes[]) => {
-					return automationsApi.get() as Promise<ApiList<Automation>>;
+				<Table source={(filter?: ListFilter | undefined, includes?: ApiInclude[]) => {
+					return (automationsApi.get() as any) as Promise<ApiList<Content<int>>>;
 				}}
 					orNone={() => renderEmpty()}
 					onHeader={renderHeader}

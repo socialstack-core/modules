@@ -2,8 +2,8 @@ import Search from 'UI/Search';
 import Link from 'UI/Link';
 import Canvas from 'UI/Canvas';
 import Image from 'UI/Image';
+import Button from 'UI/Button';
 import * as fileRef from 'UI/FileRef';
-import { isoConvert } from 'UI/Functions/DateTools';
 
 import productCategoryApi from 'Api/ProductCategory';
 
@@ -127,12 +127,10 @@ export default class ProductCategorySelect extends React.Component {
 										</div>
 									}
 									
-									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
-										onClick={() => this.remove(entry)}>
+									<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry" title={`Remove`} onClick={() => this.remove(entry)}>
 										<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
-									</button>
+									</Button>
 								</div>
-
 
 							</li>
 						))

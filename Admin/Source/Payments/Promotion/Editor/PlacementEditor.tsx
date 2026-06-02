@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import MultiSelect from 'Admin/MultiSelect';
 import PageSelector from 'Admin/Page/Selector';
 import Button from 'UI/Button';
+import { Content } from 'Api/Database';
 import Icon from 'UI/Icon';
 import { Placement, PlacementType, PlacementTypeLabels } from './types';
 
@@ -9,8 +10,8 @@ function isObject(value: number | object): value is object {
     return typeof value === 'object';
 }
 
-function useLoadedValues(contentType: string, ids: (number | object)[], includes?: string): object[] {
-    const [loaded, setLoaded] = useState<object[]>(() => ids.filter(isObject) as object[]);
+function useLoadedValues(contentType: string, ids: (number | Content<uint>)[], includes?: string): Content<uint>[] {
+    const [loaded, setLoaded] = useState<Content<uint>[]>(() => ids.filter(isObject) as Content<uint>[]);
     const idsJsonRef = useRef<string>('');
 
     useEffect(() => {
@@ -23,11 +24,11 @@ function useLoadedValues(contentType: string, ids: (number | object)[], includes
 
         const numericIds = ids.filter((id): id is number => typeof id === 'number');
         if (numericIds.length === 0) {
-            setLoaded(ids.filter(isObject) as object[]);
+            setLoaded(ids.filter(isObject) as Content<uint>[]);
             return;
         }
 
-        const existingObjects = ids.filter(isObject) as object[];
+        const existingObjects = ids.filter(isObject) as Content<uint>[];
         const existingIds = existingObjects.map(o => (o as any).id);
         const missingIds = numericIds.filter(id => !existingIds.includes(id));
 
@@ -92,15 +93,12 @@ const PlacementEditor: React.FC<PlacementEditorProps> = ({ placement, onUpdate, 
                     <i className={`fa ${getTypeIcon(placement.type)} me-2`} />
                     <span className="fw-bold">{PlacementTypeLabels[placement.type]}</span>
                 </div>
-                <Button
-                    variant="outline-danger"
-                    sm
-                    type="button"
-                    onClick={(e: any) => {
+				<Button sm outlined variant="danger"
+					onClick={(e: any) => {
                         e.preventDefault();
                         onRemove();
                     }}
-                    title="Remove placement"
+                    title={`Remove placement`}
                 >
                     <Icon type="fa-trash" />
                 </Button>
@@ -153,7 +151,8 @@ const HeaderConfig: React.FC<ConfigProps> = ({ placement, onUpdate }) => {
         <div className="config-section">
             <div className="config-row">
                 <label>{`Specific pages (optional)`}</label>
-                <p className="text-muted small">{`Leave empty to show on all pages`}</p>
+                <p className="text-muted small mb-1">{`Leave empty to show on all pages.`}</p>
+                <p className="text-muted small">{`Note: If you select a page with dynamic content (such as a product or category), the promotion will appear on all pages of that type.`}</p>
                 <PageSelector
                     value={pageSelectorValue}
                     onChange={handleChange}
@@ -267,34 +266,39 @@ const ProductConfig: React.FC<ConfigProps> = ({ placement, onUpdate }) => {
                 />
             </div>
             <div className="config-row price-range">
-                <label>{`Price range (optional)`}</label>
-                <div className="d-flex gap-2">
-                    <div className="price-editor">
-                        <div className="currency-symbol">£</div>
-                        <div className="price-field">
-                            <input
-                                type="number"
-                                className="form-control"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                                value={placement.conditions.minPrice != null ? placement.conditions.minPrice / 100 : ''}
-                                onChange={(e) => onUpdate({ minPrice: e.target.value ? Math.round(Number(e.target.value) * 100) : null })}
-                            />
+                <label>{`Price range (optional, inc. VAT)`}</label>
+                <div className="d-flex align-items-center gap-3">
+                    <div className="d-flex align-items-center gap-2">
+                        <div className="price-editor">
+                            <div className="currency-symbol">£</div>
+                            <div className="price-field">
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    placeholder="Min"
+                                    min="0"
+                                    step="0.01"
+                                    value={placement.conditions.minPrice != null ? placement.conditions.minPrice / 100 : ''}
+                                    onChange={(e) => onUpdate({ minPrice: e.target.value ? Math.round(Number(e.target.value) * 100) : null })}
+                                />
+                            </div>
                         </div>
                     </div>
-                    <div className="price-editor">
-                        <div className="currency-symbol">£</div>
-                        <div className="price-field">
-                            <input
-                                type="number"
-                                className="form-control"
-                                placeholder="0.00"
-                                min="0"
-                                step="0.01"
-                                value={placement.conditions.maxPrice != null ? placement.conditions.maxPrice / 100 : ''}
-                                onChange={(e) => onUpdate({ maxPrice: e.target.value ? Math.round(Number(e.target.value) * 100) : null })}
-                            />
+                    <span className="text-muted fw-bold">-</span>
+                    <div className="d-flex align-items-center gap-2">
+                        <div className="price-editor">
+                            <div className="currency-symbol">£</div>
+                            <div className="price-field">
+                                <input
+                                    type="number"
+                                    className="form-control"
+                                    placeholder="Max"
+                                    min="0"
+                                    step="0.01"
+                                    value={placement.conditions.maxPrice != null ? placement.conditions.maxPrice / 100 : ''}
+                                    onChange={(e) => onUpdate({ maxPrice: e.target.value ? Math.round(Number(e.target.value) * 100) : null })}
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>

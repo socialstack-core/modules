@@ -65,10 +65,7 @@ function matchRules(rules: Rule[], moduleName: string, cache: ComponentGroupCach
 }
 
 async function loadComponentGroups(): Promise<void> {
-	const result = await componentGroupApi.list({
-		pageSize: 1000 as uint,
-		pageIndex: 0 as uint
-	});
+	const result = await componentGroupApi.listAll();
 
 	componentGroupCache = {};
 

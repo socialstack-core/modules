@@ -1,7 +1,7 @@
 import {useEffect, useState, useCallback, useRef} from 'react';
 import Alert from 'UI/Alert';
 import Input from 'UI/Input';
-import StdOutApi from 'Api/StdOutController';
+import {StdOutApi} from "Api/Startup";
 import { isoConvert } from 'UI/Functions/DateTools';
 import Debounce from "UI/Functions/Debounce";
 import Badge from "UI/Badge";
@@ -53,13 +53,13 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
     
     // If you're looking for a small chunk of log messages, this is how it happens
     // you choose a from date, which will show all messages AFTER this date.
-    const [fromDate, setFromDate] = useState<number>();
+    const [fromDate, setFromDate] = useState<int>(0 as int);
     
     // then if you want to limit to a certain date after, this is how it's done. 
     // this is initially left blank, as undefined will default to Date.now()
     // do not pass Date.now() into state as Date.now() gives the current time
     // this will then not fetch any newer than mount time results. 
-    const [toDate, setToDate] = useState<number>();
+    const [toDate, setToDate] = useState<int>(0 as int);
     
     // filter query, if you're looking for a certain message or keyword
     // maybe you caught a glimpse before a reload occured, you can then 
@@ -141,7 +141,9 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
                 disableTypeScriptInfo,
 				
 				// omit certain keywords
-				omitWhere: hideWhereContains
+                omitWhere: hideWhereContains,
+
+                tag: null
             }).then((res: string) => {
                 
                 // parse the response
@@ -207,14 +209,14 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
     };
     
     // normalize the date range, make sure the "from" date isn't passed the "to" date.
-    const normalizeDateRange = (from: number, to: number) => {
-        if (to < from) {
+    const normalizeDateRange = (from: int, to: int) => {
+        if (to && from && to < from) {
             return { from: to, to: from };
         }
         return { from, to };
     };
     
-    const toInputDate = (timestamp: number | null): string => {
+    const toInputDate = (timestamp?: number): string => {
         if (!timestamp) return '';
         return new Date(timestamp).toISOString().split('T')[0];
     };
@@ -387,7 +389,7 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
 						value={toInputDate(fromDate)}
 						label="From"
 						onChange={e => {
-							const newFrom = new Date((e.target as HTMLInputElement).value).getTime();
+							const newFrom = new Date((e.target as HTMLInputElement).value).getTime() as int;
 							const { from, to } = normalizeDateRange(newFrom, toDate);
 							setFromDate(from);
 							setToDate(to);
@@ -398,7 +400,7 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
 						value={toInputDate(toDate)}
 						label="To"
 						onChange={e => {
-							const newTo = new Date((e.target as HTMLInputElement).value).getTime();
+							const newTo = new Date((e.target as HTMLInputElement).value).getTime() as int;
 							const { from, to } = normalizeDateRange(fromDate, newTo);
 							setFromDate(from);
 							setToDate(to);
@@ -457,16 +459,17 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
 						label={`Where message contains ?`}
 						help={<small>{`Tip: Use comma or enter`}</small>}
 						placeholder={'?'}
-						onKeyDown={e => {
-							if (e.target.value === '') {
+                        onKeyDown={e => {
+                            const ele = e.target as HTMLInputElement;
+                            if (ele.value === '') {
 								return;
 							}
 							if (e.key == 'Enter' || e.key == ',') {
 
-								if (!hideWhereContains.includes(e.target.value)) {
-									setHideWhereContains([...hideWhereContains, e.target.value]);
+                                if (!hideWhereContains.includes(ele.value)) {
+                                    setHideWhereContains([...hideWhereContains, ele.value]);
 								}
-								e.target.value = '';
+                                ele.value = '';
 								e.preventDefault();
 								e.stopPropagation();
 							}

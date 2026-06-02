@@ -1,28 +1,47 @@
-import { Price } from 'Api/Price';
 import { useEffect, useState, useRef } from "react";
 import Modal from 'UI/Modal';
 import Form from 'UI/Form';
+import Button from 'UI/Button';
 import { useSession } from 'UI/Session';
 import { formatCurrency, formatPOA } from "UI/Functions/CurrencyTools";
-import localeApi from 'Api/Locale';
+import localeApi, { Locale } from 'Api/Locale';
 import Input from 'UI/Input';
+import Loading from 'UI/Loading';
 
-const PriceTable: React.FC = (props) => {
-	const [inputHandle, setInputHandle] = useState(null);
-	const inputRef = useRef(null);
+interface Price {
+	Amount: Record<string, uint>;
+	MinimumQuantity: uint;
+}
+
+interface SelectedPrice {
+	index: number;
+	price: Price;
+}
+
+interface PriceTableProps {
+	readonly?: boolean;
+	hideLabel?: boolean;
+	value?: string;
+	defaultValue?: string;
+	label?: string;
+}
+
+const PriceTable: React.FC = (props: PriceTableProps) => {
+	const inputRef = useRef<HTMLInputElement | null>(null);
 	const { session } = useSession();
 	const { locale } = session;
-	const [locales, setLocales] = useState(null);
+	const [locales, setLocales] = useState<Locale[] | null>(null);
 
     const readonly = props.readonly || false;
 	
-	const [value, setValue] = useState(() => {
+	const [value, setValue] = useState<Price[] | undefined>(() => {
 		var initValString = (props.value || props.defaultValue || '');
-		var initValue = initValString ? JSON.parse(initValString) : [];
+		console.log(initValString);
+		var initValue = initValString ? JSON.parse(initValString) as Price[] : [] as Price[];
 		return initValue;
 	});
-	const [showModal, setShowModal] = useState(false);
-	const [entityToEdit, setEntityToEdit] = useState();
+	const [showModal, setShowModal] = useState<boolean>(false);
+	const [entityToEdit, setEntityToEdit] = useState<SelectedPrice | undefined>();
 
 	useEffect(() => {
 		localeApi.listAll().then(result => setLocales(result.results));
@@ -32,6 +51,7 @@ const PriceTable: React.FC = (props) => {
 		const current = inputRef.current;
 
 		if (current) {
+			// @ts-ignore
 			current.onGetValue = (v:string, input:HTMLInputElement, e: any) => {
 				return value;
 			}
@@ -39,6 +59,7 @@ const PriceTable: React.FC = (props) => {
 
 		return () => {
 			if (current) {
+				// @ts-ignore
 				delete current.onGetValue;
 			}
 		};
@@ -50,10 +71,20 @@ const PriceTable: React.FC = (props) => {
 	}
 	
 	const onRemove = (price: Price) => {
+		if (!value) {
+			return;
+		}
 		var newValue = value.filter(v => v != price);
 		onSetValue(newValue);
 	};
-	
+
+	if (!locales) {
+		// Loading
+		return <Loading />;
+	}
+
+	const localeCode = locale?.code || 'en';
+
     return <div className="price-tiers">
 
 		{props.label && !props.hideLabel && (
@@ -69,40 +100,40 @@ const PriceTable: React.FC = (props) => {
 						{`Minimum Quantity`}
 					</th>
 					<th>
-						{`Amount (${locale.currencyCode})`}
+						{`Amount (${locale?.currencyCode || 'GBP'})`}
 					</th>
 				</tr>
 			</thead>
 			<tbody>
 				{
-					value.map((price, index)=> {
+					value?.map((price, index)=> {
 						return <tr>
 							<td>
 								{price.MinimumQuantity}
 							</td>
 							<td>
-								{`${formatCurrency(price.Amount[locale.code], locale)}`}
+								{`${formatCurrency(price.Amount[localeCode] || 0 as int, {currencyCode: locale?.currencyCode})}`}
 							</td>
 							{!readonly && 
 								<>
 									<td>
-										{locales && <button className="btn btn-sm btn-outline-primary btn-entry-select-action btn-view-entry" title={`Edit`}
+										{locales && <Button sm outlined className="btn-entry-select-action btn-view-entry" title={`Edit`}
 											onClick={e => {
 												e.preventDefault();
 												setEntityToEdit({index: index, price: price});
 												setShowModal(true);
 											}}>
 											<i className="fal fa-fw fa-edit"></i> <span>{`Edit`}</span>
-											</button>}
+											</Button>}
 									</td>
 									<td>
-									<button className="btn btn-sm btn-outline-danger btn-entry-select-action btn-remove-entry" title={`Remove`}
+									<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry" title={`Remove`}
 										onClick={e => {
 											e.preventDefault();
 											onRemove(price);
 										}}>
 											<i className="fal fa-fw fa-times"></i> <span>{`Remove`}</span>
-										</button>
+										</Button>
 									</td>
 								</>
 							}
@@ -113,15 +144,15 @@ const PriceTable: React.FC = (props) => {
 		</table>
 		<footer className="admin-multiselect__footer">
 			{!readonly && 
-				<button type="button" className="btn btn-sm btn-outline-primary btn-entry-select-action btn-new-entry"
+				<Button sm outlined className="btn-entry-select-action btn-new-entry"
 					onClick={e => {
 						e.preventDefault();
-						setEntityToEdit(null);
+						setEntityToEdit(undefined);
 						setShowModal(true);
 					}}
 				>
 					<i className="fal fa-fw fa-plus"></i> {`New`}
-				</button>
+				</Button>
 			}
 		</footer>
 		<input type="hidden" name={`priceTiers`} ref={inputRef} />
@@ -132,21 +163,26 @@ const PriceTable: React.FC = (props) => {
 				isExtraLarge
 				onClose={() => {
 					setShowModal(false);
-					setEntityToEdit(null);
+					setEntityToEdit(undefined);
 				}}
 			>
 				<Form
-					onSubmitted={entity => {
-						let newPrice = {MinimumQuantity: entity.MinimumQuantity, Amount: {}};
+					action={(entity: any) => {
+						let newPrice = {MinimumQuantity: entity.MinimumQuantity, Amount: {}} as Price;
 						delete entity.MinimumQuantity;
 
 						//Convert from string values to numbers
 						for(let i = 0; i < locales.length; i++){
 							var code = locales[i].code;
-							newPrice.Amount[code] = Number(entity[code]);
+
+							if (!code) {
+								continue;
+							}
+
+							newPrice.Amount[code] = parseInt(entity[code]) as int;
 						}
 
-						var newValue = value;
+						var newValue = value || [];
 
 						if (entityToEdit) {
 							newValue[entityToEdit.index] = newPrice
@@ -155,13 +191,17 @@ const PriceTable: React.FC = (props) => {
 						}
 						
 						setShowModal(false);
-						setEntityToEdit(null);
+						setEntityToEdit(undefined);
 						onSetValue(newValue);
+						return Promise.resolve();
 					}} 
 					submitLabel={entityToEdit ? `Update` : `Create`}
 				>
-					<Input type="number" min="0" step="1" name={`MinimumQuantity`} defaultValue={entityToEdit ? entityToEdit.price.MinimumQuantity : 0} label={`Minimum Quantity`}/>
+					<Input type="number" min="0" step="1" name={`minimumQuantity`} defaultValue={entityToEdit ? entityToEdit.price.MinimumQuantity : 0} label={`Minimum Quantity`}/>
 					{locales.map(region => {
+						if (!region.code) {
+							return null;
+						}
 						return (<>
 							<Input type="number" min="0" step="1" name={`${region.code}`} defaultValue={entityToEdit ? entityToEdit.price.Amount[region.code] : 0} label={`Amount for ${region.code}`}/>
 						</>)

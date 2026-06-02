@@ -1,5 +1,6 @@
 import Table from 'UI/Table';
-import {Content, ListFilter} from 'Api/Content';
+import {Content} from 'Api/Database';
+import {ListFilter} from 'Api/Startup';
 import {useState, useEffect, useRef, useMemo} from 'react';
 import Icon from "UI/Icon";
 import Link from "UI/Link";
@@ -18,6 +19,7 @@ import Drafts from 'Admin/Revisions/Drafts';
 import AdminPage from 'Admin/AdminPage';
 import Footer from 'Admin/Footer';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
+import { Breadcrumb } from 'Admin/AdminPage/SubHeader';
 
 
 const capitalise = (name? : string) => {
@@ -39,6 +41,9 @@ export interface AutoListProps {
 	beforeList?: React.ReactNode;
 	afterList?: React.ReactNode;
 	columns: AutoListColumn[],
+	previousPageUrl?: string;
+	previousPageName?: string;
+	hideEndpointUrl?: boolean;
 }
 
 export interface AutoListColumn {
@@ -66,7 +71,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	// ====================
 	// Props 
 	// ====================
-	const { contentType, fieldHeaders } = props;
+	const { contentType } = props;
 	const { getPageIncludes } = useRouter();	
 	// ====================
 	// Hooks
@@ -135,11 +140,11 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 						// Due to this, we're explicitly removing disabled/readonly from the data.
 
 						// also strip "Required" from validation
-						let cleanValidate = field.data?.validate;
+						let cleanValidate = field.data?.validate as string[] | string | undefined;
 
 						if (Array.isArray(cleanValidate)) {
 							cleanValidate = cleanValidate.filter(v => v !== "Required");
-							if (cleanValidate.length === 0) cleanValidate = undefined;
+							if (cleanValidate?.length === 0) cleanValidate = undefined;
 						} else if (cleanValidate === "Required") {
 							cleanValidate = undefined;
 						}
@@ -199,7 +204,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	 */
 	const currentTab = query?.get("tab");
 
-	const setCurrentTab = (target) => {
+	const setCurrentTab = (target: string) => {
 		updateQuery({
 			tab: target
 		});
@@ -239,7 +244,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	// ====================
 	// Derived state
 	// ====================
-	const searchText: string | null = pageState.query.get("q");
+	const searchText: string | undefined = pageState.query.get("q") || undefined;
 
 	const listFilter: Partial<ListFilter> = {
 		sort: sort ?? {
@@ -285,7 +290,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 			const defaultSortField = props.columns?.find(field => field.field === 'id') ? 'id' : (props.columns[0]?.field ?? 'id');
 			setSort(defaultSortField ? { field: defaultSortField, direction: 'desc' } : null);
 		}
-	}, [sort, props.columns, fieldHeaders]);
+	}, [sort, props.columns]);
 	
 	const selected = Object.values(bulkSelections).filter(Boolean);
 	
@@ -294,7 +299,9 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	// =================
 	const deleteSelected = () => {
 		// this is the list of selected items IDs.
-		const ids = Object.keys(bulkSelections).filter((key) => Boolean(bulkSelections[key]));
+		const ids = Object.entries(bulkSelections)
+			.filter(([key, value]) => Boolean(value))
+			.map(([key, value]) => key);
 		
 		return Promise.allSettled(
 			ids.map(id => {
@@ -335,12 +342,14 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 		
 		let current = target;
 		
-		for(let i = 0; i < parts.length; i++) {
-			if (!Boolean(current[parts[i]]))
+		for (let i = 0; i < parts.length; i++) {
+			const key = parts[i] as keyof typeof current;
+
+			if (!current[key])
 			{
-				return "None specified";
+				return `None specified`;
 			}
-			current = current[parts[i]];
+			current = current[key] as any;
 		}
 		
 		return current;
@@ -355,7 +364,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 				over={api}
 				paged paginatorOnly dockBottom
 				className="autolist-table"
-				filter={listFilter}
+				filter={listFilter as ListFilter}
 				includes={includes}
 				onHeader={() => {
 					return <>
@@ -417,7 +426,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 					return results;
 				}}
 			>
-				{(entry) => {
+				{(entry: Content<uint>) => {
 					var path = props.customUrl
 						? '/en-admin/' + props.customUrl + '/'
 						: '/en-admin/' + props.contentType.toLowerCase() + '/';
@@ -436,7 +445,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 								}
 
 								const isInclude = field.field.includes('.');
-								const value = isInclude ? accessInclude(field.field, entry) : entry[field.field];
+								const value = isInclude ? accessInclude(field.field, entry) : (entry as any)[field.field as string];
 								const hasValue = typeof value === 'string' ? value.trim().length > 0 : value;
 								const CustomRenderer: React.FC<AutoListCellRenderer> = field.module ? require(field.module).default : null;
 
@@ -481,7 +490,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 												</Link>
 											</>}
 											{item.onClick && <>
-												<Button xs outlined onClick={item.onClick(item, setPage)}>
+												<Button xs outlined onClick={() => item.onClick!(undefined, setPage)}>
 													{item.label}
 												</Button>
 											</>}
@@ -558,7 +567,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 		`/en-admin/${props.contentType.toLowerCase()}`;
 */
 
-	var breadcrumbs = [];
+	var breadcrumbs: Breadcrumb[] = [];
 
 	if (props.previousPageUrl && props.previousPageName) {
 		breadcrumbs.push({
@@ -579,15 +588,15 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 			<AdminPage.Filters
 				searchText={searchText}
 				open={true}
-				onInput={(ev) => {
-					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				onInput={(ev: React.InputEvent<HTMLInputElement>) => {
+					debounce?.handle(ev.currentTarget.value.trim())
 				}}
-				onChange={(ev) => {
-					debounce?.handle((ev.target as HTMLInputElement).value.trim())
+				onChange={(ev: React.ChangeEvent<HTMLInputElement>) => {
+					debounce?.handle(ev.currentTarget.value.trim())
 				}}>
 				{searchForm ? <Form xs onReset={() => {
 					setSearchFilter({ query: '', args: [] });
-				}} action={(vals) => {
+				}} action={(vals : any) => {
 					return new Promise((s, r) => {
 						var query = '';
 						var args = [];
@@ -607,7 +616,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 							var isArray = val && Array.isArray(val);
 
 							// eq or contains
-							var fieldInfo = formData?.form?.fields?.find(field => field.data?.name == k);
+							var fieldInfo = formData?.form?.fields?.find((field: any) => field.data?.name == k);
 
 							var isContains = fieldInfo?.searchMode == 2 || isArray;
 

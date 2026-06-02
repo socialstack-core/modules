@@ -111,7 +111,7 @@ const AddEditTemplateConfig: React.FC<AddEditTemplateConfigProps> = ({
 
 	useEffect(() => {
 		if (!possibleParents?.results) {
-			TemplateApi.list()
+			TemplateApi.listAll()
 				.then(setPossibleParents)
 				.catch((error) => setError(error.message ?? error))
 				.catch(console.error);

@@ -1,4 +1,6 @@
-export default function ThemePreview(props){
+import Button from 'UI/Button';
+
+export default function ThemePreview(props) {
 	
 	var btn = null;
 	var {theme} = props;
@@ -8,28 +10,28 @@ export default function ThemePreview(props){
 	switch(props.previewButton){
 		default:
 		case 1:
-			btn = <button className="btn btn-primary">{`Primary`}</button>;
+			btn = <Button variant="primary">{`Primary`}</Button>;
 		break;
 		case 2:
-			btn = <button className="btn btn-secondary">{`Secondary`}</button>;
+			btn = <Button variant="secondary">{`Secondary`}</Button>;
 		break;
 		case 3:
-			btn = <button className="btn btn-success">{`Success`}</button>;
+			btn = <Button variant="success">{`Success`}</Button>;
 		break;
 		case 4:
-			btn = <button className="btn btn-danger">{`Danger`}</button>;
+			btn = <Button variant="danger">{`Danger`}</Button>;
 		break;
 		case 5:
-			btn = <button className="btn btn-warning">{`Warning`}</button>;
+			btn = <Button variant="warning">{`Warning`}</Button>;
 		break;
 		case 6:
-			btn = <button className="btn btn-info">{`Info`}</button>;
+			btn = <Button variant="info">{`Info`}</Button>;
 		break;
 		case 7:
-			btn = <button className="btn btn-light">{`Light`}</button>;
+			btn = <Button variant="light">{`Light`}</Button>;
 		break;
 		case 8:
-			btn = <button className="btn btn-dark">{`Dark`}</button>;
+			btn = <Button variant="dark">{`Dark`}</Button>;
 		break;
 	}
 	

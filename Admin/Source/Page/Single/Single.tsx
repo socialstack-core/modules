@@ -1,8 +1,14 @@
 import AutoEdit from "Admin/Layouts/AutoEdit";
 import CreatePage from "Admin/Page/Create";
 import { useTokens } from "UI/Token";
+import { Page } from 'Api/Page';
 
-const PageEditor: React.FC = (props: any) => {
+type PageEditorProps = {
+    content?: Page,
+    tabs?: { name: string; key: string }[]
+};
+
+const PageEditor: React.FC = (props: PageEditorProps) => {
     const { content, tabs } = props;
     const isEditPage = !!content;
 

@@ -56,6 +56,9 @@
                 }
 
                 &.price-range {
+                    .price-editor {
+                        width: auto;
+                    }
                     .form-control {
                         max-width: 150px;
                     }

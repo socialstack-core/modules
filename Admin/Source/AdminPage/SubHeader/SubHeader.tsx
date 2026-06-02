@@ -3,7 +3,7 @@ import Search from 'UI/Search';
 import Badge from 'UI/Badge';
 import Button from 'UI/Button';
 import AutoFormExtensions, {AutoFormType} from "Admin/AutoForm/AutoFormExtensions";
-import {ListFilter} from "Api/Content";
+import {ListFilter} from "Api/Startup";
 import {useRouter} from "UI/Router";
 
 /**

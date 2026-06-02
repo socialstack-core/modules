@@ -1,26 +1,27 @@
 ﻿import { useEffect, useState } from "react";
-import Loop from "UI/Loop";
-import ProductAttributeApi, { ProductAttribute } from "Api/ProductAttribute";
+import { ProductAttribute } from "Api/ProductAttribute";
 import { Product } from "Api/Product";
-import ProductAttributeValueApi from "Api/ProductAttributeValue";
 import Input from "UI/Input";
 import Button from "UI/Button";
-import Image from "UI/Image";
-import Alert from "UI/Alert";
 import Icon from "UI/Icon";
 import Link from "UI/Link";
-import Video from "UI/Video";
 import Col from "UI/Column";
+import { FileSelectEvent } from "UI/FileSelector";
 import Row from "UI/Row";
 import AttributeSelect from "Admin/Payments/AttributeSelect";
-import Container from "UI/Container";
 import ConfirmDialog from "UI/Dialog/ConfirmDialog";
 
 type VariantEditorProps = {
 	variant: Product,
 	prefix: string,
 	onChange: (variant: Product) => void,
+	onRemove?: (variant: Product) => void,
 	requiredAttributes: ProductAttribute[] | undefined
+};
+
+interface ExtendedProduct extends Product {
+	/* True if this product variant is marked for deletion */
+	deleteVariant?: boolean
 };
 
 const VariantEditor: React.FC<VariantEditorProps> = (props) => {
@@ -30,7 +31,8 @@ const VariantEditor: React.FC<VariantEditorProps> = (props) => {
 	const { additionalAttributes } = variant;
 
 	const updateField = (name: string, newValue: any) => {
-		const newVariant = { ...variant };
+		const newVariant : Product = { ...variant };
+		// @ts-ignore
 		newVariant[name] = newValue;
 		onChange && onChange(newVariant);
 	};
@@ -41,11 +43,11 @@ const VariantEditor: React.FC<VariantEditorProps> = (props) => {
 	return <div className="variants-variant-editor">
 		<Row>
 			<Col>
-				<Input type='image' value={variant.featureRef} onChange={e => updateField('featureRef', e.target.value)} />
+				<Input type='image' value={variant.featureRef || ''} onChange={(e: any) => updateField('featureRef', (e as FileSelectEvent).target.value)} />
 			</Col>
 			<Col>
-				<Input type='text' label={`Name`} required validate={['Required']} value={variant.name} onChange={e => updateField('name', e.target.value)} />
-				<Input type='text' defaultValue={variant.sku} label={`Sku`} onChange={e => updateField('sku', e.target.value)} />
+				<Input type='text' label={`Name`} required validate={['Required']} value={variant.name || ''} onChange={(e: React.ChangeEvent<Element>) => updateField('name', (e.target as HTMLInputElement).value)} />
+				<Input type='text' defaultValue={variant.sku || ''} label={`Sku`} onChange={(e: React.ChangeEvent<Element>) => updateField('sku', (e.target as HTMLInputElement).value)} />
 				<AttributeSelect
 					value={additionalAttributes}
 					requiredAttributes={requiredAttributes}
@@ -54,7 +56,7 @@ const VariantEditor: React.FC<VariantEditorProps> = (props) => {
 				/>
 				<div className="variants-variant-editor__actions">
 					{variant.id && <Link target='_blank' href={'/en-admin/product/' + variant.id}>{`Edit more details`}</Link>}
-					<Button danger onClick={() => props.onRemove(variant)}><Icon type='fa-trash' /></Button>
+					<Button variant="danger" onClick={() => props.onRemove && props.onRemove(variant)}><Icon type='fa-trash' /></Button>
 				</div>
 			</Col>
 		</Row>
@@ -65,15 +67,15 @@ const VariantEditor: React.FC<VariantEditorProps> = (props) => {
 const ValueEditor: React.FC = (props : any) => {
 
 	const { requiredAttributes } = props;
-	const [inputHandle, setInputHandle] = useState(null);
-	const [deleting, setDeleting] = useState<Product | undefined>();
+	const [inputHandle, setInputHandle] = useState<HTMLInputElement | null>(null);
+	const [deleting, setDeleting] = useState<ExtendedProduct | null>(null);
 	
-	const [value, setValue] = useState(() => {
-		var initVal = (props.value || props.defaultValue || []).filter(t => t!=null);
-		return initVal;
+	const [value, setValue] = useState<ExtendedProduct[]>(() => {
+		var initVal = (props.value || props.defaultValue || []).filter((t:any) => t!=null);
+		return initVal as ExtendedProduct[];
 	});
 	
-	const onRemove = (variant: Product) => {
+	const onRemove = (variant: ExtendedProduct) => {
 		variant.deleteVariant = true;
 		setValue([...value]);
 	};
@@ -99,21 +101,22 @@ const ValueEditor: React.FC = (props : any) => {
 			/>)}
 		</div>
 		<Button onClick={() => {
-			setValue([...value, {}]);
+			setValue([...value, {} as Product]);
 		}}>{`Add variant`}</Button>
 		
 		<input type="hidden" name={props.name} ref={ele => {
 			setInputHandle(ele);
 
 			if (ele != null) {
+				// @ts-ignore
 				ele.onGetValue = (v, input, e) => {
 					if (input != inputHandle) {
 						return v;
 					}
 
 					return value
-						.filter((entry: Product) => entry != undefined)
-						.map((entry: Product) => {
+						.filter((entry) => entry != undefined)
+						.map((entry) => {
 							const {
 								additionalAttributes
 							} = entry;
@@ -134,7 +137,7 @@ const ValueEditor: React.FC = (props : any) => {
 		}} />
 
 		{deleting && <>
-			<ConfirmDialog variant="primary" isOpen={deleting} onClose={() => setDeleting(null)}
+			<ConfirmDialog variant="primary" isOpen={!!deleting} onClose={() => setDeleting(null)}
 				confirmCallback={() => {
 					onRemove(deleting);
 					setDeleting(null);

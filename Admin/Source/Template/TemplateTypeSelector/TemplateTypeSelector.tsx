@@ -1,9 +1,6 @@
-import Input from 'UI/Input';
+import Input, { InputProps } from 'UI/Input';
 
-type TemplateTypeSelectorProps = {
-};
-
-const TemplateTypeSelector: React.FC<TemplateTypeSelectorProps> = (props) => {
+const TemplateTypeSelector: React.FC<Omit<InputProps<"select">, 'type'>> = (props) => {
 
 	return <Input {...props} type="select">
 		<option value={1}>Web</option>

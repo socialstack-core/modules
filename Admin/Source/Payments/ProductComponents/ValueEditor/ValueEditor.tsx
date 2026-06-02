@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ProductQuantity } from "Api/Content";
+import { ProductQuantity } from "Api/ProductQuantity";
 import Button from "UI/Button";
 import Image from "UI/Image";
 import Input from "UI/Input";
@@ -57,7 +57,7 @@ const ComponentEditor: React.FC<ComponentEditorProps> = (props) => {
 	 * */
 	return 	<tr key={String(component.id)} className="components-value-editor__entries-item">
 				<td>
-					<Image size={32} fileRef={component.product?.featureRef} />
+					<Image size={32} fileRef={component.product?.featureRef || ''} />
 				</td>
 				<td>{component.product?.sku}</td>
 				<td>

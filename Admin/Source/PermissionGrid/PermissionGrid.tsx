@@ -1,6 +1,6 @@
 import Input from 'UI/Input';
 import Modal from 'UI/Modal';
-import permissionsApi from 'Api/PermissionController';
+import { PermissionApi as permissionsApi, PermissionMeta, GrantMeta } from 'Api/Permissions';
 import { useState, useEffect, useRef } from 'react';
 import { CodeModuleType, getAll, getEntities } from 'Admin/Functions/GetPropTypes';
 import Loading from 'UI/Loading';
@@ -13,7 +13,8 @@ interface PermissionGridProps {
 	value?: string;
 	onToggleViewAll?: (value: boolean) => void,
 	entities?: CodeModuleType[],
-	currentContent: Role
+	currentContent: Role,
+	name?: string
 }
 
 const alphaSort = (a: string, b: string) => {
@@ -24,6 +25,18 @@ const alphaSort = (a: string, b: string) => {
     return 0;
 }
 
+type DropdownType = "inherited" | "always" | "never" | "custom";
+
+type GrantInfo = {
+	inherited: boolean,
+	value: string | boolean
+};
+
+type EditingCell = {
+	key: string,
+	grantInfo: GrantInfo
+};
+
 /**
  * A grid of capabilities and the roles they're active on
  */
@@ -31,12 +44,12 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 
 	const [roles, setRoles] = useState<Role[]>([]);
 	const [customRuleEle, setCustomRuleEle] = useState<HTMLInputElement | null>(null);
-	const [capabilities, setCapabilities] = useState([]);
-	const [filteredCapabilities, setFilteredCapabilities] = useState([]);
+	const [capabilities, setCapabilities] = useState<PermissionMeta[]>([]);
+	const [filteredCapabilities, setFilteredCapabilities] = useState<PermissionMeta[]>([]);
 	const [filter, setFilter] = useState('');
-	const [grants, setGrants] = useState(null);
-	const [dropdownType, setDropdownType] = useState(null);
-	const [editingCell, setEditingCell] = useState(null);
+	const [grants, setGrants] = useState<Record<string, string | boolean> | null>(null);
+	const [dropdownType, setDropdownType] = useState<DropdownType | null>(null);
+	const [editingCell, setEditingCell] = useState<EditingCell | null>(null);
 	const [entities, setEntities] = useState<CodeModuleType[]>();
 
 	useEffect(() => {
@@ -45,7 +58,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 			if (props.editor) {
 				var val = props.value || props.defaultValue || '';
 
-				var grants = {};
+				var grants : Record<string, string | boolean> = {};
 
 				if (val) {
 					try {
@@ -62,9 +75,9 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 				setGrants(grants);
 			}
 
-			setRoles(permissionInfo.roles);
-			setCapabilities(permissionInfo.capabilities);
-			setFilteredCapabilities(permissionInfo.capabilities);
+			setRoles(permissionInfo.roles || []);
+			setCapabilities(permissionInfo.capabilities || []);
+			setFilteredCapabilities(permissionInfo.capabilities || []);
 		});
 
 	}, [props.editor, props.value, props.defaultValue]);
@@ -88,7 +101,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 	const updateFilter = (filter : string) => {
 		setFilter(filter);
 		setFilteredCapabilities(
-			capabilities.filter((capability) => capability.key.toLowerCase().startsWith(filter.toLowerCase()))
+			capabilities.filter((capability) => (capability.key || '').toLowerCase().startsWith(filter.toLowerCase()))
 		);
 	}
 
@@ -143,9 +156,11 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 			return null;
 		}
 
-		filteredCapabilities.sort(function(a, b) {
-			if (a.key < b.key) return -1;
-			if (a.key > b.key) return 1;
+		filteredCapabilities.sort(function (a, b) {
+			const keyA = a.key || '';
+			const keyB = b.key || '';
+			if (keyA < keyB) return -1;
+			if (keyA > keyB) return 1;
 			return 0;
 		});
 
@@ -178,11 +193,12 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 						</>}
 
 						{filteredCapabilities.map(cap => {
-							var map = {};
+							var map : Record<string, GrantMeta> = {};
 
 							if (cap.grants) {
 								cap.grants.forEach(grant => {
-									map[grant.role.key] = grant;
+									const key = grant.role?.key || '';
+									map[key] = grant;
 								});
 							}
 
@@ -192,7 +208,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 										{cap.key}
 									</td>
 									{roles.map(role => {
-										var grant = map[role.key];
+										var grant = map[role?.key || ''];
 
 										if (!grant) {
 											return (<td>
@@ -243,7 +259,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
         );
 	}
 
-	const renderCell = (grantInfo) => {
+	const renderCell = (grantInfo : GrantInfo) => {
 
 		if(grantInfo.value === false)
 		{
@@ -264,14 +280,14 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 		//tick
 		return <i className='fa fa-check' style={{color: 'green'}}/>;
 	}
-	
-	const getGrantInfo = (capability) => {
+
+	const getGrantInfo = (capability : PermissionMeta) => {
 		var content = getContent();
 		var capGrant = null; // Not granted is the default
 		if(capability.grants){
 			var grantSet = capability.grants;
 			for(var i=0;i<grantSet.length;i++){
-				if(grantSet[i].role.key == content.key){
+				if(grantSet[i].role?.key == content.key){
 					capGrant = grantSet[i];
 					break;
 				}
@@ -279,9 +295,9 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 			
 		}
 		
-		var current = {
+		var current : GrantInfo = {
 			inherited: true,
-			value: null
+			value: false
 		};
 		
 		if(!capGrant){
@@ -293,10 +309,12 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 			// Inherited is a tick:
 			current.value = true;
 		}
-		
-		if(grants && grants[capability.key] !== undefined){
+
+		const key = capability.key || '';
+
+		if(grants && grants[key] !== undefined){
 			current.inherited = false;
-			current.value = grants[capability.key];
+			current.value = grants[key];
 		}
 		
 		return current;
@@ -312,9 +330,11 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 			return null;
 		}
 		
-		filteredCapabilities.sort(function(a, b) {
-			if (a.key < b.key) return -1;
-			if (a.key > b.key) return 1;
+		filteredCapabilities.sort(function (a, b) {
+			const keyA = a.key || '';
+			const keyB = b.key || '';
+			if (keyA < keyB) return -1;
+			if (keyA > keyB) return 1;
 			return 0;
 		});
 
@@ -367,7 +387,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 								</td>
 								<td onClick = {() => {
 									setEditingCell({
-										key: cap.key,
+										key: cap.key || '',
 										grantInfo
 									});
 									setDropdownType(getDropdownType(grantInfo));
@@ -393,12 +413,12 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 					</>}
 				</table>
 
-				{editingCell && renderEditModal()}
+				{editingCell && renderEditModal(editingCell)}
 			</div>
 		];
 	}
 	
-	const getDropdownType = (grantInfo) => {
+	const getDropdownType = (grantInfo : GrantInfo) => {
 		if(grantInfo.inherited){
 			return "inherited";
 		}
@@ -414,7 +434,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 		return "custom";
 	}
 	
-	const renderEditModal = () => {
+	const renderEditModal = (editingCell : EditingCell) => {
 		var { grantInfo } = editingCell;
 		var content = getContent();
 
@@ -426,9 +446,9 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 				type = "select"
 				name = "rule" 
 				onChange={(e) => {
-					setDropdownType(e.target.value);
+					setDropdownType((e.target as HTMLSelectElement).value as DropdownType);
 				}}
-				defaultValue={dropdownType}
+				defaultValue={dropdownType || ''}
 			>
 				<option value = {"inherited"}>
 					Inherited
@@ -443,7 +463,7 @@ const PermissionGrid: React.FC<React.PropsWithChildren<PermissionGridProps>> = (
 					Custom rule
 				</option>
 			</Input>
-			{dropdownType == 'custom' && <Input onInputRef={setCustomRuleEle} defaultValue = {typeof grantInfo.value === 'string' ? grantInfo.value : ''} validate = {['Required']} label = "Custom Rule" type = "text" name = "customRule"/>}
+			{dropdownType == 'custom' && <Input onInputRef={(el: HTMLElement) => setCustomRuleEle(el as HTMLInputElement)} defaultValue = {typeof grantInfo.value === 'string' ? grantInfo.value : ''} validate = {['Required']} label = "Custom Rule" type = "text" name = "customRule"/>}
 			<Input type="button" onClick={(e) => {
 				e.preventDefault();
 

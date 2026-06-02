@@ -1,53 +1,61 @@
 import Modal from 'UI/Modal';
-import Loop from 'UI/Loop';
+import Button from 'UI/Button';
 import Input from 'UI/Input';
 import Loading from 'UI/Loading';
 import { collectModules, groupByDirectory } from './Utils';
 import { useState, useEffect } from 'react';
+import { ComponentInfo, ComponentDirectory, ComponentSet } from './Utils';
 
-function formatTitle(name) {
+interface ModuleSelectorProps {
+	selectOpenFor?: any;
+	componentGroups?: string | string[];
+	onClose?: () => void;
+	onSelected?: (module: ComponentInfo) => void;
+}
+
+function formatTitle(name: string): string {
 	return name.replace(/([a-z])([A-Z])/g, '$1 $2');
-} 
+}
 
-export default function ModuleSelector(props) {
+const ModuleSelector: React.FC<ModuleSelectorProps> = (props) => {
 	const { selectOpenFor, componentGroups, onClose, onSelected } = props;
-	var [componentSet, setComponentSet] = useState(null);
-	var [filter, setFilter] = useState(null);
-	var [sortOrder, setSortOrder] = useState('alpha');
-	
+	var [componentSet, setComponentSet] = useState<ComponentSet | null>(null);
+	var [filter, setFilter] = useState<string | null>(null);
+	var [sortOrder, setSortOrder] = useState<'alpha' | 'popularity'>('alpha');
+
 	useEffect(() => {
 		collectModules(componentGroups).then(compSet => {
 			setComponentSet(compSet);
 		});
 	}, [props.componentGroups]);
-	
-	function updateSort(event) {
-		setSortOrder(event.target.value);
-    }
-	
+
+	function updateSort(event: React.ChangeEvent<Element>) {
+		setSortOrder((event.target as HTMLSelectElement).value as 'alpha' | 'popularity');
+	}
+
 	const renderModalContent = () => {
-		
+
 		// Filter and sort the modules now (they are already filtered by componentGroups)
-		var filteredModules = componentSet.modules;
-		
-		if(filter){
+		var filteredModules = componentSet!.modules;
+
+		if (filter) {
 			filteredModules = filteredModules.filter(mod => {
-				return mod.publicName.replace(/\s+/g, '').toLowerCase().indexOf(filter) != -1;
+				return mod.publicName.replace(/\s+/g, '').toLowerCase().indexOf(filter!) != -1;
 			});
 		}
-		
-		if(sortOrder == 'alpha'){
+
+		if (sortOrder == 'alpha') {
 			filteredModules = filteredModules.sort((a, b) => (a.publicName > b.publicName) ? 1 : ((b.publicName > a.publicName) ? -1 : 0));
 		}
-		
+
 		// Group them by directory:
 		var dirGroups = groupByDirectory(filteredModules);
-		
+
 		return <>
 			<div className="module-groups-filters row">
 				<div className="col-6">
-					<Input type="search" autoFocus noWrapper onInput={el => {
-						var filterText = el.target.value.replace(/\s+/g, '').toLowerCase();
+					<Input type="search" autoFocus noWrapper onInput={(el: React.InputEvent<Element>) => {
+						var filterText = (el.target as HTMLInputElement).value.replace(/\s+/g, '').toLowerCase();
 						setFilter(filterText);
 					}}
 						placeholder={`Search components...`} />
@@ -60,29 +68,29 @@ export default function ModuleSelector(props) {
 				</div>
 			</div>
 			<div className="module-groups-wrapper">
-				{dirGroups.map(dir => {
+				{dirGroups.map((dir: ComponentDirectory) => {
 
-					return <div className="module-group">
+					return <div className="module-group" key={dir.name}>
 						<h6 className="module-group__name">
 							{dir.name || `Common Modules`}
 						</h6>
 						<div className="module-group__internal">
-							{dir.modules.map(module => {
+							{dir.modules.map((module: ComponentInfo) => {
 								var icon = module.meta?.icon || 'fa fa-puzzle-piece';
 								var description = module.meta?.description || '';
-								return <button type="button" className="btn module-tile" onClick={() => {
+								return <Button className="module-tile" key={module.name} onClick={() => {
 									onSelected && onSelected(module);
 									onClose && onClose();
 								}}>
-									{module.priority && <i className="fa fa-star module-tile__popular" title={`Popular`}></i>}
+									{!!module.priority && <i className="fa fa-star module-tile__popular" title={`Popular`}></i>}
 									<div className="module-tile__icon">
-										<i className={icon} />
+										<i className={icon as string} />
 									</div>
 									<div className="module-tile__content">
 										<div className="module-tile__title">{formatTitle(module.name)}</div>
-										<div className="module-tile__subtitle">{description}</div>
+										<div className="module-tile__subtitle">{description as string}</div>
 									</div>
-								</button>;
+								</Button>;
 							})}
 						</div>
 					</div>;
@@ -90,16 +98,16 @@ export default function ModuleSelector(props) {
 			</div>
 		</>;
 	};
-	
+
 	return <>
 		<Modal
 			className={"module-select-modal"}
-			buttons={[
+			buttons={onClose ? [
 				{
 					label: `Close`,
 					onClick: onClose
 				}
-			]}
+			] : undefined}
 			isLarge
 			title={`Add Component`}
 			onClose={onClose}
@@ -108,5 +116,6 @@ export default function ModuleSelector(props) {
 			{!componentSet ? <Loading /> : renderModalContent()}
 		</Modal>
 	</>;
+};
 
-}
+export default ModuleSelector;

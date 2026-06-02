@@ -18,7 +18,7 @@ type FooterCallsToActionProps = React.PropsWithChildren<{
  * The Footer React component.
  * @param props React props.
  */
-const FooterRoot: React.FC<React.PropsWithChildren<FooterProps>> = (props) => {
+const FooterBase: React.FC<React.PropsWithChildren<FooterProps>> = (props) => {
 	const { className, children } = props;
 	let bulkActionsNode: React.ReactNode = null;
 	let callsToActionNode: React.ReactNode = null;
@@ -88,8 +88,12 @@ function FooterCallsToAction(props: FooterCallsToActionProps) {
 FooterBulkActions.displayName = "FooterBulkActions";
 FooterCallsToAction.displayName = "FooterCallsToAction";
 
-FooterRoot.BulkActions = FooterBulkActions;
-FooterRoot.CallsToAction = FooterCallsToAction;
+const Footer: React.FC<React.PropsWithChildren<FooterProps>> & {
+	BulkActions: (props: FooterBulkActionsProps) => React.ReactNode,
+	CallsToAction: (props: FooterCallsToActionProps) => React.ReactNode,
+} = Object.assign(FooterBase, {
+	BulkActions: FooterBulkActions,
+	CallsToAction: FooterCallsToAction,
+});
 
-const Footer = FooterRoot;
 export default Footer;

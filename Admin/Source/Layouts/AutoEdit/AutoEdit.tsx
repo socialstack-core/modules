@@ -27,7 +27,10 @@ interface AutoFormProps {
 	/**
 	 * Optional previous page name.
 	 */
-	previousPageName?: string
+	previousPageName?: string,
+
+	content?: Record<string, any>,
+	tabs?: { name: string; key: string }[]
 }
 
 const AutoEdit: React.FC<React.PropsWithChildren<AutoFormProps>> = ({ children, ...props }) => {

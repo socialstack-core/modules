@@ -1,12 +1,15 @@
-import React, { useState } from 'react';
 import MultiSelect from 'Admin/MultiSelect';
-import Modal from 'UI/Modal';
+import { Address } from 'Api/Address';
 
-export default function AddressSelect(props) {
-	
-	const renderEntry = (entry) => {
+interface AddressSelectProps {
+	label?: string;
+};
+
+const AddressSelect: React.FC<AddressSelectProps> = (props) => {
+
+	const renderEntry = (entry: Address) => {
 		const parts = [];
-		
+
 		if (entry.name) {
 			parts.push(entry.name);
 		}
@@ -28,17 +31,17 @@ export default function AddressSelect(props) {
 
 		return parts.length > 0 ? parts.join(', ') : (entry.name || `Address ${entry.id}`);
 	};
-	
+
 	return (
-		<>
-			<MultiSelect
-				contentType="Address"
-				label={props.label || "Addresses"}
-				{...props}
-				field={"line1"}
-				renderEntry={renderEntry}
-				renderSearchResult={renderEntry}
-			/>
-		</>
+		<MultiSelect
+			contentType="Address"
+			label={props.label || `Addresses`}
+			{...props}
+			field="line1"
+			renderEntry={renderEntry}
+			renderSearchResult={renderEntry}
+		/>
 	);
-}
+};
+
+export default AddressSelect;

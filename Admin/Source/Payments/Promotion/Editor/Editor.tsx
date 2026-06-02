@@ -155,15 +155,14 @@ const Editor: React.FC = (props: any) => {
                 >
                     <div className="placement-type-options">
                         {placementTypes.map(type => (
-                            <button
+                            <Button
                                 key={type}
                                 className="placement-type-option"
-                                type="button"
                                 onClick={() => addPlacement(type)}
                             >
                                 <div className="fw-bold">{PlacementTypeLabels[type]}</div>
                                 <div className="small text-muted">{PlacementTypeDescriptions[type]}</div>
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 </Dialog>

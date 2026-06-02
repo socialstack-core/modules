@@ -1,6 +1,7 @@
 import { useState, useEffect, RefObject } from 'react';
 import Input from 'UI/Input';
-import SubHeader from 'Admin/SubHeader';
+import Button from 'UI/Button';
+import SubHeader, { Breadcrumb } from 'Admin/SubHeader';
 import { useSession } from 'UI/Session';
 
 // Left-hand tabs
@@ -76,9 +77,10 @@ const PanelledEditorInternal: React.FC<PanelledEditorProps> = (props: PanelledEd
           type="hidden"
           label={props.label}
           name={props.name}
-          inputRef={(ir: RefObjectGetValue) => {
-            if (ir) {
-              ir.onGetValue = (_: null, ref: React.RefObject<HTMLInputElement>) => {
+          onInputRef={(ir: HTMLElement) => {
+              if (ir) {
+                // @ts-ignore
+              ir.onGetValue = (val: any, ref: HTMLInputElement) => {
                 if (ref !== ir) {
                   return;
                 }
@@ -179,16 +181,16 @@ const PanelledEditorInternal: React.FC<PanelledEditorProps> = (props: PanelledEd
                       : "panelled-editor__structure-tab panelled-editor__structure-tab--page"
                   }
                 >
-                  <button type="button" className="btn" onClick={() => setStructureTab(StructureEnum.PAGE)}>
+                  <Button onClick={() => setStructureTab(StructureEnum.PAGE)}>
                     {props.leftPanelTitle}
-                  </button>
+                  </Button>
                 </li>
               )}
               {props.toggleLeftPanel && (
                 <li className="panelled-editor__structure-tab panelled-editor__structure-tab--close">
-                  <button type="button" className="btn" onClick={() => props.toggleLeftPanel(false)}>
+                  <Button onClick={() => props.toggleLeftPanel(false)}>
                     <i className="fal fa-times"></i>
-                  </button>
+                  </Button>
                 </li>
               )}
             </ul>
@@ -205,9 +207,9 @@ const PanelledEditorInternal: React.FC<PanelledEditorProps> = (props: PanelledEd
             <ul className="panelled-editor__property-tabs">
               {props.toggleRightPanel && (
                 <li className="panelled-editor__property-tab panelled-editor__property-tab--close">
-                  <button type="button" className="btn" onClick={() => props.toggleRightPanel(false)}>
+                  <Button onClick={() => props.toggleRightPanel(false)}>
                     <i className="fal fa-times"></i>
-                  </button>
+                  </Button>
                 </li>
               )}
             </ul>

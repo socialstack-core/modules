@@ -13,8 +13,11 @@ import Button from 'UI/Button';
 
 type TreeViewType = 'tree' | 'list';
 
+interface ProductAttributeTreeProps {
+	noCreate?: boolean
+}
 
-export default function ProductAttributeTree(props) {
+export default function ProductAttributeTree(props: ProductAttributeTreeProps) {
 	var addUrl = '/en-admin/productattribute/add';
 	var addGroupUrl = '/en-admin/productattributegroup/add';
 	const { pageState, updateQuery } = useRouter();
@@ -45,6 +48,8 @@ export default function ProductAttributeTree(props) {
 		
 		if (!attributes) {
 			productAttributeApi.list({
+				query: '',
+				args: [],
 				pageIndex: (currentPage - 1 as uint),
 				pageSize,
 				sort: {
@@ -65,6 +70,8 @@ export default function ProductAttributeTree(props) {
 			productAttributeApi.list({
 				pageIndex: (currentPage - 1) as uint,
 				pageSize: pageSize,
+				query: '',
+				args: [],
 				sort: {
 					field: sortField,
 					direction: sortOrder.toLowerCase()

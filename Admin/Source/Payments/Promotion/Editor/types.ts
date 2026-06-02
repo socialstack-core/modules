@@ -1,11 +1,13 @@
+import { Content } from 'Api/Database';
+
 export type PlacementType = 'header' | 'search' | 'category' | 'product' | 'dashboard';
 
 export type PlacementConditions = {
-    pages?: (number | object)[];
-    searchCategories?: (number | object)[];
-    categories?: (number | object)[];
+    pages?: (number | Content<uint>)[];
+    searchCategories?: (number | Content<uint>)[];
+    categories?: (number | Content<uint>)[];
     includeChildren?: boolean;
-    products?: (number | object)[];
+    products?: (number | Content<uint>)[];
     minPrice?: number | null;
     maxPrice?: number | null;
 };

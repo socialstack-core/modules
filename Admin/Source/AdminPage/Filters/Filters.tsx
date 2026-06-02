@@ -1,16 +1,18 @@
 import Input from 'UI/Input';
 import Popover from 'UI/Popover';
+
 /**
- * Props for the Content component.
+ * Props for the Filters component.
  */
 interface AdminPageFiltersProps {
 	searchText?: string,
-	onInput?: () => void,
-	onChange?: () => void,
-	onFocus?: () => void,
+	onInput?: (ev: React.InputEvent<HTMLInputElement>) => void,
+	onChange?: (ev: React.ChangeEvent<HTMLInputElement>) => void,
+	onFocus?: (ev: React.FocusEvent<HTMLInputElement>) => void,
 	className?: string,
 	children?: React.ReactNode,
-	open?: boolean
+	open?: boolean,
+	placeholder?: string
 }
 
 /**
@@ -37,7 +39,7 @@ const AdminPageFilters: React.FC<React.PropsWithChildren<AdminPageFiltersProps>>
 						placeholder={placeholder}
 						defaultValue={searchText}
 						onInput={onInput}
-						onChange={onChange}
+						onChange={onChange ? (e: React.ChangeEvent) => onChange(e as React.ChangeEvent<HTMLInputElement>): undefined}
 						onFocus={onFocus}
 					/>
 				</>}

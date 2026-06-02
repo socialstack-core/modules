@@ -6,7 +6,7 @@ import Button from 'UI/Button';
 import Dialog from 'UI/Dialog';
 import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import { useState, useEffect } from 'react';
-import monitoringApi from 'Api/StdOutController';
+import {StdOutApi} from "Api/Startup";
 import AdminPage from "Admin/AdminPage";
 import Footer from "Admin/Footer";
 
@@ -24,10 +24,10 @@ const Developer: React.FC<{}> = () => {
 	// Default developer role dashboard
 	var WhoAmI = () => {
 
-		var [who, setWho] = useState<int>();
+		var [who, setWho] = useState<int | null>(null);
 
 		useEffect(() => {
-			monitoringApi.whoAmI ? monitoringApi.whoAmI().then((response) => setWho(response.id)) : setWho(1)
+			StdOutApi.whoAmI ? StdOutApi.whoAmI().then((response) => setWho(response ? response.id : null)) : setWho(1 as int)
 		}, []);
 
 		if (!who) {
@@ -46,7 +46,7 @@ const Developer: React.FC<{}> = () => {
 		return <>
 			<ConfirmDialog variant="primary"
 				title={`Are You Sure?`}
-				isOpen={confirmer}
+				isOpen={!!confirmer}
 				onClose={() => setConfirmer(null)}
 				confirmText={`Yes, I know what I am doing`}
 				confirmCallback={() => {
@@ -118,7 +118,7 @@ const Developer: React.FC<{}> = () => {
 						<a href='#' onClick={() => confirmAction(
 							`Force the C# garbage collector to run inside the API`,
 							async () => {
-								await monitoringApi.gC()
+								await StdOutApi.gC()
 							}
 						)}>
 							{`Run the garbage collector (will prompt first)`}
@@ -128,7 +128,7 @@ const Developer: React.FC<{}> = () => {
 						<a href='#' onClick={() => confirmAction(
 							`This will tell the application to halt. On a deployed server, the service runner will then automatically start again. Note that the restart won't happen in a debug environment.`,
 							async () => {
-								await monitoringApi.halt()
+								await StdOutApi.halt()
 							}
 						)}>
 							{`Restart the API (will prompt first)`}

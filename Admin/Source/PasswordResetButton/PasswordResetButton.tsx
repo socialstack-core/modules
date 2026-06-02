@@ -21,7 +21,7 @@ const PasswordResetButton = (props: PasswordResetProps): React.ReactNode => {
 	const [loading, setLoading] = useState<boolean>(false);
 	const userId: uint = content?.id;
 
-	const generate = (e) => {
+	const generate = (e: React.MouseEvent<HTMLButtonElement>) => {
 		e.preventDefault();
 		e.stopPropagation();
 		setLoading(true);
@@ -31,7 +31,7 @@ const PasswordResetButton = (props: PasswordResetProps): React.ReactNode => {
 				setLoading(false);
 				setUrl(
 					location.origin + 
-					result.url
+					(result ? result.url : '')
 				)
 			})
 

@@ -1,5 +1,5 @@
 import useApi from 'UI/Functions/UseApi';
-import searchApi, {ProductSearchType, SortDirection} from "Api/ProductSearchController";
+import {ProductSearchApi as searchApi, ProductSearchType, SortDirection} from "Api/Payments";
 import productApi, {Product} from 'Api/Product';
 import {useState} from "react";
 import SearchInput from 'UI/SearchInput';
@@ -91,7 +91,7 @@ const ProductLookup: React.FC<ProductLookupProps> = (props:ProductLookupProps) =
 							{products.results.map(content => {
 								return 	<tr key={String(content.id)} className="ui-product-lookup__item">
 									<td>
-										<Image size={32} fileRef={content.featureRef} className="ui-product-lookup__img"/>
+										{content.featureRef && <Image size={32} fileRef={content.featureRef} className="ui-product-lookup__img" />}
 									</td>
 									<td>{content.sku}</td>
 									<td>

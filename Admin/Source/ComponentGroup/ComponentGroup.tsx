@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Button from 'UI/Button';
 // @ts-ignore
 import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector';
 // @ts-ignore
@@ -145,20 +146,12 @@ const Editor: React.FC = (props: any) => {
                 <input type="hidden" value={serializeRules(rules)} name={props.name} />
 
                 <div className="d-flex gap-2 mb-3">
-                    <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={() => setShowSelector(true)}
-                    >
+                    <Button onClick={() => setShowSelector(true)}>
                         {`Add component...`}
-                    </button>
-                    <button
-                        type="button"
-                        className="btn btn-outline-primary"
-                        onClick={() => setShowGroupSelector(true)}
-                    >
+                    </Button>
+                    <Button outlined onClick={() => setShowGroupSelector(true)}>
                         {`Add group...`}
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="d-flex gap-2 mb-3">
@@ -170,13 +163,9 @@ const Editor: React.FC = (props: any) => {
                         onChange={(e) => setCustomRuleInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && onCustomRuleSubmit()}
                     />
-                    <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={onCustomRuleSubmit}
-                    >
+                    <Button variant="secondary" outlined onClick={onCustomRuleSubmit}>
                         <i className="fa fa-plus" />
-                    </button>
+                    </Button>
                 </div>
 
                 <div className="component-list">
@@ -193,21 +182,17 @@ const Editor: React.FC = (props: any) => {
                                 <span className={rule.excluded ? 'text-danger' : ''}>
                                     {getRuleLabel(rule)}
                                 </span>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-secondary btn-sm float-end"
+                                <Button sm outlined variant="secondary" className="float-end"
                                     onClick={() => toggleExclude(index)}
                                     title={rule.excluded ? 'Include' : 'Exclude'}
                                 >
                                     <i className={`fa ${rule.excluded ? 'fa-plus' : 'fa-minus'}`} />
-                                </button>
-                                <button
-                                    type="button"
-                                    className="btn btn-outline-secondary btn-sm float-end me-2"
+                                </Button>
+                                <Button sm outlined variant="secondary" className="float-end me-2"
                                     onClick={() => onRuleRemoved(index)}
                                 >
                                     <i className="fa fa-trash" />
-                                </button>
+                                </Button>
                             </div>
                         ))
                     )}

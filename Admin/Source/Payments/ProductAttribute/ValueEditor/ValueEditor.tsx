@@ -8,12 +8,7 @@ import Image from "UI/Image";
 import Video from "UI/Video";
 import Container from "UI/Container";
 import SubHeader from "Admin/SubHeader";
-
-type FileChangeEvent = {
-    target: {
-        value: string;
-    };
-};
+import { FileSelectEvent } from "UI/FileSelector";
 
 const AttributeValueEditor: React.FC = () => {
     const [attribute, setAttribute] = useState<ProductAttribute>();
@@ -86,8 +81,8 @@ const AttributeValueEditor: React.FC = () => {
             type="file"
             accept={accept}
             key={updateNo}
-            onChange={(fileRef: FileChangeEvent) => {
-                const filePath = fileRef.target?.value;
+            onChange={(e : any) => {
+                const filePath = (e as FileSelectEvent).target.value;
                 if (!filePath?.trim()) return;
                 ProductAttributeValueApi.create({
                     value: filePath,
@@ -102,7 +97,7 @@ const AttributeValueEditor: React.FC = () => {
     const getInputField = (attrType: number) => {
         const commonProps = {
             value: inputValue,
-            onInput: (e: React.FormEvent<HTMLInputElement>) =>
+            onInput: (e: React.InputEvent<HTMLInputElement>) =>
                 setInputValue(e.currentTarget.value),
             onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => {
                 if (e.key === "Enter") {
@@ -167,12 +162,8 @@ const AttributeValueEditor: React.FC = () => {
                             <td>Add value:</td>
                             <td>
                                 {getInputField(attribute.productAttributeType!)}
-                                <Button
-                                    type="button"
-                                    onClick={() => addValue(inputValue)}
-                                    disabled={!inputValue.trim()}
-                                >
-                                    Add value
+                                <Button onClick={() => addValue(inputValue)} disabled={!inputValue.trim()}>
+									{`Add value`}
                                 </Button>
                             </td>
                         </tr>

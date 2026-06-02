@@ -5,14 +5,13 @@ import Loading from 'UI/Loading';
 import Alert from 'UI/Alert';
 import AdminPage from 'Admin/AdminPage';
 import Footer from 'Admin/Footer';
-import Modal from 'UI/Modal';
 import Html from 'UI/Html';
 import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
 import formatTime from "Admin/Functions/FormatTime";
 import CanvasEditor from "Admin/CanvasEditor";
 import { useSession } from 'UI/Session';
-import { useRouter, routerCtx } from 'UI/Router';
+import { useRouter, routerCtx, PageState, RouterContext } from 'UI/Router';
 import AutoFormExtensions from "Admin/AutoForm/AutoFormExtensions";
 import Link from "UI/Link";
 import Button from "UI/Button";
@@ -20,14 +19,46 @@ import { TabsWrapper, TabsLinksWrapper, TabsLinkWrapper, TabsPanelsWrapper, Tabs
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { handleString } from 'UI/Token';
 
+type CanvasNode = {
+	// UI/Input, UI/Button etc..
+	t: string,
+	// props. passed to the component
+	d?: Record<string, any>,
+	// any non-roots children
+	c?: CanvasNode[] | CanvasNode,
+	// roots children.
+	r?: Record<string, CanvasNode>,
+	// Node key
+	__key?: string
+}
+
+interface AutoFormProps {
+	contentType: string;
+	singular: string;
+	plural: string;
+	content?: Record<string, any>;
+	tabs?: { name: string; key: string }[];
+	parent?: string;
+	previousPageUrl?: string;
+	previousPageName?: string;
+	hideEndpointUrl?: boolean;
+	isRevision?: boolean;
+	editTitleToken?: string;
+	deletePage?: string;
+	onChange?: (fieldData: Record<string, any>) => void;
+	onActionComplete?: (response: any) => void;
+	onRenderField?: (node: any, fieldData: Record<string, any>, isEdit: boolean) => boolean | void;
+	onBeforeForm?: (isEdit: boolean) => React.ReactNode;
+	renderFormFields?: (data: { formData: any; tabCanvases: any[], formFields: any[] }, isEdit: boolean) => React.ReactNode;
+}
+
 /**
  * Used to automatically generate forms used by the admin area based on fields from your entity declarations in the API.
  * To use this, use AutoService/ AutoController.
  * Most modules do this, so check any existing one for some examples.
  */
-
-export default function AutoForm(props) {
-	const formRef = useRef();
+const AutoForm: React.FC<AutoFormProps> = (props) => {
+	const formRef = useRef<HTMLFormElement | null>(null);
 	var { session, setSession } = useSession();
 	var { setPage, pageState, updateQuery } = useRouter();
 	const { query } = pageState;
@@ -36,34 +67,34 @@ export default function AutoForm(props) {
 	const [unsavedChanges, setUnsavedChanges] = useState(false);
 	const [failed, setFailed] = useState(false);
 	const [updateCount, setUpdateCount] = useState(0);
-	const [editFailure, setEditFailure] = useState(null);
-	const [editSuccess, setEditSuccess] = useState(null);
+	const [editFailure, setEditFailure] = useState<any>(null);
+	const [editSuccess, setEditSuccess] = useState(false);
 	const [createSuccess, setCreateSuccess] = useState(false);
 	const [confirmSaveAs, setConfirmSaveAs] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
 	const [submitting, setSubmitting] = useState(false);
 	const [deleting, setDeleting] = useState(false);
-	const [deleteFailure, setDeleteFailure] = useState(null);
-	
+	const [deleteFailure, setDeleteFailure] = useState<any>(null);
+
 	// The form structure as a set of its fields
-	const [formData, setFormData] = useState(null);
-	const [tabCanvases, setTabCanvases] = useState(null);
+	const [formData, setFormData] = useState<any>(null);
+	const [tabCanvases, setTabCanvases] = useState<any>(null);
 
 	// The current field values
-	const [fieldData, setFieldData] = useState(props.content ? { ...props.content } : {});
+	const [fieldData, setFieldData] = useState<Record<string, any>>(props.content ? { ...props.content } : {});
 	const pci = pageState.primaryContentIncludes;
 	const includes = pci ? pci.split(',') : ['*', 'primaryUrl'];
 	const currentTab = query?.get("tab");
 	const parsedId = props.content?.id;
 	var isEdit = !!parsedId;
 
-	const setCurrentTab = (target) => {
+	const setCurrentTab = (target: string) => {
 		updateQuery({
 			tab: target
 		});
 	};
 
-	const onContentNode = useCallback(contentNode => {
+	const onContentNode = useCallback((contentNode: any) => {
 		if (!contentNode || !contentNode.props) {
 			return;
 		}
@@ -106,7 +137,7 @@ export default function AutoForm(props) {
 
 		data.currentContent = fieldData;
 
-		data.onChange = (e) => {
+		data.onChange = (e: any) => {
 			// Input field has changed. Update the content object so any redraws are reflected.
 			var val = e.target.value;
 			switch (data.type) {
@@ -131,7 +162,7 @@ export default function AutoForm(props) {
 
 		if (value !== undefined) {
 			if (data.name == "createdUtc") {
-				data.defaultValue = formatTime(value);
+				data.defaultValue = formatTime(value, undefined);
 			} else {
 				data.defaultValue = value;
 			}
@@ -142,16 +173,16 @@ export default function AutoForm(props) {
 	useEffect(() => {
 		setFormData(null);
 		getAutoForm('content', props.contentType.toLowerCase())
-			.then(formData => {
+			.then((formData: any) => {
 				const { form } = formData;
 				const { fields } = form;
 
 				// In create mode, check URL for initial field values
 				if (!parsedId && fields) {
-					const initialValues = {};
+					const initialValues: Record<string, string> = {};
 					let hasInitialValues = false;
 
-					fields.forEach(field => {
+					fields.forEach((field: any) => {
 						const fieldName = field.data?.name;
 						if (fieldName) {
 							const urlValue = query.get(`initial-${fieldName}`);
@@ -168,19 +199,19 @@ export default function AutoForm(props) {
 				}
 
 				// Does any field specify a sort order?
-				var usesSorting = fields?.find(fld => fld.data.sortOrder);
+				var usesSorting = fields?.find((fld: any) => fld.data.sortOrder);
 
 				if (usesSorting) {
-					fields.forEach(fld => {
+					fields.forEach((fld: any) => {
 						fld.sortOrder = parseInt(fld.data?.sortOrder) || 10;
 					});
 
 					// inline - updates orig formData implicitly.
-					fields.sort((a, b) => a.sortOrder - b.sortOrder);
+					fields.sort((a: any, b: any) => a.sortOrder - b.sortOrder);
 				}
 
 				// Tabs are always present. Create the default 'details' tab if none are configured.
-				let tabs = props.tabs;
+				let tabs = props.tabs as { name: string; key: string }[] | undefined;
 				let fallbackTab = 0;
 
 				if (!tabs) {
@@ -201,12 +232,12 @@ export default function AutoForm(props) {
 				}
 
 				// Collect each field in to its associated tab.
-				let _tabCanvases = tabs.map((tabInfo, tabIndex) => {
+				let _tabCanvases = tabs.map((tabInfo: { name: string; key: string }, tabIndex: number) => {
 
 					return {
 						...tabInfo,
 						canvas: {
-							c: formData.form.fields.filter(field => {
+							c: formData.form.fields.filter((field: any) => {
 								// If the field is not for a specific tab then it is always present on tabIndex 0.
 								const tabKey = field.data?.tab;
 
@@ -217,7 +248,7 @@ export default function AutoForm(props) {
 								// It has a tabKey - is it the one we want?
 								return tabKey == tabInfo.key;
 
-							}).map(field => {
+							}).map((field: any) => {
 
 								return {
 									t: field.module,
@@ -227,27 +258,30 @@ export default function AutoForm(props) {
 								};
 
 							})
-						}
+						} as CanvasNode
 					};
 
 				});
 
 				// remove any empty tabs
-				_tabCanvases = _tabCanvases.filter(tab => tab?.canvas?.c?.length > 0 || tab?.contentJson);
+				_tabCanvases = _tabCanvases.filter((tab: any) => tab?.canvas?.c?.length > 0 || tab?.contentJson);
 
 				if (form.supportsRevisions && !props.isRevision && parsedId) {
+
+					const canvas = {
+						t: 'Admin/Revisions/List',
+						__key: 'af_revisions',
+						d: {
+							contentType: props.contentType,
+							id: parsedId
+						}
+					} as CanvasNode;
+
 					_tabCanvases.push(
 						{
 							name: `Drafts and history`,
 							key: `revisions`,
-							canvas: {
-								t: 'Admin/Revisions/List',
-								__key: 'af_revisions',
-								d: {
-									contentType: props.contentType,
-									id: parsedId
-								}
-							}
+							canvas
 						}
 					);
 				}
@@ -255,7 +289,7 @@ export default function AutoForm(props) {
 				setTabCanvases(_tabCanvases);
 				setFormData(formData);
 			})
-			.catch(e => {
+			.catch((e: any) => {
 				console.error(e);
 				setFailed(true);
 			});
@@ -263,17 +297,17 @@ export default function AutoForm(props) {
 
 	// Unsaved changes prompt
 	useEffect(() => {
-		const beforeUnload = (e) => {
+		const beforeUnload = (e: BeforeUnloadEvent) => {
 			if (unsavedChanges) {
 				e.preventDefault();
 				return e.returnValue = 'Unsaved changes - are you sure you want to exit?';
 			}
 		};
 
-		global.window.addEventListener('beforeunload', beforeUnload);
+		globalThis.window.addEventListener('beforeunload', beforeUnload);
 
 		return () => {
-			global.window.removeEventListener('beforeunload', beforeUnload);
+			globalThis.window.removeEventListener('beforeunload', beforeUnload);
 		};
 	}, [unsavedChanges]);
 
@@ -285,7 +319,7 @@ export default function AutoForm(props) {
 			</Alert>
 		);
 	}
-	
+
 	if (!formData) {
 		return <Loading />;
 	}
@@ -295,15 +329,15 @@ export default function AutoForm(props) {
 	// Get the API handler for this content type:
 	var api = require('Api/' + props.contentType).default;
 
-	const submitForm = (submitter) => {
-		formRef.current.requestSubmit(submitter);
+	const submitForm = (submitter: any) => {
+		formRef.current?.requestSubmit(submitter);
 	}
 
 	const doConfirmDelete = () => {
 		setConfirmDelete(false);
 		setDeleting(true);
 
-		var prom; // :Promise<WhateverTheContentTypeIs>
+		var prom: Promise<any>; // :Promise<WhateverTheContentTypeIs>
 
 		if (props.isRevision) {
 			prom = api.deleteRevision(parsedId);
@@ -311,7 +345,7 @@ export default function AutoForm(props) {
 			prom = api.delete(parsedId);
 		}
 
-		return prom.then(response => {
+		return prom.then((response: any) => {
 			if (props.onActionComplete) {
 				props.onActionComplete(null);
 				return;
@@ -330,14 +364,14 @@ export default function AutoForm(props) {
 
 			setPage(target);
 
-		}).catch(e => {
+		}).catch((e: any) => {
 			console.error(e);
 			setDeleting(false);
 			setDeleteFailure(true);
 		});
 	}
 
-	const doConfirmSaveAs = (submitter) => {
+	const doConfirmSaveAs = (submitter: any) => {
 		setConfirmSaveAs(false);
 		submitForm(submitter);
 	}
@@ -360,7 +394,7 @@ export default function AutoForm(props) {
 		return <>
 			<ConfirmDialog variant="danger" isOpen={confirmSaveAs} onClose={() => setConfirmSaveAs(false)}
 				confirmText={`Yes, save this as a new ${props.singular}`}
-				confirmCallback={() => doConfirmSaveAs()}>
+				confirmCallback={() => doConfirmSaveAs(undefined)}>
 				<p>
 					{`You are about to the save this as a new ${props.singular}. Any changes will be saved in the new ${props.singular} and the existing ${props.singular} will be not be updated. Continue?`}
 				</p>
@@ -368,7 +402,7 @@ export default function AutoForm(props) {
 		</>;
 	}
 
-	const capitalise = (name) => {
+	const capitalise = (name?: string) => {
 		return name && name.length ? name.charAt(0).toUpperCase() + name.slice(1) : "";
 	}
 
@@ -379,7 +413,7 @@ export default function AutoForm(props) {
 		`/en-admin/${props.parent.toLowerCase()}` :
 		`/en-admin/${props.contentType.toLowerCase()}`;
 
-	var breadcrumbs = [];
+	var breadcrumbs: { url?: string; title: string }[] = [];
 
 	if (props.previousPageUrl && props.previousPageName) {
 		breadcrumbs.push({
@@ -415,10 +449,10 @@ export default function AutoForm(props) {
 		qualifiedUrl = qualifiedUrl.slice(0, -1);
 	}
 
-	const renderCanvas = (canvas) => {
+	const renderCanvas = (canvas: any) => {
 		return <Canvas forcedUpdate={updateCount}
 			onContentNode={onContentNode}
-			onRenderNode={node => {
+			onRenderNode={(node: any) => {
 				if (node.typeName == "UI/Input" && (node.props.type == "checkbox" || node.props.type == "radio")) {
 					node.props.defaultChecked = node.props.defaultValue;
 				}
@@ -437,7 +471,7 @@ export default function AutoForm(props) {
 		return <TabsWrapper fullWidth>
 			{/* tab links */}
 			<TabsLinksWrapper>
-				{tabCanvases.map((tab, i) => {
+				{tabCanvases.map((tab: any, i: number) => {
 					const linkId = `tab-link${i + 1}`;
 					const panelId = `tab-panel${i + 1}`;
 					const selected = (!currentTab && i == 0) || currentTab === tab.key;
@@ -462,7 +496,7 @@ export default function AutoForm(props) {
 
 			{/* tab panels */}
 			<TabsPanelsWrapper>
-				{tabCanvases.map((tab, i) => {
+				{tabCanvases.map((tab: any, i: number) => {
 					const panelId = `tab-panel${i + 1}`;
 					let tabContent = null;
 
@@ -476,7 +510,7 @@ export default function AutoForm(props) {
 							defaultValue={fieldData[editorNode.d.name]}
 							primary={props.contentType}
 							currentContent={fieldData}
-							onChange={(e) => {
+							onChange={(e: any) => {
 								// Input field has changed. Update the content object so any redraws are reflected.
 								// var val = e.target.value;
 								fieldData[editorNode.d.name] = e.json;
@@ -502,10 +536,10 @@ export default function AutoForm(props) {
 			</TabsPanelsWrapper>
 		</TabsWrapper>;
 	}
-	
+
 	const renderForm = () => {
-		var feedback = null;
-		var feedbackStyle = 'info';
+		var feedback: string | null = null;
+		var feedbackStyle: string = 'info';
 
 		if (editFailure) {
 			feedback = editFailure.message || `Something went wrong whilst trying to save your changes - your device might be offline, so check your internet connection and try again.`;
@@ -527,33 +561,24 @@ export default function AutoForm(props) {
 			feedbackStyle = 'danger';
 		}
 
-		const extraButtonMapFunc = (button) => {
+		const extraButtonMapFunc = (button: any) => {
 
 			if (button.href) {
 				return (
-					<Link href={button.href}>
-						<button
-							type={'button'}
-							className={button.className}
-						>
-							{button.label}
-						</button>
+					<Link href={button.href} className={button.className} variant="primary">
+						{button.label}
 					</Link>
 				)
 			}
 
 			return (
-				<button
-					type={'button'}
-					className={button.className}
-					onClick={() => button.onClick && button.onClick(props.content, setPage)}
-				>
+				<Button className={button.className} onClick={() => button.onClick && button.onClick(props.content, setPage)}>
 					{button.label}
-				</button>
+				</Button>
 			);
 		}
 
-		var bulkActions = isEdit ? <>
+		var bulkActions: React.ReactNode = isEdit ? <>
 			<Button disabled={props.isRevision} variant="danger" outlined onClick={e => {
 				e.preventDefault();
 				setConfirmDelete(true);
@@ -564,7 +589,7 @@ export default function AutoForm(props) {
 
 		var callsToAction = <>
 			{isEdit ?
-				AutoFormExtensions.getAutoFormButtons(props.contentType, 'update').map(extraButtonMapFunc) : 
+				AutoFormExtensions.getAutoFormButtons(props.contentType, 'update').map(extraButtonMapFunc) :
 				AutoFormExtensions.getAutoFormButtons(props.contentType, 'create').map(extraButtonMapFunc)}
 
 			{supportsRevisions && (
@@ -577,12 +602,12 @@ export default function AutoForm(props) {
 
 			{/* todo - check for content type and do more ?? */}
 			{isEdit &&
-				<button className="btn ui-btn btn-secondary" name="form_submitMode" value="copy" type="button" onClick={e => {
+				<Button variant="secondary" name="form_submitMode" value="copy" onClick={e => {
 					e.preventDefault();
 					setConfirmSaveAs(true);
 				}}>
 					{`Save as a copy..`}
-				</button>
+				</Button>
 			}
 
 			<Input inline type="submit" name="form_submitMode" value="save" disabled={submitting} onClick={e => {
@@ -593,7 +618,7 @@ export default function AutoForm(props) {
 
 		</>;
 
-		var onValues = (values, setAction) => {
+		var onValues = (values: any, setAction: any) => {
 			const submitMode = values.form_submitMode;
 
 			if (submitMode == 'copy') {
@@ -612,10 +637,10 @@ export default function AutoForm(props) {
 				setAction(api.createDraft);
 			} else if (submitMode == 'save') {
 				// Potentially publishing a draft.
-				if (props.isRevision) {
+				if (props.isRevision && pageState?.tokens?.length) {
 					// Use the publish EP, but importantly do so with the raw ID from the URL - not the ID from the content object.
-					const revisionId = parseInt(pageState.tokens[0]);
-					setAction((fields) => api.publishRevision(revisionId, fields));
+					const revisionId = parseInt(pageState.tokens[0] || '');
+					setAction((fields: any) => api.publishRevision(revisionId, fields));
 				}
 			} else {
 				// Unknown mode, reject.
@@ -629,13 +654,13 @@ export default function AutoForm(props) {
 			return values;
 		};
 
-		var onFailed = response => {
+		var onFailed = (response: any) => {
 			setEditFailure(response || true);
 			setCreateSuccess(false);
 			setSubmitting(false);
 		};
 
-		var onSuccess = response => {
+		var onSuccess = (response: any) => {
 			var state = pageState;
 			setUnsavedChanges(false);
 
@@ -643,7 +668,7 @@ export default function AutoForm(props) {
 				setEditSuccess(false);
 				setCreateSuccess(false);
 			}, 3000);
-			
+
 			if (isEdit) {
 				setEditFailure(false);
 				setEditSuccess(true);
@@ -692,8 +717,8 @@ export default function AutoForm(props) {
 				}
 			}
 		};
-		
-		var title = isEdit ? `Edit ${props.singular}` : `Create New ${props.singular}`;
+
+		var title: string = isEdit ? `Edit ${props.singular}` : `Create New ${props.singular}`;
 
 		if (isEdit && props.editTitleToken && fieldData) {
 			var tokenValue = handleString(props.editTitleToken, session, fieldData);
@@ -703,15 +728,15 @@ export default function AutoForm(props) {
 		} else if (isEdit && fieldData?.name && fieldData.name.trim().length) {
 			title = `Edit ${props.singular} "${fieldData.name}"`;
 		}
-		
+
 		var originalUrl = props.isRevision ? parentUrl + '/' + parsedId : '';
-		
+
 		return <Form className="ui-form--auto" formRef={formRef} autoComplete="off"
 			action={isEdit ?
-				values => api.update(parsedId, values, includes) :
-				values => api.create(values, includes)}
+				(values: any) => api.update(parsedId, values, includes) :
+				(values: any) => api.create(values, includes)}
 			onValues={onValues} onFailed={onFailed} onSuccess={onSuccess}
-			onInvalidCapture={(e) => {
+			onInvalidCapture={(e: any) => {
 				// check: if we're about to focus an invalid field, first ensure it's not on a hidden tab
 				const parentTab = e.target.closest(".ui-page__tab-panel");
 
@@ -720,7 +745,7 @@ export default function AutoForm(props) {
 					const tabLink = document.querySelector(`input[type='radio'][aria-controls='${tabId}']`);
 
 					if (tabLink) {
-						tabLink.click();
+						(tabLink as HTMLInputElement).click();
 					}
 				}
 
@@ -749,7 +774,7 @@ export default function AutoForm(props) {
 					{props.renderFormFields ? props.renderFormFields({
 						formData,
 						tabCanvases,
-						formFields
+						formFields: form.fields
 					}, isEdit) : renderFormTabs()}
 
 					{confirmDelete && renderConfirmDelete()}
@@ -757,7 +782,7 @@ export default function AutoForm(props) {
 				</AdminPage.Content>
 			</AdminPage.ContentWrapper>
 			{feedback && <>
-				<AdminPage.Feedback variant={feedbackStyle}>
+				<AdminPage.Feedback variant={feedbackStyle as any}>
 					{feedback}
 				</AdminPage.Feedback>
 			</>}
@@ -775,40 +800,12 @@ export default function AutoForm(props) {
 	return <routerCtx.Provider
 		value={{
 			canGoBack: () => false,
-			pageState: { url: '', query: new URLSearchParams(''), po: pageState.po },
+			pageState: { url: '', query: new URLSearchParams(''), po: pageState.po } as PageState,
 			setPage
-		}}
+		} as RouterContext}
 	>
 		{renderForm()}
 	</routerCtx.Provider>;
-}
+};
 
-class AutoFormInternal extends React.Component {
-
-	constructor(props) {
-		super(props);
-		this.formId = "autoform-instance-" + formId++;
-
-		this.state = {
-			submitting: false,
-			updateCount: 0
-		};
-	}
-
-	applyDefaults(formCanvas, values) {
-		var c = formCanvas.c;
-		for (var i = 0; i < c.length; i++) {
-			var field = c[i];
-			if (!field) {
-				continue;
-			}
-			var data = field.d;
-
-			if (!data || !data.name) {
-				continue;
-			}
-
-			data.defaultValue = values[data.name];
-		}
-	}
-}
+export default AutoForm;

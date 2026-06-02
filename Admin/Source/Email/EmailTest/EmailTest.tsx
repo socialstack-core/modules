@@ -1,7 +1,8 @@
 import Tile from 'Admin/Tile';
 import Form from 'UI/Form';
 import Input from 'UI/Input';
-import emailTemplateApi, { EmailTestRequest } from 'Api/EmailTemplate';
+import emailTemplateApi from 'Api/EmailTemplate';
+import { EmailTestRequest } from 'Api/Emails';
 
 /**
  * A component used to send a test email.

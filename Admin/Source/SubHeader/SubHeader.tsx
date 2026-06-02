@@ -11,7 +11,7 @@
 import Link from 'UI/Link';
 import Search from 'UI/Search';
 import AutoFormExtensions, {AutoFormType} from "Admin/AutoForm/AutoFormExtensions";
-import {ListFilter} from "Api/Content";
+import {ListFilter} from "Api/Startup";
 import {useRouter} from "UI/Router";
 
 /**

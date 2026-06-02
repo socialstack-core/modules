@@ -1,7 +1,7 @@
-import MultiSelect from 'Admin/MultiSelect';
+import MultiSelect, { MultiSelectProps } from 'Admin/MultiSelect';
 import { Product } from 'Api/Product';
 
-export default function ProductMultiSelect(props) {
+export default function ProductMultiSelect(props: MultiSelectProps<Product>) {
 	return (
 		<MultiSelect
 			{...props}

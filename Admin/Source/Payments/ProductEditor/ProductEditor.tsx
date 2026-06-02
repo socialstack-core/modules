@@ -13,7 +13,10 @@ import { ProductAttribute } from "Api/ProductAttribute";
 import { ProductAttributeValue } from "Api/ProductAttributeValue";
 
 type ProductEditorProps = {
-	content?: Product
+	content?: Product,
+	singular: string,
+	plural: string,
+	contentType: string
 };
 
 function getRequiredAttributes(categories?:ProductCategory[], template?: ProductTemplate) {
@@ -169,8 +172,8 @@ const ProductEditor: React.FC<ProductEditorProps> = (props) => {
 	}
 
 	// We re-pass content such that it can be loaded from the template.
-	return <AutoForm {...props} content={ctn} onChange={newContent => {
-		setInitialContent({ ...newContent });
+	return <AutoForm {...props} content={ctn} onChange={(newContent: Record<string, any>) => {
+		setInitialContent({ ...newContent } as Product);
 	}} onBeforeForm={() => {
 		const variantOfId = content?.variantOfId;
 		
@@ -182,7 +185,7 @@ const ProductEditor: React.FC<ProductEditorProps> = (props) => {
 			<Link href={'/en-admin/product/' + variantOfId}>{`Edit parent product`}</Link>
 		</p>;
 		
-	}} onRenderField={(contentNode: CanvasNode, content: Product, isEdit: boolean) => {
+	}} onRenderField={(contentNode: CanvasNode, content: Record<string, any>, isEdit: boolean) => {
 		const name = contentNode.props?.name;
 
 

@@ -4,7 +4,8 @@ import Icon from 'UI/Icon';
 import Link from 'UI/Link';
 import Input from 'UI/Input';
 import Loading from 'UI/Loading';
-import { RouterTreeNodeDetail } from 'Api/Page';
+import Button from 'UI/Button';
+import { TreeNodeDetail } from 'Api/Pages';
 
 /**
  * Props for the TreeView component
@@ -30,11 +31,11 @@ export type TreeViewProps = {
 	 *
 	 * @param path
 	 */
-	onLoadData: (path: string) => void;
+	onLoadData: (path: string) => Promise<TreeNodeDetail | null>;
 };
 
 const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, clickToEdit, onLoadData }) => {
-	const [currentNode, setCurrentNode] = useState<RouterTreeNodeDetail | null>(null);
+	const [currentNode, setCurrentNode] = useState<TreeNodeDetail | null>(null);
 	const [sortColumn, setSortColumn] = useState("name");
 	const [sortDirection, setSortDirection] = useState("asc");
 	const { pageState } = useRouter();
@@ -70,7 +71,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 		}
 
 		return <>
-			<button type="button" className={headerClass.join(' ')} tabIndex={-1} onClick={() => {
+			<Button className={headerClass.join(' ')} tabIndex={-1} onClick={() => {
 				setSortColumn(columnName);
 
 				if (sortActive) {
@@ -91,7 +92,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 					<circle cx="12" cy="12" r="10" />
 					<path d="m8 14 4-4 4 4" />
 				</svg>
-			</button>
+			</Button>
 		</>;
 	}
 
@@ -143,18 +144,18 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 					var editUrl = child.editUrl;
 					var browseUrl = child.hasChildren ? baseUrl + child.fullRoute : editUrl;
 
-					var title = name;
-					var subTitle = description;
+					var title : React.ReactNode = name;
+					var subTitle : React.ReactNode = description;
 					var clickUrl = clickToEdit ? editUrl : browseUrl;
 					var createUrl = child.createUrl;
-					var NameTag = clickUrl && clickUrl.length ? "a" : "span";
+					var NameTag : "a" | "span" = clickUrl && clickUrl.length ? "a" : "span";
 
 					if (child.type == "Page") {
 						title = description;
 						subTitle = name;
 					}
 
-					if (!title || !title.length) {
+					if (!title || (typeof title == "string" && !title.length)) {
 						title = subTitle;
 						subTitle = <>&nbsp;</>;
 					}
@@ -166,6 +167,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 							</td>
 						</>}
 						<td className="admin-treeview__name">
+							{/* @ts-ignore */}
 							<NameTag className="admin-treeview__name-wrapper" href={clickUrl}>
 								{child.hasChildren && <>
 									<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
@@ -204,7 +206,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 						</td>
 						<td className="admin-treeview__actions">
 							{clickToEdit && child.hasChildren && <>
-								<Link href={browseUrl} xs variant="primary" outlined>
+								<Link href={browseUrl || undefined} xs variant="primary" outlined>
 									{`Browse`}
 								</Link>
 							</>}
@@ -236,7 +238,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 
 						return <tr>
 							<td>
-								<h4><Link href={file.editUrl}>{fileName}</Link></h4>
+								<h4><Link href={file.editUrl || undefined}>{fileName}</Link></h4>
 								<h6>{file.name}</h6>
 							</td>
 						</tr>
