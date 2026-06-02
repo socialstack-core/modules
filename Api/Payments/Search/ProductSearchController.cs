@@ -156,6 +156,7 @@ public class ProductSearchRequest
 	/// <summary>
 	/// Page offset.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public int PageOffset;
 
 	/// <summary>
@@ -166,67 +167,80 @@ public class ProductSearchRequest
 	/// <summary>
 	/// Optional applied facets per mapping (e.g. you want to filter results by attributes containing the colour 'blue').
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public List<ProductSearchAppliedFacet> AppliedFacets;
-	
+
 	/// <summary>
 	/// The max result set
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public uint PageSize;
-	
+
 	/// <summary>
 	/// Is it a reductive or an expansive search.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public ProductSearchType SearchType;
 
 	/// <summary>
 	/// Include pricing stats with teh search results
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public bool IncludePriceStats;
 
 	/// <summary>
 	/// Include dynamic boosts related to product history and query
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public bool IncludeDynamicBoosts;
 
 	/// <summary>
 	/// Hide inactive products, so no sku, or variant children 
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public bool HideInactiveProducts;
 
 	/// <summary>
 	/// When in the admin panel allow search by id etc 
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public bool IsAdminPanel;
 
 	/// <summary>
 	/// Minimum price.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public double? MinPrice = null;
 
 	/// <summary>
 	/// Maximum price
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public double? MaxPrice = null;
-	
+
 	/// <summary>
 	/// In stock only.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public bool InStockOnly = false;
 
 	/// <summary>
 	/// Defined sort order to change the order in which the result set is
 	/// displayed.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public SortOrder SortOrder;
 
 	/// <summary>
 	/// Allow certain ids to be excluded, for example when adding to a order list 
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public List<uint> ExcludedIds = null;
 
 	/// <summary>
 	///  Allow custom parameters to control client specific functionality
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public Dictionary<string, object> CustomParameters = null;
 }
 

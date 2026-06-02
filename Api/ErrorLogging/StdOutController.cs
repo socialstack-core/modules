@@ -247,17 +247,20 @@ public partial class StdOutController : AutoController
 	/// <returns></returns>
 	private static bool FieldContainsMessage(string compare, FieldData[] fields)
 	{
-		if (fields is null)
+		if (fields == null)
 		{
 			return false;
 		}
 		foreach (var field in fields)
 		{
-			if (field.Field is not null && field.Field.Id == Schema.MessageFieldDefId)
+			// field itself is a struct.
+			var fieldInfo = field.Field;
+
+			if (fieldInfo != null && fieldInfo.Id == Schema.MessageFieldDefId)
 			{
 				var messageText = field.GetNativeString()?.ToLower();
 
-				if (messageText is not null && messageText.Contains(compare, StringComparison.OrdinalIgnoreCase))
+				if (messageText != null && messageText.Contains(compare, StringComparison.OrdinalIgnoreCase))
 				{
 					return true; // Skip this log entry
 				}

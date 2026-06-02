@@ -53,6 +53,11 @@ namespace Api.Payments
 		/// The ordered currency code. Present only on Purchases.
 		/// </summary>
 		public string OrderedCurrencyCode;
+
+		/// <summary>
+		/// Default constructor
+		/// </summary>
+		public ProductQuantity(){}
 	}
 
 }

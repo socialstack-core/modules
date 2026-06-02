@@ -22,6 +22,7 @@ namespace Api.Payments
 				
 				// we need the delivery service to load the remaining deliveries
 				var deliveryService = Services.Get<DeliveryService>();
+				_purchaseService ??= Services.Get<PurchaseService>();
 
 				// first though, lets attempt to fetch the purchase, by the delivery
 				// ID, this is a one (purchase) to many (delivery) relationship.
@@ -42,10 +43,16 @@ namespace Api.Payments
 			
 				// iterate deliveries, if there's a delivery that
 				// hasn't been completed yet, return early.
-				DateTime? latestActualUtc = null;
+				DateTime? latestActualUtc = delivery.ActualUtc ?? null;
 
 				foreach (var otherDelivery in deliveries)
 				{
+					if(otherDelivery.Id == delivery.Id)
+					{
+						//This is the current delivery so we skip ahead
+						continue;
+					}
+
 					// if there is a delivery that hasn't 
 					// been delivered yet, the code after this 
 					// foreach should not be executed, 

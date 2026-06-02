@@ -13,6 +13,7 @@ public partial class DeliveryOption : VersionedContent<uint>
 	/// <summary>
 	/// The info about this delivery option. It's the stringified DeliveryEstimate.
 	/// </summary>
+	[JsonOptions(PublicType = typeof(DeliveryEstimate))]
 	public string InformationJson;
 
 	/// <summary>

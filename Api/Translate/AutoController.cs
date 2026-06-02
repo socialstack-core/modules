@@ -136,7 +136,7 @@ public partial class AutoController<T, ID>
 	[HttpGet("list.pot")]
     public virtual async ValueTask ListPOT(HttpContext httpContext, Context context, [FromQuery] string includes = null, [FromQuery] string ignoreFields = null)
     {
-        await ListPOT(httpContext, context, null, includes, ignoreFields);
+        await ListAllPOT(httpContext, context, null, includes, ignoreFields);
     }
 
 	/// <summary>
@@ -151,7 +151,7 @@ public partial class AutoController<T, ID>
 	/// <param name="ignoreFields"></param>
 	/// <returns></returns>
 	[HttpPost("list.pot")]
-    public virtual async ValueTask ListPOT(
+    public virtual async ValueTask ListAllPOT(
         HttpContext httpContext, Context context, [FromBody] JObject filters, 
         [FromQuery] string includes = null, [FromQuery] string ignoreFields = null)
     {

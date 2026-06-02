@@ -14,6 +14,16 @@ public class PriceServiceConfig : Config
 	/// ISO-1366-2:US for USA states as well ("US-CA" etc). Always uppercase.
 	/// </summary>
 	public Dictionary<string, TaxConfiguration> Tax { get; set; }
+
+	/// <summary>
+	/// Should tax be calculated line by line or on the total price? This is true by default
+	/// </summary>
+	public bool TaxLineByLine = true;
+
+	/// <summary>
+    /// How to handle rounding for VAT
+    /// </summary>
+	public RoundingMode TaxRounding = RoundingMode.Down;
 }
 
 /// <summary>

@@ -110,7 +110,7 @@ namespace Api.Uploader
         /// List any active media items
         /// </summary>
         [HttpGet("active")]
-        public async ValueTask<List<Upload>> Active(Context context)
+        public async ValueTask<ContentStream<Upload, uint>> Active(Context context)
         {
             var usageMap = new Dictionary<uint, int>();
             List<Upload> uploads = new List<Upload>();
@@ -134,8 +134,8 @@ namespace Api.Uploader
                 }
             }
 
-            return uploads.OrderBy(u => u.OriginalName).ToList();
-
+            var actives = uploads.OrderBy(u => u.OriginalName).ToList();
+            return new ContentStream<Upload, uint>(actives, _service);
 		}
 
         /// <summary>

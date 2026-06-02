@@ -8,8 +8,8 @@ namespace Api.Startup
 	/// <summary>
 	/// Holds additional configuration options when creating a group of admin panel pages.
 	/// </summary>
-    public class AdminPageOptions
-    {
+	public class AdminPageOptions
+	{
 		/// <summary>
 		/// The includes on the edit page.
 		/// </summary>
@@ -29,7 +29,7 @@ namespace Api.Startup
 		/// The navigation menu icon.
 		/// </summary>
 		public string NavMenuIcon;
-		
+
 		/// <summary>
 		/// What is the parent?
 		/// </summary>
@@ -42,14 +42,18 @@ namespace Api.Startup
 		{
 			set
 			{
-				List<AutoListColumn> columns = [];
+				List<AutoListColumn> columns = null;
 
-				foreach (var item in value)
+				if (value != null)
 				{
-					columns.Add(new AutoListColumn
+					columns = [];
+					foreach (var item in value)
 					{
-						Field = item
-					});
+						columns.Add(new AutoListColumn
+						{
+							Field = item
+						});
+					}
 				}
 
 				ListColumns = columns;
@@ -125,7 +129,7 @@ namespace Api.Startup
 		/// The header display name
 		/// </summary>
 		public string Label;
-		
+
 		/// <summary>
 		/// What field does it need to sort on?
 		/// </summary>
@@ -166,8 +170,10 @@ namespace Api.Startup
 		/// <summary>
 		/// A json string for optional predefined tab canvas content.
 		/// </summary>
-		public string ContentJson {
-			get {
+		public string ContentJson
+		{
+			get
+			{
 				if (Content == null)
 				{
 					return null;

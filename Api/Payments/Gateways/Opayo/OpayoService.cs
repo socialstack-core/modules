@@ -2,6 +2,8 @@
 using Api.Configuration;
 using Api.Contexts;
 using Api.Database;
+using Api.Eventing;
+
 #if PAYMENTS_GUEST_USERS
 using Api.GuestUsers;
 #endif
@@ -14,6 +16,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -68,6 +71,51 @@ namespace Api.Payments
 
 			gateways.Register(_gateway);
 			_purchaseTokens = purchaseTokens;
+
+			Events.Healthz.RunDependencyChecks.AddEventListener(async (Context context, HealthzChecks checks) =>
+			{
+				var opayoOk = false;
+				string opayoMessage = null;
+
+				using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+				try
+				{
+					var body = new
+					{
+						vendorName = _config.VendorName
+					};
+
+					var merchantKey = await Post<Opayo.Response.MerchantSessionKeyResponse>("merchant-session-keys", body, cts.Token);
+
+					if (merchantKey != null && ! string.IsNullOrWhiteSpace(merchantKey.MerchantSessionKey))
+					{
+						opayoOk = true;
+					}
+					else
+					{
+						opayoMessage = "Failed to retrieve session details";
+					}
+				}
+				catch (OperationCanceledException)
+				{
+					opayoMessage = "Failed to connect :: timed out after 10 seconds";
+				}
+				catch (Exception)
+				{
+					opayoMessage = "Failed to connect";
+				}
+
+				checks.opayo = new { ok = opayoOk, message = opayoMessage };
+
+				if (!opayoOk)
+				{
+					checks.Ok = false;
+				}
+
+				return checks;
+			});
+
+
 		}
 
 		/// <summary>
@@ -257,7 +305,7 @@ namespace Api.Payments
 						toUpdate.GatewayPublicJson = new JsonString(null);
 						toUpdate.PaymentGatewayInternalId = hostedPageResponse.TransactionId;
 					}, DataOptions.IgnorePermissions);
-				} 
+				}
 				else if (hostedPageResponse.Status == "cancel")
 				{
 					purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
@@ -320,7 +368,7 @@ namespace Api.Payments
 				}
 
 				// Mark as starting to submit to gateway and add the total cost to it:
-				await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+				purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
 				{
 					// It might have instantly completed or instantly failed. We can find out from the status:
 					toUpdate.Status = 101;
@@ -774,7 +822,7 @@ namespace Api.Payments
 		/// </summary>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		private async ValueTask<T> Get<T>(string endpoint)
+		private async ValueTask<T> Get<T>(string endpoint, CancellationToken cancellationToken = default)
 		{
 			if (_config.VerboseLogging)
 			{
@@ -796,7 +844,7 @@ namespace Api.Payments
 			request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authValue);
 			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-			var response = await Http.SendAsync(request);
+			var response = await Http.SendAsync(request, cancellationToken);
 			return await ReadOrThrow<T>(response);
 		}
 
@@ -806,7 +854,7 @@ namespace Api.Payments
 		/// </summary>
 		/// <returns></returns>
 		/// <exception cref="Exception"></exception>
-		private async ValueTask<T> Post<T>(string endpoint, object data)
+		private async ValueTask<T> Post<T>(string endpoint, object data, CancellationToken cancellationToken = default)
 		{
 			var json = JsonConvert.SerializeObject(data, _json);
 
@@ -841,7 +889,7 @@ namespace Api.Payments
 			request.Headers.Authorization = new AuthenticationHeaderValue("Basic", authValue);
 			request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-			var response = await Http.SendAsync(request);
+			var response = await Http.SendAsync(request, cancellationToken);
 			return await ReadOrThrow<T>(response);
 		}
 

@@ -146,13 +146,13 @@ namespace Api.HubSpot
 		/// Record creation time.
 		/// </summary>
 		[JsonProperty("createdAt")]
-		public DateTimeOffset? CreatedAt { get; set; }
+		public DateTime? CreatedAt { get; set; }
 
 		/// <summary>
 		/// Last update time.
 		/// </summary>
 		[JsonProperty("updatedAt")]
-		public DateTimeOffset? UpdatedAt { get; set; }
+		public DateTime? UpdatedAt { get; set; }
 
 		/// <summary>
 		/// True if the record is archived.

@@ -72,7 +72,8 @@ namespace Api.Payments
 					DeliveryNotes = deliveryInfo.DeliveryNotes,
 					DeliveryName = deliveryInfo.DeliveryName,
 					TimeWindowLength = deliveryInfo.TimeWindowLength,
-					ExpectedSlotUtc = deliveryInfo.SlotStartUtc
+					ExpectedSlotUtc = deliveryInfo.SlotStartUtc == DateTime.MinValue ? 
+						new DateTime(estimate.RequestedDeliveryDate, TimeOnly.MinValue) : deliveryInfo.SlotStartUtc,
 				};
 
 				if (isFirst)
@@ -345,7 +346,7 @@ namespace Api.Payments
 			// Calculate the total values of what's in the cart - this impacts tax due on the delivery itself:
 			var pricingInfo = await _productQuantities.GetPricing(context, inCart, taxJurisdiction, cart.CouponId);
 
-			var deliveryPricingDetail = _productQuantities.GetDeliveryDetail(pricingInfo);
+			var deliveryPricingDetail = pricingInfo.DeliveryPricingInfo;
 
 			if (deliveryPricingDetail == null)
 			{

@@ -1,4 +1,5 @@
 using Api.Configuration;
+using Api.Startup;
 using System.Collections.Generic;
 
 namespace Api.Pages;
@@ -20,13 +21,20 @@ public partial struct PageStateResult
 	public string Redirect;
 
 	/// <summary>
+	/// Optional primary content includes.
+	/// </summary>
+	public string PrimaryContentIncludes;
+
+	/// <summary>
 	/// Configuration.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public Dictionary<string, Config> Config;
 
 	/// <summary>
 	/// The page itself.
 	/// </summary>
+	[JsonOptions(Optional = true)]
 	public Page Page;
 
 	/// <summary>

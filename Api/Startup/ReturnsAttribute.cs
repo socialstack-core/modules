@@ -45,4 +45,50 @@ namespace Api.Startup
 			RecievesType = type;
 		}
 	}
+
+	/// <summary>
+	/// An attribute to specify the name of a type. This is used when type names collide (e.g. Content collides with its generic variation).
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+	public class JsonTypeNameAttribute : Attribute
+	{
+		/// <summary>
+		/// Gets the body type specified by the attribute.
+		/// </summary>
+		public readonly string Name;
+
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JsonTypeNameAttribute"/> class.
+		/// </summary>
+		/// <param name="name">The name for the type.</param>
+		public JsonTypeNameAttribute(string name)
+		{
+			Name = name;
+		}
+	}
+
+	/// <summary>
+	/// An attribute to specify additional options to guide the typescript binder.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+	public class JsonOptionsAttribute : Attribute
+	{
+		/// <summary>
+		/// True if the field is optional as seen by the typescript bindings.
+		/// </summary>
+		public bool Optional;
+
+		/// <summary>
+		/// Ensure the given type is present in the bindings (for representing the structure of the json).
+		/// </summary>
+		public Type PublicType;
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="JsonOptionsAttribute"/> class.
+		/// </summary>
+		public JsonOptionsAttribute()
+		{
+		}
+	}
 }

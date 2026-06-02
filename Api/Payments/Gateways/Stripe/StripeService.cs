@@ -387,7 +387,7 @@ namespace Api.Payments
 			StripeConfiguration.ApiKey = _config.SecretKey;
 
 			// Mark as starting to submit to gateway and add the total cost to it:
-			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
 			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:
@@ -527,7 +527,7 @@ namespace Api.Payments
 			var longAmount = (long)totalCost.Amount;
 
 			// Mark as starting to submit to gateway and add the total cost to it:
-			await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
+			purchase = await _purchases.Update(context, purchase, (Context ctx, Purchase toUpdate, Purchase orig) =>
 			{
 
 				// It might have instantly completed or instantly failed. We can find out from the status:

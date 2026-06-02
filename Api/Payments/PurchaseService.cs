@@ -35,6 +35,8 @@ namespace Api.Payments
 		private UserService _users;
 		private EmailTemplateService _emails;
 		private CounterService _counters;
+		private PriceServiceConfig _priceConfig;
+		private PriceService _prices;
 #if PAYMENTS_GUEST_USERS
 		private GuestUserService _guestUsers;
 #endif
@@ -59,6 +61,8 @@ namespace Api.Payments
 			_deliveries = deliveries;
 			_emails = emailTemplateService;
 			_counters = counters;
+			_priceConfig = GetConfig<PriceServiceConfig>();
+			_prices = prices;
 
 			InstallAdminPages("Orders", "fa:fa-shopping-basket", ["id", "reference", "totalCost", "totalCostLessTax"], null, "ecommerce");
 
@@ -797,7 +801,7 @@ namespace Api.Payments
 			await Events.Purchase.Checkout.Dispatch(context, purchase, checkoutInfo);
 
 			// Calculate delivery if any.
-			var deliveryInfo = _prodQuantities.GetDeliveryDetail(pricingInfo);
+			var deliveryInfo = pricingInfo.DeliveryPricingInfo;
 
 			// Copying in the product set - this creates new ones, it *does not* use the same PQ Id.
 			// This is to avoid modding the quantity during the payment being processed:
@@ -828,9 +832,27 @@ namespace Api.Payments
 				purchase.InitialDeliveryData = await _deliveries.SetupDeliveries(context, purchase, purchaseLineItems, deliveryEstimate);
 			}
 
-			purchase.TotalCost = purchase.ProductsCost + purchase.DeliveryCost;
 			purchase.TotalCostLessTax = purchase.ProductsCostLessTax + purchase.DeliveryCostLessTax;
 
+			if(_priceConfig.TaxLineByLine)
+			{
+				//We are calculating tax line by line so this is acceptable
+				purchase.TotalCost = purchase.ProductsCost + purchase.DeliveryCost;
+			}
+			else
+			{
+				//We are calculating tax based on the TotalCostLessTax so we need to recalculate tax with the delivery included to avoid rounding errors
+				// Get tax calc:
+				var taxCalc = await _prices.GetTaxCalculator(context, purchase.TaxJurisdiction);
+
+				if(taxCalc == null)
+				{
+					throw new PublicException("Could not get TaxCalculator", "Purchase/null_taxcalculator");
+				}
+
+				purchase.TotalCost = taxCalc.Apply(pricingInfo, purchase.DeliveryCostLessTax, false);
+			}
+			
 			var toPay = excludeTax ? purchase.TotalCostLessTax : purchase.TotalCost;
 			purchase.Status = paymentMethod == null ? (uint)(toPay == 0 ? 202 : 201) : 0; // Straight to completion. Free stuff goes to 202, bnpl unpaid 201.
 
@@ -927,6 +949,7 @@ namespace Api.Payments
 					{
 						// Legal liability danger - do not set ExcludeTax to true unless you know what you are doing.
 						Amount = toPay,
+						AmountLessTax = purchase.TotalCostLessTax,
 						CurrencyCode = purchase.CurrencyCode
 					}, paymentMethod);
 				}
@@ -969,6 +992,7 @@ namespace Api.Payments
 			{
 				// Legal liability danger - do not set ExcludeTax to true unless you know what you are doing.
 				Amount = toPay,
+				AmountLessTax = purchase.TotalCostLessTax,
 				CurrencyCode = purchase.CurrencyCode
 			}, paymentMethod);
 		}

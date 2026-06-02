@@ -3,6 +3,7 @@ using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
+using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -27,8 +28,6 @@ namespace Api.TypeScript
         /// </summary>
         public async ValueTask<SourceFileContainer> GenerateAllBindings(Context context, bool toFileSystem = true, string customPath = null)
         {
-			SetupRules();
-
 			if (string.IsNullOrEmpty(customPath))
 			{
                 // NB: A path is always required even if we're not writing the files out.
@@ -78,7 +77,6 @@ namespace Api.TypeScript
         {
             _aes = aes;
 
-#if DEBUG
             Events.Compiler.BeforeCompile.AddEventListener(async (context, source) =>
             {
 				// Create the typescript functionality before the JS is compiled.
@@ -110,83 +108,7 @@ namespace Api.TypeScript
             
             	return sourceBuilders;
              });
-#endif
 		}
-
-        private bool _rulesSet = false;
-
-		/// <summary>
-		/// Configures the rules used during TypeScript code generation.
-		/// This includes ignoring specific namespaces and types that should not be included
-		/// in the generated TypeScript code.
-		/// </summary>
-		private void SetupRules()
-        {
-            if (_rulesSet) {
-                return;
-            }
-
-            _rulesSet = true;
-
-			// Ignore external or irrelevant namespaces
-			IgnoreNamespace("Microsoft.ClearScript");
-            IgnoreNamespace("Microsoft.AspNetCore");
-            IgnoreNamespace("Newtonsoft.Json");
-            IgnoreNamespace("Org.BouncyCastle");
-            IgnoreNamespace("MySql.Data");
-            IgnoreNamespace("Nest");
-            IgnoreNamespace("System");
-            IgnoreNamespace("Api.WebSockets");
-
-            // Ignore specific types from Api.Database that are not relevant to TypeScript output
-            IgnoreType(typeof(Field));
-            IgnoreType(typeof(FieldMap));
-            IgnoreType(typeof(AutoService));
-            IgnoreType(typeof(ValueType));
-
-            SetupMappings();
-            SetupIgnores();
-        }
-
-        /// <summary>
-        /// Defines type mappings between .NET types and their corresponding TypeScript representations.
-        /// This ensures accurate type conversion during code generation.
-        /// </summary>
-        private void SetupMappings()
-        {
-            // Numerical type mappings
-            SetTypeOverwrite(typeof(byte), "byte");
-            SetTypeOverwrite(typeof(sbyte), "sbyte");
-            SetTypeOverwrite(typeof(short), "short");
-            SetTypeOverwrite(typeof(ushort), "ushort");
-            SetTypeOverwrite(typeof(int), "int");
-            SetTypeOverwrite(typeof(uint), "uint");
-            SetTypeOverwrite(typeof(long), "long");
-            SetTypeOverwrite(typeof(ulong), "ulong");
-            SetTypeOverwrite(typeof(float), "float");
-            SetTypeOverwrite(typeof(double), "double");
-            SetTypeOverwrite(typeof(decimal), "double");
-
-            // String and boolean types
-            SetTypeOverwrite(typeof(string), "string");
-            SetTypeOverwrite(typeof(bool), "boolean");
-            
-            
-            // Custom
-            SetTypeOverwrite(typeof(Context), "SessionResponse");
-            SetTypeOverwrite(typeof(ValueTask), "void");
-            SetTypeOverwrite(typeof(void), "void");
-            SetTypeOverwrite(typeof(DateTime), "Date | string | number");
-            SetTypeOverwrite(typeof(JsonString), "string");
-        }
-
-        private void SetupIgnores()
-        {
-            AddIgnoreType(typeof(AutoService));
-            AddIgnoreType(typeof(AutoService<>));
-            AddIgnoreType(typeof(Type));
-            AddIgnoreType(typeof(JsonString));
-        }
 
     }
 }

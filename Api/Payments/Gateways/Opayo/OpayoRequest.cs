@@ -306,9 +306,22 @@ namespace Api.Payments.Opayo.Request
 		public BillingAddress(Address address)
 		{
 			Address1 = address.Line1;
-			Address2 = address.Line2;
-			Address3 = address.Line3;
-			City = address.City;
+			if (!string.IsNullOrEmpty(address.Line2))
+			{
+				Address2 = address.Line2;
+			}
+			if (!string.IsNullOrEmpty(address.Line3))
+			{
+				Address3 = address.Line3;
+			}
+			if (string.IsNullOrEmpty(address.City))
+			{
+				City = address.Line3;
+			}
+			else
+			{
+				City = address.City;
+			}
 			Country = address.CountryCode;
 			PostalCode = address.Postcode;
 		}
@@ -374,9 +387,22 @@ namespace Api.Payments.Opayo.Request
 		public ShippingDetails(Address address)
 		{
 			ShippingAddress1 = address.Line1;
-			ShippingAddress2 = address.Line2;
-			ShippingAddress3 = address.Line3;
-			ShippingCity = address.City;
+			if (!string.IsNullOrEmpty(address.Line2))
+			{
+				ShippingAddress2 = address.Line2;
+			}
+			if (!string.IsNullOrEmpty(address.Line3))
+			{
+				ShippingAddress3 = address.Line3;
+			}
+			if (string.IsNullOrEmpty(address.City))
+			{
+				ShippingCity = address.Line3;
+			}
+			else
+			{
+				ShippingCity = address.City;
+			}
 			ShippingCountry = address.CountryCode;
 			ShippingPostalCode = address.Postcode;
 		}

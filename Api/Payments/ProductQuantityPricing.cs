@@ -1,3 +1,4 @@
+using Api.Startup;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 
@@ -64,6 +65,102 @@ public partial class ProductQuantityPricing
 	/// True if any of the contents are subscription based.
 	/// </summary>
 	public bool HasSubscriptionProducts;
+
+	/// <summary>
+	/// Returns the delivery pricing info for the collection. Returns null if this doesn't require delivery
+	/// </summary>
+	/// <returns></returns>
+	/// <exception cref="PublicException"></exception>
+	public DeliveryPricingInfo? DeliveryPricingInfo
+	{
+		get{
+			if(Contents == null)
+			{
+				return null;
+			}
+			
+			bool requiresDelivery = false;
+
+			// It's common (such as in the UK) to use a value rating
+			// mechanism for mixed tax status physical deliveries.
+			// It's based on value because it aligns with the fundamental principles of VAT, however,
+			// that adds a suprising amount of complexity to how it actually is calculated on delivery fees.
+			// For example, the tax code has special cases for free samples and so on.
+			// A 100% discount is not a free sample so they work differently too!
+			// 
+			// This code operates on the price *before* discounts are applied as it treats coupons as global only
+			// thus somewhat cancelling out the discount case (for now, audit required).
+			ulong valueTaxed = 0;
+			ulong valueUntaxed = 0;
+
+			foreach (var lineItem in Contents)
+			{
+				var product = lineItem.Product;
+
+				if (product == null || product.ProductType != 0)
+				{
+					continue;
+				}
+
+				requiresDelivery = true;
+				var tax = lineItem.Total - lineItem.TotalLessTax;
+
+				if (tax > 0)
+				{
+					// This item is taxed.
+					valueTaxed += lineItem.TotalLessTax;
+				}
+				else
+				{
+					// Zero rated. The delivery is zero rated for these too.
+					valueUntaxed += lineItem.TotalLessTax;
+				}
+
+				if (lineItem.TotalLessTax == 0)
+				{
+					// Free sample special case. Must use their nominal value.
+					if (!product.FreeSampleNominalValue.HasValue || product.FreeSampleNominalValue.Value <= 0)
+					{
+						throw new PublicException("A free sample in this order can't be checked out due to missing tax information", "product/nominal_missing");
+					}
+
+					if (product.TaxExempt == 1)
+					{
+						// Zero rated.
+						valueUntaxed += product.FreeSampleNominalValue.Value;
+					}
+					else
+					{
+						valueTaxed += product.FreeSampleNominalValue.Value;
+					}
+				}
+			}
+
+			if (!requiresDelivery)
+			{
+				// Digital delivery only.
+				return null;
+			}
+
+			var totalValue = valueTaxed + valueUntaxed;
+
+			if (totalValue <= 0)
+			{
+				// This should never happen.
+				throw new PublicException("Unexpected delivery value total", "delivery/fault");
+			}
+
+			var apportion = (double)valueTaxed / (double)totalValue;
+
+			return new DeliveryPricingInfo()
+			{
+				TaxApportion  = apportion,
+				ValueTaxed = valueTaxed,
+				ValueUntaxed = valueUntaxed
+			};
+		}
+	}
+	
 }
 
 /// <summary>

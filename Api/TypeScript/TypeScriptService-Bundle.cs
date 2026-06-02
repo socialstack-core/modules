@@ -77,7 +77,7 @@ namespace Api.TypeScript
 
 			output = await Events.TypeScript.TSConfigPaths.Dispatch(context, output);
 
-			output.Append(", \"Api/*\": [\"TypeScript/Api/*\"]");
+			output.Append(", \"Api/*\": [\"./TypeScript/Api/*\"]");
 
 			output.Append("}}}");
 

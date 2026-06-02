@@ -1,35 +1,33 @@
 #nullable enable
+using Api.Contexts;
+using Api.Eventing;
+using Api.Startup.Routing;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Diagnostics;
-using Api.Contexts;
-using Api.Database;
-using Api.Startup;
-using Api.Startup.Routing;
-using Microsoft.AspNetCore.Mvc;
+using System.Text;
 using System.Threading.Tasks;
-using Api.Eventing;
 
 namespace Api.Startup.Health;
 
 /// <summary>
 /// Handles healthz and readyz endpoints for container health checks.
 /// </summary>
-[Route("healthz")]
 public partial class HealthzController : AutoController
 {
 	/// <summary>
 	/// Liveness check endpoint. Returns health status information.
-	/// Throws PublicException with 503 status if unhealthy.
+	/// Returns 503 status with payload if unhealthy.
 	/// </summary>
-	[HttpGet]
-	public async ValueTask<object> Healthz(Context context)
+	[HttpGet("healthz")]
+	public async ValueTask Healthz(Context context, HttpContext httpContext, [FromQuery] bool dependencies = false)
 	{
 		var now = DateTime.UtcNow;
 		var process = Process.GetCurrentProcess();
 		var uptime = now - process.StartTime.ToUniversalTime();
 		var routerReady = Router.CurrentRouter != null;
-		
-		// Build response payload
+
 		var checks = new HealthzChecks()
 		{
 			Ok = routerReady,
@@ -37,6 +35,11 @@ public partial class HealthzController : AutoController
 		};
 
 		checks = await Events.Healthz.RunChecks.Dispatch(context, checks);
+
+		if (dependencies)
+		{
+			checks = await Events.Healthz.RunDependencyChecks.Dispatch(context, checks);
+		}
 
 		var payload = new
 		{
@@ -53,12 +56,12 @@ public partial class HealthzController : AutoController
 			checks
 		};
 
-		// Throw PublicException with 503 if unhealthy
-		if (!checks.Ok)
-		{
-			throw new PublicException("Service unhealthy", "healthz/service_unhealthy", 503);
-		}
+		var body = Encoding.UTF8.GetBytes(Newtonsoft.Json.JsonConvert.SerializeObject(payload));
 
-		return payload;
+		httpContext.Response.StatusCode = checks.Ok ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable;
+		httpContext.Response.ContentType = "text/json";
+		httpContext.Response.ContentLength = body.Length;
+		await httpContext.Response.Body.WriteAsync(body, 0, body.Length);
 	}
+
 }

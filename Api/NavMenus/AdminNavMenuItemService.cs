@@ -51,11 +51,11 @@ namespace Api.NavMenus
 		/// </summary>
 		public AdminNavMenuItemService() : base(Events.AdminNavMenuItem)
 		{
-			Events.Page.BeforePageInstall.AddEventListener(async(ctx, builder) =>
+			Events.Page.BeforePageInstall.AddEventListener(async (ctx, builder) =>
 			{
 				if (
-					builder == null || 
-					!builder.IsAdmin || 
+					builder == null ||
+					!builder.IsAdmin ||
 					string.IsNullOrEmpty(builder.Url) ||
 					builder.PageType != CommonPageType.AdminList
 				)
@@ -68,6 +68,19 @@ namespace Api.NavMenus
 				// You can disable this behaviour by ensuring both icon and title are blank.
 				var title = builder.AdminNavMenuTitle;
 				var icon = builder.AdminNavMenuIcon;
+
+				if (builder.AdminPageOptions != null)
+				{
+					if (!string.IsNullOrEmpty(builder.AdminPageOptions.NavMenuIcon))
+					{
+						icon = builder.AdminPageOptions.NavMenuIcon;
+					}
+
+					if (!string.IsNullOrEmpty(builder.AdminPageOptions.NavMenuLabel.GetStringValue(ctx)))
+					{
+						title = builder.AdminPageOptions.NavMenuLabel.GetStringValue(ctx);
+					}
+				}
 
 				if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(icon))
 				{
@@ -85,6 +98,20 @@ namespace Api.NavMenus
 					return builder;
 				}
 
+				if (builder.AdminPageOptions != null)
+				{
+					if (!string.IsNullOrEmpty(builder.AdminPageOptions.NavMenuParentKey))
+					{
+						var group = await GetByKey(ctx, builder.AdminPageOptions.NavMenuParentKey);
+
+						if (group is not null)
+						{
+							builder.NavMenuParentId = group.Id;
+						}
+					}
+				}
+
+
 				var adminNavMenuItem = new AdminNavMenuItem()
 				{
 					Title = title,
@@ -93,16 +120,16 @@ namespace Api.NavMenus
 					PageKey = builder.Key,
 					ParentId = builder.NavMenuParentId
 				};
-				
+
 				await Create(ctx, adminNavMenuItem, DataOptions.IgnorePermissions);
 				return builder;
 			});
-			
+
 			// Install example admin pages for demonstration / default setup.
-			InstallAdminPages(null, null,  ["id", "title", "target"]);
+			InstallAdminPages(null, null, ["id", "title", "target"]);
 			Cache();
 		}
-		
+
 		/// <summary>
 		/// Ensures that all required groups are installed.
 		/// Prevents duplicate installations by tracking state in <see cref="_installed"/>.
@@ -118,7 +145,7 @@ namespace Api.NavMenus
 			}
 
 			_installed = true;
-			
+
 			// Reason for change: 
 			// prior was a foreach loop, 
 			// every iteration called "GetOrCreate", 
@@ -129,8 +156,8 @@ namespace Api.NavMenus
 			// but weren't reconciled, so modified this to 
 			// overwrite the variant at its index.
 			var ctx = new Context(1, 0, 1);
-			
-			for(var i = 0;i < RequiredGroups.Count;i++)
+
+			for (var i = 0; i < RequiredGroups.Count; i++)
 			{
 				RequiredGroups[i] = await GetOrCreate(ctx, RequiredGroups[i]);
 			}
@@ -184,7 +211,7 @@ namespace Api.NavMenus
 			return GetByKey(ctx, key).GetAwaiter().GetResult();
 		}
 
-		
+
 		/// <summary>
 		/// Retrieves a list of admin navigation menu items that the current user is authorized to access,
 		/// based on their granted capabilities for each item's content type.
@@ -203,7 +230,7 @@ namespace Api.NavMenus
 			// Group the capabilities in a dictionary by their content type, saves the nested foreach lookups.
 			var capabilitiesByType = Capabilities.GetAllCurrent()
 				//  Grab associated **load** and **edit** capabilities for the targeted content type
-				.Where(c => 
+				.Where(c =>
 					c.Name.EndsWith("_load", StringComparison.OrdinalIgnoreCase) ||
 					c.Name.EndsWith("_update", StringComparison.OrdinalIgnoreCase))
 				.GroupBy(c => c.ContentType)

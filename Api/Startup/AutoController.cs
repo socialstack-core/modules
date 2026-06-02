@@ -14,6 +14,7 @@ using System.Threading.Tasks;
 /// controller methods directly, and thus no actual request happens. This also is used to enforce  
 /// field visibility rules always as your controller methods can safely just return content objects.
 /// </summary>
+[JsonTypeName("AutoControllerBase")]
 public class AutoController
 {
 
@@ -42,6 +43,7 @@ public class AutoController
 /// Like AutoService this isn't in a namespace due to the frequency it's used.
 /// </summary>
 /// <typeparam name="T"></typeparam>
+[JsonTypeName("AutoControllerInt")]
 public partial class AutoController<T> : AutoController<T, uint>
 	where T : Content<uint>, new()
 {

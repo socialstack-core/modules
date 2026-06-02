@@ -9,6 +9,7 @@ namespace Api.Database
 	/// <summary>
 	/// The underlying type for all DB content types. You should generally use Content[ID] instead.
 	/// </summary>
+	[JsonTypeName("ContentBase")]
 	public abstract partial class Content
 	{
 		/// <summary>

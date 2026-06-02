@@ -77,6 +77,11 @@ namespace Api.AutoForms
 		/// The field name.
 		/// </summary>
 		public string FieldName;
+		
+		/// <summary>
+		/// Child content (very rare/ if any).
+		/// </summary>
+		public object Content;
 	}
 
 }

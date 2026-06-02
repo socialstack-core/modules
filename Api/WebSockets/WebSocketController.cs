@@ -21,12 +21,28 @@ public partial class WebSocketController : AutoController
 {
 
 	/// <summary>
-	/// The main live ws connection.
+	/// The main live ws connection (via a CONNECT request).
+	/// </summary>
+	[HttpConnect("live-websocket")]
+	public async ValueTask StartWebSocketConnect(HttpContext httpContext)
+	{
+		await StartWebSocket(httpContext);
+	}
+
+	/// <summary>
+	/// The main live ws connection (via a POST request).
+	/// </summary>
+	[HttpPost("live-websocket")]
+	public async ValueTask StartWebSocketPost(HttpContext httpContext)
+	{
+		await StartWebSocket(httpContext);
+	}
+
+	/// <summary>
+	/// The main live ws connection (via a GET request).
 	/// </summary>
 	[HttpGet("live-websocket")]
-	[HttpPost("live-websocket")]
-	[HttpConnect("live-websocket")]
-	public async ValueTask LiveWebSocket(HttpContext httpContext)
+	public async ValueTask StartWebSocket(HttpContext httpContext)
 	{
 		if (!httpContext.WebSockets.IsWebSocketRequest)
 		{

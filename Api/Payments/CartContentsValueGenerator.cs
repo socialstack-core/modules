@@ -24,6 +24,11 @@ public struct PriceCurrency
 	public uint Amount;
 
 	/// <summary>
+	/// Min quantity.
+	/// </summary>
+	public uint MinimumQuantity;
+
+	/// <summary>
 	/// The amount excluding tax. 
 	/// This value is only different from amount if tax is configured on the site in the PriceService.
 	/// </summary>

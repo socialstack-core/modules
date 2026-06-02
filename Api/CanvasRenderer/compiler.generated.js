@@ -243921,7 +243921,7 @@ function handleDefaultExport(path, state){
 		
 		varType = {
 			name: 'identifier',
-			instanceName: typeA.instanceName
+			instanceName: typeA?.instanceName
 		};
 		
 	}else if(declaration.type == 'TSInterfaceDeclaration'){
@@ -243929,7 +243929,7 @@ function handleDefaultExport(path, state){
 		
 		varType = {
 			name: 'identifier',
-			instanceName: intf.instanceName
+			instanceName: intf?.instanceName
 		};
 	}
 	
@@ -244027,6 +244027,11 @@ function handleTypeAlias(nodeOrPath, state, exportNode){
 	
 	var typeData = state.opts.customTypeData;
 	var exportTypeInfo = getTSReferenceType(node.typeAnnotation);
+
+    if (!exportTypeInfo) {
+        return;
+    }
+
 	exportTypeInfo.instanceName = node && node.id && node.id.name;
 	
 	var jsdoc = parseJSDoc(exportNode || nodeOrPath);

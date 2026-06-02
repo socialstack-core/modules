@@ -6,6 +6,7 @@ using Api.Startup;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization;
 using MongoDB.Driver;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -193,10 +194,12 @@ public partial class AuditEventType
 	/// <summary>
 	/// The mongoDB collection name.
 	/// </summary>
+	[JsonIgnore]
 	public string MongoDbCollection;
 
 	/// <summary>
 	/// A cached $set doc.
 	/// </summary>
+	[JsonIgnore]
 	public BsonDocument MongoDbSet;
 }

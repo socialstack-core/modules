@@ -26,5 +26,10 @@ namespace Api.Eventing
 		/// Runs during healthz checks.
 		/// </summary>
 		public EventHandler<HealthzChecks> RunChecks;
+
+		/// <summary>
+		/// Runs during healthz checks to check dependencies such as payment gateways
+		/// </summary>
+		public EventHandler<HealthzChecks> RunDependencyChecks;
 	}
 }

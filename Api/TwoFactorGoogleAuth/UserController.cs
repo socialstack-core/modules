@@ -1,13 +1,14 @@
-﻿using System;
-using System.Threading.Tasks;
-using Api.Permissions;
-using Microsoft.AspNetCore.Mvc;
+﻿using Api.Contexts;
 using Api.Database;
 using Api.Emails;
-using Api.Contexts;
-using Api.TwoFactorGoogleAuth;
+using Api.Permissions;
 using Api.Startup;
+using Api.Startup.Routing;
+using Api.TwoFactorGoogleAuth;
+using Microsoft.AspNetCore.Mvc;
+using System;
 using System.IO;
+using System.Threading.Tasks;
 
 namespace Api.Users
 {
@@ -57,7 +58,7 @@ namespace Api.Users
 		/// </summary>
 		/// <returns></returns>
 		[HttpGet("setup2fa/newkey")]
-		public async ValueTask<IActionResult> TwoFactorNewKey(Context context)
+		public async ValueTask<FileContent?> TwoFactorNewKey(Context context)
 		{
 			if (context == null)
 			{
@@ -82,8 +83,7 @@ namespace Api.Users
 			});
 			
 			var imageBytes = await twoFA.GenerateProvisioningImage(context, key);
-			
-			return new FileStreamResult(new MemoryStream(imageBytes), "image/jpeg");
+			return new FileContent(imageBytes, "image/jpeg");
 		}
     }
 	

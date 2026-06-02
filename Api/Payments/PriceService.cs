@@ -74,6 +74,8 @@ namespace Api.Payments
 
 			calc = await Events.Price.ResolveTaxCalculator.Dispatch(context, calc, jurisdiction);
 
+			calc.RoundingMode = _config.TaxRounding;
+
 			return calc;
 		}
 
@@ -91,7 +93,7 @@ namespace Api.Payments
 
 			foreach (var kvp in taxConfig)
 			{
-				taxCalcs[kvp.Key] = new TaxCalculator(kvp.Value);
+				taxCalcs[kvp.Key] = new TaxCalculator(kvp.Value, _config.TaxRounding);
 			}
 
 			_taxCalculators = taxCalcs;

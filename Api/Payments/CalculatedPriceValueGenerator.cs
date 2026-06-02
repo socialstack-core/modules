@@ -151,5 +151,20 @@ public partial class CalculatedPriceValueGenerator<T, ID> : VirtualFieldValueGen
 	/// For example, if GetValue outputs only strings, this is typeof(string).
 	/// </summary>
 	/// <returns></returns>
-	public override Type OutputType => typeof(List<PriceCurrency>);
+	public override Type OutputType => typeof(CalculatedPriceGroups);
+}
+
+/// <summary>
+/// Holds a collection of list and discounted prices.
+/// </summary>
+public struct CalculatedPriceGroups
+{
+	/// <summary>
+	/// List of list (standard) prices
+	/// </summary>
+	public List<PriceCurrency> ListPrice;
+	/// <summary>
+	/// List of discounted prices
+	/// </summary>
+	public List<PriceCurrency> DiscountedPrice;
 }

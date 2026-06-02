@@ -130,15 +130,20 @@ namespace Api.TypeScript
 
                     type CustomInputTypePropsBase = {
                         validationFailure: PublicError | null;
+                        noWrapper?: boolean;
                         helpFieldId: string;
                         label?: React.ReactNode;
                         help?: React.ReactNode;
                         icon?: React.ReactNode;
+                        id?: string;
                         inputRef: HTMLElement | null;
                         onInputRef?: (el: HTMLElement) => void;
                         onBlur?: (e: React.FocusEvent) => void;
                         onChange?: (e: React.ChangeEvent) => void;
                         onCanvasChange?: (source: string) => void;
+                        required?: boolean;
+                        setValidationFailure?: (err: PublicError | null) => void;
+                        validate?: (string | ((input: string | boolean) => PublicError | undefined))[];
                     };
 
                     /**
