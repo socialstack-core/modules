@@ -55,11 +55,15 @@ const ProductList: React.FC<ProductListProps> = (props) => {
 					}
 
 					const product = pq?.product;
-					
+
+					if (!product) {
+						return null;
+					}
+
 					return (
 						<tr key={index}>
 							<td style={emailStyles.productTableCell}>
-								<Image plain={true} size={64} fileRef={product.featureRef} />
+								{product.featureRef && <Image plain={true} size={64} fileRef={product.featureRef} />}
 							</td>
 							<td style={emailStyles.productTableCell}>
 								{product?.sku}
@@ -68,19 +72,19 @@ const ProductList: React.FC<ProductListProps> = (props) => {
 								{product?.name}
 							</td>
 							<td style={emailStyles.productTableCellRight}>
-								<ProductPrice product={product} currentPriceOnly={true} compact={true}
+								<ProductPrice product={product} currentPriceOnly={true} 
 									override={{
 										currencyCode: pq.orderedCurrencyCode!,
 										/* The per-item price is calculated here because there may be percentage coupons etc that were applied
 										and caused the effective ordered per-item price to go down. */
 										amount: pq.quantity ? Math.floor((lessTax ? pq.orderedTotalLessTax : pq.orderedTotal) / pq.quantity) as int : 0 as int
-									}} />
+									}} showSellUnit={false}/>
 							</td>
 							<td style={emailStyles.productTableCell}>
 								{pq.quantity}
 							</td>
 							<td style={emailStyles.productTableCellRight}>
-								<ProductPrice product={product} currentPriceOnly={true} compact
+								<ProductPrice product={product} currentPriceOnly={true} 
 									override={{
 										currencyCode: pq.orderedCurrencyCode!,
 										amount: lessTax ? pq.orderedTotalLessTax : pq.orderedTotal

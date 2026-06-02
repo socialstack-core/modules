@@ -24,10 +24,12 @@ const Summary: React.FC<SummaryProps> = (props) => {
 		return null;
 	}
 
-	const { currencyCode, totalCost,
+	const { totalCost, totalCostLessTax,
 		deliveryCostLessTax, deliveryCost, productsCostLessTax, productsCost,
 		productQuantities
 	} = purchase;
+
+	let currencyCode = purchase.currencyCode || undefined;
 
 	const itemCount = productQuantities?.length || 0;
 
@@ -96,7 +98,7 @@ const Summary: React.FC<SummaryProps> = (props) => {
 							VAT
 						</td>
 						<td style={emailStyles.cellRight}>
-							{formatCurrency(productsCost + deliveryCost - productsCostLessTax - deliveryCostLessTax, { currencyCode })}
+							{formatCurrency(totalCost - totalCostLessTax, { currencyCode })}
 						</td>
 					</tr>
 				)}
