@@ -1,15 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using Api.Configuration;
 using Api.Contexts;
 using Api.Permissions;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
-using Api.Startup;
-using Api.Configuration;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 
 namespace Api.Database
@@ -755,6 +758,338 @@ namespace Api.Database
 			}
 
 			return results;
+		}
+
+		/// <summary>
+		/// Migrates _map_ tables to their targeted row as Mappings. Destructive: will replace any existing mapping data.
+		/// </summary>
+		public async Task MigrateMappingsToInterface(Dictionary<string, string> truncationReplacements)
+		{
+			// Structure: SourceTable -> (SourceId -> (MapName -> List<TargetId>))
+			var migrationData = new Dictionary<string, Dictionary<ulong, Dictionary<string, List<ulong>>>>();
+
+			using var connection = GetConnection();
+			if (connection.State != ConnectionState.Open) connection.Open();
+
+			// 1. Discover all mapping tables matching the pattern
+			var mappingTables = await DiscoverMappingTables(connection, truncationReplacements);
+			Console.WriteLine($"Found {mappingTables.Count} mapping tables to process.");
+
+			// 2. Load all mapping data into memory
+			foreach (var table in mappingTables)
+			{
+				Console.WriteLine($"Reading data from {table.RawTableName}...");
+
+				string query = $"SELECT SourceId, TargetId FROM `{table.RawTableName}`";
+				using var command = new MySqlCommand(query, connection);
+				using var reader = command.ExecuteReader();
+
+				if (!migrationData.ContainsKey(table.SourceTable))
+					migrationData[table.SourceTable] = new Dictionary<ulong, Dictionary<string, List<ulong>>>();
+
+				var sourceTableDict = migrationData[table.SourceTable];
+
+				while (reader.Read())
+				{
+					var sourceId = reader.GetUInt64(0);
+					var targetId = reader.GetUInt64(1);
+
+					if (!sourceTableDict.ContainsKey(sourceId))
+						sourceTableDict[sourceId] = new Dictionary<string, List<ulong>>();
+
+					if (!sourceTableDict[sourceId].ContainsKey(table.MapName))
+						sourceTableDict[sourceId][table.MapName] = new List<ulong>();
+
+					sourceTableDict[sourceId][table.MapName].Add(targetId);
+				}
+			}
+
+			// 3. Write JSON data back to the Source Tables
+			Console.WriteLine("Writing JSON mappings back to source tables...");
+			foreach (var sourceTableItem in migrationData)
+			{
+				string sourceTable = sourceTableItem.Key;
+				var rowsToUpdate = sourceTableItem.Value;
+
+				try
+				{
+					// Ensure the Mappings JSON column exists on the target table before updating
+					await EnsureMappingsColumnExists(connection, sourceTable);
+				}
+				catch (MySqlException ex) when(ex.Message.Contains("doesn't exist") || ex.ErrorCode == -2147467259)
+				{
+					Console.WriteLine($"[Skipped] Source table '{sourceTable}' does not exist. Ignoring historical data.");
+					continue;
+				}
+
+				// Use a transaction for performance and safety per source table
+				using var transaction = connection.BeginTransaction();
+				try
+				{
+					string updateQuery = $"UPDATE `{sourceTable}` SET Mappings = @json WHERE Id = @id";
+					using var updateCmd = new MySqlCommand(updateQuery, connection, transaction);
+
+					var jsonParam = updateCmd.Parameters.Add("@json", MySqlDbType.JSON);
+					var idParam = updateCmd.Parameters.Add("@id", MySqlDbType.Int32);
+
+					foreach (var row in rowsToUpdate)
+					{
+						var sourceId = row.Key;
+						var mapPayload = row.Value; // e.g., {"tags": [1,2,3], "categories": [4,5]}
+
+						string jsonString = JsonConvert.SerializeObject(mapPayload);
+
+						jsonParam.Value = jsonString;
+						idParam.Value = sourceId;
+
+						updateCmd.ExecuteNonQuery();
+					}
+					transaction.Commit();
+					Console.WriteLine($"Successfully updated {rowsToUpdate.Count} rows in {sourceTable}.");
+				}
+				catch (Exception ex)
+				{
+					transaction.Rollback();
+					Console.WriteLine($"Error updating table {sourceTable}: {ex.Message}. Rolled back.");
+					throw;
+				}
+			}
+		}
+
+		private async Task<List<MappingTableMetadata>> DiscoverMappingTables(MySqlConnection connection, Dictionary<string, string> truncationReplacements)
+		{
+			var list = new List<MappingTableMetadata>();
+
+			// Regex to parse: site_{SourceType}_{TargetType}_map_{MapName}
+			// Group 1 catches the Source Type, Group 2 catches the Map Name
+			var pattern = new Regex(@"^site_(.+?)_(.+?)_map_(.+)$", RegexOptions.IgnoreCase);
+
+			string query = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = DATABASE()";
+			using var command = new MySqlCommand(query, connection);
+			using var reader = command.ExecuteReader();
+
+			while (reader.Read())
+			{
+				string tableName = reader.GetString(0);
+				string correctedTableName = tableName;
+
+				if (tableName.Length == 64)
+				{
+					// Possibly truncated.
+					// Check the truncation set.
+					if (truncationReplacements == null || !truncationReplacements.TryGetValue(tableName, out string replacement))
+					{
+						throw new Exception(tableName + " was found but it likely has a truncated name which has not been provided.");
+					}
+
+					correctedTableName = replacement;
+				}
+
+				var match = pattern.Match(correctedTableName);
+
+				if (match.Success)
+				{
+					list.Add(new MappingTableMetadata
+					{
+						RawTableName = tableName,
+						CorrectedTableName = correctedTableName,
+						SourceTable = $"site_{match.Groups[1].Value}", // reconstructs e.g. 'site_blog'
+						MapName = match.Groups[3].Value              // extracts e.g. 'tags'.
+					});
+				}
+			}
+
+			return list;
+		}
+
+		private async Task EnsureMappingsColumnExists(MySqlConnection connection, string tableName)
+		{
+			// Dynamically appends the column if it isn't already there
+			string checkQuery = $@"
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '{tableName}' AND COLUMN_NAME = 'Mappings'";
+
+			using var command = new MySqlCommand(checkQuery, connection);
+			long columnExists = (long)command.ExecuteScalar();
+
+			if (columnExists == 0)
+			{
+				string alterQuery = $"ALTER TABLE `{tableName}` ADD COLUMN Mappings JSON NULL;";
+				using var alterCmd = new MySqlCommand(alterQuery, connection);
+				await alterCmd.ExecuteNonQueryAsync();
+				Console.WriteLine($"Added 'Mappings' JSON column to {tableName}.");
+			}
+		}
+
+		private class MappingTableMetadata
+		{
+			public string CorrectedTableName { get; set; }
+			public string RawTableName { get; set; }
+			public string SourceTable { get; set; }
+			public string MapName { get; set; }
+		}
+
+		/// <summary>
+		/// Migrates localised fields.
+		/// </summary>
+		/// <returns></returns>
+		public async Task MigrateLocalizationAsync()
+		{
+			using var connection = GetConnection();
+			if (connection.State != ConnectionState.Open) await connection.OpenAsync();
+
+			// 1. Discover all tables and their respective localized columns
+			var localizedTargets = await DiscoverLocalizedColumnsAsync(connection);
+			Console.WriteLine($"Found {localizedTargets.Count} tables with localized columns.");
+
+			foreach (var target in localizedTargets)
+			{
+				string tableName = target.Key;
+				List<string> baseFields = target.Value; // e.g., ["Name", "Description"]
+
+				Console.WriteLine($"Processing table '{tableName}' for fields: {string.Join(", ", baseFields)}...");
+
+				// 2. Build a dynamic SELECT query to pull the IDs, original fields, and localized fields
+				var selectColumns = new List<string> { "Id" };
+				foreach (var field in baseFields)
+				{
+					selectColumns.Add($"`{field}`");
+					selectColumns.Add($"`{field}_en-US`");
+				}
+
+				string selectQuery = $"SELECT {string.Join(", ", selectColumns)} FROM `{tableName}`";
+
+				// In-memory store for updates: Id -> Dictionary<FieldName, JsonPayloadString>
+				var updatesToApply = new Dictionary<int, Dictionary<string, string>>();
+
+				using (var selectCmd = new MySqlCommand(selectQuery, connection))
+				using (var reader = await selectCmd.ExecuteReaderAsync())
+				{
+					while (await reader.ReadAsync())
+					{
+						int id = reader.GetInt32("Id");
+						var fieldJsonUpdates = new Dictionary<string, string>();
+
+						foreach (var field in baseFields)
+						{
+							int enOrdinal = reader.GetOrdinal(field);
+							int enUsOrdinal = reader.GetOrdinal($"{field}_en-US");
+
+							// Read the raw values as native objects (int, decimal, string, etc.)
+							object enValue = reader.IsDBNull(enOrdinal) ? null : reader.GetValue(enOrdinal);
+							object enUsValue = reader.IsDBNull(enUsOrdinal) ? null : reader.GetValue(enUsOrdinal);
+
+							// If the data driver returns custom MySQL numeric types, 
+							// we can explicitly normalize them to standard C# types if needed, 
+							// though System.Text.Json handles most primitives (like uint, int, decimal) out of the box.
+
+							// Build the localized object using 'object' values
+							var localizedObj = new Dictionary<string, object>
+							{
+								{ "en", enValue },
+								{ "en-US", enUsValue }
+							};
+
+							// Serialize to JSON string
+							fieldJsonUpdates[field] = JsonConvert.SerializeObject(localizedObj);
+						}
+
+						updatesToApply[id] = fieldJsonUpdates;
+					}
+				}
+
+				// 3. Drop the localised columns completely such that they are out of the way, avoiding cast issues.
+				await DropLocalizedColumnsAsync(connection, tableName, baseFields);
+
+				// 4. Stream the updates back down to the database inside a transaction
+				using var transaction = await connection.BeginTransactionAsync();
+				try
+				{
+					foreach (var rowUpdate in updatesToApply)
+					{
+						int id = rowUpdate.Key;
+
+						// Build a dynamic UPDATE statement accommodating all transformed fields for this row
+						var setClauses = new List<string>();
+						using var updateCmd = new MySqlCommand { Connection = connection, Transaction = transaction };
+
+						int paramIndex = 0;
+						foreach (var fieldUpdate in rowUpdate.Value)
+						{
+							string fieldName = fieldUpdate.Key;
+							string jsonString = fieldUpdate.Value;
+							string paramName = $"@json_{paramIndex}";
+
+							setClauses.Add($"`{fieldName}` = {paramName}");
+							updateCmd.Parameters.AddWithValue(paramName, jsonString);
+							paramIndex++;
+						}
+
+						updateCmd.CommandText = $"UPDATE `{tableName}` SET {string.Join(", ", setClauses)} WHERE Id = @id";
+						updateCmd.Parameters.AddWithValue("@id", id);
+
+						await updateCmd.ExecuteNonQueryAsync();
+					}
+
+					await transaction.CommitAsync();
+					Console.WriteLine($"Successfully localized data for table '{tableName}'.");
+				}
+				catch (Exception ex)
+				{
+					await transaction.RollbackAsync();
+					Console.WriteLine($"Error updating table {tableName}: {ex.Message}. Rolled back.");
+					throw;
+				}
+			}
+		}
+
+		private async Task<Dictionary<string, List<string>>> DiscoverLocalizedColumnsAsync(MySqlConnection connection)
+		{
+			// Structure: TableName -> List of Base Field Names (e.g., "Name" derived from "Name_en-US")
+			var result = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
+
+			string query = @"
+            SELECT TABLE_NAME, COLUMN_NAME 
+            FROM INFORMATION_SCHEMA.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE() 
+              AND COLUMN_NAME LIKE '%\_en-US';";
+
+			using var command = new MySqlCommand(query, connection);
+			using var reader = await command.ExecuteReaderAsync();
+
+			while (await reader.ReadAsync())
+			{
+				string tableName = reader.GetString(0);
+				string columnName = reader.GetString(1);
+
+				// Extract the base column name by removing "_en-US"
+				string baseColumnName = columnName.Substring(0, columnName.Length - 6);
+
+				if (!result.ContainsKey(tableName))
+					result[tableName] = new List<string>();
+
+				result[tableName].Add(baseColumnName);
+			}
+
+			return result;
+		}
+
+		private async Task DropLocalizedColumnsAsync(MySqlConnection connection, string tableName, List<string> baseFields)
+		{
+			foreach (var field in baseFields)
+			{
+				try
+				{
+					string dropQuery = $"ALTER TABLE `{tableName}` DROP COLUMN `{field}_en-US`, DROP COLUMN `{field}`, ADD COLUMN `{field}` JSON NULL;";
+					using var command = new MySqlCommand(dropQuery, connection);
+					await command.ExecuteNonQueryAsync();
+					Console.WriteLine($"Dropped obsolete column `{field}_en-US` from table '{tableName}'.");
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine($"Warning: Could not drop `{field}_en-US` from '{tableName}': {ex.Message}");
+				}
+			}
 		}
 	}
 }
