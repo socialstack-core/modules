@@ -110,6 +110,9 @@ export interface CanvasDataStoreLink {
 function readMap(dataMap : any[], ptr : number){
 	var host = dataMap.find(dm => dm.id == ptr);
 	if(host){
+		if(!host.c || Array.isArray(host.c) || typeof host.c != 'object'){
+			return host.c;
+		}
 		host.c = expandIncludes(host.c);
 		return (host.f && host.c) ? host.c[host.f] : host.c;
 	}

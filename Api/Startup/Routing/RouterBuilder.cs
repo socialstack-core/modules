@@ -28,6 +28,11 @@ public class RouterBuilder
 	public static RouterBuilder BuiltInBuilder;
 
 	/// <summary>
+	/// Forces the locale to this if non-zero. It will then be overriden by locale nodes if there are any.
+	/// </summary>
+	public uint ForcedFallbackLocaleId;
+
+	/// <summary>
 	/// The set of nodes by http verb, the same arrangement as the main router.
 	/// </summary>
 	private BuilderNode[] NodesByVerb;
@@ -192,6 +197,7 @@ public class RouterBuilder
 		}
 
 		var router = new Router(routeNodeSet);
+		router.ForcedFallbackLocaleId = ForcedFallbackLocaleId;
 
 		if (Status_404 != null)
 		{
@@ -234,6 +240,56 @@ public class RouterBuilder
 				route.Verb
 			);
 		}
+	}
+
+	/// <summary>
+	/// Adds a node which gains a clone of all non-API and non-admin root nodes.
+	/// </summary>
+	/// <param name="urlPrefix"></param>
+	/// <param name="localeId"></param>
+	public void AddLocaleNode(string urlPrefix, uint localeId)
+	{
+		if (string.IsNullOrEmpty(urlPrefix))
+		{
+			throw new Exception("Invalid URL prefix '" + urlPrefix + "'");
+		}
+
+		// (expected to be always true)
+		if (urlPrefix.StartsWith('/'))
+		{
+			urlPrefix = urlPrefix.Substring(1);
+		}
+
+		if (urlPrefix.Contains('/'))
+		{
+			throw new Exception("Invalid URL prefix '" + urlPrefix + "'");
+		}
+
+		var getNode = GetGetNode();
+
+		// Get the locale host node itself:
+		var hostNode = getNode.AddOrGet(urlPrefix);
+		hostNode.LocaleId = localeId;
+
+		// Add rewrites for each of the root nodes which aren't:
+		// - v1
+		// - en-admin
+		// - LocaleId != 0
+
+		foreach (var child in getNode.Children)
+		{
+			if (
+				child.Text == "v1" || 
+				child.Text == "en-admin" || 
+				child.LocaleId != 0 || 
+				child.Terminal != null && child.Terminal.GetType() == typeof(TerminalMethod) // An API endpoint
+			)
+			{
+				continue;
+			}
+			hostNode.AddRewrite(child.Text, "/" + child.Text);
+		}
+
 	}
 
 	/// <summary>
@@ -461,13 +517,13 @@ public class TerminalRewrite  : TerminalBehaviour
 	/// Effectively teleports to the targeted node, replacing the 
 	/// current token state with the ones in this rewrite metadata.
 	/// </summary>
-	public BuilderResolvedRoute? Rewrite;
+	public BuilderResolvedRoute Rewrite;
 
 	/// <summary>
 	/// Creates a new terminal method.
 	/// </summary>
 	/// <param name="rewrite"></param>
-	public TerminalRewrite(BuilderResolvedRoute? rewrite)
+	public TerminalRewrite(BuilderResolvedRoute rewrite)
 	{
 		Rewrite = rewrite;
 	}
@@ -480,7 +536,17 @@ public class TerminalRewrite  : TerminalBehaviour
 	{
 		var node = behaviour as TerminalRewrite;
 		// Not accurate but it achieves the goal for now!
-		return node != null && node.Rewrite != null && Rewrite != null;
+		return node != null;
+	}
+
+	/// <summary>
+	/// Builds this node.
+	/// </summary>
+	/// <param name="node"></param>
+	/// <returns></returns>
+	public override TerminalNode Build(BuilderNode node)
+	{
+		return new TerminalRewriteNode(Rewrite, node.Text, node.FullRoute);
 	}
 
 	/// <summary>
@@ -503,6 +569,11 @@ public class BuilderNode
 	/// Parent builder node.
 	/// </summary>
 	public BuilderNode Parent;
+
+	/// <summary>
+	/// Set if this node changes the localeId as the request passes through it.
+	/// </summary>
+	public uint LocaleId;
 
 	/// <summary>
 	/// An instance of the controller from which the TermialMethod came.
@@ -627,6 +698,7 @@ public class BuilderNode
 			ControllerInstance = ControllerInstance,
 			FullRoute = FullRoute,
 			HttpVerb = HttpVerb,
+			LocaleId = LocaleId,
 			Text = Text
 		};
 
@@ -742,6 +814,7 @@ public class BuilderNode
 	public RouteNode Build()
 	{
 		BuiltNode = BuildInternal();
+		BuiltNode.LocaleId = LocaleId;
 		return BuiltNode;
 	}
 
@@ -782,7 +855,8 @@ public class BuilderNode
 			SingularContentService,
 			_requiresFullContext,
 			FullRoute
-		);
+		)
+		{ LocaleId = LocaleId };
 	}
 
 	/// <summary>
@@ -888,6 +962,7 @@ public class BuilderNode
 
 			ConstructedTerminal = voidObj as TerminalNode;
 			ConstructedTerminal.BuilderSource = this;
+			ConstructedTerminal.LocaleId = LocaleId;
 			return ConstructedTerminal;
 		}
 
@@ -917,6 +992,7 @@ public class BuilderNode
 
 		ConstructedTerminal = obj as TerminalNode;
 		ConstructedTerminal.BuilderSource = this;
+		ConstructedTerminal.LocaleId = LocaleId;
 		return ConstructedTerminal;
 	}
 
@@ -2259,7 +2335,7 @@ public class BuilderNode
 		//   replace the current token state entirely.
 
 		// Builder resolver is permitted to allocate
-		var target = Resolve(to);
+		var target = GetRootNode().Resolve(to);
 
 		if (target.Node == null)
 		{
@@ -2267,6 +2343,20 @@ public class BuilderNode
 		}
 
 		current.SetTerminal(new TerminalRewrite(target));
+	}
+
+	/// <summary>
+	/// Gets the root node.
+	/// </summary>
+	/// <returns></returns>
+	public BuilderNode GetRootNode()
+	{
+		if (Parent == null)
+		{
+			return this;
+		}
+
+		return Parent.GetRootNode();
 	}
 
 	/// <summary>

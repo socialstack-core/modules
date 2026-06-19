@@ -727,6 +727,57 @@ namespace Api.Startup
 		}
 
 		/// <summary>
+		/// Write a field.
+		/// </summary>
+		/// <param name="body"></param>
+		/// <param name="field"></param>
+		/// <param name="objLoader"></param>
+		/// <param name="ctxLoader"></param>
+		/// <param name="isDocumentFormat"></param>
+		/// <exception cref="Exception"></exception>
+		public static void EmitWriteField(ILGenerator body, ContentField field, Action<ILGenerator> objLoader, Action<ILGenerator> ctxLoader, bool isDocumentFormat = false)
+		{
+			// Check if it's a nullable:
+			var fieldType = field.FieldType;
+			var isLocalised = false;
+
+			if (fieldType.IsGenericType)
+			{
+				var gDef = fieldType.GetGenericTypeDefinition();
+
+				if (gDef == typeof(Localized<>))
+				{
+					isLocalised = true;
+					fieldType = fieldType.GetGenericArguments()[0];
+				}
+			}
+
+			var nullableType = Nullable.GetUnderlyingType(fieldType);
+
+			if (nullableType != null)
+			{
+				fieldType = nullableType;
+			}
+
+			var typeMap = GetTypeMap();
+
+			if (!typeMap.TryGetValue(fieldType, out JsonFieldType jft))
+			{
+				// Can't serialise this here.
+				throw new Exception("Unable to serialise fields of this type ('" + field.Name + "' was a " + fieldType.Name + ").");
+			}
+
+			if (isLocalised)
+			{
+				jft.EmitLocalisedWrite(body, field.FieldType, field.PropertyInfo?.GetGetMethod(), field.FieldInfo, objLoader, ctxLoader, isDocumentFormat);
+			}
+			else
+			{
+				jft.EmitWrite(body, field, nullableType, objLoader, isDocumentFormat);
+			}
+		}
+
+		/// <summary>
 		/// Emits JSON write of a given content field in to the given body. 
 		/// It must be a basic type or a nullable of one of those types.
 		/// </summary>
@@ -1096,7 +1147,11 @@ namespace Api.Startup
 					// Value->str:
 					if (isLocalised)
 					{
-						jft.EmitLocalisedWrite(writerBody, field, nullableType);
+						jft.EmitLocalisedWrite(writerBody, field.TargetType, field.PropertyGet, field.FieldInfo, (ILGenerator gen) => {
+							writerBody.Emit(OpCodes.Ldarg_1); // the object
+						}, (ILGenerator gen) => {
+							writerBody.Emit(OpCodes.Ldarg_3); // context
+						});
 					}
 					else
 					{
@@ -1327,39 +1382,42 @@ namespace Api.Startup
 		/// Emits a write of a Localised field.
 		/// </summary>
 		/// <param name="body"></param>
-		/// <param name="field"></param>
-		/// <param name="nullableType"></param>
+		/// <param name="writeObj"></param>
+		/// <param name="writeCtx"></param>
+		/// <param name="localisedType"></param>
+		/// <param name="propertyGet"></param>
+		/// <param name="fieldInfo"></param>
 		/// <param name="isDocumentFormat"></param>
-		public void EmitLocalisedWrite(ILGenerator body, JsonField field, Type nullableType, bool isDocumentFormat = false)
+		public void EmitLocalisedWrite(ILGenerator body, Type localisedType, MethodInfo propertyGet, FieldInfo fieldInfo, Action<ILGenerator> writeObj, Action<ILGenerator> writeCtx, bool isDocumentFormat = false)
 		{
 			Label endOfStatementLabel = body.DefineLabel();
 
 			// e.g. Localised<uint?> -> valueType is uint?
-			var localisedType = field.TargetType;
 			var valueType = localisedType.GetGenericArguments()[0];
+			var nullableType = Nullable.GetUnderlyingType(valueType);
 
 			// Always put the result value in to a local variable.
 			var loc = body.DeclareLocal(valueType);
 
-			if (field.PropertyGet != null)
+			if (propertyGet != null)
 			{
 				var propertyLocal = body.DeclareLocal(localisedType);
-				body.Emit(OpCodes.Ldarg_1);
-				body.Emit(OpCodes.Callvirt, field.PropertyGet);
+				writeObj(body);
+				body.Emit(OpCodes.Callvirt, propertyGet);
 				body.Emit(OpCodes.Stloc, propertyLocal);
 				body.Emit(OpCodes.Ldloca, propertyLocal);
 			}
 			else
 			{
 				// Field:
-				body.Emit(OpCodes.Ldarg_1);
-				body.Emit(OpCodes.Ldflda, field.FieldInfo);
+				writeObj(body);
+				body.Emit(OpCodes.Ldflda, fieldInfo);
 			}
 
 			// An address of the Localized struct is currently on the stack.
 
 			// Push the context and a constant 'true'
-			body.Emit(OpCodes.Ldarg_3); // context
+			writeCtx(body);
 			body.Emit(OpCodes.Ldc_I4_1); // fallback = true
 
 			// Can now call Get:
@@ -1405,7 +1463,7 @@ namespace Api.Startup
 					// This value is nullable, but it's specifically not null.
 					// Put the actual value onto the stack here.
 					body.Emit(OpCodes.Ldloca, loc);
-					var getValueMethod = field.TargetType.GetProperty("Value").GetGetMethod();
+					var getValueMethod = valueType.GetProperty("Value").GetGetMethod();
 					body.Emit(OpCodes.Callvirt, getValueMethod);
 				}
 			}, isDocumentFormat);

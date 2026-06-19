@@ -162,7 +162,7 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 					var link = node.links[k];
 
 					if (link.primary) {
-						props[k] = pageState.po;
+						props[k] = link.field ? pageState.po?.[link.field] : pageState.po;
 					} else {
 						props[k] = link.write ? (val: any) => setDataStoreField(link.field, val) : getDataStoreField(link.field);
 					}

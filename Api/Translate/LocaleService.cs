@@ -1,14 +1,15 @@
-﻿using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using Api.Permissions;
+﻿using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
-using Api.Contexts;
-using System;
+using Api.Permissions;
 using Api.Startup;
+using Api.Startup.Routing;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Api.Translate
 {
@@ -23,7 +24,7 @@ namespace Api.Translate
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public LocaleService() : base(Events.Locale)
-		{		
+		{
 			InstallAdminPages("Locales", "fa:fa-globe-europe", ["id", "name"], null, "i18n");
 
 			Cache(new CacheConfig<Locale>() {
@@ -39,6 +40,15 @@ namespace Api.Translate
 					throw new PublicException("At least a locale code is required", "locale_code_required");
 				}
 
+				if (string.IsNullOrEmpty(locale.UrlPrefix))
+				{
+					locale.UrlPrefix = null;
+				}
+				else if (!locale.UrlPrefix.StartsWith("/"))
+				{
+					locale.UrlPrefix = "/" + locale.UrlPrefix;
+				}
+
 				return new ValueTask<Locale>(locale);
 			});
 
@@ -49,16 +59,39 @@ namespace Api.Translate
 					throw new PublicException("At least a locale code is required", "locale_code_required");
 				}
 
+				if (locale.UrlPrefix != original.UrlPrefix)
+				{
+					if (string.IsNullOrEmpty(locale.UrlPrefix))
+					{
+						locale.UrlPrefix = null;
+					}
+					else if (!locale.UrlPrefix.StartsWith("/"))
+					{
+						locale.UrlPrefix = "/" + locale.UrlPrefix;
+					}
+				}
+
 				return new ValueTask<Locale>(locale);
 			});
 
 			Events.Locale.AfterUpdate.AddEventListener(async (Context context, Locale locale, ChangedFields diff) => {
 				await UpdateMaps();
+
+				if (diff.HasChanged("UrlPrefix"))
+				{
+					Router.RequestRebuild();
+				}
 				return locale;
 			});
 
 			Events.Locale.AfterCreate.AddEventListener(async (Context context, Locale locale) => {
 				await UpdateMaps();
+
+				if (!string.IsNullOrEmpty(locale.UrlPrefix))
+				{
+					Router.RequestRebuild();
+				}
+
 				return locale;
 			});
 
@@ -157,6 +190,33 @@ namespace Api.Translate
 				return new ValueTask<Context>(result);
 			});
 
+			Events.Router.CollectRoutes.AddEventListener(async (Context context, RouterBuilder builder) =>
+			{
+				// Get all locales
+				var locales = await Where("", DataOptions.IgnorePermissions).ListAll(context);
+
+				var any = false;
+
+				// For any locale with a UrlPrefix..
+				foreach (var locale in locales)
+				{
+					if (string.IsNullOrEmpty(locale.UrlPrefix))
+					{
+						continue;
+					}
+
+					builder.AddLocaleNode(locale.UrlPrefix, locale.Id);
+					any = true;
+				}
+
+				if (any) {
+					// Set the fallback locale as locale nodes are in use on this site:
+					builder.ForcedFallbackLocaleId = 1;
+				}
+
+				return builder;
+
+			}, 30); // After permalinks
 		}
 
 		/// <summary>

@@ -1,12 +1,19 @@
-using Api.Database;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using Api.CanvasRenderer;
 using Api.Contexts;
+using Api.Database;
 using Api.Eventing;
+using Api.ExpeditionLeaders;
 using Api.Startup;
-using System;
 using Api.Startup.Routing;
-using System.Runtime.Intrinsics.Arm;
+using Api.Translate;
+using Api.Users;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Reflection;
+using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace Api.Pages
 {
@@ -24,7 +31,7 @@ namespace Api.Pages
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
-		public PermalinkService(PageService pages) : base(Events.Permalink)
+		public PermalinkService(PageService pages, PageGroupService pageGroups) : base(Events.Permalink)
         {
 			Events.Permalink.BeforeUpdate.AddEventListener((Context context, Permalink toUpdate, Permalink orig) => {
 				if (toUpdate == null)
@@ -54,14 +61,48 @@ namespace Api.Pages
 				return new ValueTask<Permalink>(link);
 			});
 
-			Events.Page.BeforeCreate.AddEventListener((Context context, Page page) =>
+			Events.Page.BeforeCreate.AddEventListener(async (Context context, Page page) =>
 			{
-				if (string.IsNullOrEmpty(page.Url) && string.IsNullOrEmpty(page.Key))
+				if (string.IsNullOrEmpty(page.Url) && page.PageGroupId == 0 && string.IsNullOrEmpty(page.Key))
 				{
-					throw new PublicException("A url is required. If you're making a homepage, use /", "page_url_required");
+					throw new PublicException("A url or group is required. If you're making a homepage, use /", "page_url_required");
 				}
 
-				return new ValueTask<Page>(page);
+				if (page.PageGroupId != 0)
+				{
+					// Group always dictates the URL (currently)
+					var group = await pageGroups.Get(context, page.PageGroupId);
+
+					if (group == null)
+					{
+						throw new PublicException("Page group does not exist", "group/not_found");
+					}
+
+					var prefix = group.Url;
+
+					if (string.IsNullOrWhiteSpace(prefix))
+					{
+						prefix = "/";
+					}
+					else
+					{
+						prefix = prefix.Trim();
+						if (prefix[0] != '/')
+						{
+							prefix = "/" + prefix;
+						}
+					}
+
+					if (prefix[prefix.Length - 1] != '/')
+					{
+						prefix += "/";
+					}
+
+					var titleSlug = GenerateNormalizedSlug(page.Title.GetFallback());
+					page.Url = prefix + titleSlug;
+				}
+
+				return page;
 			});
 
 			Events.Page.AfterCreate.AddEventListener(async (Context context, Page page) =>
@@ -340,6 +381,63 @@ namespace Api.Pages
 		private Dictionary<string, List<Permalink>> _srcDictionary;
 
 		/// <summary>
+		/// Generates a slug for the given phrase.
+		/// </summary>
+		/// <param name="phrase"></param>
+		/// <returns></returns>
+		public string GenerateNormalizedSlug(string phrase)
+		{
+			if (string.IsNullOrWhiteSpace(phrase))
+				return string.Empty;
+
+			// remove accents
+			string str = RemoveDiacritics(phrase);
+
+			// custom replacements (ß, ø, æ, etc.)
+			str = str.Replace("ß", "ss")
+					 .Replace("ø", "o")
+					 .Replace("Ø", "O")
+					 .Replace("æ", "ae")
+					 .Replace("Æ", "Ae");
+
+			// lowercase
+			str = str.ToLowerInvariant();
+
+			// replace anything not alphanumeric with hyphens
+			str = Regex.Replace(str, @"[^a-z0-9]+", "-");
+
+			// trim extra hyphens
+			str = str.Trim('-');
+
+			// Replace double occurences of - or _
+			str = Regex.Replace(str, @"([-_]){2,}", "$1", RegexOptions.Compiled);
+
+			return str;
+		}
+
+		/// <summary>
+		/// Removes diacritics from the given text.
+		/// </summary>
+		/// <param name="text"></param>
+		/// <returns></returns>
+		public string RemoveDiacritics(string text)
+		{
+			var normalizedString = text.Normalize(NormalizationForm.FormD);
+			var stringBuilder = new StringBuilder();
+
+			foreach (var c in normalizedString)
+			{
+				var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+				if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+				{
+					stringBuilder.Append(c);
+				}
+			}
+
+			return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+		}
+
+		/// <summary>
 		/// Deletes all permalinks to a given page.
 		/// </summary>
 		/// <param name="context"></param>
@@ -361,6 +459,365 @@ namespace Api.Pages
 			{
 				await Delete(context, link, DataOptions.IgnorePermissions);
 			}
+		}
+
+		/// <summary>
+		/// Creates a target string for a permalink which points at the primary page for the given piece of content. See Permalink.Target for more info.
+		/// These permalinks are of the form "primary:user:x" or "primary:user" if the object is null. When the routing tree is being updated, they are resolved 
+		/// to the actual target page which would either be the fallback primary user page or a specific one if it exists.
+		/// This way, if overriding pages for a specific content object are created, historical permalinks remain permanent.
+		/// </summary>
+		/// <param name="svc">The service that the object originated from.</param>
+		/// <param name="context"></param>
+		/// <param name="urlPattern"></param>
+		/// <param name="targetObject"></param>
+		/// <returns></returns>
+		public async ValueTask<Permalink> Create<T, ID>(Context context, string urlPattern, AutoService<T, ID> svc, Content<ID> targetObject = null)
+			where T : Content<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			if (targetObject == null)
+			{
+				// Object required
+				throw new PublicException("Object required to generate a permalink", "target/required");
+			}
+
+			// Permalink target which will be for whichever page wants to handle this as its primary content.
+			// If a specific page for this content exists, it will ultimately pick that.
+			var linkTarget = CreatePrimaryTargetLocator(svc, targetObject);
+
+			return await Create(
+				context,
+				new Permalink()
+				{
+					Url = SubstitutePattern(urlPattern, targetObject),
+					Target = linkTarget
+				},
+				DataOptions.IgnorePermissions
+			);
+		}
+
+		/// <summary>
+		/// Auto register the given service for permalinks using a simple pattern which can contain /${content.tokens} referencing fields of the content object.
+		/// The path is then appended to the object referenced by the given relative field. This relative field must be a virtual field referencing
+		/// another piece of content with an established permalink.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="relativeField"></param>
+		/// <param name="urlPattern">Relative to the given object's primary URL.</param>
+		/// <param name="svc"></param>
+		/// <exception cref="PublicException"></exception>
+		public void Generate<T, ID>(string relativeField, string urlPattern, AutoService<T, ID> svc)
+			where T : VersionLinkedContent<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			if (!urlPattern.StartsWith("/"))
+			{
+				urlPattern = "/" + urlPattern;
+			}
+
+			AutoService relativeToService = null;
+			ContentField idSource = null;
+			Func<Context, object, ulong> idLoader = null;
+
+			Generate(async (Context context, T obj) => {
+
+				if (relativeToService == null)
+				{
+					var fields = svc.GetContentFields();
+					if (!fields.TryGetOrGlobal(relativeField.ToLower(), out ContentField relative))
+					{
+						throw new PublicException("Incorrect content type configuration. The field used to generate the URL was not found: " + relativeField + " doesn't exist on " + svc.EntityName, "relative_field/required");
+					}
+
+					if (relative.VirtualInfo == null || relative.VirtualInfo.IsList)
+					{
+						throw new PublicException("Incorrect content type configuration. The field used to generate the URL was not an entity field: " + relativeField + " must be a virtual field on " + svc.EntityName, "relative_field/entity");
+					}
+
+					relativeToService = relative.VirtualInfo.Service;
+					idSource = relative.VirtualInfo.IdSource;
+
+					if (idSource == null || idSource.FieldInfo == null || relativeToService == null)
+					{
+						throw new PublicException("Incorrect content type configuration; unable to resolve the service for a virtual field (" + relativeField + ")", "relative/unresolved");
+					}
+
+					bool isLocalised = false;
+					bool isNullable = false;
+					var idFieldType = idSource.FieldType;
+					if (idFieldType.IsGenericType) {
+						var gtd = idFieldType.GetGenericTypeDefinition();
+
+						if (gtd == typeof(Localized<>))
+						{
+							isLocalised = true;
+							idFieldType = idFieldType.GetGenericArguments()[0];
+						}
+					}
+
+					var underType = Nullable.GetUnderlyingType(idFieldType);
+					if (underType != null)
+					{
+						isNullable = true;
+						idFieldType = underType;
+					}
+
+					if (idFieldType != typeof(uint) && idFieldType != typeof(ulong))
+					{
+						throw new PublicException("Incorrect content type configuration; cannot use specified ID field because it's a '" + idFieldType + "' (uint or ulong only).", "id/int_only");
+					}
+
+					bool isUint = idFieldType == typeof(uint);
+
+					if (isUint)
+					{
+						if (isLocalised)
+						{
+							if (isNullable)
+							{
+								idLoader = (Context context, object id) => ((Localized<uint?>)id).Get(context).GetValueOrDefault();
+							}
+							else
+							{
+								idLoader = (Context context, object id) => ((Localized<uint>)id).Get(context);
+							}
+						}
+						else
+						{
+							if (isNullable)
+							{
+								idLoader = (Context context, object id) => ((uint?)id).GetValueOrDefault();
+							}
+							else
+							{
+								idLoader = (Context context, object id) => (uint)id;
+							}
+						}
+					}
+					else
+					{
+						if (isLocalised)
+						{
+							if (isNullable)
+							{
+								idLoader = (Context context, object id) => ((Localized<ulong?>)id).Get(context).GetValueOrDefault();
+							}
+							else
+							{
+								idLoader = (Context context, object id) => ((Localized<ulong>)id).Get(context);
+							}
+						}
+						else
+						{
+							if (isNullable)
+							{
+								idLoader = (Context context, object id) => ((ulong?)id).GetValueOrDefault();
+							}
+							else
+							{
+								idLoader = (Context context, object id) => (ulong)id;
+							}
+						}
+					}
+
+				}
+
+				// Read the ID:
+				object id = idSource.FieldInfo.GetValue(obj);
+
+				if (id == null)
+				{
+					throw new PublicException("Unable to resolve relative ID for the URL (" + relativeField + ")", "relative/id_failed");
+				}
+
+				var ulongId = idLoader(context, id);
+
+				// Load the relative to object:
+				var forObject = await relativeToService.GetObject(context, ulongId);
+
+				var url = relativeToService.GetPrimaryUrlObject(context, forObject);
+
+				if (string.IsNullOrEmpty(url))
+				{
+					throw new PublicException("Unable to resolve the URL for the specified target object (" + ulongId + " #" + ulongId + ")", "relative/url_failed");
+				}
+
+				// urlPattern was normalised above to start with / always
+
+				if (url.EndsWith("/"))
+				{
+					url = url + urlPattern.Substring(1);
+				}
+				else
+				{
+					url = url + urlPattern;
+				}
+
+				return url;
+			}, svc);
+		}
+
+		/// <summary>
+		/// Auto register the given service for permalinks using a simple pattern which can contain /${content.tokens} referencing fields of the content object.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="urlPattern"></param>
+		/// <param name="svc"></param>
+		/// <exception cref="PublicException"></exception>
+		public void Generate<T, ID>(string urlPattern, AutoService<T, ID> svc)
+			where T : VersionLinkedContent<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			Generate((Context context, T obj) => new ValueTask<string>(urlPattern), svc);
+		}
+
+		/// <summary>
+		/// Auto register the given service for permalinks.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="urlGenerator"></param>
+		/// <param name="svc"></param>
+		/// <exception cref="PublicException"></exception>
+		public void Generate<T, ID>(Func<Context, T, ValueTask<string>> urlGenerator, AutoService<T, ID> svc)
+			where T : VersionLinkedContent<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			svc.EventGroup.BeforeCreate.AddEventListener(async (Context context, T content) => {
+				if (content == null)
+				{
+					return content;
+				}
+
+				if (string.IsNullOrEmpty(content.Slug))
+				{
+					var name = await svc.GetMetaString(context, "title", content);
+
+					if (string.IsNullOrEmpty(name))
+					{
+						throw new PublicException("A name or title is required in order to generate the URL", "name/required");
+					}
+
+					content.Slug = GenerateNormalizedSlug(name);
+				}
+
+				return content;
+			});
+
+			svc.EventGroup.BeforeUpdate.AddEventListener(async (Context context, T content, T orig) => {
+				if (content == null)
+				{
+					return content;
+				}
+
+				if (content.Slug != orig.Slug && !string.IsNullOrEmpty(content.Slug))
+				{
+					var urlPattern = await urlGenerator(context, content);
+
+					if (!urlPattern.StartsWith("/"))
+					{
+						urlPattern = "/" + urlPattern;
+					}
+
+					await Create(
+						context,
+						urlPattern,
+						svc,
+						content
+					);
+				}
+
+				return content;
+			});
+
+			svc.EventGroup.AfterCreate.AddEventListener(async (Context context, T content) => {
+				if (content == null)
+				{
+					return null;
+				}
+
+				var urlPattern = await urlGenerator(context, content);
+
+				if (!urlPattern.StartsWith("/"))
+				{
+					urlPattern = "/" + urlPattern;
+				}
+
+				await Create(
+					context,
+					urlPattern,
+					svc,
+					content
+				);
+
+				return content;
+			});
+
+		}
+
+		private string SubstitutePattern(string urlPattern, object content)
+		{
+			if (content == null)
+			{
+				throw new ArgumentNullException(nameof(content), "Content object cannot be null.");
+			}
+
+			// Capture just the word characters inside ${content.Name}
+			var matches = Regex.Matches(urlPattern, @"\$\{content\.(\w+)\}");
+			string result = urlPattern;
+			var contentType = content.GetType();
+
+			foreach (Match match in matches)
+			{
+				string fullPlaceholder = match.Value; // e.g., "${content.Slug}"
+				string memberName = match.Groups[1].Value; // e.g., "Slug"
+				object memberValue;
+
+				// Find the field/ property on the top-level object
+				FieldInfo fieldInfo = contentType.GetField(memberName);
+				if (fieldInfo != null)
+				{
+					memberValue = fieldInfo.GetValue(content);
+				}
+				else
+				{
+					PropertyInfo propInfo = contentType.GetProperty(memberName);
+					if (propInfo == null)
+					{
+						// If neither exists, throw an exception
+						throw new InvalidOperationException($"Member '{memberName}' (property or field) not found on object of type {contentType.Name}.");
+					}
+					memberValue = propInfo.GetValue(content);
+				}
+
+				// --- Validation Checks ---
+
+				// 1. Throw if the value is null
+				if (memberValue == null)
+				{
+					throw new InvalidOperationException($"The value for '{memberName}' is null.");
+				}
+
+				// 2. Throw if the referenced field is not a string
+				if (memberValue is not string valueAsString)
+				{
+					throw new InvalidCastException($"The property '{memberName}' is of type {memberValue.GetType().Name}, but a string is required.");
+				}
+
+				// 3. Throw if the string is empty
+				if (string.IsNullOrEmpty(valueAsString))
+				{
+					throw new InvalidOperationException($"The value for '{memberName}' cannot be an empty string.");
+				}
+
+				// Perform the substitution
+				result = result.Replace(fullPlaceholder, valueAsString);
+			}
+
+			return result;
 		}
 
 		/// <summary>

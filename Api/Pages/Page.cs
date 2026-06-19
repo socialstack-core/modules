@@ -1,16 +1,18 @@
 using System;
 using Api.AutoForms;
 using Api.Database;
+using Api.Startup;
 using Api.Translate;
 using Api.Users;
 using Newtonsoft.Json;
 
 namespace Api.Pages
 {
-	
+
 	/// <summary>
 	/// A page. Pages are accessed via associated permalink(s).
 	/// </summary>
+	[HasVirtualField("pageGroup", typeof(PageGroup), "PageGroupId")]
 	public partial class Page : VersionedContent<uint>
 	{
 		/// <summary>
@@ -44,7 +46,7 @@ namespace Api.Pages
 		/// If the Key contains "primary:x" then this will be inferred from the key.
 		/// </summary>
 		public string PrimaryContentType;
-
+		
 		/// <summary>
 		/// The pages content (as canvas JSON).
 		/// </summary>
@@ -81,10 +83,16 @@ namespace Api.Pages
 		/// The includes string to use for primary content. * will include everything at 1 level deep.
 		/// </summary>
 		public string PrimaryContentIncludes;
-
+		
+		/// <summary>
+		/// The ID of the page group.
+		/// </summary>
+		public uint PageGroupId;
+		
 		/// <summary>
 		/// A temporarily held URL value which is used during page creation to create a new permalink.
 		/// </summary>
+		[Module("Admin/Page/UrlEditor")]
 		public string Url { get; set; }
 	}
 	

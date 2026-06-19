@@ -1,6 +1,7 @@
 using Api.CanvasRenderer;
 using Api.Contexts;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,12 @@ public class Router
 	/// The terminal to use when a 404 occurs.
 	/// </summary>
 	public TerminalNode Status_404;
-	
+
+	/// <summary>
+	/// Forces contextual locale to this (to then be usually immediately overriden if the request passes through a locale rewrite node).
+	/// </summary>
+	public uint ForcedFallbackLocaleId;
+
 	/// <summary>
 	/// The set of router trees by HTTP verb.
 	/// </summary>
@@ -328,6 +334,11 @@ public class Router
 	/// <returns>Null if the route did not resolve (it was a 404).</returns>
 	public TerminalNode Resolve(string method, ReadOnlySpan<char> path, Context context, ref int tokenCount, ref Span<TokenMarker> tokenSet)
 	{
+		if (ForcedFallbackLocaleId != 0)
+		{
+			context.LocaleId = ForcedFallbackLocaleId;
+		}
+
 		int verbIndex;
 
 		switch (method)

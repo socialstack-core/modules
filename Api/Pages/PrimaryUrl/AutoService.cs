@@ -26,7 +26,24 @@ public partial class AutoService<T, ID> {
 			return null;
 		}
 
-		return UIPrimaryUrlLookup.GetUrl(content);
+		return UIPrimaryUrlLookup.GetUrl(context, content);
+	}
+
+	/// <summary>
+	/// Gets the primary URL for a generic object belonging to this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="obj"></param>
+	/// <returns></returns>
+	/// <exception cref="NotImplementedException"></exception>
+	public override string GetPrimaryUrlObject(Context context, object obj)
+	{
+		if (UIPrimaryUrlLookup == null)
+		{
+			return null;
+		}
+
+		return UIPrimaryUrlLookup.GetUrl(context, (T)obj);
 	}
 
 	/// <summary>
@@ -56,6 +73,18 @@ public partial class AutoService {
 	/// </summary>
 	/// <returns></returns>
 	public virtual PrimaryUrlLookup CreatePrimaryUrlLookup()
+	{
+		throw new NotImplementedException();
+	}
+
+	/// <summary>
+	/// Gets the primary URL for a generic object belonging to this service.
+	/// </summary>
+	/// <param name="context"></param>
+	/// <param name="obj"></param>
+	/// <returns></returns>
+	/// <exception cref="NotImplementedException"></exception>
+	public virtual string GetPrimaryUrlObject(Context context, object obj)
 	{
 		throw new NotImplementedException();
 	}

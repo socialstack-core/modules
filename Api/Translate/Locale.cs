@@ -43,25 +43,6 @@ namespace Api.Translate
 		public string Aliases;
 
 		/// <summary>
-		/// Indicates if the locale is not currently available
-		/// </summary>
-		[Data("hint", "Indicates if the locale is not currently available")]
-		public bool isDisabled;
-
-		/// <summary>
-		/// Indicates if the locale should be redirected to root (e.g. /en-us/abc > /abc)
-		/// </summary>
-		[Data("hint", "Indicates if the locale should be redirected to root (e.g. /en-us/abc > /abc)")]
-		public bool isRedirected;
-
-		/// <summary>
-		/// True if this redirect should be considered permanent (i.e. a 301);
-		/// Will default to a temporary 302 redirect if not set
-		/// </summary>
-		[Data("hint", "Redirect will be temporary (302) by default - select here for a permanent (301) redirect. PLEASE NOTE - do not use this option if you are likely to require this locale again")]
-		public bool PermanentRedirect = false;
-
-		/// <summary>
 		/// Indicates this locale goes primarily right to left, such as Hebrew or Arabic.
 		/// </summary>
 		[Data("hint", "Set this if the locale goes right to left, such as Hebrew or Arabic")]
@@ -69,11 +50,12 @@ namespace Api.Translate
 
 		/// <summary>
 		/// If this locale is in use, the page URL to lookup will be prefixed with this value, except on the admin panel.
-		/// Should not contain any /. For example, can be "jersey". The frontend will never actually see this path; it is purely for creating different page sets per locale.
+		/// Must start with /. For example, "/en-us". This causes a regional variant of the entire website to exist; 
+		/// do note that it does not clone permalinks etc however.
 		/// Different page sets is generally tidier than translating pages.
 		/// </summary>
-		[Data("hint", "Path in the page tree to use for this locale. Not seen by the frontend; it simply creates a collection of pages for this locale specifically.")]
-		public string PagePath;
+		[Data("hint", "Lowercase . A path in the page tree to use for this locale, e.g. 'en-us'. Creates a regional variant of the entire website.")]
+		public string UrlPrefix;
 
 		/// <summary>
 		/// Used by sites with localised domains. A comma separated list of domain names with optional ports.

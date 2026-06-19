@@ -920,6 +920,7 @@ public class ApiNamespace
 
 		var parameters = ctrlMethod.GetParameters();
 		ApiMethodParameter fromBodyParameter = null;
+		var queryParams = "";
 
 		foreach (var parameter in parameters)
 		{
@@ -927,7 +928,11 @@ public class ApiNamespace
 
 			var paramType = parameter.ParameterType;
 
-			if ((paramType.Namespace != null && paramType.Namespace.StartsWith("Microsoft.")) || paramType == typeof(Context)) // HttpContext etc, plus Context itself.
+			if (
+				(paramType.Namespace != null && paramType.Namespace.StartsWith("Microsoft.")) || 
+				(paramType.Namespace != null && paramType.Namespace.StartsWith("System.Net")) || 
+				paramType == typeof(Context)
+			) // HttpContext etc, plus Context itself.
 			{
 				continue;
 			}
@@ -940,6 +945,19 @@ public class ApiNamespace
 			if (parameter.GetCustomAttribute<FromBodyAttribute>() != null)
 			{
 				fromBodyParameter = methodParam;
+			}
+
+			if (parameter.GetCustomAttribute<FromQueryAttribute>() != null)
+			{
+				var arg = parameter.Name + "={" + parameter.Name + "}";
+				if (queryParams != "")
+				{
+					queryParams += "&" + arg;
+				}
+				else
+				{
+					queryParams += "?" + arg;
+				}
 			}
 
 			if (hasDefaultVal)
@@ -1046,6 +1064,11 @@ public class ApiNamespace
 		if (url.StartsWith("/v1/"))
 		{
 			url = url.Substring(4);
+		}
+
+		if (queryParams != "")
+		{
+			url += queryParams;
 		}
 
 		if (url.Length > 0)

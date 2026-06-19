@@ -4,6 +4,7 @@ using Microsoft.Extensions.Primitives;
 using Api.Translate;
 using Api.Eventing;
 using System;
+using Api.Startup.Routing;
 
 namespace Api.Contexts
 {
@@ -65,6 +66,8 @@ namespace Api.Contexts
 				context = await GetBasicContext(request);
 			}
 
+			var routerLocale = context.LocaleId;
+
 			if (_loginTokens == null)
 			{
 				_loginTokens = Api.Startup.Services.Get<ContextService>();
@@ -114,6 +117,12 @@ namespace Api.Contexts
 
 			// Context fully loaded:
 			await Events.Context.OnLoad.Dispatch(context, request);
+
+			// Override the locale if we have route enforced locales active:
+			if (Router.CurrentRouter != null && Router.CurrentRouter.ForcedFallbackLocaleId != 0)
+			{
+				context.LocaleId = routerLocale;
+			}
 
 			return context;
 		}

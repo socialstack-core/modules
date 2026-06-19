@@ -1,4 +1,7 @@
+using Api.Contexts;
 using Api.Database;
+using Api.Startup;
+using Api.Translate;
 using System;
 using System.Collections.Generic;
 
@@ -60,24 +63,37 @@ public class PrimaryUrlLookup<T, ID> : PrimaryUrlLookup
 	/// A lookup by specific content ID.
 	/// </summary>
 	public Dictionary<ID, string> SpecificLookup;
-	
-	
+
 	/// <summary>
 	/// Gets the URL for a specific piece of content.
 	/// </summary>
-	public string GetUrl(T content)
+	public string GetUrl(Context context, T content)
 	{
-		if(SpecificLookup != null)
+		var localeId = context.LocaleId;
+		var locale = ContentTypes.Locales != null && localeId <= ContentTypes.Locales.Length ? ContentTypes.Locales[localeId - 1] : null;
+
+		if (SpecificLookup != null)
 		{
 			if(SpecificLookup.TryGetValue(content.Id, out string val))
 			{
+				if (locale != null && !string.IsNullOrEmpty(locale.UrlPrefix))
+				{
+					return locale.UrlPrefix + (val.Length > 0 && val[0] == '/' ? val : "/" + val);
+				}
+
 				return val;
 			}
 		}
-		
+
 		// Todo: FallbackUrl can contain tokens: need to render them out.
-		
-		return FallbackUrl;
+		var url = FallbackUrl;
+
+		if (locale != null && !string.IsNullOrEmpty(locale.UrlPrefix))
+		{
+			return locale.UrlPrefix + (url.Length > 0 && url[0] == '/' ? url : "/" + url);
+		}
+
+		return url;
 	}
 
 	/// <summary>

@@ -14,6 +14,7 @@ import Row from "UI/Row";
 const CreatePage: React.FC = (): React.ReactElement => {
 
 	const [error, setError] = useState<string>();
+	const [pageGroup, setPageGroup] = useState<uint>(0 as uint);
 	const [selectedTemplate, setSelectedTemplate] = useState<AdminTemplate | undefined>();
 
 	return (
@@ -25,7 +26,7 @@ const CreatePage: React.FC = (): React.ReactElement => {
 						<h3>{`Create new page`}</h3>
 
 						<Form
-							action={PageApi.create}
+							action={(vals: Page) => PageApi.create(vals)}
 							onSuccess={(res: Page) => {
 								// redirect to the page created.
 								window.location.href = `/en-admin/page/${res.id}`
@@ -40,7 +41,7 @@ const CreatePage: React.FC = (): React.ReactElement => {
 										// It's a db template and requires Admin/Template to be loaded.
 										pageBody = {
 											t: "Admin/Template",
-											data: {
+											d: {
 												// *not* selectedTemplate.key
 												templateKey: selectedTemplate.template.key
 											}
@@ -68,10 +69,20 @@ const CreatePage: React.FC = (): React.ReactElement => {
 								label={`Page Title`}
 							/>
 							<Input
+								type={'select'}
+								contentType={'PageGroup'}
+								name='pageGroupId'
+								label={`Page Group`}
+								noSelection={`None - enter a URL instead`}
+								noSelectionValue={'0'}
+								onChange={e => setPageGroup(parseInt((e.target as HTMLSelectElement).value) as uint)}
+								clearable
+							/>
+							{pageGroup === 0 && <Input
 								type={'text'}
 								name={'url'}
 								label={`Page URL`}
-							/>
+							/>}
 							<Input
 								type={'textarea'}
 								name={'description'}

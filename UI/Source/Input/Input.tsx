@@ -14,7 +14,6 @@ export type InputProps<T extends keyof InputPropsRegistry> = InputPropsRegistry[
 	labelPosition?: 'above' | 'below';
 	validateErrorLocation?: 'above' | 'below';
 	helpPosition?: 'above' | 'below';
-	contentType?: string;
 	inline?: boolean;
 	required?: boolean;
 	autoFocus?: boolean;
@@ -45,7 +44,6 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 		groupClassName,
 		labelPosition,
 		validateErrorLocation,
-		contentType,
 		helpPosition,
 		inline,
 		autoFocus,

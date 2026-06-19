@@ -14,6 +14,11 @@ namespace Api.Eventing
 	public partial class Events
 	{
 		/// <summary>
+		/// Set of events for a pageGroup.
+		/// </summary>
+		public static EventGroup<PageGroup> PageGroup;
+		
+		/// <summary>
 		/// All page entity events.
 		/// </summary>
 		public static PageEventGroup Page;
