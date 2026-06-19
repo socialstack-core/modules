@@ -1,8 +1,6 @@
-using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
-using Api.ExpeditionLeaders;
 using Api.Startup;
 using Api.Startup.Routing;
 using Api.Translate;
