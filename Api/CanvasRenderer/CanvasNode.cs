@@ -933,7 +933,7 @@ namespace Api.CanvasRenderer
 		public string Field;
 
 		/// <summary>
-		/// True if write/field are ignored and the primary object is provided to the prop.
+		/// True if the primary object is provided to the prop. If a field is specified then that is read from the object.
 		/// </summary>
 		public bool Primary;
 

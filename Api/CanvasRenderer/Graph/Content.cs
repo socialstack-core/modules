@@ -2,6 +2,7 @@
 using Api.Database;
 using Api.SocketServerLibrary;
 using Api.Startup;
+using Api.Translate;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Reflection;
@@ -214,7 +215,7 @@ public class Content : Executor
     {
 		if (_svc == null)
 		{
-			throw new Exception("Unknown content type in graphexec");
+			throw new Exception("Unknown content type in graphexec (" + GraphNode + ")");
 		}
 
 		// All available fields:
@@ -459,7 +460,7 @@ public class Content : Executor
 		compileEngine.CodeBody.MarkLabel(notNull);
 
 		// Write a singular field:
-		TypeIOEngine.EmitWriteBasicField(compileEngine.CodeBody, fld, (ILGenerator body) => {
+		TypeIOEngine.EmitWriteField(compileEngine.CodeBody, fld, (ILGenerator body) => {
 
             // Load the input:
             if (_isPrimary)
@@ -475,6 +476,8 @@ public class Content : Executor
 				compileEngine.CodeBody.Emit(OpCodes.Ldfld, _outputFld);
 			}
 
+		}, (ILGenerator body) => {
+			compileEngine.EmitLoadUserContext();
 		});
 
 		compileEngine.CodeBody.MarkLabel(after);
@@ -502,6 +505,8 @@ public class Content : Executor
 			// Field not found. We don't know what type the field used to be, so we have to emit nothing and return null.
 			return null;
 		}
+
+		var fldType = fld.FieldType;
 
 		if (fld.FieldInfo != null || fld.PropertyInfo != null)
 		{
@@ -533,8 +538,30 @@ public class Content : Executor
 			}
 			else if (fld.FieldInfo != null)
 			{
-				// Load from the field, using the src object on the stack currently:
-				compileEngine.CodeBody.Emit(OpCodes.Ldfld, fld.FieldInfo);
+				if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Localized<>))
+				{
+					// Unwrap using the context.
+					compileEngine.CodeBody.Emit(OpCodes.Ldflda, fld.FieldInfo);
+
+					// Context and the bool
+					compileEngine.EmitLoadUserContext(); // context
+					compileEngine.CodeBody.Emit(OpCodes.Ldc_I4_1); // fallback = true
+
+					var localisedGetMethod = fldType.GetMethod(
+						"Get", BindingFlags.Public | BindingFlags.Instance,
+						new Type[] {
+							typeof(Context),
+							typeof(bool)
+						});
+
+					compileEngine.CodeBody.Emit(OpCodes.Call, localisedGetMethod);
+					fldType = localisedGetMethod.ReturnType;
+				}
+				else
+				{
+					// Load from the field, using the src object on the stack currently:
+					compileEngine.CodeBody.Emit(OpCodes.Ldfld, fld.FieldInfo);
+				}
 			}
 
 			compileEngine.CodeBody.Emit(OpCodes.Br, after);
@@ -542,15 +569,13 @@ public class Content : Executor
 
 			// There is a null on the stack currently which we will reuse as the actual output value.
 			// Note that would be inappropriate if the src value is a valuetype.
-			/*
-			 Handle this in the future:
-
+			
 			if(fld.FieldType.IsValueType){
 				compileEngine.CodeBody.Emit(OpCodes.Pop); // pop the null
-				// do default(fld.FieldType)
-			}
 
-			 */
+				// Emit a default (assuming an integer for now)
+				compileEngine.CodeBody.Emit(OpCodes.Ldc_I4_0);
+			}
 
 			compileEngine.CodeBody.MarkLabel(after);
 		}
@@ -565,7 +590,34 @@ public class Content : Executor
 			return typeof(object);
 		}
 
-		return fld.FieldType;
+		return fldType;
+	}
+
+	/// <summary>
+	/// Returns type of a named output field.
+	/// </summary>
+	/// <param name="field"></param>
+	public override Type GetOutputType(string field)
+	{
+		if (field == "output")
+		{
+			// Whole object.
+			return _contentType;
+		}
+
+		if (_fields == null || !_fields.TryGetValue(field, out ContentField fld))
+		{
+			throw new Exception("Field '" + field + "' not found on type");
+		}
+		
+		var fldType = fld.FieldType;
+
+		if (fldType.IsGenericType && fldType.GetGenericTypeDefinition() == typeof(Localized<>))
+		{
+			fldType = fldType.GetGenericArguments()[0];
+		}
+
+		return fldType;
 	}
 
 	/// <summary>

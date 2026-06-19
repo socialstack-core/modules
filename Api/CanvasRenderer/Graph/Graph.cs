@@ -49,6 +49,11 @@ namespace Api.CanvasRenderer
                 foreach (JObject node in jNodes)
                 {
                     Nodes[i] = InstantiateNode(node);
+
+                    if (Nodes[i] == null)
+                    {
+                        throw new Exception("Missing node: " + node.ToString());
+                    }
                     i++;
                 }
 

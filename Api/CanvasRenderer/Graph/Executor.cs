@@ -51,6 +51,24 @@ namespace Api.CanvasRenderer
         }
 
         /// <summary>
+        /// Gets a constant bool.
+        /// </summary>
+        /// <param name="fieldName"></param>
+        /// <param name="val"></param>
+        /// <returns></returns>
+        public bool GetConstBoolean(string fieldName, out bool val)
+        {
+            if (ConstantData.TryGetValue(fieldName, out JToken v))
+            {
+                val = v.Value<bool>();
+                return true;
+            }
+
+            val = false;
+            return false;
+        }
+
+        /// <summary>
         /// Gets a constant value.
         /// </summary>
         /// <param name="fieldName"></param>

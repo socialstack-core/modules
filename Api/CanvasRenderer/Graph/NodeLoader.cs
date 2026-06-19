@@ -118,6 +118,7 @@ public class NodeLoader
 
 	private static MethodInfo _writeByte;
 	private static MethodInfo _writeASCII;
+	private static MethodInfo _writeUTF8;
 
 	/// <summary>
 	/// Emits an output writer ref to the stack.
@@ -157,6 +158,23 @@ public class NodeLoader
 		CodeBody.Emit(OpCodes.Ldstr, s);
 		CodeBody.Emit(OpCodes.Call, _writeASCII);
 	}
+
+	/// <summary>
+	/// Emits a WriteUTF8 call. You must have already placed the string and the writer on to the stack.
+	/// </summary>
+	public void EmitWriteUTF8FromStack()
+	{
+		if (_writeUTF8 == null)
+		{
+			_writeUTF8 = typeof(Writer).GetMethod(
+				"WriteS",
+				new Type[] { typeof(string) }
+			);
+		}
+
+		CodeBody.Emit(OpCodes.Call, _writeUTF8);
+	}
+
 	/// <summary>
 	/// Emits a WriteS(int) call using the stack value as the source. You MUST emit the writer as well as your value.
 	/// </summary>
@@ -464,7 +482,7 @@ public class NodeLoader
 			{
 				return null;
 			}
-			throw new ArgumentException("Can only use this on dynamic graph links. " + field + " does not exist as a dynamic link.");
+			throw new ArgumentException("Can only use this on dynamic graph links. " + field + " does not exist as a dynamic link (" + node.GraphNode + ").");
 		}
 
 		// If the link is the value "null", also return null.

@@ -284,6 +284,11 @@ public struct Localized<T> : ILocalized, IEquatable<Localized<T>>, IComparable<L
 			success = double.TryParse(span, NumberStyles.Float, CultureInfo.InvariantCulture, out var v);
 			parsed = v;
 		}
+		else if (typeof(T) == typeof(bool))
+		{
+			success = span.Length == 1 && (span[0] == '1' || span[0] == '0');
+			parsed = span[0] == '1';
+		}
 		else if (typeof(T) == typeof(double?))
 		{
 			if (span.SequenceEqual("null".AsSpan()))
@@ -684,6 +689,11 @@ public struct Localized<T> : ILocalized, IEquatable<Localized<T>>, IComparable<L
 					if (typeof(T) == typeof(string))
 					{
 						writer.WriteEscaped((string)((object)kvp.Value));
+					}
+					else if (typeof(T) == typeof(bool))
+					{
+						var val = (bool)((object)kvp.Value);
+						writer.WriteASCII(val ? "1" : "0");
 					}
 					else
 					{
