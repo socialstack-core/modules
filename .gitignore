@@ -9,6 +9,7 @@
 /Api.csproj.user
 /Admin/public/en-admin/pack
 /UI/public/pack
+/UI/public/sitemap*.xml
 /Api/build
 /Email/public/pack
 /Database/*/index.json
