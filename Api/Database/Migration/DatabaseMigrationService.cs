@@ -47,9 +47,11 @@ public class DatabaseMigrationService : AutoService
 	/// </summary>
 	/// <param name="from"></param>
 	/// <param name="to"></param>
+	/// <param name="customTypesOnly"></param>
 	/// <param name="typeFilter"></param>
+	/// <param name="dry">Dry run</param>
 	/// <returns></returns>
-	public async ValueTask Migrate(string from, string to, Func<Type, bool> typeFilter = null)
+	public async ValueTask Migrate(string from, string to, bool? customTypesOnly = false, bool dry = false, Func<Type, bool> typeFilter = null)
 	{
 		Log.Info("ssmf", "SSMF (SocialStack Migration Framework) starting..");
 
@@ -62,6 +64,14 @@ public class DatabaseMigrationService : AutoService
 		foreach (var kvp in source.Bindings)
 		{
 			var service = kvp.Key;
+
+			if (customTypesOnly.HasValue && customTypesOnly.Value)
+			{
+				if (service.ServicedType == null || service.ServicedType.Assembly == GetType().Assembly)
+				{
+					continue;
+				}
+			}
 
 			if (typeFilter != null)
 			{
@@ -89,7 +99,8 @@ public class DatabaseMigrationService : AutoService
 			var vt = (ValueTask)migrate.Invoke(this, new object[] {
 				service,
 				sourceEvents,
-				targetEvents
+				targetEvents,
+				dry
 			});
 
 			await vt;
@@ -106,7 +117,8 @@ public class DatabaseMigrationService : AutoService
 	/// <param name="service"></param>
 	/// <param name="source"></param>
 	/// <param name="target"></param>
-	public async ValueTask MigrateContent<T, ID>(AutoService<T, ID> service, EventGroup<T, ID> source, EventGroup<T, ID> target)
+	/// <param name="dry"></param>
+	public async ValueTask MigrateContent<T, ID>(AutoService<T, ID> service, EventGroup<T, ID> source, EventGroup<T, ID> target, bool dry)
 		where T : Content<ID>, new()
 		where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 	{
@@ -116,7 +128,14 @@ public class DatabaseMigrationService : AutoService
 		var filterA = service.Where("");
 		var filterB = service.Where("");
 
-		Log.Info("ssmf", "Copying all '" + service.EntityName + "' entities to target..");
+		if (dry)
+		{
+			Log.Info("ssmf", "(Dry run) iterate over all '" + service.EntityName + "' entities to test reading..");
+		}
+		else
+		{
+			Log.Info("ssmf", "Copying all '" + service.EntityName + "' entities to target..");
+		}
 
 		var queryPair = new QueryPair<T, ID>()
 		{
@@ -129,6 +148,11 @@ public class DatabaseMigrationService : AutoService
 				// brute force technique here - rows stream from the source and are created 1 at a time in the target.
 				// if you're dealing with a very large set, you'll want to
 				// block create them by buffering them up as a group of e.g. 10k rows and use the bulk create mechanism.
+				if (dry)
+				{
+					return;
+				}
+
 				await target.Create.Dispatch(ctx, result);
 
 			}
