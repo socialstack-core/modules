@@ -302,7 +302,7 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 						<span className="admin-multiselect__search-max">
 							<i>{`Max of ${props.max} added`}</i>
 						</span> :
-						<Search endpoint={api.list} exclude={excludeIds} includes={props.includes} field={fieldName} limit={5}
+						<Search endpoint={query => api.list(query)} exclude={excludeIds} includes={props.includes} field={fieldName} limit={5}
 							placeholder={`Find ${props.label} to add..`} onFind={entry => {
 								if (!entry || value.some(entity => entity.id === entry.id)) {
 									return;

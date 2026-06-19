@@ -78,7 +78,7 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldstr, val);
 			});
 
-            AddTo(map, "form", typeof(uint?), (ILGenerator code, string val) => {
+            AddTo(map, "form", typeof(uint), (ILGenerator code, string val) => {
                 var value = uint.TryParse(val, out uint result) ? result : 0;
                 code.Emit(OpCodes.Ldc_I4, value);
             });
@@ -88,7 +88,7 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldstr, val);
 			});
 
-			AddTo(map, "long",typeof(long?), (ILGenerator code, string val) => {
+			AddTo(map, "long",typeof(long), (ILGenerator code, string val) => {
 				var value = long.TryParse(val, out long result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I8, value);
 			});
@@ -98,22 +98,22 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldc_I8, value);
 			});
 
-			AddTo(map, "int", typeof(int?), (ILGenerator code, string val) => {
+			AddTo(map, "int", typeof(int), (ILGenerator code, string val) => {
 				var value = int.TryParse(val, out int result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I4, value);
 			});
 
-			AddTo(map, "uint", typeof(uint?), (ILGenerator code, string val) => {
+			AddTo(map, "uint", typeof(uint), (ILGenerator code, string val) => {
 				var value = uint.TryParse(val, out uint result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I4, value);
 			});
 
-			AddTo(map, "entity", typeof(uint?), (ILGenerator code, string val) => {
+			AddTo(map, "entity", typeof(uint), (ILGenerator code, string val) => {
 				var value = uint.TryParse(val, out uint result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I4, value);
 			});
 
-			AddTo(map, "bool", typeof(bool?), (ILGenerator code, string val) => {
+			AddTo(map, "bool", typeof(bool), (ILGenerator code, string val) => {
 				var value = int.TryParse(val, out int result) ? result : 0;
 				code.Emit(OpCodes.Ldc_I4, value);
 			});
@@ -123,17 +123,17 @@ namespace Api.CustomContentTypes
 				code.Emit(OpCodes.Ldc_I4, value);
 			});
 
-			AddTo(map, "float", typeof(float?), (ILGenerator code, string val) => {
+			AddTo(map, "float", typeof(float), (ILGenerator code, string val) => {
 				var value = float.TryParse(val, out float result) ? result : 0;
 				code.Emit(OpCodes.Ldc_R4, value);
 			});
 
-			AddTo(map, "double", typeof(double?), (ILGenerator code, string val) => {
+			AddTo(map, "double", typeof(double), (ILGenerator code, string val) => {
 				var value = double.TryParse(val, out double result) ? result : 0;
 				code.Emit(OpCodes.Ldc_R8, value);
 			});
 
-			AddTo(map, "price", typeof(double?), (ILGenerator code, string val) => {
+			AddTo(map, "price", typeof(double), (ILGenerator code, string val) => {
 				var value = double.TryParse(val, out double result) ? result : 0;
 				code.Emit(OpCodes.Ldc_R8, value);
 			});
