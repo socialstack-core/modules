@@ -248,10 +248,6 @@ namespace Api.AutoForms
 
 			foreach (var field in jsonStructure.AllFields)
 			{
-				if(field.Value.Hide)
-				{
-					continue;
-				}
 				var formField = await BuildFieldInfo(context, field.Value, service);
 
 				if (formField != null)
@@ -515,6 +511,9 @@ namespace Api.AutoForms
 				field.SearchMode = AdminSearchMode.None;
 			}
 
+			var isHidden = jsonField.Hide;
+			var explicitSearch = false;
+
 			// Any of these [Module] or inheritors?
 			foreach (var attrib in customAttributes)
 			{
@@ -534,7 +533,7 @@ namespace Api.AutoForms
 
 					if (module.Hide)
 					{
-						return null;
+						isHidden = true;
 					}
 				}
 				else if (attrib is DataAttribute)
@@ -572,11 +571,26 @@ namespace Api.AutoForms
 					{
 						field.SearchMode = AdminSearchMode.None;
 					}
+
+					explicitSearch = true;
 				}
 				else if (attrib.GetType().ToString().Contains("PriceAttribute"))
                 {
 					field.Data["isPrice"] = true;
                 }
+			}
+
+			if (isHidden)
+			{
+				if (explicitSearch)
+				{
+					// Can't omit from the data as it needs to be present for search.
+					field.Data["hidden"] = true;
+				}
+				else
+				{
+					return null;
+				}
 			}
 
 			if (labelName == "Name" && field.Order == uint.MaxValue)

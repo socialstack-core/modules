@@ -175,8 +175,13 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 		getAutoForm('content', props.contentType.toLowerCase())
 			.then((formData: any) => {
 				const { form } = formData;
-				const { fields } = form;
-
+				let { fields } = form;
+				
+				if(fields){
+					// Remove hidden fields which are visible to search only.
+					fields = fields.filter(field => !field.data?.hidden);
+				}
+				
 				// In create mode, check URL for initial field values
 				if (!parsedId && fields) {
 					const initialValues: Record<string, string> = {};
@@ -237,7 +242,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 					return {
 						...tabInfo,
 						canvas: {
-							c: formData.form.fields.filter((field: any) => {
+							c: fields.filter((field: any) => {
 								// If the field is not for a specific tab then it is always present on tabIndex 0.
 								const tabKey = field.data?.tab;
 
@@ -625,7 +630,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 
 				// create a copy of the curent entry (as-is)
 				values.id = null;
-				setAction(api.create);
+				setAction((fields: any) => api.create(fields));
 
 			} else if (submitMode == 'draft') {
 				// Set content ID if there is one already:
@@ -634,7 +639,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 				}
 
 				// Create a draft:
-				setAction(api.createDraft);
+				setAction((fields: any) => api.createDraft(fields));
 			} else if (submitMode == 'save') {
 				// Potentially publishing a draft.
 				if (props.isRevision && pageState?.tokens?.length) {

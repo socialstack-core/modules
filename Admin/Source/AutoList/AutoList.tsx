@@ -160,6 +160,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 								d: field.data ? {
 									...field.data,
 									disabled: undefined,
+									hidden: undefined,
 									readonly: undefined,
 									required: undefined,
 									validate: cleanValidate,
@@ -177,6 +178,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 							d: field.data ? {
 								...field.data,
 								disabled: undefined,
+								hidden: undefined,
 								readonly: undefined,
 								required: undefined,
 								validate: cleanValidate,
