@@ -169,6 +169,11 @@ namespace Api.Startup
 						return;
 					}
 
+#if !DEBUG
+					httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+					httpContext.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+#endif 
+
 					try
 					{
 						var context = await httpContext.Request.GetBasicContext();
