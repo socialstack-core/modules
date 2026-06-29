@@ -853,6 +853,14 @@ public partial class AutoService<T, ID> : AutoService, ContentStreamSource<T, ID
 	/// </summary>
 	public virtual async ValueTask<T> Create(Context context, T entity, DataOptions options = DataOptions.Default)
 	{
+		// If it's user created we'll set the user ID now:
+		var userCreated = (entity as Api.Users.UserCreatedContent<ID>);
+
+		if (userCreated != null && userCreated.UserId == 0)
+		{
+			userCreated.UserId = context.UserId;
+		}
+
 		entity = await CreatePartial(context, entity, options);
 		return await CreatePartialComplete(context, entity);
 	}
