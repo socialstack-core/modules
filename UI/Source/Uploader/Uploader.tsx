@@ -559,8 +559,9 @@ export default function Uploader(props: UploaderProps) {
 										{fileLabel}
 									</span>
 								</label>
+
 								{file.loading && file.progressPercent < 100 && file.xhr && <>
-									<Button outlined variant="danger" className="uploader__abort" onClick={(e) => abortFile(e, file.xhr)}>
+									<Button xs outlined variant="danger" className="uploader__abort" onClick={(e) => abortFile(e, file.xhr)}>
 										{`Cancel upload`}
 									</Button>
 									<progress className="uploader__progress" max={100} value={file.progressPercent}></progress>
@@ -742,8 +743,9 @@ export default function Uploader(props: UploaderProps) {
 					{label}
 				</span>
 			</label>
+
 			{loading && progressPercent < 100 && currentXhr && <>
-				<Button outlined variant="danger" className="uploader__abort" onClick={(e) => abortFile(e, currentXhr)}>
+				<Button xs outlined variant="danger" className="uploader__abort" onClick={(e) => abortFile(e, currentXhr)}>
 					{`Cancel upload`}
 				</Button>
 				<progress className="uploader__progress" max="100" value={progressPercent}></progress>
