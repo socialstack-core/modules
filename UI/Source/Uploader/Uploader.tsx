@@ -48,6 +48,8 @@ export type UploaderProps = {
 	id?: string;
 	accept?: string;
 	originalName?: string;
+	batchSize?: number;
+	debug?: boolean;
 };
 
 /*
@@ -146,7 +148,23 @@ export default function Uploader(props: UploaderProps) {
 
 		setFiles(newFiles);
 
-		srcFiles.forEach((file, i) => {
+		var debug = props.debug;
+
+		const log = (...args: any[]) => {
+			if (debug) {
+				console.log(`[Uploader]`, ...args);
+			}
+		};
+
+        // Batch size restricts how many streams are processed by the server at once. 
+        // If you have a lot of files to upload, you can increase this number to speed up the process, but it will also increase the load on the server.
+		var BATCH_SIZE = props.batchSize || 3;
+		var uploadIndex = 0;
+		var activeUploads = 0;
+
+		const startFile = (file: File, i: number) => {
+			log(`starting file ${i} (${file.name}), activeUploads: ${activeUploads}`);
+
 			setLoading(true);
 			setFailed(false);
 			setSuccess(false);
@@ -173,12 +191,23 @@ export default function Uploader(props: UploaderProps) {
 				setFailed(`File too large`);
 				setXhr(null);
 
+				activeUploads--;
+				tryStartNext();
 				return;
 			}
 
 			props.onStarted && props.onStarted(file, file);
 
-			var xhrObj = new XMLHttpRequest();
+			let xhrObj = new XMLHttpRequest();
+			let completed = false;
+
+			const markDone = () => {
+				if (!completed) {
+					completed = true;
+					activeUploads--;
+					tryStartNext();
+				}
+			};
 
 			setFiles(prevFiles => {
 				var fs = [...prevFiles];
@@ -190,8 +219,6 @@ export default function Uploader(props: UploaderProps) {
 			setXhr(xhrObj);
 
 			xhrObj.onreadystatechange = () => {
-				// console.log("XHR ONREADYSTATECHANGE: ", `${xhrObj.responseText} (${xhrObj.status})`);
-
 				if (xhrObj.readyState == XHR_DONE) {
 					var uploadInfo : any;
 
@@ -224,10 +251,11 @@ export default function Uploader(props: UploaderProps) {
 						setFailed(msg);
 						setXhr(null);
 
+						log(`file ${i} failed: ${msg}`);
+						markDone();
 						return;
 					}
 
-					// Run the main callback:
 					props.onUploaded && props.onUploaded(uploadInfo as ApiContent<Upload>);
 
 					setFiles(prevFiles => {
@@ -248,8 +276,10 @@ export default function Uploader(props: UploaderProps) {
 					setRef(uploadInfo.result.ref);
 					setXhr(null);
 
+					log(`file ${i} succeeded, ref: ${uploadInfo.result.ref}`);
+					markDone();
+
 				} else if (xhrObj.readyState == XHR_HEADERS_RECEIVED) {
-					// Headers received
 					if (xhrObj.status > 300) {
 						setFiles(prevFiles => {
 							var fs = [...prevFiles];
@@ -271,7 +301,7 @@ export default function Uploader(props: UploaderProps) {
 			};
 
 			xhrObj.onerror = (e) => {
-				console.log("XHR onerror", e);
+				log(`XHR onerror for file ${i}`, e);
 				setFiles(prevFiles => {
 					var fs = [...prevFiles];
 					if (fs[i]) {
@@ -287,6 +317,8 @@ export default function Uploader(props: UploaderProps) {
 				setSuccess(false);
 				setFailed(DEFAULT_ERROR);
 				setXhr(null);
+
+				markDone();
 			};
 
 			xhrObj.upload.onprogress = (evt) => {
@@ -304,18 +336,14 @@ export default function Uploader(props: UploaderProps) {
 				setProgressPercent(pc);
 				setProgress(' ' + pc + '%');
 
-				// console.log("XHR UPLOAD PROGRESS: ", ' ' + pc + '%');
-
 				props.onUploadProgress && props.onUploadProgress();
 			};
 
 			xhrObj.onabort = (evt) => {
-				// console.log("XHR ABORT: ", evt);
+				log(`file ${i} aborted`);
 			}
 
 			xhrObj.onloadend = (evt) => {
-				// upload complete
-				// console.log("XHR LOADEND EVENT: ", evt);
 			}
 
 			var ep = props.endpoint || "upload/create";
@@ -341,7 +369,20 @@ export default function Uploader(props: UploaderProps) {
 			xhrObj.setRequestHeader("Content-Name", encodeURIComponent(file.name));
 			xhrObj.setRequestHeader("Private-Upload", props.isPrivate ? '1' : '0');
 			xhrObj.send(file);
-		});
+		};
+
+		const tryStartNext = () => {
+			while (activeUploads < BATCH_SIZE && uploadIndex < srcFiles.length) {
+				var file = srcFiles[uploadIndex];
+				var i = uploadIndex;
+				uploadIndex++;
+				activeUploads++;
+				startFile(file, i);
+			}
+		};
+
+		log(`starting upload of ${srcFiles.length} files, batch size: ${BATCH_SIZE}`);
+		tryStartNext();
 	};
 
 	const abortFile = (e: React.MouseEvent, xhrToAbort?: XMLHttpRequest | null) => {
@@ -368,8 +409,9 @@ export default function Uploader(props: UploaderProps) {
 
 	const renderBulkUploadUI = (id: string) => {
 		var uploaderClasses = ['uploader', 'uploader--multiple'];
+		var isCompact = props.compact || (files && files.length > 1);
 
-		if (props.compact) {
+		if (isCompact) {
 			uploaderClasses.push("uploader--compact");
 		}
 
@@ -401,6 +443,21 @@ export default function Uploader(props: UploaderProps) {
 
 			{/* display selected files */}
 			{files && files.length > 0 && <>
+				{(() => {
+					var total = files.length;
+					var pending = files.filter(f => f.loading && !f.xhr).length;
+					var uploading = files.filter(f => f.loading && !!f.xhr).length;
+					var processed = files.filter(f => !!f.ref).length;
+					var failed = files.filter(f => f.failed !== false).length;
+
+					return <div className="uploader__summary">
+						{total > 0 && <span className="uploader__summary-total">{`Total: ${total}`}</span>}
+						{pending > 0 && <span className="uploader__summary-pending">{`Pending: ${pending}`}</span>}
+						{uploading > 0 && <span className="uploader__summary-uploading">{`Processing: ${uploading}`}</span>}
+						{processed > 0 && <span className="uploader__summary-processed">{`Processed: ${processed}`}</span>}
+						{failed > 0 && <span className="uploader__summary-failed">{`Failed: ${failed}`}</span>}
+					</div>;
+				})()}
 				<div className="uploader__bulk-list">
 					{files.map((file, i) => {
 						var fileClasses = ['upload'];
@@ -409,7 +466,20 @@ export default function Uploader(props: UploaderProps) {
 
 						if (file.loading) {
 							fileClasses.push("uploader--progress");
-							fileLabel = file.progressPercent == 100 ? `Processing ...` : `Uploading ${file.progress} ...`;
+							if (!file.xhr) {
+								fileLabel = `Pending`;
+								fileClasses.push("uploader--pending");
+							} else if (file.progressPercent == 100) {
+								fileLabel = `Processing`;
+								fileClasses.push("uploader--processing");
+							} else {
+								fileLabel = `Uploading ${file.progress}`;
+								fileClasses.push("uploader--uploading");
+							}
+						}
+
+						if (file.success && file.ref) {
+							fileClasses.push("uploader--processed");
 						}
 
 						if (file.failed) {
@@ -435,7 +505,10 @@ export default function Uploader(props: UploaderProps) {
 							// TODO: check original image width/height values here; if both are less than 256px,
 							// use the original image and set background-size to auto
 							if (!!refInfo && canShowImage && !canShowVideo) {
-								labelStyle = { backgroundImage: "url(" + fileRef.getUrl(refInfo, { size: '256' }) + ")" };
+								labelStyle = {
+									backgroundImage: "url(" + fileRef.getUrl(refInfo, { size: '256' }) + ")",
+									backgroundSize: isCompact ? 'cover' : undefined
+								};
 							}
 
 							if ((canShowImage || canShowVideo)) {
@@ -520,10 +593,10 @@ export default function Uploader(props: UploaderProps) {
 	var hasMaxSize = maxSize > 0;
 	var hasFilename = (filename && filename.length);
 	var hasOriginalName = (originalName && originalName.length);
-	var label: string | boolean = loading ? (`Uploading` + " " + progress + " ...") : message;
+	var label: string | boolean = loading ? (`Uploading` + " " + progress) : message;
 
 	if (loading && progressPercent == 100) {
-		label = `Processing ...`;
+		label = `Processing`;
 	}
 	
 	var parsedRef = hasRef ? fileRef.parse(ref!) : undefined;
@@ -588,7 +661,10 @@ export default function Uploader(props: UploaderProps) {
 		// TODO: check original image width/height values here; if both are less than 256px,
 		// use the original image and set background-size to auto
 		if (canShowImage && !canShowVideo) {
-			labelStyle = { backgroundImage: "url(" + fileRef.getUrl(refInfo!, { size: '256' }) + ")" };
+			labelStyle = {
+				backgroundImage: "url(" + fileRef.getUrl(refInfo!, { size: '256' }) + ")",
+				backgroundSize: props.compact ? 'cover' : undefined
+			};
 		}
 
 		if ((canShowImage || canShowVideo)) {
@@ -639,7 +715,7 @@ export default function Uploader(props: UploaderProps) {
 			}
 
 			<input id={id} className="uploader__input" type="file" disabled={props.iconOnly} ref={inputRef}
-				onChange={e => onSelectedFile(e)} title={loading ? `Loading ...` : tooltip} accept={props.accept} />
+				onChange={e => onSelectedFile(e)} title={loading ? `Loading` : tooltip} accept={props.accept} />
 			<label htmlFor={id} className={uploaderLabelClass} style={labelStyle}>
 
 				{/* loading */}
