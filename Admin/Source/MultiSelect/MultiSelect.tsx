@@ -11,6 +11,7 @@ import { isoConvert } from 'UI/Functions/DateTools';
 import { ApiList, ApiIncludes } from 'UI/Functions/WebRequest';
 import { useRef, useEffect, useState } from 'react';
 import { ListFilter } from 'Api/Startup';
+import MultiMediaSelect, { MultiMediaSelectProps } from 'Admin/MultiMediaSelect';
 
 type MultiSelectChangeEvent = {
 	target: { value: number[] };
@@ -30,6 +31,8 @@ export type MultiSelectProps<T extends Content<uint>> = {
 	label?: string;
 	/** If true the label is hidden. */
 	hideLabel?: boolean;
+	/** Optional help text. */
+	help?: string;
 	/** Field name used for searching. Falls back to a heuristic then "name". */
 	field?: string;
 	/** Field name used for display. Falls back to `field`. */
@@ -54,12 +57,20 @@ export type MultiSelectProps<T extends Content<uint>> = {
 	onRawChange?: (e: MultiSelectChangeEvent) => void;
 	/** Called to customise the search query. */
 	onQuery?: (filter: ListFilter, query: string) => void;
+	/** Builds the search filter used by the built-in search box, allowing multiple fields to be searched. */
+	searchQuery?: (query: string) => ListFilter;
 };
 
 /**
  * A general use "multi-selection"; primarily used for tags and categories.
  */
 export default function MultiSelect<T extends Content<uint>>(props: MultiSelectProps<T>) {
+
+	// Upload content types are handled by the dedicated multi-media selector,
+	// which reuses the same value/change-event contract as this component.
+	if ((props.contentType || '').toLowerCase() == 'upload') {
+		return <MultiMediaSelect {...(props as unknown as MultiMediaSelectProps)} />;
+	}
 
 	var initVal = (props.value || props.defaultValue || []).filter(t => t!=null);
 	var initMustLoad = false;
@@ -216,6 +227,11 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 					</Link>
 				</label>
 			)}
+			{props.help &&
+				<div className={`form-text ui-form-text`}>
+					{props.help}
+				</div>
+			}
 			<ul className="admin-multiselect__entries">
 				{
 					value.map((entry, i) => (
@@ -302,7 +318,18 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 						<span className="admin-multiselect__search-max">
 							<i>{`Max of ${props.max} added`}</i>
 						</span> :
-						<Search endpoint={query => api.list(query)} exclude={excludeIds} includes={props.includes} field={fieldName} limit={5}
+						<Search endpoint={query => {
+
+							if (props.searchQuery) {
+								var search = props.searchQuery(((query && query.args && query.args[0]) || '') as string);
+
+								if (search && search.query) {
+									return api.list({ ...(query || {}), query: search.query, args: search.args });
+								}
+							}
+
+							return api.list(query);
+						}} exclude={excludeIds} includes={props.includes} field={fieldName} limit={5}
 							placeholder={`Find ${props.label} to add..`} onFind={entry => {
 								if (!entry || value.some(entity => entity.id === entry.id)) {
 									return;

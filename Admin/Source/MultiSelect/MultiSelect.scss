@@ -70,6 +70,20 @@
 			font-size: .85rem;
 			font-style: italic;
 		}
+
+		// Search suggestions are rendered as buttons, which pick up the theme's
+		// primary background and foreground colours. Restore a plain, readable
+		// look for result rows within the multi-select's search box.
+		.search .suggestions .suggestion {
+			background-color: transparent;
+			border-color: transparent;
+			color: #212529;
+
+			&:hover,
+			&:focus {
+				background-color: #fcf2bd;
+			}
+		}
 	}
 	
 	&__label {

@@ -1,0 +1,167 @@
+.multi-media-select {
+	max-width: $admin-field-maxwidth;
+	min-width: $admin-field-minwidth;
+	position: relative;
+
+	&__label {
+		> a {
+			margin-left: .5rem;
+		}
+	}
+
+	&__tags {
+		&:empty {
+			display: none;
+		}
+	}
+
+	&__entries {
+		list-style: none;
+		margin: 0 0 .5rem 0;
+		padding: 0;
+		display: flex;
+		flex-wrap: wrap;
+		gap: .75rem;
+
+		&:empty {
+			display: none;
+		}
+	}
+
+	&__entry {
+		background: var(--admin-page__subheader-background, #E0E4F5);
+		color: var(--admin-page__subheader-fg, #222);
+		border-radius: .25rem;
+		padding: .5rem .75rem;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		max-width: 15.625rem;
+		gap: .5rem;
+
+		&-main {
+			min-width: 0;
+		}
+
+		&-display {
+			display: flex;
+			align-items: center;
+			gap: .5rem;
+		}
+
+		&-name {
+			font-size: .85rem;
+			word-break: break-all;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			display: -webkit-box;
+			line-clamp: 1;
+			-webkit-line-clamp: 1;
+			-webkit-box-orient: vertical;
+		}
+
+		&-options {
+			flex: 0 0 auto;
+			display: flex;
+			gap: .5rem;
+		}
+	}
+
+	&__thumb {
+		flex: 0 0 auto;
+
+		img {
+			object-fit: contain;
+			max-width: 32px;
+			max-height: 32px;
+		}
+
+		&-icon {
+			font-size: 1.25rem;
+			color: currentColor;
+		}
+	}
+
+	&__footer {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: .5rem;
+
+		.btn-new-entry,
+		.multi-media-select__add-btn {
+			flex: 0 0 auto;
+		}
+	}
+
+	&__item {
+		position: relative;
+
+		.file-selector__preview {
+			transition: border-color .15s ease, box-shadow .15s ease;
+		}
+
+		&--selected {
+
+			.file-selector__preview {
+				border-color: var(--primary, #0d6efd);
+				box-shadow: 0 0 0 1px var(--primary, #0d6efd);
+			}
+		}
+	}
+
+	&__checked {
+		position: absolute;
+		top: .35rem;
+		right: .35rem;
+		width: 1.5rem;
+		height: 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--primary, #0d6efd);
+		color: var(--primary-fg, #fff);
+		border-radius: 50%;
+		font-size: .75rem;
+		z-index: 1;
+	}
+
+	&__selected-count {
+		font-size: .85rem;
+		margin-right: auto;
+	}
+
+	&__uploader {
+		// The uploader remains mounted so the footer upload button can trigger its
+		// file input, but the drop/drag region itself is deliberately not shown.
+		display: none;
+	}
+
+	&__loading,
+	&__empty {
+		flex: 1 1 auto;
+		width: 100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: .5rem;
+		color: var(--text-muted, #6c757d);
+		font-size: .9rem;
+	}
+
+	&__dialog {
+		width: min(60rem, calc(100vw - 2rem));
+
+		.ui-dialog__content {
+			display: flex;
+			flex-direction: column;
+			min-height: 0;
+
+			> .multi-media-select__grid {
+				flex: 1 1 auto;
+				height: calc(100vh - 16rem);
+				min-height: 26rem;
+			}
+		}
+	}
+}
