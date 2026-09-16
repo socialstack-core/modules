@@ -1,0 +1,63 @@
+.admin-form-fields-editor {
+	.form-fields-add-option {
+		align-self: flex-start;
+	}
+
+	.form-fields-item-title {
+		display: flex;
+		align-items: center;
+		gap: var(--spacing-sm, 0.5rem);
+	}
+
+	.form-fields-item-label {
+		font-weight: 500;
+	}
+
+	.form-fields-item-type {
+		font-size: var(--font-size-sm, 0.875rem);
+		color: var(--text-muted, #6c757d);
+	}
+
+	.form-fields-item-name {
+		font-size: var(--font-size-sm, 0.875rem);
+		color: var(--text-muted, #6c757d);
+		margin-left: auto;
+
+		code {
+			background: var(--surface-code, #f0f0f0);
+			padding: 0.1rem 0.35rem;
+			border-radius: var(--border-radius-sm, 0.2rem);
+			font-size: inherit;
+		}
+	}
+
+	.form-fields-dialog-form {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-md, 1rem);
+
+		.form-group {
+			margin-bottom: 0;
+		}
+	}
+
+	.form-fields-options-section {
+		display: flex;
+		flex-direction: column;
+		gap: var(--spacing-sm, 0.5rem);
+	}
+
+	.form-fields-option-row {
+		display: flex;
+		gap: var(--spacing-sm, 0.5rem);
+		align-items: center;
+
+		.input-component {
+			flex: 1;
+		}
+
+		.btn {
+			flex-shrink: 0;
+		}
+	}
+}
