@@ -154,7 +154,7 @@ const Lightbox: React.FC<LightboxProps> = ({
 
 					{/* overlay header */}
 					<header className="ui-lightbox__overlay-header">
-						{title?.length > 0 && <>
+						{!!title?.length && <>
 							<h2 className="ui-lightbox__overlay-title">
 								{title}
 							</h2>
@@ -188,7 +188,7 @@ const Lightbox: React.FC<LightboxProps> = ({
 								<figure>
 									<img loading="lazy" src={image[largeField]} alt={image[altField]} />
 									<figcaption>
-										{image[altField]?.length > 0 && <>
+										{!!image[altField]?.length && <>
 											{image[altField]}
 											<br /><br />
 										</>}
