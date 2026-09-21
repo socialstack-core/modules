@@ -29,7 +29,17 @@ namespace Api.Users
         {
 			_contexts = contexts;
 		}
-		
+
+		/// <summary>
+		/// Gets the current contetxual token.
+		/// </summary>
+		/// <returns></returns>
+		[HttpGet("self-token")]
+		public string SelfToken(Context context)
+		{
+			return context.CreateToken();
+		}
+
 		/// <summary>
 		/// Gets the current context.
 		/// </summary>
