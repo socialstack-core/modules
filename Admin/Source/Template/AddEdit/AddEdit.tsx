@@ -13,7 +13,7 @@ import Footer from "Admin/Footer";
 // ========================
 // UI Imports
 // ========================
-import Tabs from "UI/Tabs";
+import { TabsWrapper, TabsPanelsWrapper, TabsPanelWrapper } from "UI/Tabs";
 import Form from "UI/Form";
 import Button from "UI/Button";
 import AddEditTemplateConfig from "Admin/Template/AddEdit/TemplateConfig";
@@ -23,14 +23,12 @@ import AddEditTemplateCanvasEditor from "Admin/Template/AddEdit/CanvasEditor";
 // Hook Imports
 // ========================
 import { useRouter } from "UI/Router";
-import {useEffect, useState} from "react";
-import Container from "UI/Container";
 
 // ========================
 // Types
 // ========================
 type AddEditPageProps = {
-    content?: Template;
+	content?: Template;
 };
 
 export type CanvasNode = {
@@ -59,7 +57,7 @@ enum TemplateTab {
  * - Displays form sections using tabbed navigation.
  */
 const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
-	
+
 	// if the content object is empty/undefined
 	// create and assign it, all exists checks happen on the 
 	// ID field, so as long as that isn't assigned
@@ -67,21 +65,50 @@ const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
 	if (!content) {
 		content = {} as Template;
 	}
-	
+
 	const isNewTemplate = !content.id;
-	const templateTabs = isNewTemplate 
-		? [TemplateTab.Configuration]
-		: Object.values(TemplateTab);
-	
-    // ========================
-    // Hooks
-    // ========================
-    const { setPage, updateQuery, pageState } = useRouter();
-	
+
+	const tabCanvases = [{
+		name: `Configuration`,
+		key: 'configuration'
+	}];
+
+	if (!isNewTemplate) {
+		tabCanvases.push({
+			name: `Design`,
+			key: 'design'
+		});
+	}
+
+	const renderTabs = () => {
+		return <TabsWrapper fullWidth>
+
+			{/* tab panels */}
+			<TabsPanelsWrapper>
+				<TabsPanelWrapper id="tab-panel1">
+					<AddEditTemplateInfo
+						existing={content} />
+					<AddEditTemplateConfig
+						existing={content}
+					/>
+				</TabsPanelWrapper>
+				<TabsPanelWrapper id="tab-panel2">
+					<AddEditTemplateCanvasEditor
+						content={content} />
+				</TabsPanelWrapper>
+			</TabsPanelsWrapper>
+		</TabsWrapper>;
+	}
+
+	// ========================
+	// Hooks
+	// ========================
+	const { setPage, updateQuery, pageState } = useRouter();
+
 	// ========================
 	// Load BodyJSON and add fallback guards
 	// ========================
-	
+
 	// tab handling
 	const currentTab = (pageState.query?.get("currentTab") || TemplateTab.Configuration).toLowerCase();
 
@@ -89,27 +116,8 @@ const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
 		updateQuery({ currentTab: target });
 	};
 
-	const renderTabPanel = (tab: TemplateTab) => {
-		switch (tab) {
-			case TemplateTab.Configuration:
-				return <>
-					<AddEditTemplateInfo
-						existing={content} />
-					<AddEditTemplateConfig
-						existing={content}
-					/>
-				</>;
-
-			case TemplateTab.Design:
-				return <>
-					<AddEditTemplateCanvasEditor
-						content={content} />
-				</>;
-		}
-	};
-
-    // ========================
-    // Render
+	// ========================
+	// Render
 	// ========================
 	return <>
 		<Form
@@ -140,11 +148,10 @@ const AddEditPage: React.FC<AddEditPageProps> = ({ content }) => {
 				{
 					title: `Add / Edit Template`
 				}
-			]} />
+			]} tabCanvases={tabCanvases} currentTab={currentTab} setCurrentTab={setCurrentTab} />
 			<AdminPage.ContentWrapper>
 				<AdminPage.Content>
-					<Tabs currentTab={currentTab} tabs={templateTabs}
-						renderPanel={renderTabPanel} onChange={(tab: string) => setCurrentTab(tab.toLowerCase())} />
+					{renderTabs()}
 				</AdminPage.Content>
 			</AdminPage.ContentWrapper>
 

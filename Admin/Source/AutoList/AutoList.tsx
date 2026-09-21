@@ -1,6 +1,5 @@
 import Table from 'UI/Table';
-import {Content} from 'Api/Database';
-import {ListFilter} from 'Api/Startup';
+import {Content, ListFilter} from 'Api/Content';
 import {useState, useEffect, useRef, useMemo} from 'react';
 import Icon from "UI/Icon";
 import Link from "UI/Link";
@@ -19,7 +18,6 @@ import Drafts from 'Admin/Revisions/Drafts';
 import AdminPage from 'Admin/AdminPage';
 import Footer from 'Admin/Footer';
 import getAutoForm from 'Admin/Functions/GetAutoForm';
-import { Breadcrumb } from 'Admin/AdminPage/SubHeader';
 
 
 const capitalise = (name? : string) => {
@@ -41,9 +39,6 @@ export interface AutoListProps {
 	beforeList?: React.ReactNode;
 	afterList?: React.ReactNode;
 	columns: AutoListColumn[],
-	previousPageUrl?: string;
-	previousPageName?: string;
-	hideEndpointUrl?: boolean;
 }
 
 export interface AutoListColumn {
@@ -71,7 +66,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	// ====================
 	// Props 
 	// ====================
-	const { contentType } = props;
+	const { contentType, fieldHeaders } = props;
 	const { getPageIncludes } = useRouter();	
 	// ====================
 	// Hooks
@@ -292,7 +287,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 			const defaultSortField = props.columns?.find(field => field.field === 'id') ? 'id' : (props.columns[0]?.field ?? 'id');
 			setSort(defaultSortField ? { field: defaultSortField, direction: 'desc' } : null);
 		}
-	}, [sort, props.columns]);
+	}, [sort, props.columns, fieldHeaders]);
 	
 	const selected = Object.values(bulkSelections).filter(Boolean);
 	
@@ -301,9 +296,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	// =================
 	const deleteSelected = () => {
 		// this is the list of selected items IDs.
-		const ids = Object.entries(bulkSelections)
-			.filter(([key, value]) => Boolean(value))
-			.map(([key, value]) => key);
+		const ids = Object.keys(bulkSelections).filter((key) => Boolean(bulkSelections[key]));
 		
 		return Promise.allSettled(
 			ids.map(id => {
@@ -492,7 +485,7 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 												</Link>
 											</>}
 											{item.onClick && <>
-												<Button xs outlined onClick={() => item.onClick!(undefined, setPage)}>
+												<Button xs outlined onClick={() => item.onClick!(item, setPage)}>
 													{item.label}
 												</Button>
 											</>}
@@ -507,37 +500,19 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 		</div>
 	};
 
+	const tabCanvases = [
+		{
+			name: title,
+			key: 'main-table'
+		},
+		{
+			name: `Drafts`,
+			key: 'list-drafts'
+		}
+	];
+
 	const renderTabs = () => {
 		return <TabsWrapper fullWidth>
-			{/* tab links */}
-			<TabsLinksWrapper>
-				<TabsLinkWrapper>
-					<input
-						type="radio"
-						name="tabs"
-						id="tab-link1"
-						aria-controls="tab-panel1"
-						checked={currentTab == "main-table" || !currentTab}
-						onClick={() => {
-							setCurrentTab("main-table");
-						}}
-					/>
-					<label htmlFor='tab-link1'>{title}</label>
-				</TabsLinkWrapper>
-				<TabsLinkWrapper>
-					<input
-						type="radio"
-						name="tabs"
-						id="tab-link2"
-						aria-controls="tab-panel2"
-						checked={currentTab == "list-drafts"}
-						onClick={() => {
-							setCurrentTab("list-drafts");
-						}}
-					/>
-					<label htmlFor='tab-link2'>{`Drafts`}</label>
-				</TabsLinkWrapper>
-			</TabsLinksWrapper>
 
 			{/* tab panels */}
 			<TabsPanelsWrapper>
@@ -585,16 +560,17 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 	}
 
 	return <>
-		<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs} />
+		<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs}
+			tabCanvases={tabCanvases} currentTab={currentTab} setCurrentTab={setCurrentTab} />
 		<AdminPage.ContentWrapper>
 			<AdminPage.Filters
 				searchText={searchText}
 				open={true}
 				onInput={(ev: React.InputEvent<HTMLInputElement>) => {
-					debounce?.handle(ev.currentTarget.value.trim())
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
 				}}
 				onChange={(ev: React.ChangeEvent<HTMLInputElement>) => {
-					debounce?.handle(ev.currentTarget.value.trim())
+					debounce?.handle((ev.target as HTMLInputElement).value.trim())
 				}}>
 				{searchForm ? <Form xs onReset={() => {
 					setSearchFilter({ query: '', args: [] });

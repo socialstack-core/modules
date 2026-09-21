@@ -9,13 +9,16 @@ import Container from "UI/Container";
 import Form from "UI/Form";
 import Input from "UI/Input";
 import Row from "UI/Row";
-
+import getConfig from 'UI/Config';
 
 const CreatePage: React.FC = (): React.ReactElement => {
 
 	const [error, setError] = useState<string>();
 	const [pageGroup, setPageGroup] = useState<uint>(0 as uint);
 	const [selectedTemplate, setSelectedTemplate] = useState<AdminTemplate | undefined>();
+
+	var pagecfg = getConfig<PageServiceConfig>("PageService");
+	var isIndexed = pagecfg?.[0]?.defaultIndexing || false;
 
 	return (
 		<>
@@ -88,6 +91,14 @@ const CreatePage: React.FC = (): React.ReactElement => {
 								name={'description'}
 								label={`Page Description`}
 							/>
+
+							<Input
+								type={'checkbox'}
+								name={'canIndex'}
+								label={`Allow search engines to index this page`}
+								defaultChecked={isIndexed}
+							/>
+
 							<TemplateSelector name='pageTemplate' templateType={1 as int} label={`Page Template`} onChange={setSelectedTemplate} />
 							<Button type='submit'>{`Create page`}</Button>
 						</Form>

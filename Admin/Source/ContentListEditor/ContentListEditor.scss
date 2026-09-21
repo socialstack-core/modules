@@ -1,0 +1,96 @@
+.content-list-editor {
+	.content-list-editor-items {
+		margin-bottom: 1rem;
+	}
+
+	.content-list-editor-empty {
+		padding: 1.5rem;
+		text-align: center;
+		color: #6c757d;
+		background: #f8f9fa;
+		border-radius: 0.25rem;
+	}
+
+	.content-list-editor-footer {
+		margin-top: 1rem;
+	}
+
+	.collapsible .collapsible-icon-left {
+		i::before {
+			content: "\f078"; // fa-chevron-down
+		}
+	}
+
+	.collapsible.open .collapsible-icon-left {
+		i::before {
+			content: "\f077"; // fa-chevron-up
+		}
+	}
+
+	.collapsible-content {
+		margin-bottom: 0;
+		padding-bottom: 0.5rem;
+	}
+
+	.content-list-editor-row {
+		margin-bottom: 0.5rem;
+		border: 1px solid #dee2e6;
+		border-radius: 0.25rem;
+		background: #fff;
+		transition: opacity 0.2s, border-color 0.2s;
+
+		&.dragging {
+			opacity: 0.5;
+		}
+
+		&.drag-over {
+			border-color: var(--primary);
+			box-shadow: 0 0 0 2px var(--primary-light);
+		}
+
+		.collapsible {
+			border: none;
+			background: transparent;
+		}
+
+		.collapsible-summary {
+			border: none;
+			background: transparent;
+		}
+	}
+
+	.content-list-editor-row-summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.5rem 1rem;
+	}
+
+	.content-list-editor-row-actions {
+		display: flex;
+		gap: 0.5rem;
+		flex-shrink: 0;
+	}
+
+	.content-list-editor-drag-handle {
+		cursor: grab;
+		padding: 0.25rem;
+		color: #6c757d;
+
+		&:active {
+			cursor: grabbing;
+		}
+	}
+
+	.content-list-editor-children {
+		margin-top: 0.5rem;
+		padding-left: 1rem;
+		border-left: 2px solid #dee2e6;
+		margin-left: 0.5rem;
+	}
+
+	.content-list-editor-add-child {
+		padding: 0 1rem .5rem 1rem;
+	}
+}

@@ -61,11 +61,11 @@ const CustomFieldEditor: React.FC<CustomFieldEditorProps> = (props) => {
 			<td className="custom-field-editor__order">{order}</td>
 			<td className="custom-field-editor__actions">
 				<Button sm outlined onClick={() => setShowFieldModal(entry)}>
-					<i className="far fa-fw fa-edit"></i>
+					<i className="fal fa-fw fa-edit"></i>
 					{`Edit`}
 				</Button>
 				<Button sm outlined variant="danger" onClick={() => setShowConfirmDeleteModal(entry)}>
-					<i className="far fa-fw fa-trash"></i>
+					<i className="fal fa-fw fa-trash-alt"></i>
 					{`Delete`}
 				</Button>
 			</td>

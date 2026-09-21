@@ -9,7 +9,7 @@ type AdminPageProps = React.PropsWithChildren<{
 	children?: React.ReactNode
 }>;
 
-const AdminPageRoot: React.FC<AdminPageProps> = (props) => {
+function AdminPageRoot(props: AdminPageProps) {
 	const { children } = props;
 
 	return <>
@@ -19,20 +19,12 @@ const AdminPageRoot: React.FC<AdminPageProps> = (props) => {
 	</>;
 }
 
-const AdminPage: React.FC<AdminPageProps> & {
-	SubHeader: typeof AdminPageSubHeader,
-	ContentWrapper: typeof AdminPageContentWrapper,
-	Notice: typeof AdminPageNotice,
-	Filters: typeof AdminPageFilters,
-	Content: typeof AdminPageContent,
-	Feedback: typeof AdminPageFeedback,
-} = Object.assign(AdminPageRoot, {
-	SubHeader: AdminPageSubHeader,
-	ContentWrapper: AdminPageContentWrapper,
-	Notice: AdminPageNotice,
-	Filters: AdminPageFilters,
-	Content: AdminPageContent,
-	Feedback: AdminPageFeedback,
-});
+AdminPageRoot.SubHeader = AdminPageSubHeader;
+AdminPageRoot.ContentWrapper = AdminPageContentWrapper;
+AdminPageRoot.Notice = AdminPageNotice;
+AdminPageRoot.Filters = AdminPageFilters;
+AdminPageRoot.Content = AdminPageContent;
+AdminPageRoot.Feedback = AdminPageFeedback;
 
+const AdminPage = AdminPageRoot;
 export default AdminPage;

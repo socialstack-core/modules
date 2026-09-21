@@ -54,7 +54,7 @@ const CustomFieldSelectForm: React.FC<CustomFieldSelectFormProps> = (props) => {
 									e.preventDefault();
 									deleteOption(option.id);
 								}}>
-								<Icon type="fa-trash" />
+								<Icon light type="fa-trash-alt" />
 							</Button>
 						</div>
 						<span className="option-order">

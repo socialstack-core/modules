@@ -8,11 +8,11 @@
 	&:has(.ui-page__tabs) {
 		// ensure invalid fields are visible when the browser sets focus and scrolls
 		// (otherwise could be blocked by docked tab links)
-		scroll-padding-block: px_to_rem(100);
+		//scroll-padding-block: px_to_rem(100);
 	}
 
 	&:not(.admin-page__content--no-padding) {
-		padding: 0 var(--admin-page-padding, #{px_to_rem(20)});
+		padding: px_to_rem(10) var(--admin-page-padding, #{px_to_rem(20)}) 0 var(--admin-page-padding, #{px_to_rem(20)});
 	}
 
 	&:not(.admin-page__content--no-spacing) {
@@ -37,7 +37,8 @@
 	// make table headers sticky
 	.ui-table > thead {
 		position: sticky;
-		top: px_to_rem(10);
+		//top: px_to_rem(10);
+		top: 0;
 		background: var(--admin-page-background, #EFF1FA);
 		z-index: 2;
 
@@ -46,9 +47,9 @@
 			position: absolute;
 			left: 0;
 			width: 100%;
-			height: px_to_rem(16);
+			height: px_to_rem(20);
 			background: var(--admin-page-background, #EFF1FA);
-			top: px_to_rem(-16);
+			top: px_to_rem(-20);
 		}
 
 	}
@@ -87,7 +88,26 @@
 
 		// offset sticky table headers nested within tabs
 		.ui-table > thead {
-			top: px_to_rem(84);
+			//top: px_to_rem(84);
+		}
+
+	}
+
+	// updated table positioning (now with tab links in subheader)
+	> .ui-page__tabs > .ui-page__tab-links[style="display: none;"] {
+		
+		~ .ui-page__tab-panels {
+			margin-top: px_to_rem(12);
+			
+			> .ui-page__tab-panel {
+				
+				> .table-container:first-child > .table > thead,
+				> .ui-revisions-list > .table > thead {
+					top: px_to_rem(12);
+				}
+
+			}
+
 		}
 
 	}

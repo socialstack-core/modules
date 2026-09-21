@@ -4,6 +4,8 @@ import Row from 'UI/Row';
 import Column from 'UI/Column';
 import Input from 'UI/Input';
 import Image from 'UI/Image';
+import Loading from 'UI/Loading';
+import Search from 'UI/Search';
 import Uploader from 'UI/Uploader';
 import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 import Dialog from 'UI/Dialog';
@@ -14,7 +16,7 @@ import {useState, useMemo, useRef} from 'react';
 import { Tag } from 'Api/Tag';
 import {useRouter} from "UI/Router";
 import Debounce from "UI/Functions/Debounce";
-import { ListFilter, AutoControllerInt } from "Api/Startup";
+import {ListFilter} from "Api/Content";
 import AdminPage from "Admin/AdminPage";
 import Footer from "Admin/Footer";
 import Button from 'UI/Button';
@@ -147,7 +149,7 @@ const MediaCenter = (props : MediaCenterProps) => {
         }
 
         return canShowImage ?
-            <Image fileRef={ref} size={targetSize} /> :
+            <Image fileRef={ref} size={targetSize} portraitCheck /> :
             <span className={fileClassName}></span>;
 
     }
@@ -193,7 +195,6 @@ const MediaCenter = (props : MediaCenterProps) => {
         );
     }
 
-    /*
     const renderHeader = (allContent) => {
         // Header (Optional)
         var heads = fields.map(field => {
@@ -260,7 +261,6 @@ const MediaCenter = (props : MediaCenterProps) => {
             </th>
         ].concat(heads);
     }
-    */
 
     const getSelectedCount = () => {
         if (!bulkSelections) {
@@ -330,7 +330,7 @@ const MediaCenter = (props : MediaCenterProps) => {
                 </label>
 
                 {/* allow image properties (such as focal point) to be set */}
-                    <Button sm className="media-center__original-filename" data-clamp="2"
+                    <button type="button" className="btn btn-sm btn-primary media-center__original-filename" data-clamp="2"
                     onClick={() => {
                         setUploadModal({
                             bulkUploaded: false,
@@ -339,16 +339,16 @@ const MediaCenter = (props : MediaCenterProps) => {
                             uploadId: entry.id,
                             focalX: focalX,
                             focalY: focalY,
-							alt: entry.alt ?? undefined,
-							coverImageRef: entry.coverImageRef ?? undefined,
-							author: entry.author ?? undefined,
-							originalName: entry.originalName ?? undefined,
+                            alt: entry.alt ?? undefined,
+                            coverImageRef: entry.coverImageRef ?? undefined,
+                            author: entry.author ?? undefined,
+                            originalName: entry.originalName ?? undefined,
                             transcodeState: entry.transcodeState,
                             tags: entry.tags
                         });
                     }}>
                         {`Edit - `}{entry.originalName}
-                    </Button>
+                    </button>
 
             </div>
         </>;
@@ -489,7 +489,7 @@ const MediaCenter = (props : MediaCenterProps) => {
 									<div className='media-center__preview-wrapper'>
 										<div className="media-center__preview"
 											onClick={(e) => {
-                                                var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
+												var imagePreviewRect = (e.target as HTMLDivElement).getBoundingClientRect();
                                                 const anyE = e as any;
                                                 const offsetX = anyE.offsetX as number;
                                                 const offsetY = anyE.offsetY as number;
@@ -522,8 +522,7 @@ const MediaCenter = (props : MediaCenterProps) => {
 											return;
 										}
 
-                                        const upload = e.result!;
-
+										const upload = e.result!;
 										if (!upload.isImage) {
 											window.location.reload();
 											return;
@@ -579,7 +578,7 @@ const MediaCenter = (props : MediaCenterProps) => {
 														{`Focal Point`}
 													</label>
 													<div className="input-group">
-														<Input type="text" value={`${focalX}%, ${focalY}%`} readOnly noWrapper />
+														<Input value={`${focalX}%, ${focalY}%`} readonly noWrapper />
 														<Button sm variant="secondary" outlined id="form-field-focal-point" onClick={() => {
 															setUploadModal({ ...uploadModal, focalX: 50, focalY: 50 });
 														}}>
@@ -593,10 +592,11 @@ const MediaCenter = (props : MediaCenterProps) => {
 											</div>
 										}
 
-										<MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`}
+										<MultiSelect value={uploadModal.tags} contentType='tag' field='name' label={`Folders`} showCreateOrEditModal={true}
 											onChange={e => {
-												setUploadModal({ ...uploadModal, tags: (e.fullValue as any) as Tag[] });
-											}} />
+												setUploadModal({ ...uploadModal, tags: e.fullValue });
+											}}>
+										</MultiSelect>
 
 									</div>
 
@@ -648,15 +648,14 @@ const MediaCenter = (props : MediaCenterProps) => {
     // here we build up the filter that the loop component uses. 
     // a query will not always be present, however we do always 
     // have a start and a page limit, so these exist as absolutes.
-    const filter: ListFilter = {
+    const filter: Partial<ListFilter> = {
         pageSize,
         pageIndex,
         sort: {
             field: 'id',
             direction: 'desc'
 		},
-        args: [],
-        query: ''
+		args: []
     } 
     
     // when a string is empty, in an if condition, it's executed as false, 
@@ -773,9 +772,9 @@ const MediaCenter = (props : MediaCenterProps) => {
 			</AdminPage.Filters>
 			<AdminPage.Content>
 				<div className="media-center__list">
-                    <Loop
-                        // iterates over uploadApi.list 
-                        over={uploadApi}
+					<Loop
+						// iterates over uploadApi.list 
+						over={uploadApi}
 						// enables pagination
 						paged paginatorOnly dockBottom
 						// set the key based off index

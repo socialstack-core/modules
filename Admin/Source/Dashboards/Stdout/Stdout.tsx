@@ -479,7 +479,9 @@ const StdOut: React.FC<{}> = (): React.ReactNode => {
 						return (
 							<Badge variant={"primary"}>
 								{value}
-								<Button onClick={() => setHideWhereContains(hideWhereContains.filter(existing => existing !== value))}><Icon type={'fa-trash'} /></Button>
+								<Button onClick={() => setHideWhereContains(hideWhereContains.filter(existing => existing !== value))}>
+									<Icon light type="fa-trash-alt" />
+								</Button>
 							</Badge>
 						)
 					})}

@@ -191,7 +191,7 @@ const Editor: React.FC = (props: any) => {
                                 <Button sm outlined variant="secondary" className="float-end me-2"
                                     onClick={() => onRuleRemoved(index)}
                                 >
-                                    <i className="fa fa-trash" />
+                                    <i className="fal fa-trash-alt" />
                                 </Button>
                             </div>
                         ))

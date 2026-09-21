@@ -1,10 +1,10 @@
 import Table from 'UI/Table';
 import Time from 'UI/Time';
 import Link from 'UI/Link';
-import { Content } from 'Api/Database';
-import { ApiInclude } from 'UI/Functions/WebRequest';
-import { AutoController, ListFilter } from 'Api/Startup';
 import { User } from 'Api/User';
+import Button from 'UI/Button';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
+import { useState } from 'react';
 
 /**
  * Props for the List component.
@@ -30,6 +30,8 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 	// Api is expected to be an ApiEndpoints object.
 	var api = require('Api/' + props.contentType).default as AutoController<T, uint>;
 
+	const [confirmRemove, setConfirmRemove] = useState<any>(null);
+
 	const renderEmpty = (colspan: int) => {
 		return <>
 			<tr>
@@ -54,10 +56,10 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 				<th>
 					{`Date created`}
 				</th>
-				<th>
+				<th className="drafts-table__author">
 					{`Author`}
 				</th>
-				<th>
+				<th className="drafts-table__actions">
 					{`Actions`}
 				</th>
 			</tr>
@@ -79,10 +81,10 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 				<th>
 					{`Action`}
 				</th>
-				<th>
+				<th className="history-table__author">
 					{`Author`}
 				</th>
-				<th>
+				<th className="history-table__actions">
 					{`Actions`}
 				</th>
 			</tr>
@@ -112,9 +114,15 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 					}
 				</td>
 				<td className="drafts-table__col drafts-table__col--actions">
-					<Link href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="drafts-table__link">
-						{`View`}
-					</Link>
+					<div className="drafts-table__col--actions-internal">
+						<Link xs outlined href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="drafts-table__link">
+							{`View`}
+						</Link>
+						<Button xs outlined variant="danger" aria-label={`Remove draft`} onClick={() => setConfirmRemove(entry)} className="drafts-table__remove">
+							<i className="fr fr-trash-alt"></i>
+							{`Remove`}
+						</Button>
+					</div>
 				</td>
 			</tr>
 		</>;
@@ -193,7 +201,7 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 			</Table>
 
 			<Table
-				source={(filter?: ListFilter, includes?: ApiInclude[]) => filter ? api.revisionList(filter, includes) : api.revisionListAll(includes)}
+				source={(filter?: ListFilter, includes?: ApiInclude[]) => filter ? api.revisionList(filter, includes) : api.revisionListAll(includes)} 
 				className="history-table"
 				includes={['creatorUser', 'realUser']}
 				filter={{
@@ -212,6 +220,21 @@ const List: React.FC<ListProps> = <T extends Content<uint>>(props: ListProps) =>
 			>
 				{renderHistoryEntry}
 			</Table>
+			{confirmRemove && <>
+				<ConfirmDialog
+					variant="danger"
+					title={`Remove draft`}
+					isOpen={true}
+					onClose={() => setConfirmRemove(null)}
+					confirmText={`Yes, remove it`}
+					confirmCallback={() => {
+						return api.deleteRevision(confirmRemove.id);
+					}}>
+					<p>
+						{`Are you sure you wish to remove this draft? This cannot be undone.`}
+					</p>
+				</ConfirmDialog>
+			</>}
 		</div>
 	);
 }

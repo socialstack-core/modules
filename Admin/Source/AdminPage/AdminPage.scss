@@ -1,4 +1,8 @@
+// supports a max of 12 tabs - consider a different UI if you need more :P
+$tab-count: 12;
+
 .admin-page {
+	$admin-page: &;
 	height: 100vh;
 	height: 100dvh;
 
@@ -64,8 +68,8 @@
 		// limit width of form fields
 		:where(.input-group, .form-select, .form-control, .ui-divider) {
 
-			// exclude if hosted within header / footer
-			&:not(.admin-page__subheader *, .admin-page__footer *) {
+			// exclude if hosted within header / footer / modal
+			&:not(.admin-page__subheader *, .admin-page__footer *, .modal-dialog *) {
 				max-width: 50vw;
 				min-width: px_to_rem(400);
 			}
@@ -194,6 +198,74 @@
 				}
 			}
 		}
+	}
+
+	&__tabs-wrapper {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	&__tab-links {
+		display: flex;
+		align-items: flex-end;
+		gap: px_to_rem(16) px_to_rem(6);
+		flex-wrap: wrap;
+	}
+
+	&__tab-link {
+		position: relative;
+
+		> input[type="radio"] {
+			position: absolute;
+			z-index: 1;
+			width: 100%;
+			height: 100%;
+			cursor: pointer;
+			opacity: 0;
+
+			&:checked + label {
+				font-weight: 700;
+				font-size: px_to_rem(16);
+				background: var(--admin-page-background, #EFF1FA);
+				padding: px_to_rem(8) px_to_rem(14);
+			}
+		}
+
+		label {
+			font-size: px_to_rem(14);
+			font-weight: 400;
+			text-align: center;
+			padding: px_to_rem(6) px_to_rem(11);
+			background: #D4D8E8;
+			border-radius: px_to_rem(6) px_to_rem(6) 0 0;
+		}
+
+	}
+
+}
+
+@for $radio from 1 through $tab-count {
+
+	// toggle panel visibility when associated radio button selected
+	.admin-page__internal:has(.admin-page__subheader .admin-page__tab-links #tab-link#{$radio}:checked) {
+
+		.admin-page__content > .ui-page__tabs > .ui-page__tab-panels > .ui-page__tab-panel:nth-child(#{$radio}) {
+			display: block;
+		}
+
+	}
+
+	// show marker if the given tab includes an invalid field
+	.admin-page__internal:has(.admin-page__content > .ui-page__tabs > .ui-page__tab-panels > .ui-page__tab-panel:nth-child(#{$radio}) input.is-invalid) {
+		
+		.admin-page__subheader .admin-page__tab-link:nth-child(#{$radio}) > label::after {
+			content: "*";
+			color: var(--danger);
+			margin-left: px_to_rem(8);
+		}
+
 	}
 
 }

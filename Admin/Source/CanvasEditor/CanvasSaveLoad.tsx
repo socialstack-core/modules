@@ -24,6 +24,14 @@ export function canvasJsonToHtml(json: any): string {
 
 	let html = '';
 
+	if (Array.isArray(json)) {
+		json.forEach(entry => {
+			html += canvasJsonToHtml(entry);
+		});
+
+		return html;
+	}
+
 	// It's a single component/tag
 	if (json.t) {
 		return renderNodeToHtml(json);
@@ -41,8 +49,8 @@ export function canvasJsonToHtml(json: any): string {
 	if (json.c && typeof json.c === 'object') {
 		return renderNodeToHtml(json.c);
 	}
-
-	return '';
+	
+	return json.s || '';
 }
 
 function escapeJsonForAttribute(jsonString: string) {
@@ -83,7 +91,7 @@ function renderNodeToHtml(node: any): string {
 
 	// Handle "s" (string content) - render as <p> for editability
 	if (node.s !== undefined) {
-		return `<p>${escapeHtml(node.s)}</p>`;
+		return escapeHtml(node.s);
 	}
 
 	const isReactComponent = node.t.includes('/') || node.t[0] === node.t[0].toUpperCase();
@@ -99,15 +107,16 @@ function renderNodeToHtml(node: any): string {
 
 	if (isReactComponent) {
 		const propsString = node.d ? escapeJsonForAttribute(JSON.stringify(node.d)) : '';
+		const linksString = node.l ? escapeJsonForAttribute(JSON.stringify(node.l)) : '';
 		let rootsString = '';
 
 		if (node.r) {
 			for (var rootKey in node.r) {
-				rootsString += '<root-content data-name="' + rootKey + '">' + renderNodeToHtml(node.r[rootKey]) + '</root-content>';
+				rootsString += '<root-content data-name="' + rootKey + '">' + canvasJsonToHtml(node.r[rootKey]) + '</root-content>';
 			}
 		}
 
-		return '<react-component data-name="' + node.t + '" data-props="' + propsString + '" contenteditable="false">' + rootsString + '</react-component>';
+		return '<react-component data-name="' + node.t + '" data-props="' + propsString + '" data-links="' + linksString + '" contenteditable="false">' + rootsString + '</react-component>';
 	} else {
 		// Standard HTML element
 		let attribs = '';
@@ -123,13 +132,7 @@ function renderNodeToHtml(node: any): string {
 
 		let contentHtml = '';
 		if (node.c) {
-			if (Array.isArray(node.c)) {
-				node.c.forEach((child: any) => {
-					contentHtml += renderNodeToHtml(child);
-				});
-			} else {
-				contentHtml += renderNodeToHtml(node.c);
-			}
+			contentHtml += canvasJsonToHtml(node.c);
 		}
 
 		if (node.c) {
@@ -212,7 +215,7 @@ export function searchForContentRoots(el: Element, result: (el:HTMLElement, root
 
 function parseHtmlNode(node: ChildNode, roots?: Record<string, any>): any {
 	if (node.nodeType === Node.TEXT_NODE) {
-		const text = node.textContent?.trim();
+		const text = node.textContent;
 		// Skip whitespace-only text nodes
 		return text ? { s: text } : null;
 	}
@@ -227,6 +230,7 @@ function parseHtmlNode(node: ChildNode, roots?: Record<string, any>): any {
 	if (tagName === 'react-component') {
 		const componentName = el.getAttribute('data-name');
 		const propsString = el.getAttribute('data-props');
+		const linksString = el.getAttribute('data-links');
 
 		let data: any = null;
 
@@ -238,12 +242,26 @@ function parseHtmlNode(node: ChildNode, roots?: Record<string, any>): any {
 			}
 		}
 
+		let links: any = null;
+
+		if (linksString) {
+			try {
+				links = JSON.parse(linksString);
+			} catch (e) {
+				console.error("Failed to parse component links", e);
+			}
+		}
+
 		const result: any = {
 			t: componentName,
 		};
 
 		if (data && Object.keys(data).length > 0) {
 			result.d = data;
+		}
+
+		if (links && Object.keys(links).length > 0) {
+			result.l = links;
 		}
 
 		// Next, search for roots which can be in any of its child nodes.

@@ -43,7 +43,7 @@ export default function ComponentGroupSelector(props: { selectOpenFor: boolean; 
 						<div className="module-group__internal">
 							{groups.map(group => (
 								<Button
-									className="module-tile"
+									className="module-tile" outlined
 									key={group.id}
 									onClick={() => {
 										onSelected && onSelected(group);

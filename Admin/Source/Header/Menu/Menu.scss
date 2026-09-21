@@ -82,9 +82,11 @@
 	}
 
 	&-link {
+		--ui-link-text-decoration-hover: none;
 		--ui-link-font-weight: 400;
 		--ui-link-font-size: 15;
 		--ui-link-icon: 20;
+		--ui-link-hover: var(--primary);
 		display: flex;
 		border-radius: px_to_rem(8);
 		padding: px_to_rem(10) px_to_rem(14);

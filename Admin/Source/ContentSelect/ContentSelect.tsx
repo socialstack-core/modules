@@ -7,11 +7,13 @@ import { useRef, useEffect, useState } from 'react';
 import { Content } from 'Api/Database';
 import { AutoController, ListFilter } from 'Api/Startup';
 
-type ContentSelectChangeEvent = {
+type ContentSelectChangeEvent<T extends Content<uint> = Content<uint>> = {
 	target: {
 		value: number | null;
 		name?: string;
 	};
+	/** The full selected content object, when known. */
+	fullValue?: T | null;
 };
 
 export type ContentSelectProps<T extends Content<uint>> = {
@@ -25,18 +27,24 @@ export type ContentSelectProps<T extends Content<uint>> = {
 	name?: string;
 	/** Label text shown above the select. */
 	label?: string;
+	/** Optional help text. */
+	help?: string;
+	/** Optional placeholder text. */
+	placeholder?: string;
 	/** When set, renders in search mode using this field name for searching. */
 	search?: string;
 	/** Field name to use as the display title. Falls back to heuristics. */
 	titleField?: string;
 	/** If true, the default "None" option is omitted in dropdown mode. */
 	hideDefaultValue?: boolean;
+	/** If true, the "New {contentType}" link is hidden. */
+	hideCreateNew?: boolean;
 	/** Text to show for the empty/none option. Defaults to "None". */
 	noSelection?: string;
 	/** Text to show for the empty/none option on mobile. Defaults to "None". */
 	mobileNoSelection?: string;
 	/** Called when the selection changes. */
-	onChange?: (e: ContentSelectChangeEvent) => void;
+	onChange?: (e: ContentSelectChangeEvent<T>) => void;
 	/** Custom render function for search results and the selected title. */
 	onRender?: (entry: T) => React.ReactNode;
 	/** Called to customise the search query. */
@@ -142,14 +150,20 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 	}, []);
 
 	function handleChange(e: any) {
-		if (props.onChange) {
-			props.onChange(e);
-		}
-
 		var value = null;
 
 		if (e && e.target && e.target.value && e.target.value > 0) {
 			value = e.target.value;
+		}
+
+		var fullValue = null as T | null;
+
+		if (value) {
+			fullValue = all?.find(a => a && a.id == value) || null;
+		}
+
+		if (props.onChange) {
+			props.onChange({ target: { value, name: e?.target?.name ?? props.name }, fullValue });
 		}
 
 		setSelected(value);
@@ -177,12 +191,21 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 		}
 
 		var value = props.defaultValue || props.value;
+		var searchId = `${props.name}_search`;
+		const noneSelected = !searchSelected && !value;
 
 		return (
 			<div className="mb-3 content-select">
 				{props.label && (
-					<label className="form-label">{props.label}</label>
+					<label className="form-label" htmlFor={searchId}>
+						{props.label}
+					</label>
 				)}
+				{props.help &&
+					<div className={`form-text ui-form-text`}>
+						{props.help}
+					</div>
+				}
 				<input
 					type="hidden"
 					ref={ele => {
@@ -201,27 +224,27 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 					name={props.name}
 				/>
 				<Search
-					name=""
-					endpoint={api ? api.list : props.endpoint}
+					id={searchId} className="content-select__search" for={contentType}
+					endpoint={ctn => api ? api.list(ctn) : props.endpoint(ctn)}
 					field={props.titleField || props.search}
 					limit={5}
-					placeholder={'Search for a ' + contentType + '..'}
+					placeholder={props.placeholder || 'Search for a ' + contentType + '..'}
 					inputClassName="ui-form-control"
 					onRender={props.onRender}
 					onQuery={props.onQuery}
 					onFind={entry => {
 						setSearchSelected(entry as T);
 						if (props.onChange) {
-							props.onChange({ target: { value: entry ? entry.id : null, name: props.name } });
+							props.onChange({ target: { value: entry ? entry.id : null, name: props.name }, fullValue: entry as T });
 						}
 					}}
 				/>
-				<div className="selected-content">
+				<div className={`selected-content ${noneSelected ? 'selected-content--none' : ''}`}>
 					{searchSelected ? (
 						<div className="selected-content__value">
 							<span>{title}</span>
 							<Button 
-								sm 
+								xs 
 								variant="secondary" 
 								onClick={() => {
 									setSearchSelected(null);
@@ -230,10 +253,10 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 									}
 								}}
 							>
-								<i className="fal fa-times"></i> Remove
+								<i className="fal fa-times"></i> {`Remove`}
 							</Button>
 						</div>
-					) : value ? 'Item #' + value : 'None selected'}
+					) : value ? 'Item #' + value : `None selected`}
 				</div>
 			</div>
 		);
@@ -314,12 +337,14 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 			</Input>
 
 			{!_isAdminSearch && <footer className="content-select__footer">
-				<Link variant="primary" outlined sm
-					href={'/en-admin/' + contentType.toLowerCase() + '/add'}
-					className="btn-content-select-action btn-add-content"
-				>
-					<i className="fal fa-fw fa-plus"></i> {`New ${contentType}`}
-				</Link>
+				{!props.hideCreateNew && (
+					<Link variant="primary" outlined sm
+						href={'/en-admin/' + contentType.toLowerCase() + '/add'}
+						className="btn-content-select-action btn-add-content"
+					>
+						<i className="fal fa-fw fa-plus"></i> {`New ${contentType}`}
+					</Link>
+				)}
 
 				{selected && (
 					<Link variant="primary" outlined sm

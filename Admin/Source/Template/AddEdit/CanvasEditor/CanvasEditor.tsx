@@ -15,18 +15,17 @@ const AddEditTemplateCanvasEditor: React.FC<AddEditTemplateCanvasEditorProps> = 
 	const { content } = props;
 	
 	if (!content) {
-		return (<Alert variant="danger">{`No template supplied`}</Alert>)
+		return (<Alert variant="danger">{`No template supplied`}</Alert>);
 	}
-	
+
 	return (
-		<div className={'canvas-editor-container'}>
-			<Input
-				type={'canvas'}
-				name={'bodyJson'}
-				defaultValue={content.bodyJson}
-			/>
-		</div>
-	)
+		<Input noWrapper
+			type={'canvas'}
+			name={'bodyJson'}
+			defaultValue={content.bodyJson}
+			templateType={content.templateType}
+		/>
+	);
 }
 
 export default AddEditTemplateCanvasEditor;

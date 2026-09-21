@@ -1,13 +1,23 @@
 react-component {
     display: block;
-    margin: 0.5em 0;
+}
+
+root-content.mce-content-body {
+	display: inline-block;
+	transition: outline .2s ease;
+	width: 100%;
+	
+	&:hover {
+		outline: 2px dotted var(--primary) !important;
+	    outline-offset: -2px;
+	}
 }
 
 root-content[data-placeholder]:empty::before,
 root-content[data-placeholder]:has(> br[data-mce-bogus]:only-child)::before {
     content: attr(data-placeholder);
-    color: #888;
-    font-style: italic;
+    color: inherit;
+	opacity: .65;
 }
 
 body > .tox-silver-sink {
@@ -20,6 +30,18 @@ body > .tox-silver-sink {
 
 	> .tox.tox-tinymce {
 		border-radius: 0;
+	}
+
+}
+
+.canvas-editor.fullscreen {
+
+	// dock header at top of viewport when in fullscreen mode
+	.tox:not(.tox-tinymce-inline) .tox-editor-header {
+		left: 0 !important;
+		right: 0 !important;
+		top: 0 !important;
+		width: auto !important;
 	}
 
 }
@@ -43,4 +65,16 @@ body > .tox-silver-sink {
 
 .fullscreen-hidden-popover {
 	display: hidden !important;
+}
+
+react-component:empty::before {
+	content: attr(data-empty-message);
+	display: block;
+	background: var(--admin-page__subheader-background, #E0E4F5);
+	padding: 1rem;
+	text-align: center;
+    font-style: italic;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px dashed rgba(0 0 0 / .25);
 }

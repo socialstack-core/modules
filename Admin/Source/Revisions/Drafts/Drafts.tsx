@@ -1,8 +1,9 @@
 import Table from 'UI/Table';
 import Time from 'UI/Time';
 import Link from 'UI/Link';
-import {ApiInclude} from 'UI/Functions/WebRequest';
-import {ListFilter} from 'Api/Startup';
+import Button from 'UI/Button';
+import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
+import { useState } from 'react';
 
 /**
  * Props for the Drafts component.
@@ -20,6 +21,8 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 
 	// Api is expected to be an ApiEndpoints object.
 	var api = require('Api/' + props.contentType).default;
+
+	const [confirmRemove, setConfirmRemove] = useState<any>(null);
 
 	const renderEmpty = () => {
 		return <>
@@ -39,10 +42,10 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 				<th>
 					{`Date created`}
 				</th>
-				<th>
+				<th className="drafts-table__author">
 					{`Author`}
 				</th>
-				<th>
+				<th className="drafts-table__actions">
 					{`Actions`}
 				</th>
 			</tr>
@@ -59,9 +62,15 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 					{entry.creatorUser ? entry.creatorUser.fullName || entry.creatorUser.username : `Unspecified`}
 				</td>
 				<td className="drafts-table__col drafts-table__col--actions">
-					<Link xs outlined href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="drafts-table__link">
-						{`View`}
-					</Link>
+					<div className="drafts-table__col--actions-internal">
+						<Link xs outlined href={`/en-admin/${props.contentType.toLowerCase()}/revision/${entry.id}`} className="drafts-table__link">
+							{`View`}
+						</Link>
+						<Button xs outlined variant="danger" aria-label={`Remove draft`} onClick={() => setConfirmRemove(entry)} className="drafts-table__remove">
+							<i className="fr fr-trash-alt"></i>
+							{`Remove`}
+						</Button>
+					</div>
 				</td>
 			</tr>
 		</>;
@@ -92,6 +101,21 @@ const Drafts: React.FC<DraftsProps> = (props) => {
 			>
 				{renderDraftEntry}
 			</Table>
+			{confirmRemove && <>
+				<ConfirmDialog
+					variant="danger"
+					title={`Remove draft`}
+					isOpen={true}
+					onClose={() => setConfirmRemove(null)}
+					confirmText={`Yes, remove it`}
+					confirmCallback={() => {
+						return api.deleteRevision(confirmRemove.id);
+					}}>
+					<p>
+						{`Are you sure you wish to remove this draft? This cannot be undone.`}
+					</p>
+				</ConfirmDialog>
+			</>}
 		</div>
 	);
 }

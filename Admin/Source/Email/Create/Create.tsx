@@ -41,7 +41,7 @@ const CreateEmail: React.FC = (): React.ReactElement => {
 										// It's a db template and requires Admin/Template to be loaded.
 										pageBody = {
 											t: "Admin/Template",
-											data: {
+											d: {
 												// *not* selectedTemplate.key
 												templateKey: selectedTemplate.template.key
 											}
@@ -65,7 +65,7 @@ const CreateEmail: React.FC = (): React.ReactElement => {
 							{error && <Alert variant="danger">{error}</Alert>}
 							<Input
 								type={'text'}
-								name={'title'}
+								name={'name'}
 								label={`Email Template Title`}
 								onInput={(ev) => {
 									const value = (ev.target as HTMLInputElement).value;

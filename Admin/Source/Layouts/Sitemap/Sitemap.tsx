@@ -4,7 +4,6 @@ import pageApi from 'Api/Page';
 import AdminPage from 'Admin/AdminPage';
 import Footer from 'Admin/Footer';
 import Link from 'UI/Link';
-//import Button from 'UI/Button';
 //import { useState } from 'react';
 //import ConfirmDialog from 'UI/Dialog/ConfirmDialog';
 
@@ -66,9 +65,9 @@ export default function Sitemap(props: SitemapProps) {
 								<Input label={`Description`} id="sitemap__clone-description" type="text" name="description" />
 
 								<div className="sitemap__clone-modal-footer">
-									<Button outlined variant="danger" onClick={() => setShowCloneModal(false)}>
+									<button type="button" className="btn btn-outline-danger" onClick={() => setShowCloneModal(false)}>
 										{`Cancel`}
-									</Button>
+									</button>
 									<input type="submit" className="btn btn-primary" value={`Save Copy`} />
 								</div>
 							</Form>

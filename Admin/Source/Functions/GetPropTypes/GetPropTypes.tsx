@@ -58,7 +58,7 @@ export interface CodeModuleType {
      */
     value?: string;
 
-    elementType?: string;
+    elementType?: CodeModuleType;
 
     /**
      * JSDoc metadata from the type definition. Keys are tag names (e.g. 'description', 'icon'),
@@ -526,7 +526,7 @@ function expandPropTypes(meta: TypeMeta, module: CodeModuleMeta, type: CodeModul
 /**
  * Searches for a type by name globally.
  */
-function findTypeGlobally(name: string, meta: TypeMeta) {
+export function findTypeGlobally(name: string, meta: TypeMeta) {
     for (var k in meta.codeModules) {
         var module = meta.codeModules[k];
         var interfaceType = module.types.find(t => (t.name == 'class' || t.name == 'interface' || t.name == 'union') && t.instanceName == name);

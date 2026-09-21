@@ -78,7 +78,7 @@ const ModuleSelector: React.FC<ModuleSelectorProps> = (props) => {
 							{dir.modules.map((module: ComponentInfo) => {
 								var icon = module.meta?.icon || 'fa fa-puzzle-piece';
 								var description = module.meta?.description || '';
-								return <Button className="module-tile" key={module.name} onClick={() => {
+								return <Button className="module-tile" outlined key={module.name} onClick={() => {
 									onSelected && onSelected(module);
 									onClose && onClose();
 								}}>

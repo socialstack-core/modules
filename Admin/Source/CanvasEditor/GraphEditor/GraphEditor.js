@@ -522,7 +522,7 @@ function DraggableItem(props) {
 				</>}
 				<Button variant="danger" sm outlined onClick={() => node.root ? setCantDeleteModal(true) : setShowConfirmDialog(node)}
 			title={`Remove node`}>
-					<i className="fa fa-fw fa-trash"></i>
+					<i className="fal fa-fw fa-trash-alt"></i>
 				</Button>
 			</div>
 	</div>

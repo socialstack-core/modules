@@ -85,8 +85,7 @@ const Developer: React.FC<{}> = () => {
 	const renderNotifications = () => {
 		return <>
 			<Tile title={`Notifications`} className="admin-tile--dev-notifications">
-				{`This is the default developer role dashboard. Suggestions for ideal things available here would be much appreciated! 
-				In the meantime, here's some developer facing functionality for poking at your site instance.`}
+				Notifications from installed modules coming soon
 			</Tile>
 		</>;
 	};
@@ -154,7 +153,6 @@ const Developer: React.FC<{}> = () => {
 			<AdminPage.Content>
 				<div className="admin-dashboard admin-dashboard--developer">
 					{renderNotifications()}
-					{renderMetrics()}
 					{renderMaintenance()}
 					{confirmer && showConfirmerModal(confirmer)}
 				</div>

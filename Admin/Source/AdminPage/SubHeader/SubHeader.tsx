@@ -3,7 +3,7 @@ import Search from 'UI/Search';
 import Badge from 'UI/Badge';
 import Button from 'UI/Button';
 import AutoFormExtensions, {AutoFormType} from "Admin/AutoForm/AutoFormExtensions";
-import {ListFilter} from "Api/Startup";
+import {ListFilter} from "Api/Content";
 import {useRouter} from "UI/Router";
 
 /**
@@ -55,7 +55,19 @@ interface AdminPageSubHeaderProps {
 	 */
 	isRevision?: boolean,
 
-	children?: React.ReactNode
+	children?: React.ReactNode,
+
+	/**
+	 * holds optional tab info to render within subheader
+	 */
+	tabCanvases?: object[],
+
+	/**
+	 * currently selected tab
+	 */
+	currentTab?: string,
+
+	setCurrentTab?: (target: string) => void
 }
 
 /**
@@ -75,7 +87,7 @@ export interface Breadcrumb {
  * @param props React props.
  */
 const AdminPageSubHeader: React.FC<React.PropsWithChildren<AdminPageSubHeaderProps>> = (props) => {
-	const { title, subtitle, className, breadcrumbs, isRevision, children } = props;
+	const { title, subtitle, className, breadcrumbs, isRevision, children, tabCanvases, currentTab, setCurrentTab } = props;
 	const { pageState } = useRouter();
 
 	const SearchOverride = props.contentType && props.pageType ? AutoFormExtensions.getCustomSearchProvider(props.contentType, props.pageType) : undefined;
@@ -84,6 +96,71 @@ const AdminPageSubHeader: React.FC<React.PropsWithChildren<AdminPageSubHeaderPro
 
 	if (className?.length) {
 		subheaderClasses.push(className);
+	}
+
+	const hasTabs = !!tabCanvases?.length;
+
+	const dispatchTabEvent = (targetElement: any, eventName: string) => {
+		const customEvent = new CustomEvent(eventName, {
+			detail: undefined,
+			bubbles: true,
+			cancelable: true
+		});
+
+		targetElement.dispatchEvent(customEvent);
+	};
+
+	const renderTabLinks = () => {
+
+		if (!hasTabs) {
+			return null;
+		}
+
+		return <>
+			<div className="admin-page__tabs-wrapper">
+				<div className="admin-page__tab-links">
+					{tabCanvases.map((tab, i) => {
+						const linkId = `tab-link${i + 1}`;
+						const panelId = `tab-panel${i + 1}`;
+						const selected = (!currentTab && i == 0) || currentTab === tab.key;
+
+						return (
+							<div className="admin-page__tab-link" key={linkId}>
+								<input
+									type="radio"
+									name="autoform-tabs"
+									id={linkId}
+									aria-controls={panelId}
+									checked={selected}
+									onClick={() => {
+										const tabPanel = document.getElementById(panelId);
+
+										if (tabPanel) {
+											dispatchTabEvent(tabPanel, 'tab-active');
+										}
+
+										if (setCurrentTab instanceof Function) {
+											setCurrentTab(tab.key);
+										}
+									}}
+								/>
+								<label htmlFor={linkId}>{tab.name}</label>
+							</div>
+						);
+					})}
+				</div>
+				<Button sm outlined popoverTarget="admin_filters" popoverTargetAction="toggle" className="admin-page__subheader-filters">
+					<span>
+						{`Toggle filters`}
+					</span>
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+						<path d="M14 17H5M19 7h-9" />
+						<circle cx="17" cy="17" r="3" />
+						<circle cx="7" cy="7" r="3" />
+					</svg>
+				</Button>
+			</div>
+		</>;
 	}
 
 	return (
@@ -100,7 +177,12 @@ const AdminPageSubHeader: React.FC<React.PropsWithChildren<AdminPageSubHeaderPro
 							var lastOne = index == props.breadcrumbs!.length - 1;
 
 							return lastOne ? <li>
-								{breadcrumb.title}
+								{hasTabs ? title : breadcrumb.title}
+								{hasTabs && !!subtitle?.length && <>
+									<small>
+										({subtitle})
+									</small>
+								</>}
 							</li> : <li>
 								<Link href={breadcrumb.href || breadcrumb.url}>
 									{breadcrumb.title}
@@ -109,49 +191,52 @@ const AdminPageSubHeader: React.FC<React.PropsWithChildren<AdminPageSubHeaderPro
 						}
 					)}
 				</ol>}
-				<h1 className="admin-page__subheader-title">
-					<span>
-						{title}
+				{!hasTabs && <>
+					<h1 className="admin-page__subheader-title">
+						<span>
+							{title}
 
-						{/* hidden via CSS if filter sidebar not available */}
-						<Button sm outlined popoverTarget="admin_filters" popoverTargetAction="toggle" className="admin-page__subheader-filters">
-							<span>
-								{`Toggle filters`}
-							</span>
+							{/* hidden via CSS if filter sidebar not available */}
+							<Button sm outlined popoverTarget="admin_filters" popoverTargetAction="toggle" className="admin-page__subheader-filters">
+								<span>
+									{`Toggle filters`}
+								</span>
 
-							{/* filters icon */}
-							<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-								<path d="M14 17H5M19 7h-9" />
-								<circle cx="17" cy="17" r="3" />
-								<circle cx="7" cy="7" r="3" />
-							</svg>
+								{/* filters icon */}
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+									<path d="M14 17H5M19 7h-9" />
+									<circle cx="17" cy="17" r="3" />
+									<circle cx="7" cy="7" r="3" />
+								</svg>
 
-							{/* search icon */}
-							{/*
+								{/* search icon */}
+								{/*
 						<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
 							<path d="m21 21-4.3-4.3" />
 							<circle cx="11" cy="11" r="8" />
 						</svg>
 						*/}
-						</Button>
+							</Button>
 
-						{props.primaryUrl && <>
-							<Link sm href={props.primaryUrl} target="_blank" rel="noopener noreferrer" className="admin-page__subheader-link">
-								<span className="sr-only">
-									{`Open page`}
-								</span>
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
-									<path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
-								</svg>
-							</Link>
+							{props.primaryUrl && <>
+								<Link sm href={props.primaryUrl} target="_blank" rel="noopener noreferrer" className="admin-page__subheader-link">
+									<span className="sr-only">
+										{`Open page`}
+									</span>
+									<svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+										<path d="M15 3h6v6M10 14L21 3M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+									</svg>
+								</Link>
+							</>}
+						</span>
+						{subtitle && <>
+							<small>
+								{subtitle}
+							</small>
 						</>}
-					</span>
-					{subtitle && <>
-						<small>
-							{subtitle}
-						</small>
-					</>}
-				</h1>
+					</h1>
+				</>}
+				{hasTabs && renderTabLinks()}
 			</div>
 
 			{(children || isRevision) && <>

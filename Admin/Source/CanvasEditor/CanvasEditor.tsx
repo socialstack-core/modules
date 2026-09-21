@@ -5,7 +5,10 @@ import Dialog from 'UI/Dialog';
 import Canvas from 'UI/Canvas';
 import Form from 'UI/Form';
 import Button from 'UI/Button';
+import pageApi from 'Api/Page';
 import { useSession, sessionCtx } from 'UI/Session';
+import getBuildDate from 'UI/Functions/GetBuildDate';
+import { expandIncludes } from 'UI/Functions/WebRequest';
 // @ts-ignore
 import ModuleSelector from 'Admin/CanvasEditor/ModuleSelector';
 import PropEditor from 'Admin/CanvasEditor/PropEditor';
@@ -13,6 +16,8 @@ import { canvasJsonToHtml, htmlToCanvasJson, searchForContentRoots } from './Can
 import { getRootInfo, RootProp } from './Utils';
 import { getAll as getAllPropTypes, TypeMeta, CodeModuleMeta, getEditableTemplates } from 'Admin/Functions/GetPropTypes';
 import { routerCtx } from 'UI/Router/RouterCtx';
+import { useRouter } from 'UI/Router';
+import { EditorProvider } from 'UI/TinyMce/EditorContext';
 
 interface CanvasEditorProps {
 	value?: any;
@@ -36,6 +41,7 @@ declare module 'react' {
 			'react-component': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
 				'data-name'?: string;
 				'data-props'?: string;
+				'data-links'?: string;
 				'data-mounted'?: boolean;
 				contentEditable?: boolean | "true" | "false";
 			};
@@ -65,16 +71,114 @@ type EditableTypeMeta = TypeMeta & {
 	editableTemplates: Record<string, EditableTemplate>;
 };
 
+type TemplateWrapper = {
+	/**
+	 * The props (d) from the Admin/Template node, e.g. { templateKey }.
+	 */
+	props: Record<string, any>;
+	/**
+	 * Which key in r holds the editable page body content.
+	 */
+	bodyKey: string;
+	/**
+	 * All root content from r, so non-body roots are preserved on save.
+	 */
+	allRoots: Record<string, any>;
+	/**
+	 * True if the template was wrapped in { c: { t: "Admin/Template", ... } }.
+	 */
+	isWrapped: boolean;
+};
+
+
+const resolveDotField = (obj: any, field: string): any => {
+	if (!obj || !field) return undefined;
+	// a.b.c|a.b.d
+	var optionals = field.split('|');
+	var first = undefined;
+	for(var i=0;i<optionals.length;i++){
+		var value = optionals[i].split('.').reduce((current, key) => current?.[key], obj);
+		if(value){
+			return value;
+		}
+		
+		if(i == 0){
+			first = value;
+		}
+	}
+	
+	return first;
+};
+
+const rootContainerExists = (data: any, parts: string[]) => {
+	var current: any = data;
+
+	for (var i = 0; i < parts.length - 1; i++) {
+		if (current == null) {
+			return false;
+		}
+
+		current = current[parts[i]];
+	}
+
+	return current != null;
+};
+
+
 export default function CanvasEditor(props: CanvasEditorProps) {
 	const [selectOpenFor, setSelectOpenFor] = useState<boolean | null>(null);
 	const [selectComponentGroups, setSelectComponentGroups] = useState<string[] | undefined>(undefined);
 	const [initialHtml, setInitialHtml] = useState<string | null>(null);
 	const [propTypes, setPropTypes] = useState<EditableTypeMeta | null>(null);
 	const [propsOpenFor, setPropsOpenFor] = useState<any>(null);
+	const [propLinks, setPropLinks] = useState<Record<string, any>>({});
+	const [templateWrapper, setTemplateWrapper] = useState<TemplateWrapper | null>(null);
+	const [localPageState, setLocalPageState] = useState<any>(null);
 	const editorRef = useRef<any>(null);
 	const session = useSession();
 	const { role } = session.session;
+	const urlQueryParams = new URLSearchParams(window.location?.search || '');
+	
+	const setEmptyPageState = () => {
+		setLocalPageState({
+			url: '',
+			primaryContentIncludes: null,
+			oldVersion: false,
+			query: new URLSearchParams(),
+			redirect: null,
+			description: null,
+			title: null,
+			po: undefined,
+			tokenNames: [],
+			tokens: []
+		});
+	};
+	
+	useEffect(() => {
+		let url = urlQueryParams?.get("context");
+		
+		if(url){
+			pageApi.pageState({
+				url,
+				version: getBuildDate().timestamp
+			}).then(res => {
+				if(res.oldVersion || res.redirect){
+					setEmptyPageState();
+				}else{
+					if (res.po) {
+						(res as any).po = expandIncludes(res.po);
+					}
 
+					setLocalPageState({ url, ...res, query: new URLSearchParams('')});
+				}
+			});
+		}else{
+			setEmptyPageState();
+		}
+	}, [
+		urlQueryParams.context
+	]);
+	
 	const getComponentGroupsForCursor = (editor: any): string[] | undefined => {
 		const node = editor.selection.getNode();
 		if (!node) {
@@ -123,14 +227,59 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 			.then(loadedTemplates => {
 				const propTypeMeta = loadedTemplates[0] as EditableTypeMeta;
 				propTypeMeta.editableTemplates = loadedTemplates[1];
-				const rawValue = props.value || props.defaultValue;
-				const html = canvasJsonToHtml(rawValue);
+
+				let rawValue = props.value || props.defaultValue;
+
+				if (typeof rawValue === 'string') {
+					try {
+						rawValue = JSON.parse(rawValue);
+					} catch (e) {}
+				}
+
+				let innerValue = rawValue;
+				let extractedWrapper: TemplateWrapper | null = null;
+
+				const extractTemplate = (node: any): TemplateWrapper | null => {
+					if (node && node.t === 'Admin/Template') {
+						const rootKeys = Object.keys(node.r || {});
+						if (rootKeys.length > 0) {
+							const bodyKey = rootKeys.includes('body') ? 'body' : rootKeys[0];
+							return {
+								props: { ...(node.d || {}) },
+								bodyKey,
+								allRoots: { ...(node.r || {}) },
+								isWrapped: false
+							};
+						}
+					}
+					return null;
+				};
+
+				// Direct node: {"t":"Admin/Template", ...}
+				if (rawValue && typeof rawValue === 'object') {
+					extractedWrapper = extractTemplate(rawValue);
+					if (extractedWrapper) {
+						innerValue = rawValue.r?.[extractedWrapper.bodyKey];
+					} else {
+						// Wrapped: {"c":{"t":"Admin/Template",...}}
+						const wrapped = rawValue.c && typeof rawValue.c === 'object' ? rawValue.c : null;
+						extractedWrapper = extractTemplate(wrapped);
+						if (extractedWrapper) {
+							extractedWrapper.isWrapped = true;
+							innerValue = wrapped.r?.[extractedWrapper.bodyKey];
+						}
+					}
+				}
+
+				setTemplateWrapper(extractedWrapper);
+
+				const html = canvasJsonToHtml(innerValue);
 				setPropTypes(propTypeMeta);
 				setInitialHtml(html);
 			});
 	}, []);
 
-	if (initialHtml === null || !propTypes) {
+	if (initialHtml === null || !propTypes || !localPageState) {
 		return null; // or a loading spinner
 	}
 
@@ -146,7 +295,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 			return propTypes?.editableTemplates?.[templateName]?.rootInfo;
 		}
 
-		return getRootInfo(propTypes?.codeModules?.[componentName]);
+		return getRootInfo(propTypes?.codeModules?.[componentName], props, propTypes?.codeModules);
 	};
 
 	// Converts HTML elements -> react nodes.
@@ -167,8 +316,9 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 					const loadedContent = loadReact(childEl);
 					const compName = childEl.getAttribute('data-name');
 					const propValues = childEl.getAttribute('data-props');
+					const linkValues = childEl.getAttribute('data-links');
 					// @ts-ignore
-					convertedComp = <react-component data-name={compName} data-props={propValues} data-mounted={true} contentEditable={false}>
+					convertedComp = <react-component data-name={compName} data-props={propValues} data-links={linkValues} data-mounted={true} contentEditable={false}>
 						{loadedContent}
 					</react-component>;
 				} else {
@@ -233,6 +383,8 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 		}
 
 		const componentData = JSON.parse(el.getAttribute('data-props') || '{}');
+		const componentLinks = JSON.parse(el.getAttribute('data-links') || '{}');
+		
 		const moduleRootPropNames = getRootPropTypes(componentName, componentData);
 
 		const roots: Record<string, React.ReactNode> = {
@@ -270,13 +422,62 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 			});
 		}
 
-		const componentProps = {
-			...componentData,
-			...roots
+		// Bind any dotted roots found in the DOM which weren't covered by the prop-type
+		// enumeration (e.g. legacy content from before arrays were enumerated). These are
+		// only bound when their container path already exists in the data, so stale array
+		// index names can't grow the arrays back.
+		for (var extraRootKey in currentRootLookup) {
+			if (extraRootKey.indexOf('.') != -1 && !roots[extraRootKey] && rootContainerExists(componentData, extraRootKey.split('.'))) {
+				const rootValue = currentRootLookup[extraRootKey];
+				roots[extraRootKey] = <RootContent name={extraRootKey}>{loadRootValue(rootValue)}</RootContent>;
+			}
+		}
+		
+		if (componentLinks) {
+			for (var k in componentLinks) {
+				var link = componentLinks[k];
+				var val;
+				if (link.primary) {
+					val = link.field ? resolveDotField(localPageState.po, link.field) : localPageState.po;
+				} else {
+					val = null;
+				}
+				
+				if(link.parse){
+					val = val ? JSON.parse(val) : null;
+				}
+				
+				componentData[k] = val;
+			}
+		}
+		
+		const componentProps: Record<string, any> = {
+			...componentData
 		};
+
+		for (var rootKey in roots) {
+			if (rootKey.indexOf('.') != -1) {
+				var parts = rootKey.split('.');
+				var current: any = componentProps;
+
+				for (var i = 0; i < parts.length - 1; i++) {
+					if (current[parts[i]] == undefined) {
+						current[parts[i]] = /^\d+$/.test(parts[i + 1]) ? [] : {};
+					}
+
+					current = current[parts[i]];
+				}
+
+				current[parts[parts.length - 1]] = roots[rootKey];
+			} else {
+				componentProps[rootKey] = roots[rootKey];
+			}
+		}
 
 		return <Component {...componentProps} />;
 	};
+
+	const isEmailTemplate = props.templateType === 2 || String(props.primary || '').toLowerCase() === 'emailtemplate';
 
 	return (
 		<div className="canvas-editor">
@@ -284,6 +485,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 				allowsReact
 				contextMenu='link insertWidgetMenu'
 				defaultValue={initialHtml}
+				templateType={isEmailTemplate ? 2 : props.templateType}
 				toolbar='bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | grid_insert | insertWidget'
 				allowFullscreen={props.fullscreen}
 				dockHeader={props.fullscreen}
@@ -318,42 +520,40 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 
 						var findReactNodes = (el: HTMLElement) => {
 							if (el.nodeName.toLowerCase() == 'react-component' && !el.getAttribute('data-mounted')) {
-
+								const componentName = el.getAttribute('data-name');
 								const loadedComponent = loadReact(el);
 								el.setAttribute('data-mounted', 'true');
 								el.setAttribute('contenteditable', 'false');
+								el.setAttribute('data-empty-message', `${componentName} - Click to configure this component`);
 								el.innerHTML = '';
 								// @ts-ignore
-								React.render(
-									<sessionCtx.Provider value={session}>
-										<routerCtx.Provider value={{
-											canGoBack: () => false,
-											pageState: {
-												url: '',
-												primaryContentIncludes: null,
-                                                oldVersion: false,
-                                                query: new URLSearchParams(),
-                                                redirect: null,
-                                                description: null,
-                                                title: null,
-                                                po: undefined,
-                                                tokenNames: [],
-                                                tokens: []
-                                            },
-											setPage: () => { },
-											changeQuery: () => { },
-											getPageIncludes: () => {
-												return '';
-											},
-											updateQuery: (update: Record<string, string | number | boolean | (string | number | boolean)[] | null | undefined>) => { },
-											removeQueryItems: (items: string[]) => { },
-											setPrimaryObject: (obj: any) => { }
-										}}>
-											{loadedComponent}
-										</routerCtx.Provider>
-									</sessionCtx.Provider>,
-									el
-								);
+								try{
+									React.render(
+										<EditorProvider isEditing isAdmin>
+											<sessionCtx.Provider value={session}>
+												<routerCtx.Provider value={{
+													canGoBack: () => false,
+													pageState: localPageState,
+													setPage: () => { },
+													changeQuery: () => { },
+													getPageIncludes: () => {
+														return '';
+													},
+													updateQuery: (update: Record<string, string | number | boolean | (string | number | boolean)[] | null | undefined>) => { },
+													removeQueryItems: (items: string[]) => { },
+													setPrimaryObject: (obj: any) => { }
+												}}>
+													{loadedComponent}
+												</routerCtx.Provider>
+											</sessionCtx.Provider>
+										</EditorProvider>,
+										el
+									);
+								}catch(e){
+									// Allow continuing
+									console.error(e);
+								}
+								
 							} else {
 								// Iterate the children. 
 								// Don't do this on a *non-mounted* react-component as it hydrates its full tree.
@@ -401,13 +601,15 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 					});
 
 					editor.ui.registry.addButton('editProps', {
-						text: `Edit component config...`,
+						text: `Edit component ...`,
 						icon: 'settings',
 						onAction: () => {
 							const element = editor.selection.getNode();
 							const comp = editor.dom.getParent(element, 'react-component') as HTMLElement;
 							const eleName = comp.getAttribute("data-name");
 							const propValues = JSON.parse(comp.getAttribute("data-props") || '{}') || {};
+							const linkValues = JSON.parse(comp.getAttribute("data-links") || '{}') || {};
+							setPropLinks(linkValues);
 
 							setPropsOpenFor({
 								element: comp,
@@ -415,18 +617,80 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 									type: eleName,
 									typePropTypes: eleName ? propTypes?.codeModules?.[eleName] : undefined,
 									typeMeta: propTypes,
-									props: propValues
+									props: propValues,
+									links: linkValues,
+									element: comp
 								}
 							});
 						}
 					});
+
+					// Heading showing the selected component name. Non-interactive, so it
+					// acts as a title for the component config popup.
+					let componentNameApi: any = null;
+					const updateComponentName = () => {
+						if (!componentNameApi) {
+							return;
+						}
+						const element = editor.selection.getNode();
+						const comp = editor.dom.getParent(element, 'react-component') as HTMLElement;
+						componentNameApi.setText(comp?.getAttribute('data-name') || '');
+					};
+					editor.on('NodeChange', updateComponentName);
+
+					editor.ui.registry.addButton('componentName', {
+						text: ``,
+						onAction: () => { },
+						onSetup: (api: any) => {
+							componentNameApi = api;
+							updateComponentName();
+							api.setEnabled(false);
+							return () => {
+								componentNameApi = null;
+							};
+						}
+					});
+
+					editor.ui.registry.addButton('duplicateComponent', {
+						text: `Duplicate component`,
+						icon: 'copy',
+						onAction: () => {
+							const element = editor.selection.getNode();
+							const comp = editor.dom.getParent(element, 'react-component') as HTMLElement;
+							if (!comp) {
+								return;
+							}
+							const clone = comp.cloneNode(true) as HTMLElement;
+							editor.dom.insertAfter(clone, comp);
+							// Triggers GetContent (reduces mounted components to their roots)
+							// and SetContent (re-mounts all components incl the new clone).
+							const current = editor.getContent();
+							editor.setContent(current);
+						}
+					});
+
+					editor.ui.registry.addButton('removeComponent', {
+						text: `Remove component`,
+						icon: 'remove',
+						onAction: () => {
+							const element = editor.selection.getNode();
+							const comp = editor.dom.getParent(element, 'react-component') as HTMLElement;
+							if (!comp) {
+								return;
+							}
+							editor.dom.remove(comp);
+							const current = editor.getContent();
+							editor.setContent(current);
+						}
+					});
+
 
 					editor.ui.registry.addContextToolbar('componentConfig', {
 						predicate: (node: Element) => {
 							const isMatch = !propsOpenFor && !!editor.dom.getParent(node, 'react-component');
 							return isMatch;
 						},
-						items: 'editProps',
+						items: 'componentName | editProps duplicateComponent removeComponent',
 						position: 'node',
 						scope: 'node'
 					});
@@ -478,11 +742,13 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 					// Update the props:
 					const ele = propsOpenFor.element;
 					ele.setAttribute('data-props', JSON.stringify(values));
+					ele.setAttribute('data-links', JSON.stringify(propLinks));
 
 					// Load & set back:
 					const current = editorRef.current.getContent();
 					editorRef.current.setContent(current);
 
+					setPropLinks({});
 					setPropsOpenFor(null);
 					return Promise.resolve({});
 				}}
@@ -496,12 +762,14 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 					{
 						!propsOpenFor ?
 							<Loading /> :
-							<PropEditor optionsVisibleFor={
-								propsOpenFor.node
-							} />
+							<PropEditor 
+								optionsVisibleFor={propsOpenFor.node}
+								links={propLinks}
+								onLinksChange={setPropLinks}
+							/>
 					}
 					<Dialog.Footer>
-						<Button onClick={() => setPropsOpenFor(null)}>
+						<Button outlined onClick={() => setPropsOpenFor(null)}>
 							{`Close`}
 						</Button>
 						<Button type="submit">
@@ -521,13 +789,35 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 						return;
 					}
 
-					// @ts-ignore
+				// @ts-ignore
 					ref.onGetValue = (val, ele) => {
 						if (ele === ref && editorRef.current) {
 							const currentHtml = editorRef.current.getContent();
-							const result = htmlToCanvasJson(currentHtml);
-							// console.log(result);
-							// throw new Error(result);
+							let result = htmlToCanvasJson(currentHtml);
+
+							// Re-wrap with template if we stripped one on load
+							if (templateWrapper && result) {
+								let innerContent: any;
+								try {
+									innerContent = typeof result === 'string' ? JSON.parse(result) : result;
+								} catch (e) {
+									innerContent = result;
+								}
+
+								const wrappedRoots = { ...templateWrapper.allRoots };
+								wrappedRoots[templateWrapper.bodyKey] = innerContent;
+
+								const wrappedNode = {
+									t: 'Admin/Template',
+									d: { ...templateWrapper.props },
+									r: wrappedRoots
+								};
+
+								result = templateWrapper.isWrapped
+									? JSON.stringify({ c: wrappedNode })
+									: JSON.stringify(wrappedNode);
+							}
+
 							return result;
 						}
 					};

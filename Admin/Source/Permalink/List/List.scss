@@ -1,0 +1,45 @@
+.permalink-list {
+	margin-top: var(--admin-page-spacing, #{px_to_rem(20)});
+}
+
+.permalink-table {
+	font-size: px_to_rem(13);
+
+	&__col {
+		font-size: px_to_rem(13);
+
+		&--target code {
+			font-size: px_to_rem(12);
+			color: var(--palette-dark-grey);
+			background: var(--palette-light-grey);
+			border-radius: px_to_rem(4);
+			padding: px_to_rem(2) px_to_rem(6);
+		}
+
+	}
+
+}
+
+.permalink-list__page {
+	margin-top: var(--admin-page-spacing, #{px_to_rem(20)});
+	padding-top: var(--admin-page-spacing, #{px_to_rem(20)});
+	border-top: 1px solid var(--admin-page__table-header-background, #E0E4F5);
+}
+
+.permalink-list__page-info {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: px_to_rem(12);
+}
+
+.permalink-list__page-detail {
+	display: flex;
+	align-items: center;
+	gap: px_to_rem(8);
+}
+
+.permalink-list__page-title {
+	font-size: px_to_rem(14);
+	font-weight: 600;
+}

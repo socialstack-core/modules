@@ -16,7 +16,7 @@
 		padding: 0;
 		display: none;
 		align-items: center;
-		gap: px_to_rem(8);
+		gap: px_to_rem(10);
 		font-size: px_to_rem(12);
 		overflow-x: auto;
 
@@ -44,13 +44,26 @@
 			}
 
 			&::after {
-				padding-left: px_to_rem(4);
-				content: ">";
+				padding-left: px_to_rem(8);
+				font-size: px_to_rem(20);
+				content: "\203A";
 			}
 
-			&:last-child::after {
-				content: none;
+			&:last-child {
+				font-size: px_to_rem(15);
+				font-weight: 700;
+
+				> small {
+					margin-left: px_to_rem(4);
+					font-size: inherit;
+				}
+
+				&::after {
+					content: none;
+				}
+
 			}
+
 		}
 	}
 
@@ -107,6 +120,11 @@
 				gap: px_to_rem(8);
 			}
 		}
+	}
+
+	&:has(.admin-page__tab-links) {
+		align-items: flex-end;
+		padding-bottom: 0;
 	}
 }
 

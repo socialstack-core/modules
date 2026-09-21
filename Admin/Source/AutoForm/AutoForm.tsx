@@ -15,7 +15,7 @@ import { useRouter, routerCtx, PageState, RouterContext } from 'UI/Router';
 import AutoFormExtensions from "Admin/AutoForm/AutoFormExtensions";
 import Link from "UI/Link";
 import Button from "UI/Button";
-import { TabsWrapper, TabsLinksWrapper, TabsLinkWrapper, TabsPanelsWrapper, TabsPanelWrapper } from "UI/Tabs";
+import { TabsWrapper, TabsPanelsWrapper, TabsPanelWrapper } from "UI/Tabs";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { handleString } from 'UI/Token';
 
@@ -474,31 +474,6 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 
 	const renderFormTabs = () => {
 		return <TabsWrapper fullWidth>
-			{/* tab links */}
-			<TabsLinksWrapper>
-				{tabCanvases.map((tab: any, i: number) => {
-					const linkId = `tab-link${i + 1}`;
-					const panelId = `tab-panel${i + 1}`;
-					const selected = (!currentTab && i == 0) || currentTab === tab.key;
-
-					return (
-						<TabsLinkWrapper key={linkId}>
-							<input
-								type="radio"
-								name="autoform-tabs"
-								id={linkId}
-								aria-controls={panelId}
-								checked={selected}
-								onClick={() => {
-									setCurrentTab(tab.key);
-								}}
-							/>
-							<label htmlFor={linkId}>{tab.name}</label>
-						</TabsLinkWrapper>
-					);
-				})}
-			</TabsLinksWrapper>
-
 			{/* tab panels */}
 			<TabsPanelsWrapper>
 				{tabCanvases.map((tab: any, i: number) => {
@@ -756,13 +731,14 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 
 			}}
 		>
-			<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs} primaryUrl={qualifiedUrl} isRevision={props.isRevision} />
+			<AdminPage.SubHeader title={title} breadcrumbs={breadcrumbs} primaryUrl={qualifiedUrl} isRevision={props.isRevision}
+				tabCanvases={tabCanvases} currentTab={currentTab} setCurrentTab={setCurrentTab} />
 			<AdminPage.ContentWrapper>
 				<AdminPage.Content>
 
 					{!props.isRevision && currentTab != 'revisions' && props.content?.recentDraft > 0 && <>
 						<Alert type='info'>
-							{`There is a more recent draft of this content. Click the Drafts and History tab below to view.`}
+							{`There is a more recent draft of this content. Click the Drafts and History tab to view.`}
 						</Alert>
 					</>}
 
