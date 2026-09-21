@@ -45,6 +45,10 @@ const formatCurrency = (value: number, options: CurrencyOptions) => {
 	options = options || {};
 	const { currencyCode, localeCode: locale } = options;
 
+	if (value === undefined) {
+		return '';
+	}
+
 	if (!currencyCode) {
 		throw new Error('currency reqd.');
 	}
