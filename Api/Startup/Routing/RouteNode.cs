@@ -422,13 +422,27 @@ public class TerminalRedirectNode : TerminalNode
 	private readonly string Target;
 
 	/// <summary>
+	/// If this originated from a permalink, the ID.
+	/// </summary>
+	private readonly uint PermalinkId;
+
+	/// <summary>
+	/// True if it's a permanent redirect.
+	/// </summary>
+	private readonly bool Permanent;
+
+	/// <summary>
 	/// A redirection node in the routing tree, targeting the given target URL.
 	/// </summary>
 	public TerminalRedirectNode(IntermediateNode[] children,
 		string target,
+		uint permalinkId,
+		bool permanent,
 		string exactMatch,
 		string fullRoute) : base (children, exactMatch, null, null, fullRoute)
 	{
+		PermalinkId = permalinkId;
+		Permanent = permanent;
 		Target = target;
 	}
 
@@ -453,7 +467,7 @@ public class TerminalRedirectNode : TerminalNode
 	{
 		var response = httpContext.Response;
 		response.Headers.Location = Target;
-		response.StatusCode = 302;
+		response.StatusCode = Permanent ? 301 : 302;
 		return new ValueTask<bool>(true);
 	}
 
@@ -465,8 +479,9 @@ public class TerminalRedirectNode : TerminalNode
 	{
 		return new RouterNodeMetadata()
 		{
-			Name = Target,
+			Name = ExactMatch + " (redirects " + (Permanent ? "permanently" : "temporarily") + " to " + Target + ")",
 			HasChildren = HasChildren(),
+			EditUrl = PermalinkId == 0 ? null : "/en-admin/permalink/" + PermalinkId,
 			ChildKey = ExactMatch,
 			FullRoute = FullRoute,
 			Type = "Redirect",

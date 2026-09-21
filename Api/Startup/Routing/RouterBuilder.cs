@@ -287,7 +287,16 @@ public class RouterBuilder
 			{
 				continue;
 			}
-			hostNode.AddRewrite(child.Text, "/" + child.Text);
+
+			if (child.Text == "")
+			{
+				// e.g. the homepage
+				hostNode.Terminal = child.Terminal;
+			}
+			else
+			{
+				hostNode.AddRewrite(child.Text, "/" + child.Text);
+			}
 		}
 
 	}
@@ -349,15 +358,17 @@ public class RouterBuilder
 	}
 
 	/// <summary>
-	/// Adds a 302 non-permanent redirect.
+	/// Adds a 301 or 302 non-permanent redirect.
 	/// </summary>
 	/// <param name="from"></param>
 	/// <param name="to"></param>
-	public void AddRedirect(string from, string to)
+	/// <param name="permalinkId"></param>
+	/// <param name="permanent"></param>
+	public void AddRedirect(string from, string to, uint permalinkId = 0, bool permanent = false)
 	{
 		var route = from.Trim().ToLower();
 		var tree = NodesByVerb[GetVerbIndex("GET")];
-		tree.AddRedirect(from, to);
+		tree.AddRedirect(from, to, permalinkId, permanent);
 	}
 
 }
@@ -410,12 +421,26 @@ public class TerminalRedirect  : TerminalBehaviour
 	public string RedirectTo;
 
 	/// <summary>
+	/// The permalink ID this originated from if any.
+	/// </summary>
+	public uint PermalinkId;
+
+	/// <summary>
+	/// True if this is a permanent redirect.
+	/// </summary>
+	public bool Permanent;
+
+	/// <summary>
 	/// Creates a new terminal redirect.
 	/// </summary>
 	/// <param name="redirectTo"></param>
-	public TerminalRedirect(string redirectTo)
+	/// <param name="permalinkId"></param>
+	/// <param name="permanent"></param>
+	public TerminalRedirect(string redirectTo, uint permalinkId, bool permanent)
 	{
 		RedirectTo = redirectTo;
+		PermalinkId = permalinkId;
+		Permanent = permanent;
 	}
 
 	/// <summary>
@@ -424,7 +449,7 @@ public class TerminalRedirect  : TerminalBehaviour
 	/// <returns></returns>
 	public override TerminalBehaviour Clone()
 	{
-		return new TerminalRedirect(RedirectTo);
+		return new TerminalRedirect(RedirectTo, PermalinkId, Permanent);
 	}
 
 	/// <summary>
@@ -434,7 +459,7 @@ public class TerminalRedirect  : TerminalBehaviour
 	public override bool Equals(TerminalBehaviour behaviour)
 	{
 		var node = behaviour as TerminalRedirect;
-		return node != null && node.RedirectTo == RedirectTo;
+		return node != null && node.RedirectTo == RedirectTo && node.PermalinkId == PermalinkId && node.Permanent == Permanent;
 	}
 
 	/// <summary>
@@ -446,6 +471,8 @@ public class TerminalRedirect  : TerminalBehaviour
 		return new TerminalRedirectNode(
 				node.BuildChildren(),
 				RedirectTo,
+				PermalinkId,
+				Permanent,
 				node.IsToken ? null : node.Text,
 				node.FullRoute
 			);
@@ -814,7 +841,12 @@ public class BuilderNode
 	public RouteNode Build()
 	{
 		BuiltNode = BuildInternal();
-		BuiltNode.LocaleId = LocaleId;
+
+		if (BuiltNode != null)
+		{
+			BuiltNode.LocaleId = LocaleId;
+		}
+
 		return BuiltNode;
 	}
 
@@ -2360,14 +2392,16 @@ public class BuilderNode
 	}
 
 	/// <summary>
-	/// Adds a 302 redirect.
+	/// Adds a 301 or 302 redirect.
 	/// </summary>
 	/// <param name="route"></param>
 	/// <param name="to"></param>
-	public void AddRedirect(string route, string to)
+	/// <param name="permalinkId"></param>
+	/// <param name="permanent"></param>
+	public void AddRedirect(string route, string to, uint permalinkId = 0, bool permanent = false)
 	{
 		var current = GetNode(route, false);
-		current.SetTerminal(new TerminalRedirect(to));
+		current.SetTerminal(new TerminalRedirect(to, permalinkId, permanent));
 	}
 
 	/// <summary>

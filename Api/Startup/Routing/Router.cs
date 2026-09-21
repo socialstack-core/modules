@@ -1,4 +1,5 @@
 using Api.CanvasRenderer;
+using Api.Configuration;
 using Api.Contexts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Routing;
@@ -62,6 +63,8 @@ public class Router
 
 	private readonly PathString Slash = new PathString("/");
 
+	private readonly bool RedirectTrailingSlash;
+
 	/// <summary>
 	/// Create a new router. Usually done via a RouterBuilder.
 	/// </summary>
@@ -69,6 +72,7 @@ public class Router
 	public Router(RouteNode[] treesByVerb)
 	{
 		TreesByVerb = treesByVerb;
+		RedirectTrailingSlash = AppSettings.GetBool("RedirectTrailingSlash", false);
 	}
 
 	/// <summary>
@@ -201,6 +205,16 @@ public class Router
 		else
 		{
 			path = ReadOnlySpan<char>.Empty;
+		}
+
+		// Redirect trailing slashes to the canonical form (except for the homepage "/").
+		if (RedirectTrailingSlash && path.Length > 1 && path[path.Length - 1] == '/' && !path.StartsWith("/v1/"))
+		{
+			httpContext.Response.Redirect(
+				req.Path.Value.TrimEnd('/') + req.QueryString.Value,
+				permanent: false
+			);
+			return new ValueTask<bool>(true);
 		}
 
 		var node = Resolve(req.Method, path, basicContext, ref tokenCount, ref tokenSet);
