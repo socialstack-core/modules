@@ -160,7 +160,7 @@ export function expandIncludes<T>(response : any){
 				for (var contentType in inc.values) {
 					var contents = inc.values[contentType]?.results;
 					var idLookup = new Map<number, any>();
-					byTypeMaps.set(contentType, idLookup);
+					byTypeMaps.set((contentType || '').toLowerCase(), idLookup);
 					contents?.forEach((v: any) => idLookup.set(v.id, v));
 				}
 
@@ -171,8 +171,9 @@ export function expandIncludes<T>(response : any){
 						return;
 					}
 
-					// Look it up by type and then the id.
-					var idLookup = byTypeMaps.get(objInfo.type);
+					// Look it up by type and then the id. Types can be cased as the entity name (e.g. "User") 
+					// or as the lowercase content type, so the match is case-insensitive.
+					var idLookup = byTypeMaps.get((objInfo.type || '').toLowerCase());
 
 					if (!idLookup) {
 						return;
