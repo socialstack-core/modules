@@ -3,7 +3,7 @@
 	--btn-min-height: var(--btn-md-min-height, #{$default-btn-md-min-height});
 	--btn-padding: var(--btn-md-padding, #{$default-btn-md-padding});
 	--btn-font-size: var(--btn-md-font-size, #{$default-btn-md-font-size});
-	--btn-font-weight: var(--btn-md-font-weight, #{$default-btn-md-font-weight});
+	--btn-font-weight: var(--btn-md-font-weight, 400);
 	--btn-border-radius: var(--btn-md-border-radius, #{$default-btn-md-border-radius});
 	--btn-icon: var(--btn-md-icon, #{$default-btn-md-icon});
 	--btn-gap: var(--btn-md-gap, #{$default-btn-md-gap});
@@ -262,7 +262,7 @@ $btn-variants: (
 	}
 
 	&.btn-ghost,
-	&.btn-outlined-ghost {
+	&.btn-outline-ghost {
 		background-color: transparent;
 		/*color: var(--site-fg, #aaa);*/
 		color: inherit;
@@ -280,7 +280,7 @@ $btn-variants: (
 
 	}
 
-	&.btn-outlined-ghost {
+	&.btn-outline-ghost {
 
 		&:hover:not(:disabled) {
 			background-color: transparent;
@@ -441,12 +441,13 @@ fieldset:disabled .btn {
 
 }
 
+/* TODO - once full light/dark support implemented
 @media (prefers-color-scheme: dark) {
 
 	.btn {
 
 		&.btn-ghost,
-		&.btn-outlined-ghost {
+		&.btn-outline-ghost {
 
 			&:focus-visible {
 				box-shadow: 0 0 0 .25rem rgba(255 255 255 / .25);
@@ -458,7 +459,7 @@ fieldset:disabled .btn {
 
 		}
 
-		&.btn-outlined-ghost {
+		&.btn-outline-ghost {
 
 			&:hover:not(:disabled) {
 				border-color: rgba(255 255 255 / .25);
@@ -469,3 +470,4 @@ fieldset:disabled .btn {
 	}
 
 }
+*/

@@ -86,7 +86,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>  {
 	 * optional external target link to open in a new window when:
 	 * shift-clicking, middle-mouse button clicking or pressing shift+enter / shift+space when focused
 	 */
-	externalLink?: string
+	externalLink?: string,
+
+	/**
+	 * true if button should use display: inline-flex (defaults to display: flex)
+	 */
+	inline?: boolean
 }
 
 /**
@@ -94,7 +99,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>  {
  * ref: https://getbootstrap.com/docs/5.0/components/buttons/
  */
 const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
-	children, className, tag, href, external, variant,
+	children, className, tag, href, external, variant, inline,
 	disabled, outlined, close, allowWrap, xs, sm, md, lg, xl, ...props
 }) => {
 	let buttonType = props.type || props.buttonType;
@@ -128,6 +133,10 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 
 	if (allowWrap) {
 		classes.unshift("btn--wrapped");
+	}
+
+	if (inline) {
+		classes.unshift("btn--inline");
 	}
 
 	// sizing
