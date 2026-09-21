@@ -114,6 +114,29 @@ const Modal: React.FC<ModalProps> = (props) => {
     }
   };
 
+	const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+
+		if (e.key !== 'Enter') {
+			return;
+		}
+
+		const target = e.target as HTMLElement;
+
+		const isTextInput =
+			target instanceof HTMLInputElement &&
+			!['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image'].includes(target.type);
+
+		const isMultiSelect =
+			target instanceof HTMLSelectElement && target.multiple;
+
+		// on pressing return, input and multiple select fields will trigger a parent form submit button (if found)
+		if (isTextInput || isMultiSelect) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+	};
+
   if (!props.visible) {
     return null;
   }
@@ -161,7 +184,7 @@ const Modal: React.FC<ModalProps> = (props) => {
       }
       onTouchStart={(e) => e.stopPropagation()}
     >
-      <div className={modalDialogClassName()} role="document">
+		<div className={modalDialogClassName()} role="document" onKeyDown={onKeyDown}>
         <div className="modal-content" style={style}>
           {!props.noHeader ? (
             <div className="modal-header">
