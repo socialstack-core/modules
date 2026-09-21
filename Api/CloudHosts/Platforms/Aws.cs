@@ -51,7 +51,11 @@ namespace Api.CloudHosts
         /// </summary>
         public bool LockedDownAccess { get; set; }
 
-    }
+        /// <summary>
+        /// True if the bucket name should be path style.
+        /// </summary>
+        public bool ForcePathStyle { get; set; }
+	}
 
     /// <summary>
     /// A representation of AWS.
@@ -76,7 +80,14 @@ namespace Api.CloudHosts
             {
                 if (string.IsNullOrEmpty(_config.CustomCdnUrl))
                 {
-                    _cdnUrl = "https://" + _config.S3BucketName + "." + _config.S3ServiceUrl;
+                    if (_config.ForcePathStyle)
+                    {
+						_cdnUrl = "https://" + _config.S3ServiceUrl + "/" + _config.S3BucketName;
+					}
+                    else
+                    {
+						_cdnUrl = "https://" + _config.S3BucketName + "." + _config.S3ServiceUrl;
+					}
                 }
                 else
                 {
@@ -251,8 +262,9 @@ namespace Api.CloudHosts
             {
                 var s3ClientConfig = new AmazonS3Config
                 {
-                    ServiceURL = "https://" + _config.S3ServiceUrl
-                };
+                    ServiceURL = "https://" + _config.S3ServiceUrl,
+					ForcePathStyle = _config.ForcePathStyle
+				};
 
                 var creds = new Amazon.Runtime.BasicAWSCredentials(_config.S3AccessKey, _config.S3AccessSecret);
 
