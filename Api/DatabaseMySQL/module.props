@@ -3,6 +3,6 @@
     <HasMongoDB>true</HasMongoDB>
   </PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="MySQL.Data" Version="9.6.0" />
+		<PackageReference Include="MySQL.Data" Version="26.7.0" />
 	</ItemGroup>
 </Project>

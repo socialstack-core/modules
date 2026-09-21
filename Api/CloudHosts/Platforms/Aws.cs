@@ -194,12 +194,12 @@ namespace Api.CloudHosts
 				{
                     var meta = metaStream.StartFile();
 					meta.FileSize = (ulong)file.Size;
-					meta.LastModifiedUtc = file.LastModified.ToUniversalTime();
+					meta.LastModifiedUtc = file.LastModified?.ToUniversalTime() ?? DateTime.MinValue;
 					meta.Path = file.Key.Substring(key.Length);
                     await metaStream.FileListed(meta);
 				}
 
-				if (response.IsTruncated)
+				if (response.IsTruncated == true)
 				{
 					currentContinuation = response.NextContinuationToken;
 					hasMore = true;

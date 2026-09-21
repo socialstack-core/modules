@@ -16,7 +16,7 @@ namespace Api.CloudHosts
 	public partial class NGINX : WebServer
     {
 		private LocaleService _localeService;
-		private List<Locale> _allLocales;
+
 		/// <summary>
 		/// The webserver service this belongs to.
 		/// </summary>

@@ -11,7 +11,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)/Guests/**/*.cs" Condition="Exists('$(MSBuildThisFileDirectory)../GuestUsers')" />
   </ItemGroup>
 	<ItemGroup>
-    <PackageReference Condition="'$(StripeGateway)' != 'false'" Include="Stripe.net" Version="48.0.0" />
+    <PackageReference Condition="'$(StripeGateway)' != 'false'" Include="Stripe.net" Version="52.4.2" />
     <Compile Remove="$(MSBuildThisFileDirectory)/Gateways/Stripe/**/*.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)/Gateways/Stripe/**/*.cs" Condition="'$(StripeGateway)' != 'false'" />
 	</ItemGroup>

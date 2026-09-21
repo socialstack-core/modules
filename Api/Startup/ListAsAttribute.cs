@@ -38,8 +38,9 @@ namespace Api.Startup
 		/// </summary>
 		public string Module;
 
-		public ListAsAttribute(string fieldName){
+		public ListAsAttribute(string fieldName, string module = null){
 			FieldName = fieldName;
+			Module = module;
 		}
 
 		public ListAsAttribute(string fieldName, bool isPrimary)

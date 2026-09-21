@@ -261,6 +261,7 @@ namespace Api.Payments
 	/// <summary>
 	/// Checking out a cart.
 	/// </summary>
+	#pragma warning disable CS0282
 	public partial struct CheckoutInfo
 	{
 		/// <summary>

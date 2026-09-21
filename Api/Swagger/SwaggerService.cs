@@ -2,12 +2,13 @@
 using Api.Database;
 using Api.Startup;
 using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Api.Swagger
@@ -105,6 +106,27 @@ namespace Api.Swagger
 		}
 
 		/// <summary>
+		/// Resolves a HTTP method string to its HttpMethod, or null if unrecognised.
+		/// </summary>
+		/// <param name="method"></param>
+		/// <returns></returns>
+		private HttpMethod GetHttpMethod(string method)
+		{
+			switch (method.ToUpperInvariant())
+			{
+				case "GET": return HttpMethod.Get;
+				case "POST": return HttpMethod.Post;
+				case "PUT": return HttpMethod.Put;
+				case "DELETE": return HttpMethod.Delete;
+				case "PATCH": return HttpMethod.Patch;
+				case "HEAD": return HttpMethod.Head;
+				case "OPTIONS": return HttpMethod.Options;
+				case "TRACE": return HttpMethod.Trace;
+				default: return null;
+			}
+		}
+
+		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="swaggerDoc"></param>
@@ -122,39 +144,39 @@ namespace Api.Swagger
                     continue;
                 }
 
-                OperationType type;
+                HttpMethod type;
 
                 if (epInfo.HttpMethod == "GET")
                 {
-                    type = OperationType.Get;
+                    type = HttpMethod.Get;
                 }
                 else if (epInfo.HttpMethod == "POST")
                 {
-                    type = OperationType.Post;
+                    type = HttpMethod.Post;
                 }
                 else if (epInfo.HttpMethod == "DELETE")
                 {
-                    type = OperationType.Delete;
+                    type = HttpMethod.Delete;
                 }
                 else if (epInfo.HttpMethod == "OPTIONS")
                 {
-                    type = OperationType.Options;
+                    type = HttpMethod.Options;
                 }
                 else if (epInfo.HttpMethod == "PUT")
                 {
-                    type = OperationType.Put;
+                    type = HttpMethod.Put;
                 }
                 else if (epInfo.HttpMethod == "HEAD")
                 {
-                    type = OperationType.Head;
+                    type = HttpMethod.Head;
                 }
                 else if (epInfo.HttpMethod == "PATCH")
                 {
-                    type = OperationType.Patch;
+                    type = HttpMethod.Patch;
                 }
                 else if (epInfo.HttpMethod == "TRACE")
                 {
-                    type = OperationType.Trace;
+                    type = HttpMethod.Trace;
                 }
 				else
                 {
@@ -162,7 +184,7 @@ namespace Api.Swagger
                 }
 
                 var retType = ExpandReturnType(epInfo.Method.ReturnType);
-				var schema = retType == null ? null : context.SchemaGenerator.GenerateSchema(retType, context.SchemaRepository);
+				var schema = retType == null ? null : context.SchemaGenerator.GenerateSchema(retType, context.SchemaRepository, null, null, null);
                 
 				var op = new OpenApiOperation
                 {
@@ -274,9 +296,8 @@ namespace Api.Swagger
             {
 
                 var _methodsToRemove = _cfg.ExcludedOperations
-                    .Select(method => Enum.TryParse<OperationType>(method.Trim(), true, out var op) ? op : (OperationType?)null)
-                    .Where(op => op.HasValue)
-                    .Select(op => op.Value)
+                    .Select(method => GetHttpMethod(method.Trim()))
+                    .Where(method => method != null)
                     .ToArray();
 
                 if (_methodsToRemove.Any())
@@ -398,7 +419,7 @@ namespace Api.Swagger
     }
 
     internal class SwaggerEndpointSet {
-        public Dictionary<OperationType, OpenApiOperation> Operations = new Dictionary<OperationType, OpenApiOperation>();
+        public Dictionary<HttpMethod, OpenApiOperation> Operations = new Dictionary<HttpMethod, OpenApiOperation>();
 	}
 }
 

@@ -107,7 +107,7 @@ public partial class AutoController<T, ID>
 	/// Format: "CsvCol:EntityField,CsvCol2:EntityField2"
 	/// If null or empty, returns an empty list.
 	/// </summary>
-	private static List<FieldMapping> ParseFieldMappings(string? value)
+	private static List<FieldMapping> ParseFieldMappings(string value)
 	{
 		var result = new List<FieldMapping>();
 		if (string.IsNullOrWhiteSpace(value))
