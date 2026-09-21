@@ -1024,6 +1024,114 @@ namespace Api.SocketServerLibrary
 		}
 
 		/// <summary>
+		/// Writes an html attribute escaped string surrounded in ", utf-8 encoded. Avoid whenever possible (used by e.g. JSON serialisation).
+		/// </summary>
+		/// <param name="str"></param>
+		public void WriteHtmlEscaped(string str)
+		{
+			if (str == null)
+			{
+				Write(NullBytes, 0, 4);
+				return;
+			}
+
+			Write((byte)'"');
+
+			// Grab a reference to the char span:
+			var charStream = str.AsSpan();
+			var max = charStream.Length;
+
+			for (var i = 0; i < max; i++)
+			{
+				var current = charStream[i];
+				uint rune;
+				int runeBytesInUtf8;
+
+				if (char.IsHighSurrogate(current))
+				{
+					i++;
+
+					if (i != max)
+					{
+						var low = charStream[i];
+
+						if (char.IsLowSurrogate(low))
+						{
+							// Remap the codepoint.
+							rune = (uint)char.ConvertToUtf32(current, low);
+
+							// Note: don't ever get escape-worthy chars here. Always outputted as-is.
+							runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+							if (Fill > (Pool.BufferSize - runeBytesInUtf8))
+							{
+								NextBuffer();
+							}
+
+							Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+							Fill += runeBytesInUtf8;
+						}
+					}
+
+					continue;
+				}
+				
+				// Codepoint is as-is:
+				rune = (uint)current;
+
+				// If it's a control character or any of the escapee's..
+				if (Unicode.IsControl(rune))
+				{
+					var ctrl = EscapedControl((byte)rune);
+					if (ctrl != null)
+					{
+						WriteNoLength(ctrl);
+					}
+					continue;
+				}
+				else if (rune == (uint)'&')
+				{
+					WriteASCII("&amp;");
+					continue;
+				}
+				else if (rune == (uint)'"')
+				{
+					WriteASCII("&quot;");
+					continue;
+				}
+				else if (rune == (uint)'\'')
+				{
+					WriteASCII("&#39;");
+					continue;
+				}
+				else if (rune == (uint)'<')
+				{
+					WriteASCII("&lt;");
+					continue;
+				}
+				else if (rune == (uint)'>')
+				{
+					WriteASCII("&gt;");
+					continue;
+				}
+
+				// output the character:
+				runeBytesInUtf8 = Utf8.RuneLen(rune);
+
+				if (Fill > (Pool.BufferSize - runeBytesInUtf8))
+				{
+					NextBuffer();
+				}
+
+				Utf8.EncodeRune(rune, _LastBufferBytes, Fill);
+				Fill += runeBytesInUtf8;
+
+			}
+			
+			Write((byte)'"');
+		}
+
+		/// <summary>
 		/// Writes an escaped string surrounded in ", utf-8 encoded. Avoid whenever possible (used by e.g. JSON serialisation).
 		/// </summary>
 		/// <param name="str"></param>
@@ -1109,6 +1217,7 @@ namespace Api.SocketServerLibrary
 			
 			Write((byte)'"');
 		}
+
 		/// <summary>
 		/// Writes the given date as the number of milliseconds from year 0, UTC. Negative values are permitted, although C# DateTime doesn't support BC anyway.
 		/// The JS epoch is in 1970, so a constant offset (62135596800000) can be applied to quickly convert to a JS date unambiguously.
