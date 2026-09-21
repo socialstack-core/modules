@@ -1,3 +1,5 @@
+import { useRef, useEffect } from 'react';
+
 /**
  * recommended usage:
  * 
@@ -64,10 +66,11 @@
  * Props for the Tabs component.
  */
 interface TabsProps {
-	tabs: string[],
+	tabs: string[] | object[],
+	renderLink?: Function,
 	renderPanel: Function,
-	currentTab?: string,
-	onChange?: (tab: string) => void,
+	currentTab?: string | object,
+	onChange?: (tab: string | object) => void,
 	name?: string
 }
 
@@ -76,14 +79,42 @@ interface TabsProps {
  * @param props React props.
  */
 const Tabs: React.FC<TabsProps> = (props) => {
-	const { tabs, renderPanel, onChange } = props;
-	const name = props.name?.length ? props.name : "tabs";
+	const { tabs, renderLink, renderPanel, onChange } = props;
+	const name = !!props.name?.length ? props.name : "tabs";
 
 	if (!tabs?.length || !renderPanel) {
 		return;
 	}
 
-	const currentTab = props.currentTab || tabs[0].toLowerCase();
+	const isStringArray = (value: unknown): value is string[] => {
+		return Array.isArray(value) && value.every(item => typeof item === 'string');
+	};
+
+	const getTabKey = (tab: string | object | undefined) => {
+
+		if (!tab) {
+			return undefined;
+		}
+
+		if (typeof tab === 'string') {
+			return tab.toLowerCase();
+		}
+
+		const idx = tabs.findIndex(t => t === tab);
+
+		return idx ? `${name}_${idx}` : undefined;
+	};
+
+	const currentTab = props.currentTab || getTabKey(!!tabs?.length ? tabs[0] : undefined);
+
+	const renderLinkInternal = (tab: string | object) => {
+
+		if (renderLink instanceof Function) {
+			return renderLink(tab);
+		}
+
+		return tab.toString();
+	};
 
 	return (
 		<TabsWrapper>
@@ -91,14 +122,16 @@ const Tabs: React.FC<TabsProps> = (props) => {
 			{/* tab links - rendered as radio buttons to allow functionality without reliance on JavaScript */}
 			<TabsLinksWrapper>
 				{tabs.map((tab, i) => {
+					const currentKey = getTabKey(currentTab);
+					const tabKey = getTabKey(tab);
 					const linkId = `${name}-link${i + 1}`;
 					const panelId = `${name}-panel${i + 1}`;
-					const selected = currentTab === tab.toLowerCase();
+					const selected = currentKey === tabKey;
 
 					return (
 						<TabsLinkWrapper key={linkId}>
 							<input
-								data-tab={tab} data-current={currentTab}
+								data-tab={tabKey} data-current={currentKey}
 								type="radio"
 								name={name}
 								id={linkId}
@@ -110,7 +143,9 @@ const Tabs: React.FC<TabsProps> = (props) => {
 									}
 								}}
 							/>
-							<label htmlFor={linkId}>{tab}</label>
+							<label htmlFor={linkId}>
+								{renderLinkInternal(tab)}
+							</label>
 						</TabsLinkWrapper>
 					);
 				})}
@@ -119,8 +154,10 @@ const Tabs: React.FC<TabsProps> = (props) => {
 			{/* tab panels */}
 			<TabsPanelsWrapper>
 				{tabs.map((tab, i) => {
-					const panelId = `tab-panel${i + 1}`;
-					const selected = currentTab === tab.toLowerCase();
+					const currentKey = getTabKey(currentTab);
+					const tabKey = getTabKey(tab);
+					const panelId = `${name}-panel${i + 1}`;
+					const selected = currentKey === tabKey;
 					
 					return (
 						<TabsPanelWrapper id={panelId} key={panelId} selected={selected}>
@@ -140,7 +177,7 @@ interface TabsWrapperProps {
 	sticky?: boolean,
 }
 
-export function TabsWrapper({ children, fullWidth, sticky }: TabsWrapperProps) {
+export function TabsWrapper({ children, fullWidth, sticky }: TabsWrapperProps): JSX.Element {
 	var tabClasses = ['ui-page__tabs'];
 
 	if (fullWidth) {
@@ -162,7 +199,7 @@ interface TabsLinksWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsLinksWrapper({ children }: TabsLinksWrapperProps) {
+export function TabsLinksWrapper({ children }: TabsLinksWrapperProps): JSX.Element {
 	return (
 		<div className="ui-page__tab-links">
 			{children}
@@ -174,7 +211,7 @@ interface TabsLinkWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsLinkWrapper({ children }: TabsLinkWrapperProps) {
+export function TabsLinkWrapper({ children }: TabsLinkWrapperProps): JSX.Element {
 	return (
 		<div className="ui-page__tab-link">
 			{children}
@@ -186,7 +223,7 @@ interface TabsPanelsWrapperProps {
 	children?: React.ReactNode;
 }
 
-export function TabsPanelsWrapper({ children }: TabsPanelsWrapperProps) {
+export function TabsPanelsWrapper({ children }: TabsPanelsWrapperProps): JSX.Element {
 	return (
 		<div className="ui-page__tab-panels">
 			{children}
@@ -200,9 +237,34 @@ interface TabsPanelWrapperProps {
 	selected?: boolean;
 }
 
-export function TabsPanelWrapper({ id, children, selected }: TabsPanelWrapperProps) {
+export function TabsPanelWrapper({ id, children, selected }: TabsPanelWrapperProps): JSX.Element {
+	const tabRef = useRef(null);
+
+	useEffect(() => {
+		const tab = tabRef.current;
+
+		if (!tab) {
+			return;
+		}
+
+		// switching to a tab hosting a TinyMCE instance which was previously inactive
+		// requires a nudge to ensure sticky headers (menu / toolbar) are sized appropriately
+		const tabActiveHandler = (e) => {
+			requestAnimationFrame(() => {
+				window.dispatchEvent(new Event('resize'));
+				window.tinymce?.activeEditor?.fire("ResizeEditor");
+			});
+		};
+
+		tab.addEventListener('tab-active', tabActiveHandler);
+
+		return () => {
+			tab.removeEventListener('tab-active', tabActiveHandler);
+		};
+	}, []);
+
 	return (
-		<div className={"ui-page__tab-panel" + (selected ? ' selected' : '')} id={id}>
+		<div className={"ui-page__tab-panel" + (selected ? ' selected' : '')} id={id} ref={tabRef}>
 			{children}
 		</div>
 	);
