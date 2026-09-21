@@ -19,6 +19,11 @@ namespace Api.Translate
 		/// establish default language.
 		/// </summary>
 		public bool HandleCloudFlareHeader { get; set; } = true;
+
+		/// <summary>
+		/// Set this to true to disable URL prefixing. Not recommended.
+		/// </summary>
+		public bool DisableUrlPrefix { get; set; } = false;
 	}
 
 }

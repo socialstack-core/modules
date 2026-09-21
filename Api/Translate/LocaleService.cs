@@ -20,6 +20,8 @@ namespace Api.Translate
 	[LoadPriority(5)]
 	public partial class LocaleService : AutoService<Locale>
     {
+		private LocaleServiceConfig _cfg;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
@@ -32,6 +34,7 @@ namespace Api.Translate
 			});
 
 			var cfg = GetConfig<LocaleServiceConfig>();
+			_cfg = cfg;
 
 			Events.Locale.BeforeCreate.AddEventListener((Context context, Locale locale) =>
 			{
@@ -217,6 +220,15 @@ namespace Api.Translate
 				return builder;
 
 			}, 30); // After permalinks
+		}
+
+		/// <summary>
+		/// Gets the locale service config.
+		/// </summary>
+		/// <returns></returns>
+		public LocaleServiceConfig GetLocaleConfig()
+		{
+			return _cfg;
 		}
 
 		/// <summary>
