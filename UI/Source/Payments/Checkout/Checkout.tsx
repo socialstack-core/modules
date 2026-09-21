@@ -44,6 +44,11 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 
 	const ssFormRef = useRef<HTMLFormElement>(null);
 
+	const getCartIdRef = useRef(getCartId);
+	getCartIdRef.current = getCartId;
+	const addGuestDetailsRef = useRef(addGuestDetails);
+	addGuestDetailsRef.current = addGuestDetails;
+
 	// Does the cart contain any physical products or not?
 	const downloadsOnly = cartIsDigitalOnly ? cartIsDigitalOnly() : false;
 
@@ -192,7 +197,7 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 		
 	// Load delivery options for this cart
 	useEffect(() => {
-		var cartRef = getCartId!();
+		var cartRef = getCartIdRef.current!();
 		
 		if (!deliveryAddress || downloadsOnly) {
 			return;
@@ -211,11 +216,11 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 			setEstimates(estimates);
 		});
 		
-	}, [deliveryAddress]);
+	}, [deliveryAddress, downloadsOnly]);
 	
 	// Update in cart delivery address after change/edit for guests 
 	useEffect(() => {
-		if(user || !addGuestDetails || !deliveryAddress || !savedAddresses) {
+		if(user || !addGuestDetailsRef.current || !deliveryAddress || !savedAddresses) {
 			return;
 		}
 
@@ -237,13 +242,13 @@ const Checkout: React.FC<CheckoutProps> = (props) => {
 		guestDetails.addresses = savedAddresses;
 		
 		// save the updated guest details into the cart
-		addGuestDetails(guestDetails).then(() => {
+		addGuestDetailsRef.current(guestDetails).then(() => {
 			// continue to guest checkout
 		}).catch(e => {
 			console.log('failed to add guest details to cart', e);
 		});
 
-	}, [savedAddresses]);
+	}, [user, deliveryAddress, savedAddresses, shoppingCart]);
 
 	if (user && !savedAddresses) {
 		// Addresses or delivery options currently loading

@@ -3,7 +3,7 @@ import PopoverWrapper from 'UI/Popover/Wrapper';
 import popoverPolyfillJs from './static/popover.min.js';
 import { lazyLoad } from 'UI/Functions/WebRequest';
 import { getUrl } from 'UI/FileRef';
-import { FocusEvent, useEffect, useRef } from 'react';
+import { FocusEvent, useEffect, useRef, useCallback } from 'react';
 //import { toggleFocusable } from 'UI/Functions/ToggleFocusable';
 
 export type PopoverAlignment = 'left' | 'right' | 'top' | 'bottom' | 'center' | 'maximize';
@@ -144,6 +144,9 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 	const bgDisabledWidth = props.bgDisabledWidth || 1024;
 	const popoverRef = useRef<HTMLElement>(null);
 
+	const scrollLockPropsRef = useRef({ onToggle, underHeader, underSubHeader, aboveFooter, blurBackground, disableScrollLock });
+	scrollLockPropsRef.current = { onToggle, underHeader, underSubHeader, aboveFooter, blurBackground, disableScrollLock };
+
 	// TODO: investigate use of scrollbar-gutter: stable to prevent page content horizontally shifting
 
 	// Handle open prop for method="manual"
@@ -178,6 +181,8 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 			}
 
 			function handleToggle(e: ToggleEvent) {
+				const latest = scrollLockPropsRef.current;
+				const { onToggle, underHeader, underSubHeader, aboveFooter, blurBackground, disableScrollLock } = latest;
 
 				if (typeof onToggle === "function") {
 					onToggle(e);
@@ -233,7 +238,7 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 				delete document.body.dataset.popoverBlurred;
 			}
 
-		}, [id]);
+		}, []);
 	}
 
 	function isPopoverApiSupported() {
@@ -243,90 +248,8 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 			typeof HTMLElement.prototype.hidePopover === 'function';
 	}
 
-	useEffect(() => {
-
-		// check: iOS versions prior to v17 don't support popover API
-		// lazy-load polyfill if required
-		if (!isPopoverApiSupported()) {
-			lazyLoad(getUrl(popoverPolyfillJs as string)!);
-		}
-
-		document.addEventListener("click", docClickHandler);
-
-		if (popoverRef.current) {
-			(popoverRef.current as HTMLElement).addEventListener("focusout", focusHandler);
-			(popoverRef.current as HTMLElement).addEventListener("click", clickHandler);
-		}
-
-		return () => {
-			delete document.body.dataset.scrollFixed;
-
-			if (popoverRef.current) {
-				(popoverRef.current as HTMLElement).removeEventListener("click", clickHandler);
-				(popoverRef.current as HTMLElement).removeEventListener("focusout", focusHandler);
-			}
-
-			document.removeEventListener("click", docClickHandler);
-		};
-	}, []);
-
-/*
-	// disable background while popover is open (unless backgroundActive set),
-	// - while we could use <dialog> to gain modal support, this can only be controlled via JavaScript
-	// - it's also an all or nothing approach (e.g. we can't disable everything *except* the header)
-	// - we use the Popover API to allow panels to be toggled without relying on JavaScript support
-	// - can't use HTML inert attribute as this is liable to disable the contents of the popover itself
-	// - note that CSS pointer-events rules are used to disable mouse interaction
-	const toggleHandler = (event) => {
-
-		if (backgroundActive) {
-			return;
-		}
-
-		var reactRoot = window.SERVER ? undefined : document.querySelector("#react-root");
-
-		if (!reactRoot) {
-			return;
-		}
-
-		const header = reactRoot.querySelector("#site-wrapper > header");
-		const content = reactRoot.querySelector("#site-wrapper > #site-content");
-		const footer = reactRoot.querySelector("#site-wrapper > #site-content ~ footer");
-
-		if (event.newState === "open") {
-
-			if (header && !underHeader) {
-				toggleFocusable(header, false);
-			}
-
-			if (content) {
-				toggleFocusable(content, false);
-			}
-
-			if (footer) {
-				toggleFocusable(footer, false);
-			}
-
-		} else {
-
-			if (header && !underHeader) {
-				toggleFocusable(header, true);
-			}
-
-			if (content) {
-				toggleFocusable(content, true);
-			}
-
-			if (footer) {
-				toggleFocusable(footer, true);
-			}
-
-		}
-
-	};
-*/
 	// checks for focus leaving the popover - close if this happens, otherwise we run the risk of focusing a blurred background element
-	const focusHandler = (e: Event) => {
+	const focusHandler = useCallback((e: Event) => {
 
 		if (backgroundActive) {
 			return;
@@ -390,10 +313,10 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 				}	
 			}
 		}, 0);
-	};
+	}, [backgroundActive, method]);
 
 	// checks for clicks within the popover - handy for auto-closing on selections made
-	const clickHandler = (e: Event) => {
+	const clickHandler = useCallback((e: Event) => {
 		// was this click event via a child link or button?
 		const ele = e.target as HTMLElement;
 		const isInteractiveTarget = ele?.closest('.ui-link, .ui-btn');
@@ -419,11 +342,11 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 				return;
 		}
 
-	};
+	}, [closeOnInteractiveClick, bgDisabledWidth]);
 
 	// used to check for clicks occuring outside the popover
 	// (for when we're using popover="manual" but need to mimic popover="auto" at a specific size, e.g. mobile)
-	const docClickHandler = (e: Event) => {
+	const docClickHandler = useCallback((e: Event) => {
 
 		if (closeOnInteractiveClick == "when-bg-disabled") {
 
@@ -439,8 +362,92 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 			}
 
 		}
-	};
+	}, [closeOnInteractiveClick, bgDisabledWidth]);
 
+	useEffect(() => {
+
+		// check: iOS versions prior to v17 don't support popover API
+		// lazy-load polyfill if required
+		if (!isPopoverApiSupported()) {
+			lazyLoad(getUrl(popoverPolyfillJs as string)!);
+		}
+
+		document.addEventListener("click", docClickHandler);
+
+		const popover = popoverRef.current;
+
+		if (popover) {
+			(popover as HTMLElement).addEventListener("focusout", focusHandler);
+			(popover as HTMLElement).addEventListener("click", clickHandler);
+		}
+
+		return () => {
+			delete document.body.dataset.scrollFixed;
+
+			if (popover) {
+				(popover as HTMLElement).removeEventListener("click", clickHandler);
+				(popover as HTMLElement).removeEventListener("focusout", focusHandler);
+			}
+
+			document.removeEventListener("click", docClickHandler);
+		};
+	}, [docClickHandler, focusHandler, clickHandler]);
+
+/*
+	// disable background while popover is open (unless backgroundActive set),
+	// - while we could use <dialog> to gain modal support, this can only be controlled via JavaScript
+	// - it's also an all or nothing approach (e.g. we can't disable everything *except* the header)
+	// - we use the Popover API to allow panels to be toggled without relying on JavaScript support
+	// - can't use HTML inert attribute as this is liable to disable the contents of the popover itself
+	// - note that CSS pointer-events rules are used to disable mouse interaction
+	const toggleHandler = (event) => {
+
+		if (backgroundActive) {
+			return;
+		}
+
+		var reactRoot = window.SERVER ? undefined : document.querySelector("#react-root");
+
+		if (!reactRoot) {
+			return;
+		}
+
+		const header = reactRoot.querySelector("#site-wrapper > header");
+		const content = reactRoot.querySelector("#site-wrapper > #site-content");
+		const footer = reactRoot.querySelector("#site-wrapper > #site-content ~ footer");
+
+		if (event.newState === "open") {
+
+			if (header && !underHeader) {
+				toggleFocusable(header, false);
+			}
+
+			if (content) {
+				toggleFocusable(content, false);
+			}
+
+			if (footer) {
+				toggleFocusable(footer, false);
+			}
+
+		} else {
+
+			if (header && !underHeader) {
+				toggleFocusable(header, true);
+			}
+
+			if (content) {
+				toggleFocusable(content, true);
+			}
+
+			if (footer) {
+				toggleFocusable(footer, true);
+			}
+
+		}
+
+	};
+*/
 	let popoverClasses = ['ui-popover'];
 	popoverClasses.push(`ui-popover--${alignment}`);
 

@@ -6,7 +6,7 @@ import { ContentChangeDetail } from 'UI/Functions/ContentChange';
 import { expandIncludes } from 'UI/Functions/WebRequest';
 import getBuildDate from 'UI/Functions/GetBuildDate';
 import AdminTrigger from 'UI/AdminTrigger';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { useRouter, routerCtx, RouterContext, PageState } from 'UI/Router/RouterCtx';
 
 export { useRouter, routerCtx, RouterContext, PageState };
@@ -62,7 +62,7 @@ const Router: React.FC<{}> = () => {
 
 	var [scrollTarget, setScrollTarget] = useState<ScrollTarget | null>(null);
 	const scrollTimer = useRef<number | null>(null);
-	
+
 	function go(url : string) {
 		if(window.beforePageLoad){
 			window.beforePageLoad(url).then(() => {
@@ -253,12 +253,17 @@ const Router: React.FC<{}> = () => {
         }
     };
 
-	const scroll = () => {
+	const onPopStateRef = useRef(onPopState);
+	onPopStateRef.current = onPopState;
+	const onLinkClickRef = useRef(onLinkClick);
+	onLinkClickRef.current = onLinkClick;
+
+	const scroll = useCallback(() => {
 		if (scrollTarget) {
 			var html = document.body.parentNode as HTMLHtmlElement;
 			html.scrollTo({ top: scrollTarget.y, left: scrollTarget.x, behavior: 'instant' });
 		}
-	}
+	}, [scrollTarget]);
 
 	useEffect(() => {
 		if (scrollTimer.current) {
@@ -269,7 +274,7 @@ const Router: React.FC<{}> = () => {
 		if(scrollTarget){
 			scrollTimer.current = setTimeout(scroll, 100);
 		}
-	}, [scrollTarget]);
+	}, [scroll, scrollTarget]);
 	
 	useEffect(() => {
 		
@@ -292,9 +297,12 @@ const Router: React.FC<{}> = () => {
 				setPage(pgState);
 			}
 		};
+
+		const stablePopState = (e: PopStateEvent) => onPopStateRef.current(e);
+		const stableLinkClick = (e: MouseEvent) => onLinkClickRef.current(e);
 		
-		window.addEventListener("popstate", onPopState);
-		document.addEventListener("click", onLinkClick);
+		window.addEventListener("popstate", stablePopState);
+		document.addEventListener("click", stableLinkClick);
 		document.addEventListener("contentchange", onContentChange);
 		document.addEventListener("websocketmessage", onWsMessage);
 		
@@ -303,8 +311,8 @@ const Router: React.FC<{}> = () => {
 				clearInterval(scrollTimer.current);
 			}
 
-			window.removeEventListener("popstate", onPopState);
-			document.removeEventListener("click", onLinkClick);
+			window.removeEventListener("popstate", stablePopState);
+			document.removeEventListener("click", stableLinkClick);
 			document.removeEventListener("contentchange", onContentChange);
 			document.removeEventListener("websocketmessage", onWsMessage);
 		};

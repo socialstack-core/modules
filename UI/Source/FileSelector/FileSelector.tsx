@@ -56,14 +56,14 @@ const FileSelectorInput: React.FC<CustomInputTypeProps<"file">> = (props) => {
 };
 
 const IconSelectorInput: React.FC<CustomInputTypeProps<"icon">> = (props) => {
-	const { field } = props;
+	const { field, onInputRef } = props;
 
 	const [icon, setIcon] = useState<string | null | undefined>(field.defaultValue);
 	const ref = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
-		props.onInputRef && props.onInputRef(ref.current!);
-	}, [ref.current]);
+		onInputRef && onInputRef(ref.current!);
+	}, [onInputRef]);
 
 	return (
 		<>

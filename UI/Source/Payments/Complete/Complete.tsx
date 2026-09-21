@@ -2,7 +2,7 @@ import Alert from 'UI/Alert';
 import Badge from 'UI/Badge';
 import { useSession } from 'UI/Session';
 import { useRouter } from 'UI/Router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Props for the Complete component.
@@ -21,11 +21,15 @@ const Complete: React.FC<CompleteProps> = (props) => {
 	const { query } = pageState;
 	var { sessionReload } = useSession();
 
+	const sessionReloadRef = useRef(sessionReload);
+	sessionReloadRef.current = sessionReload;
+	const noSessionUpdateRef = useRef(props.noSessionUpdate);
+
 	useEffect(() => {
 		
-		if(!props.noSessionUpdate){
+		if(!noSessionUpdateRef.current){
 			// Force a session refresh. This is because a payment may have been for a subscription which affects the session state.
-			sessionReload && sessionReload();
+			sessionReloadRef.current && sessionReloadRef.current();
 		}
 		
 	}, []);

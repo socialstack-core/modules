@@ -316,7 +316,7 @@ const Dropdown: React.FC<DropdownProps> = (props) => {
 			window.document.removeEventListener("click", handleClick);
 		};
 
-	}, [toggleRef, dropdownRef, dropdownWrapperRef]);
+	}, [toggleRef, dropdownRef, dropdownWrapperRef, stayOpenOnSelection]);
 
 	let dropdownMenuClass = ['dropdown-menu'];
 

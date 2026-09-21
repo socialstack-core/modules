@@ -68,7 +68,7 @@ const DualRange: React.FC<DualRangeProps> = (props) => {
 		if (live) {
 			onChange(fromValue, toValue);
 		}
-	}, [fromValue, toValue]);
+	}, [fromValue, toValue, live, onChange]);
 
 	const id = useId();
 	const fromId = `from_${id}`;

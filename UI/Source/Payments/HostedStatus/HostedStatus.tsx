@@ -45,7 +45,7 @@ const HostedStatus: React.FC<HostedStatusProps> = (props) => {
                 setPurchase(undefined);
             });
 
-   	},[]);
+   	},[token, query]);
 
 	if (!purchase) {
         return <Loading />;        

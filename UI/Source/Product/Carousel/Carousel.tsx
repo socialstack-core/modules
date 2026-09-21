@@ -84,6 +84,18 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 		// product is its only dependency.
 	}, [product])
 	
+	// here we cascade back, 
+	// in the parent component
+	// when the attribute matrix is edited
+	// it clears the "selectedThumbnail" state 
+	// that gets passed to the corresponding prop. 
+	// in that instance, it cascades down to 
+	// current variant should one be selected,
+	// this will definitely be true after the attribute matrix is selected. 
+	// the only case where none of these are populated is where the 
+	// page initially loads, which shows the default product image.
+	const highlightedVariant = selectedThumbnail ?? currentVariant ?? product;
+	
 	// this ref exists to add a scroll into view
 	// call to the highlighted product, this scrolls
 	// the pane towards whichever variant is selected. 
@@ -104,7 +116,7 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 				inline: 'nearest',
 			})
 		}
-	}, [activeThumbnailRef.current])
+	}, [highlightedVariant.id])
 	
 	// taken from the original (unmodified), this removes the "open" attribute on the backing overlay
 	const handleLightboxClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -112,18 +124,6 @@ const Carousel: React.FC<CarouselProps> = ({ product, currentVariant, onThumbSel
 			(e.target as HTMLDivElement).parentElement?.removeAttribute("open");
 		}
 	}
-	
-	// here we cascade back, 
-	// in the parent component
-	// when the attribute matrix is edited
-	// it clears the "selectedThumbnail" state 
-	// that gets passed to the corresponding prop. 
-	// in that instance, it cascades down to 
-	// current variant should one be selected,
-	// this will definitely be true after the attribute matrix is selected. 
-	// the only case where none of these are populated is where the 
-	// page initially loads, which shows the default product image.
-	const highlightedVariant = selectedThumbnail ?? currentVariant ?? product;
 	
 	// repeated helper closure, takes the currently selected picture
 	// and renders it, when a featureRef isn't present, it renders

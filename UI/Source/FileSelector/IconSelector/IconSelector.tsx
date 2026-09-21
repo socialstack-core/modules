@@ -60,6 +60,7 @@ const IconSelector: React.FC<IconSelectorProps> = (props: IconSelectorProps) => 
 		!Object.values(cfg).every(val => val === null)
 	);
 	const fontConfig = filteredConfig.length ? filteredConfig[0] : undefined;
+	const iconFontFamilies = fontConfig?.iconFontFamilies;
 
 	useEffect(() => {
 		if (!icons.length) {
@@ -79,7 +80,7 @@ const IconSelector: React.FC<IconSelectorProps> = (props: IconSelectorProps) => 
 			var proms = [getJson<IconFile>(fileRef.getUrl((faIconsRef as any) as string)!)];
 
 			// custom icon support
-			fontConfig?.iconFontFamilies?.forEach(family => {
+			iconFontFamilies?.forEach(family => {
 				styles.push({
 					name: `Custom`,
 					key: "custom",
@@ -134,7 +135,7 @@ const IconSelector: React.FC<IconSelectorProps> = (props: IconSelectorProps) => 
 				setIconsLoaded(true);
 			});
 		}
-	}, []);
+	}, [iconFontFamilies]);
 
 	function closeModal() {
 		props.onClose && props.onClose();

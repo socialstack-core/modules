@@ -5,7 +5,7 @@ import { AutoController, AutoControllerInt, ListFilter } from 'Api/Startup';
 import { Content } from 'Api/Database';
 import { ContentChangeDetail } from 'UI/Functions/ContentChange';
 import useApi from 'UI/Functions/UseApi';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 const DEFAULT_PAGE_SIZE = 50;
 
 export type LoopStatus = "loading" | "empty" | "ready";
@@ -369,6 +369,9 @@ const Loop = <T,>(props: LoopProps<T>) => {
 		return load(props.filter?.pageIndex || props.defaultPage || 1);
 	}, [filterStr, props.paged, props.over, props.source, props.includes, props.forcedUpdate]);
 
+	const loadRef = useRef(load);
+	loadRef.current = load;
+
 	useEffect(() => {
 		var onContentUpdate = (e: CustomEvent<ContentChangeDetail>) => {
 			const changeInfo = e.detail;
@@ -406,7 +409,7 @@ const Loop = <T,>(props: LoopProps<T>) => {
 					setResults(updatedResults);
 				}
 			} else if (changeInfo.added) {
-				load().then(res => setResults(res));
+				loadRef.current().then(res => setResults(res));
 			}
 		};
 
@@ -415,7 +418,7 @@ const Loop = <T,>(props: LoopProps<T>) => {
 		return () => {
 			document.removeEventListener("contentchange", onContentUpdate as EventListener);
 		};
-	}, [results, load, setResults]);
+	}, [results, setResults]);
 
 	const getPagedFilter = (filter: any, pageIndex: number, paged?: LoopPageConfig | boolean) => {
 		if (!paged) {

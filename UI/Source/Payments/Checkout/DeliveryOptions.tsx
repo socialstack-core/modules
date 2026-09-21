@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { formatCurrency } from "UI/Functions/CurrencyTools";
 import { ApiList } from "UI/Functions/WebRequest";
 import Input from "UI/Input";
@@ -48,6 +48,8 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 	let {shoppingCart, locale, estimates} = props;
 	const deliveryConfig = getConfig<DeliveryDayConfig>("DeliveryDay")?.[0];
 	const currencyCode = locale?.currencyCode
+	const standardCourierCode = deliveryConfig?.standardCourierCode;
+	const saturdayCourierCode = deliveryConfig?.saturdayCourierCode;
 
 	const [localActiveDeliveryDay, setLocalActiveDeliveryDay] = useState<Date | undefined>();
 	const [localDeliveryOption, setLocalDeliveryOption] = useState<DeliveryOption | undefined>();
@@ -59,7 +61,7 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 	const [selectedDeliveryOptionInfo, setSelectedDeliveryOptionInfo] = useState<DeliveryInformation | undefined>();
 
 
-	const getDeliveryFromMap = (code?: string) => {
+	const getDeliveryFromMap = useCallback((code?: string) => {
 		let result: DeliveryOption | undefined
 
 		deliveryOptionMap?.forEach((value, key) => {
@@ -69,11 +71,11 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 		});
 
 		return result;
-	};
+	}, [deliveryOptionMap]);
 
 	//Get individual delivery options
-	const standardCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig?.standardCourierCode),[deliveryOptionMap]);
-	const saturdayCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(deliveryConfig?.saturdayCourierCode),[deliveryOptionMap]);
+	const standardCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(standardCourierCode),[getDeliveryFromMap, standardCourierCode]);
+	const saturdayCourierDelivery = useMemo<DeliveryOption | undefined>(() => getDeliveryFromMap(saturdayCourierCode),[getDeliveryFromMap, saturdayCourierCode]);
 
 	//Extract costs from delivery options
 	const standardCourierCost = standardCourierDelivery ? deliveryOptionMap?.get(standardCourierDelivery)!.price : undefined;
@@ -108,7 +110,7 @@ const DeliveryOptions: React.FC<DeliveryOptionsProps> = (props) => {
 
 		//Update the active delivery date
 		setActiveDeliveryDay(new Date(selectedDeliveryOptionInfo.requestedDeliveryDate));
-	},[selectedDeliveryOptionInfo])
+	},[selectedDeliveryOptionInfo, setActiveDeliveryDay])
 
 	const formatDate = (date: Date) => {
 		console.log(date)

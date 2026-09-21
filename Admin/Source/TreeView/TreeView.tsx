@@ -49,7 +49,7 @@ const TreeView: React.FC<TreeViewProps> = ({ allowSelection, allowSorting, click
 				setCurrentNode(result);
 			});
 
-	}, [pageState]);
+	}, [pageState, onLoadData]);
 
 	function renderHeader(label: string, columnName: string) {
 

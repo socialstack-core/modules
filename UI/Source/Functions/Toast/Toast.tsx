@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext } from 'react';
+import { createContext, useState, useEffect, useContext, useCallback } from 'react';
 
 /*
 * ToastInfo will be passed directly to your ToastList render function.
@@ -22,9 +22,9 @@ const SessionToasts = createContext<SessionToast | undefined>(undefined);
 export const Provider = (props : React.PropsWithChildren) => {
 	const [toastList, setToastList] = useState<ToastInfo[]>([]);
 
-	let close =  (toastInfo:ToastInfo) => {
-		setToastList(toastList.filter(toast => toast != toastInfo));
-	}
+	const close = useCallback((toastInfo: ToastInfo) => {
+		setToastList(list => list.filter(toast => toast != toastInfo));
+	}, []);
 
 	useEffect(() => {
         toastList.forEach(toast => {
@@ -42,7 +42,7 @@ export const Provider = (props : React.PropsWithChildren) => {
             });
         };
 
-    }, [toastList]);
+    }, [toastList, close]);
 
 
 	let pop = (toastInfo:ToastInfo) => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import store from 'UI/Functions/Store';
 
 export type SearchCriteria = {
@@ -53,68 +53,75 @@ export function useRouterCriteria({
 	const signature = `${pageState.url}|${pageState.query.toString()}`;
 
 	// Build single-value params + collect repeated facet keys
-	const queryObj: Record<string, any> = {};
-	const facetsMap: Record<number, number[]> = {};
+	const criteria = useMemo(() => {
+		const queryObj: Record<string, any> = {};
+		const facetsMap: Record<number, number[]> = {};
 
-	for (const [key, value] of pageState.query) {
-		// extract facets -> facet[arttributeid]=id
-		const m = key.match(/^facets\[(\d+)\]$/);
-		if (m) {
-			const attrId = Number(m[1]);
-			const val = Number(value);
-			if (!Number.isNaN(attrId) && !Number.isNaN(val)) {
-				if (!facetsMap[attrId]) {
-					facetsMap[attrId] = [];
+		for (const [key, value] of pageState.query) {
+			// extract facets -> facet[arttributeid]=id
+			const m = key.match(/^facets\[(\d+)\]$/);
+			if (m) {
+				const attrId = Number(m[1]);
+				const val = Number(value);
+				if (!Number.isNaN(attrId) && !Number.isNaN(val)) {
+					if (!facetsMap[attrId]) {
+						facetsMap[attrId] = [];
+					}
+					facetsMap[attrId].push(val);
 				}
-				facetsMap[attrId].push(val);
+				continue;
 			}
-			continue;
-		}
-		queryObj[key] = value;
-	}
-
-	const criteria = { ...(defaults ?? {}), ...queryObj } as SearchCriteria;
-	if (Object.keys(facetsMap).length > 0) {
-		criteria.facets = facetsMap;
-	}
-
-	// Coercions
-	if (typeof criteria.page === "string" && criteria.page !== "") {
-		criteria.page = Number(criteria.page);
-	}
-	if (typeof criteria.limit === "string" && criteria.limit !== "") {
-		criteria.limit = Number(criteria.limit);
-	}
-	if (typeof criteria.min === "string" && criteria.min !== "") {
-		criteria.min = Number(criteria.min);
-	}
-	if (typeof criteria.max === "string" && criteria.max !== "") {
-		criteria.max = Number(criteria.max);
-	}
-
-	const toBool = (str?: string | boolean) => {
-		if (typeof str === 'string') {
-			return str === "true";
+			queryObj[key] = value;
 		}
 
-		return str;
-	};
+		const criteria = { ...(defaults ?? {}), ...queryObj } as SearchCriteria;
+		if (Object.keys(facetsMap).length > 0) {
+			criteria.facets = facetsMap;
+		}
 
-	criteria.inStockOnly = toBool(criteria.inStockOnly);
-	criteria.hiddenProducts = toBool(criteria.hiddenProducts);
+		// Coercions
+		if (typeof criteria.page === "string" && criteria.page !== "") {
+			criteria.page = Number(criteria.page);
+		}
+		if (typeof criteria.limit === "string" && criteria.limit !== "") {
+			criteria.limit = Number(criteria.limit);
+		}
+		if (typeof criteria.min === "string" && criteria.min !== "") {
+			criteria.min = Number(criteria.min);
+		}
+		if (typeof criteria.max === "string" && criteria.max !== "") {
+			criteria.max = Number(criteria.max);
+		}
 
-	const viewType = criteria.view ?? store.get('productViewType') ?? 'small-thumbs';
-	criteria.view = viewType;
+		const toBool = (str?: string | boolean) => {
+			if (typeof str === 'string') {
+				return str === "true";
+			}
 
-	const sortType = criteria.sort ?? store.get('productSortType') ?? undefined;
-	criteria.sort = sortType;
+			return str;
+		};
+
+		criteria.inStockOnly = toBool(criteria.inStockOnly);
+		criteria.hiddenProducts = toBool(criteria.hiddenProducts);
+
+		const viewType = criteria.view ?? store.get('productViewType') ?? 'small-thumbs';
+		criteria.view = viewType;
+
+		const sortType = criteria.sort ?? store.get('productSortType') ?? undefined;
+		criteria.sort = sortType;
+
+		return criteria;
+	}, [pageState, defaults]);
 
 	// Notify on any URL change (including first load)
 	const onChangeRef = useRef(onChange);
 	onChangeRef.current = onChange;
+	const criteriaRef = useRef(criteria);
+	criteriaRef.current = criteria;
+	const setCriteriaRef = useRef<any>(null);
 
 	useEffect(() => {
-		void onChangeRef.current(criteria);
+		void onChangeRef.current(criteriaRef.current);
 	}, [signature]);
 
 	// Auto-reset when q changes (skip on first load so that historic urls are retained)
@@ -175,10 +182,10 @@ export function useRouterCriteria({
 			}
 
 			if (changed) {
-				setCriteria(patch);
+				setCriteriaRef.current(patch);
 			}
 		}
-	}, [criteria.q]);
+	}, [criteria, resetOnQChange, skipResetOnFirstLoad]);
 
 	function setCriteria(patch: Partial<SearchCriteria>) {
 		// Special handling for facets (repeated keys)
@@ -192,6 +199,8 @@ export function useRouterCriteria({
 
 		applyPatch(patch);
 	}
+
+	setCriteriaRef.current = setCriteria;
 
 	function applyPatch(patch: Partial<SearchCriteria>) {
 		const keysToRemove: string[] = [];

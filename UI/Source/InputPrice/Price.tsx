@@ -39,16 +39,18 @@ const Price: React.FC<CustomInputTypeProps<"price">> = props => {
 
 	const [locale, setLocale] = useState<Locale>();
 
+	const fieldLocale = props?.field?.locale;
+
 	useEffect(() => {
 		if (!locale) {
-			if (props?.field?.locale) {
-				setLocale(props.field.locale);
+			if (fieldLocale) {
+				setLocale(fieldLocale);
 				return;
 			}
 			// otherwise load the default.
 			localeApi.load(1 as uint).then(setLocale);
 		}
-	}, [locale]);
+	}, [locale, fieldLocale]);
 
 	/**
 	 * Initialise the price value only once.

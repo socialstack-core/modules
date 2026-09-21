@@ -287,6 +287,8 @@ const ReactCreditCardIntl: React.FC<CreditCardProps> = ({
 }) => {
 
 	// 1. Logic for setting accepted cards (replaces constructor and componentDidUpdate)
+	const acceptedCardsKey = acceptedCards.toString();
+
 	useEffect(() => {
 		let newCardArray: any[] = [];
 		if (acceptedCards.length) {
@@ -299,7 +301,7 @@ const ReactCreditCardIntl: React.FC<CreditCardProps> = ({
 			newCardArray = [...Payment.getCardArray()];
 		}
 		Payment.setCardArray(newCardArray);
-	}, [acceptedCards.toString()]); // Only re-run if the list of accepted cards changes
+	}, [acceptedCards, acceptedCardsKey]); // Only re-run if the list of accepted cards changes
 
 	// 2. Memoized options (replaces get options())
 	const options = useMemo(() => {

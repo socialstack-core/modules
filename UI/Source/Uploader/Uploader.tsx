@@ -57,6 +57,8 @@ export type UploaderProps = {
 * General purpose file uploader. Doesn't declare a form so can be used inline anywhere.
 */
 const Uploader: React.FC<UploaderProps> = (props: UploaderProps) => {
+	const { onInputRef } = props;
+
 	var defaultMessage = props.multiple ? DEFAULT_MESSAGE_MULTIPLE : DEFAULT_MESSAGE;
 	var initialMessage = props.label || defaultMessage;
 
@@ -67,10 +69,10 @@ const Uploader: React.FC<UploaderProps> = (props: UploaderProps) => {
 	const inputRef = useRef<HTMLInputElement | null>(null);
 
 	useEffect(() => {
-		if (props.onInputRef) {
-			props.onInputRef(inputRef);
+		if (onInputRef) {
+			onInputRef(inputRef);
 		}
-	}, [props.onInputRef]);
+	}, [onInputRef]);
 
 	const [loading, setLoading] = useState(false);
 	const [progressPercent, setProgressPercent] = useState(0);

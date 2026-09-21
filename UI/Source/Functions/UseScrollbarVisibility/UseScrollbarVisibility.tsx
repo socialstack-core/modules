@@ -48,7 +48,7 @@ export default function useScrollbarVisibility(ref: RefObject<HTMLElement>): Scr
 			resizeObserver.disconnect();
 			mutationObserver.disconnect();
 		};
-	}, [ref.current]); // Re-run effect if the element ref changes
+	}, [ref]); // Re-run effect if the element ref changes
 
 	return scrollbars;
 }

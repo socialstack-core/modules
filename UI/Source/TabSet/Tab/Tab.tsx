@@ -1,4 +1,4 @@
-import { useState, useEffect, useId, ReactElement } from 'react';
+import { useState, useEffect, useId, useRef, ReactElement } from 'react';
 
 const COMPONENT_PREFIX = 'ui-tabset';
 
@@ -66,10 +66,16 @@ const Tab: React.FC<React.PropsWithChildren<TabProps>> = ({ label, hash, id, nam
 		}
 	};
 
+	const handleClickRef = useRef(handleClick);
+	handleClickRef.current = handleClick;
+	const indexRef = useRef(index);
+	const labelRef = useRef(label);
+	const tabHashRef = useRef(tabHash);
+
 	useEffect(() => {
 		// javascript available - rework component to use links
 		setTabLink(<>
-			<a href={`#${tabHash}`} onClick={(e) => handleClick(e, index)}>{label}</a>
+			<a href={`#${tabHashRef.current}`} onClick={(e) => handleClickRef.current(e, indexRef.current)}>{labelRef.current}</a>
 		</>)
 	}, []);
 

@@ -1,5 +1,5 @@
 //import Button from 'UI/Button';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 /**
  * Props for the Carousel component.
@@ -72,69 +72,73 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 
 	useEffect(() => {
 
-		if (!carouselRef?.current) {
-			return;
+		const carouselEl = carouselRef?.current;
+		const scrollEl = scrollContainerRef?.current;
+		const backBtnEl = btnBackRef?.current;
+		const nextBtnEl = btnNextRef?.current;
+
+		if (carouselEl) {
+			setScrollBehaviour(window?.matchMedia("(prefers-reduced-motion: reduce)").matches ? 'instant' : 'smooth');
+
+			carouselEl.addEventListener("keydown", keyHandler);
+			carouselEl.addEventListener('wheel', wheelHandler);
 		}
 
-		setScrollBehaviour(window?.matchMedia("(prefers-reduced-motion: reduce)").matches ? 'instant' : 'smooth');
-
-		carouselRef.current.addEventListener("keydown", keyHandler);
-		carouselRef.current.addEventListener('wheel', wheelHandler);
-
-		if (btnBackRef?.current) {
-			btnBackRef.current.addEventListener("keydown", keyHandler);
-			btnBackRef.current.addEventListener('wheel', wheelHandler);
+		if (backBtnEl) {
+			backBtnEl.addEventListener("keydown", keyHandler);
+			backBtnEl.addEventListener('wheel', wheelHandler);
 		}
 
-		if (btnNextRef?.current) {
-			btnNextRef.current.addEventListener("keydown", keyHandler);
-			btnNextRef.current.addEventListener('wheel', wheelHandler);
+		if (nextBtnEl) {
+			nextBtnEl.addEventListener("keydown", keyHandler);
+			nextBtnEl.addEventListener('wheel', wheelHandler);
 		}
 
 		window.addEventListener('resize', updateButtons);
 
-		if (!scrollContainerRef?.current) {
-			return;
-		}
+		let observer: IntersectionObserver | null = null;
+		let children: NodeListOf<Element> | null = null;
 
-		scrollContainerRef.current.addEventListener("scroll", updateButtons);
+		if (scrollEl) {
+			scrollEl.addEventListener("scroll", updateButtons);
 
-		// use intersectionObserver to gradually fade out items not fully visible
-		const observer = new IntersectionObserver((entries) => {
-			entries.forEach(entry => {
-				// entry.intersectionRatio is between 0 and 1
-				// Map it directly to opacity
-				(entry.target as HTMLElement).style.opacity = entry.intersectionRatio.toString();
+			// use intersectionObserver to gradually fade out items not fully visible
+			observer = new IntersectionObserver((entries) => {
+				entries.forEach(entry => {
+					// entry.intersectionRatio is between 0 and 1
+					// Map it directly to opacity
+					(entry.target as HTMLElement).style.opacity = entry.intersectionRatio.toString();
+				});
+			}, {
+				root: scrollEl,
+				threshold: Array.from({ length: 101 }, (_, i) => i / 100) // 0, 0.01, ..., 1
 			});
-		}, {
-			root: scrollContainerRef.current,
-			threshold: Array.from({ length: 101 }, (_, i) => i / 100) // 0, 0.01, ..., 1
-		});
 
-		const children = scrollContainerRef.current.querySelectorAll(':scope > *');
-		children.forEach((item) => observer.observe(item));
+			children = scrollEl.querySelectorAll(':scope > *');
+			children.forEach((item) => observer?.observe(item));
+		}
 
 		return () => {
 
-			if (carouselRef?.current) {
-				carouselRef.current.removeEventListener("keydown", keyHandler);
-				carouselRef.current.removeEventListener("wheel", wheelHandler);
+			if (carouselEl) {
+				carouselEl.removeEventListener("keydown", keyHandler);
+				carouselEl.removeEventListener("wheel", wheelHandler);
 			}
 
-			if (btnBackRef?.current) {
-				btnBackRef.current.removeEventListener("keydown", keyHandler);
-				btnBackRef.current.removeEventListener("wheel", wheelHandler);
+			if (backBtnEl) {
+				backBtnEl.removeEventListener("keydown", keyHandler);
+				backBtnEl.removeEventListener("wheel", wheelHandler);
 			}
 
-			if (btnNextRef?.current) {
-				btnNextRef.current.removeEventListener("keydown", keyHandler);
-				btnNextRef.current.removeEventListener("wheel", wheelHandler);
+			if (nextBtnEl) {
+				nextBtnEl.removeEventListener("keydown", keyHandler);
+				nextBtnEl.removeEventListener("wheel", wheelHandler);
 			}
 
 			window.removeEventListener('resize', updateButtons);
 
-			if (scrollContainerRef?.current) {
-				scrollContainerRef.current.removeEventListener("scroll", updateButtons);
+			if (scrollEl) {
+				scrollEl.removeEventListener("scroll", updateButtons);
 
 				if (observer && children?.length) {
 					children.forEach((item) => observer.unobserve(item));
@@ -143,34 +147,23 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 			}
 
 		}
-	}, []);
+	}, [keyHandler, wheelHandler, updateButtons]);
 
 	useEffect(() => {
 		// TODO: investigate possibility of retrieving item width/height values from first child
 		updateButtons();
-	}, [children]);
+	}, [children, updateButtons]);
 
-	function isVertical() {
+	const isVertical = useCallback(() => {
 
 		if (!scrollContainerRef?.current) {
 			return false;
 		}
 
 		return window.getComputedStyle(scrollContainerRef.current).flexDirection === 'column';
-	}
+	}, []);
 
-	function getScrollAmount() {
-
-		if (!carouselRef?.current) {
-			return 0;
-		}
-
-		const style = window.getComputedStyle(carouselRef.current);
-
-		return getSizeInPixels(style, isVertical() ? "--ui-carousel-item-height" : "--ui-carousel-item-width");
-	}
-
-	function getSizeInPixels(computedStyle:CSSStyleDeclaration, varName: string) {
+	const getSizeInPixels = useCallback((computedStyle: CSSStyleDeclaration, varName: string) => {
 		const size = computedStyle.getPropertyValue(varName);
 
 		if (!size || !size.length) {
@@ -184,9 +177,20 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 		}
 
 		return parseFloat(match[1]) * (match[2] == 'rem' ? 16 : 1);
-	}
+	}, []);
 
-	function scrollCarousel(amount: number) {
+	const getScrollAmount = useCallback(() => {
+
+		if (!carouselRef?.current) {
+			return 0;
+		}
+
+		const style = window.getComputedStyle(carouselRef.current);
+
+		return getSizeInPixels(style, isVertical() ? "--ui-carousel-item-height" : "--ui-carousel-item-width");
+	}, [isVertical, getSizeInPixels]);
+
+	const scrollCarousel = useCallback((amount: number) => {
 
 		if (!scrollContainerRef?.current) {
 			return;
@@ -198,9 +202,9 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 			scrollContainerRef.current.scrollBy({ left: amount, behavior: scrollBehaviour });
 		}
 
-	}
+	}, [isVertical, scrollBehaviour]);
 
-	function updateButtons() {
+	const updateButtons = useCallback(() => {
 
 		if (!scrollContainerRef?.current || !btnBackRef.current || !btnNextRef.current) {
 			return;
@@ -254,9 +258,9 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 
 		}
 
-	}
+	}, [isVertical]);
 
-	function keyHandler(e: KeyboardEvent) {
+	const keyHandler = useCallback((e: KeyboardEvent) => {
 
 		if (!scrollContainerRef?.current) {
 			return;
@@ -326,14 +330,14 @@ const Carousel: React.FC<CarouselProps> = (props) => {
 				break;
 		}
 
-	};
+	}, [isVertical, scrollCarousel, getScrollAmount]);
 
-	function wheelHandler(e: WheelEvent) {
+	const wheelHandler = useCallback((e: WheelEvent) => {
 		e.preventDefault();
 
 		const scrollAmount = getScrollAmount();
 		scrollCarousel(e.deltaY < 0 ? -scrollAmount : scrollAmount);
-	}
+	}, [scrollCarousel, getScrollAmount]);
 
 	const baseClass = 'ui-carousel';
 	let classNames = [baseClass];

@@ -308,6 +308,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 	const [editor, setEditor] = useState(null);
 	const timeoutRef = useRef(null);
 	const currentCharCount = useRef(0);
+	const initEditorRef = useRef<any>(null);
 
 	useEffect(() => {
 
@@ -329,7 +330,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			const tinymce = win.tinymce;
 			tinymce.baseURL = tinyMceUrl.replace(/\/tinymce\.min\.js/gi, '');
 			tinymce.suffix = '.min';
-			return initEditor(textarea, tinymce);
+			return initEditorRef.current(textarea, tinymce);
 		}).then(editors => {
 			editorRef.current = editors[0];
 			setEditor(editors[0]);
@@ -1005,6 +1006,8 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		return tinymce.init(config);
 	};
 
+	initEditorRef.current = initEditor;
+
 	useEffect(() => {
 		if (textareaRef.current) {
 			if (onInputRef) {
@@ -1043,7 +1046,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			};
 
 		}
-	}, [editor, maxlength]);
+	}, [editor, maxlength, onInputRef, props.rootBlock, props.unwrapHtml]);
 	
 	const textAreaClasses = ['form-control', 'ui-form-control', 'textarea-tinymce'];
 

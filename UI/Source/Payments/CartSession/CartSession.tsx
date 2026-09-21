@@ -277,7 +277,7 @@ export const Provider: React.FC<React.PropsWithChildren> = (props) => {
 		if (!nullFirstRender) {
 			setNullFirstRender(true);
 		}
-	}, []);
+	}, [nullFirstRender]);
 
     return (
         <CartSession.Provider

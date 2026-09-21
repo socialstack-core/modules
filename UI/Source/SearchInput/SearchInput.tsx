@@ -55,6 +55,10 @@ const SearchInput: React.FC<SearchInputProps> = (props:SearchInputProps) => {
 
 	const updateQueryRef = useRef(updateQuery);
 	const lastCommittedQuery = useRef(fromQueryString);
+	const qryRef = useRef(qry);
+	qryRef.current = qry;
+	const onQueryChangeRef = useRef(onQueryChange);
+	onQueryChangeRef.current = onQueryChange;
 	const debounce = useRef(
 		new Debounce(
 			(query: string) => {
@@ -86,9 +90,9 @@ const SearchInput: React.FC<SearchInputProps> = (props:SearchInputProps) => {
 	useEffect(() => {
 		// Only update local state if the URL changed to something 
 		// different than our last debounced execution.
-		if (fromQueryString !== qry && fromQueryString !== lastCommittedQuery.current) {
+		if (fromQueryString !== qryRef.current && fromQueryString !== lastCommittedQuery.current) {
 			setQ(fromQueryString || '');
-			onQueryChange?.(fromQueryString!);
+			onQueryChangeRef.current?.(fromQueryString!);
 			lastCommittedQuery.current = fromQueryString || '';
 		}
 	}, [fromQueryString]);

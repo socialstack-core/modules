@@ -1,4 +1,4 @@
-import { useEffect ,useState } from "react";
+import { useEffect ,useState, useMemo } from "react";
 import { PaymentMethod } from 'Api/PaymentMethod';
 import Alert from 'UI/Alert';
 
@@ -23,7 +23,7 @@ const ExternalPayment: React.FC<ExternalPaymentProps> = (props) => {
     const [error, setError] = useState<PublicError | undefined>();
 	const [paymentMethod, setPaymentMethod] = useState<PaymentMethod| undefined>();
 
-	var paymentGateways = globalThis.paymentGateways = globalThis.paymentGateways || {};
+	var paymentGateways = useMemo(() => globalThis.paymentGateways = globalThis.paymentGateways || {}, []);
 
 	useEffect(() => {
 
@@ -35,7 +35,7 @@ const ExternalPayment: React.FC<ExternalPaymentProps> = (props) => {
             setError(err);
 		});;
 
-	},[])
+	}, [paymentGateways])
 
 	var Component = paymentMethod?.component;
 

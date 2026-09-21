@@ -196,7 +196,7 @@ const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateD
 
 	useEffect(() => {
 		setAgoTime(timeAgoString(jsDate, absolute, withDate, dateDisplay, dateOnly));
-	}, [date, absolute, dateDisplay, jsDate, withDate]);
+	}, [date, absolute, dateDisplay, jsDate, withDate, dateOnly]);
 
 	useEffect(() => {
 		if (updateRate && updateRate <= 0) {
@@ -208,7 +208,7 @@ const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateD
 		return () => {
 			clearInterval(x);
 		};
-	}, [absolute, dateDisplay, jsDate, updateRate, withDate]);
+	}, [absolute, dateDisplay, jsDate, updateRate, withDate, dateOnly]);
 
 	var isoString = '';
 	var title = '';

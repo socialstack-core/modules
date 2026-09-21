@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import Button from 'UI/Button';
 import { PaymentMethod } from 'Api/PaymentMethod';
 
@@ -22,7 +22,7 @@ const OpayoExternal: React.FC<OpayoExternalProps> = (props) => {
         disabled
 	} = props;
 
-	var paymentGateways = globalThis.paymentGateways = globalThis.paymentGateways || {};
+	var paymentGateways = useMemo(() => globalThis.paymentGateways = globalThis.paymentGateways || {}, []);
 
 	useEffect(() => {
 		if (!paymentMethod || paymentGateways.hostedPageEnabled) {
@@ -36,7 +36,7 @@ const OpayoExternal: React.FC<OpayoExternalProps> = (props) => {
 			container.style.removeProperty("height");
 		});
 
-	},[paymentMethod]);
+	},[paymentMethod, paymentGateways]);
 
 
 	return <>

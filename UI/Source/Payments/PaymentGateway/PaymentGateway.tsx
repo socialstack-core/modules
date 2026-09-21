@@ -72,7 +72,7 @@ const PaymentGateway: React.FC<CustomInputTypeProps<"payment">> = (props) => {
 		if (!session.user) {
 			setMethods([]);
 		}
-	}, []);
+	}, [props.updateMode, session.user]);
 	
 	if (!methods && !field.updateMode){
 		return <Loading />;

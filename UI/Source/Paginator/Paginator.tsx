@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Icon from 'UI/Icon';
 
 const MAX_PAGES = 5;
@@ -78,7 +78,7 @@ interface PaginatorProps {
  * Standalone component which displays a paginator.
  */
 const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
-	var { pageIndex, totalResults, pageSize, paginatorOnly, overviewOnly, dockBottom } = props;
+	var { pageIndex, totalResults, pageSize, paginatorOnly, overviewOnly, dockBottom, onChange, urlUpdating } = props;
 
 	const [dropdownId, setDropdownId] = useState<string>();
 
@@ -96,7 +96,7 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 
 	let totalPages = getTotalPages();
 
-	const changePage = function (nextPage: number) {
+	const changePage = useCallback(function (nextPage: number) {
 		if (!nextPage || nextPage <= 0) {
 			nextPage = 1;
 		}
@@ -107,14 +107,14 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 			nextPage = totalPages;
 		}
 
-		if (props.onChange) {
-			props.onChange(nextPage, currentPage);
+		if (onChange) {
+			onChange(nextPage, currentPage);
 		}
 
-		if (!props.urlUpdating) {
+		if (!urlUpdating) {
 			setCurrentPage(nextPage);
 		}
-	}
+	}, [totalPages, onChange, urlUpdating, currentPage]);
 
 	useEffect(() => {
 		// something external has changed the results 
@@ -122,7 +122,7 @@ const Paginator: React.FC<PaginatorProps> = (props: PaginatorProps) => {
 			changePage(pageIndex);
 		}
 
-	}, [pageIndex, totalResults, currentPage]);
+	}, [pageIndex, totalResults, currentPage, changePage]);
 
 	// if we only have a single page then optionally hide
 	if (!props.always && totalPages && totalPages < 2) {
