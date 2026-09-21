@@ -15,6 +15,11 @@ interface BadgeProps {
 	xs?: boolean,
 
 	/**
+	 * set true to restrict text to a single line
+	 */
+	noWrap?: boolean,
+
+	/**
 	 * optional additional classnames
 	 */
 	className?: string
@@ -24,12 +29,16 @@ interface BadgeProps {
  * Badge component
  */
 const Badge: React.FC<React.PropsWithChildren<BadgeProps>> = (props) => {
-	var { children, variant, xs, className } = props;
+	var { children, variant, xs, noWrap, className } = props;
 
 	var badgeClass: string[] = ['ui-badge'];
 
 	if (xs) {
 		badgeClass.push('ui-badge--xs');
+	}
+
+	if (noWrap) {
+		badgeClass.push('ui-badge--nowrap');
 	}
 
 	if (variant?.length) {

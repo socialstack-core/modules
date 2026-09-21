@@ -47,4 +47,8 @@
 		font-size: px_to_rem(10);
 	}
 
+	&--nowrap {
+		white-space: nowrap;
+	}
+
 }
