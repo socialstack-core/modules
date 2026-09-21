@@ -391,7 +391,7 @@ const Router: React.FC<{}> = () => {
 		{
 			page ? (typeof page.bodyJson == 'string' ? <Canvas>{page.bodyJson}</Canvas> : <Canvas bodyJson={ page.bodyJson } />) : null
 		}
-		<AdminTrigger page={page}/>
+		<AdminTrigger page={page} pageState={pageState}/>
 	</routerCtx.Provider>;
 }
 
