@@ -17,7 +17,7 @@ const Textarea: React.FC<CustomInputTypeProps<"textarea">> = (props) => {
 
 	return (<>
 		<textarea
-			{...field}
+			{...field} id={props.id}
 			ref={(el: HTMLTextAreaElement) => onInputRef && onInputRef(el as HTMLElement)}
 			className={(field.className || "form-control ui-form-control") + (props.validationFailure ? ' is-invalid' : '')}
 			onInput={(e: React.FormEvent<HTMLTextAreaElement>) => {
