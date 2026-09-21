@@ -27668,7 +27668,7 @@
             store: {
               mode: 'memory',
               initialValue: {
-                mode: 'words',
+                mode: 'characters',
                 count: {
                   words: 0,
                   characters: 0

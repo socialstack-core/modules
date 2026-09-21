@@ -115,6 +115,28 @@ body.tox-dialog__disable-scroll {
 /* ACE in TinyMCE */
 .mce-container .evolution-code-editor * { font: 12px/normal 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace !important; white-space: pre !important; }
 
+/* 4r-code plugin - ACE editor in TinyMCE dialog */
+.tox-dialog .ace-source-editor {
+	height: 100%;
+	border: 1px solid #ccc;
+
+	.ace_editor {
+		width: 100% !important;
+		height: 100% !important;
+		font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Consolas', 'source-code-pro', monospace;
+	}
+}
+
+.tox .tox-dialog__body-content:has(.ace-source-editor) {
+	padding-bottom: 0;
+
+	> .tox-form > .tox-form__group {
+		height: 100%;
+		margin: 0;
+	}
+
+}
+
 /* Fullscreen */
 body.mce-fullscreen .mce-tinymce { z-index: 11001 !important; }
 body.mce-fullscreen.administration .administration-panel-shell-wrapper .administration-panel-content-wrapper .administration-panel-wrapper .administration-panel .administration-panel-heading { z-index: auto; }
@@ -178,27 +200,157 @@ html .tox-button:not(.tox-button--icon, .tox-button--naked, .tox-button--seconda
     background-color: var(--primary);
     border-color: var(--primary);
     color: var(--primary-fg);
+
+	&:hover:not(:disabled) {
+		background-color: var(--primary-hover);
+		border-color: var(--primary-hover-border);
+		color: var(--primary-fg);
 }
 
-html .tox-button:not(.tox-button--icon, .tox-button--naked, .tox-button--secondary):hover {
-    background-color: var(--secondary) !important;
-    border-color: var(--secondary) !important;
-    color: var(--secondary-fg) !important;
+	&:focus:not(:disabled) {
+		background-color: var(--primary);
+		border-color: var(--primary);
+		color: var(--primary-fg);
+	}
+
+	&:focus-visible:not(:disabled) {
+		background-color: var(--primary-hover);
+		border-color: var(--primary-hover-border);
+		color: var(--primary-fg);
+
+		&::before {
+		    box-shadow: 0 0 0 0.25rem var(--primary-shadow);
+		}
+	}
+
+	&:active:not(:disabled) {
+		background-color: var(--primary-active);
+		border-color: var(--primary-active-border);
+		color: var(--primary-fg);
+	}
 }
 
 html .tox-button.tox-button--secondary {
 	background-color: var(--secondary);
 	border-color: var(--secondary);
 	color: var(--secondary-fg);
+
+	&:hover:not(:disabled) {
+		background-color: var(--secondary-hover);
+		border-color: var(--secondary-hover-border);
+		color: var(--secondary-fg);
+	}
+
+	&:focus:not(:disabled) {
+		background-color: var(--secondary);
+		border-color: var(--secondary);
+		color: var(--secondary-fg);
 }
 
-html .tox-button.tox-button--secondary:hover {
-    background-color: var(--secondary-hover) !important;
-    border-color: var(--secondary-hover-border) !important;
-    color: var(--secondary-fg) !important;
+	&:focus-visible:not(:disabled) {
+		background-color: var(--secondary-hover);
+		border-color: var(--secondary-hover-border);
+		color: var(--secondary-fg);
+
+		&::before {
+		    box-shadow: 0 0 0 0.25rem var(--secondary-shadow);
+		}
+	}
+
+	&:active:not(:disabled) {
+		background-color: var(--secondary-active);
+		border-color: var(--secondary-active-border);
+		color: var(--secondary-fg);
+	}
 }
 
 // prevent FOUM (flash of unstyled markup)
 .textarea--tinymce {
+	display: none;
+}
+
+// ensure background of buttons / split buttons (e.g. for fr-styles / fr-hr plugins) matches that of the font family dropdown
+.tox-toolbar__primary {
+
+	.tox-split-button,
+	.tox-tbtn.tox-tbtn--select {
+		background: #f7f7f7;
+	}
+
+}
+
+// 4r-styles classes
+// (standard options defined here - put project-specific styles under UI/GeneralStyle)
+.fr-styles-uppercase {
+	text-transform: uppercase;
+}
+
+.fr-styles-expanded {
+	letter-spacing: var(--ui-letter-spacing);
+}
+
+// 4r-hr classes
+.fr-hr {
+	margin: 1rem 0;
+    color: inherit;
+    border: 0;
+    border-top: 1px solid;
+    opacity: .25;
+
+	&--primary {
+		border-color: var(--primary);
+		opacity: 1;
+	}
+
+	&--secondary {
+		border-color: var(--secondary);
+		opacity: 1;
+	}
+
+	&--info {
+		border-color: var(--info);
+		opacity: 1;
+	}
+
+	&--danger {
+		border-color: var(--danger);
+		opacity: 1;
+	}
+
+	&--warning {
+		border-color: var(--warning);
+		opacity: 1;
+	}
+
+	&--success {
+		border-color: var(--success);
+		opacity: 1;
+	}
+
+}
+
+// match focus styling used elsewhere
+div[role="application"].tox-tinymce.is-editor-focused {
+	box-shadow: 0 0 0 .25rem var(--primary-shadow);
+}
+
+textarea.textarea-tinymce.is-invalid ~ div[role="application"].tox-tinymce.is-editor-focused {
+	box-shadow: 0 0 0 .25rem var(--danger-shadow);
+}
+
+// validation messages are injected after the original textarea (hidden as tinymce editor shown);
+// use flexbox and order to move this visually below the tinymce editor
+div.mb-3:has(.textarea-tinymce + .validation-error) {
+	display: flex;
+	flex-direction: column;
+
+	.validation-error {
+		order: 100;
+	}
+
+}
+
+// prevent unstyled textarea becoming visible before editor initialises
+.canvas-editor > .textarea-tinymce:not(:has(+ .tox.tox-tinymce)) {
 	display: none;
 }

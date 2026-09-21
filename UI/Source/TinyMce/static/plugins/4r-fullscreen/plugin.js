@@ -34,13 +34,22 @@
 
 		const isFullscreen = () => {
 			const container = getContainer();
-			container.classList.contains("fullscreen");
+			return !!container.classList.contains("fullscreen");
+		};
+
+		const closePopoverById = (id) => {
+			const popover = document.getElementById(id);
+
+			if (popover && popover.matches(':popover-open')) {
+				popover.hidePopover();
+			}
 		};
 
 		const toggleFullscreen = () => {
 			const container = getContainer();
 
 			if (!isFullscreen()) {
+				closePopoverById("admin_menu");
 				lockDeepFocus(container);
 			} else {
 				unlockDeepFocus();
@@ -50,13 +59,10 @@
 		}
 
 		const syncFullscreenState = (api) => {
-			const updateState = () => api.setActive(isFullscreen());
-			//document.addEventListener('fullscreenchange', updateState);
-
-			updateState();
+			api.setActive(isFullscreen());
 
 			return () => {
-				//document.removeEventListener('fullscreenchange', updateState);
+				// required by onSetup
 			};
 		};
 
@@ -72,13 +78,17 @@
 
 			let current = target;
 
+			// MCE menus are parented by body > .tox.tox-silver-sink.tox-tinymce-aux
+			// (skip this or menus will be disabled)
+			const mceMenuWrapper = document.querySelector(".tox.tox-tinymce-aux");
+
 			// Walk up from the target to the <body>
 			while (current && current !== document.body) {
 				const parent = current.parentElement;
 
 				Array.from(parent.children).forEach(sibling => {
 
-					if (sibling !== current) {
+					if (sibling !== current && sibling !== mceMenuWrapper && sibling.nodeName !== "SCRIPT") {
 
 						// Save state and make inert
 						if (sibling.hasAttribute('inert')) {

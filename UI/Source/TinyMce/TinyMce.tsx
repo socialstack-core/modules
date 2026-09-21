@@ -1,35 +1,36 @@
-import { lazyLoad } from 'UI/Functions/WebRequest';
-// @ts-ignore
-import tinyMceRef from './static/tinymce.min.js'; // Imports as a URL-like string
+﻿import {lazyLoad} from 'UI/Functions/WebRequest';
+import tinyMceRef from './static/tinymce.min.js';
 import {getUrl} from 'UI/FileRef';
-import { PublicError } from "UI/Failed";
-import { DefaultInputType } from "UI/Input/Default";
+import {PublicError} from "UI/Failed";
 import { useEffect, useRef, useState } from 'react';
-// @ts-ignore
-import themeRef from './static/themes/socialstack.css'; // Imports as a URL-like string
-import { EditorConfig, TinyMCE, Editor } from './editor.js';
+import themeRef from './static/themes/socialstack.css';
+import {useEditor} from './EditorContext';
+import getConfig from 'UI/Config';
 
-type TinyMceInputType = DefaultInputType & TinyMceProps;
+export { useEditor };
 
-declare global {
-	interface InputPropsRegistry {
-		'html': TinyMceInputType,
-		'htmlstring': TinyMceInputType
-	}
-}
+// Root placeholder component - renders as root-content in TinyMCE
 
 inputTypes.html = function (props) {
-	const { field } = props;
-	return <TinyMce
+	const { field, validate, validationFailure, required, onInputRef } = props;
+	return <TinyMce id={props.id}
 		{...field}
+		validate={validate}
+		validationFailure={validationFailure}
+		required={required}
+		onInputRef={onInputRef}
 	/>;
 }
 
 // Used by typescript props via HtmlString
 inputTypes.htmlstring = function (props) {
-	const { field } = props;
-	return <TinyMce
+	const { field, validate, validationFailure, required, onInputRef } = props;
+	return <TinyMce id={props.id}
 		{...field}
+		validate={validate}
+		validationFailure={validationFailure}
+		required={required}
+		onInputRef={onInputRef}
 	/>;
 }
 
@@ -38,14 +39,19 @@ inputTypes.htmlstring = function (props) {
  */
 interface TinyMceProps {
 	/**
-	 * true if menu bar should be hidden
+	 * unique field ID
 	 */
-	showMenubar?: boolean,
+	id?: string,
 
 	/**
-	 * Initial value to populate the editor with (HTML)
+	 * true if menu bar should be hidden
 	 */
-	defaultValue?: string,
+	hideMenubar?: boolean,
+
+	/**
+	 * true if status bar should be hidden
+	 */
+	hideStatusbar?: boolean,
 
 	/**
 	 * menu item options
@@ -116,9 +122,39 @@ interface TinyMceProps {
 	dockHeader?: boolean,
 
 	/**
+	 * true if this is a basic editor, allowing for only specific tags
+	 */
+	basicEditor?: boolean,
+
+	/**
+	 * preferred root wrapping element to use (defaults to <p>)
+	 */
+	rootBlock?: string,
+
+	/**
+	 * true if content should be stripped of wrapping tag
+	 */
+	unwrapHtml?: boolean,
+
+	/**
+	 * true if carriage returns should be automatically converted to line breaks (<br/>)
+	 */
+	disableCarriageReturn?: boolean,
+
+	/**
+	 * comma-separated list of supported elements (all others will be stripped)
+	 */
+	validElements?: string,
+
+	/**
 	 * min height in pixels
 	 */
 	minHeight?: number,
+
+	/**
+	 * max height in pixels
+	 */
+	maxHeight?: number,
 
 	uploadEndpoint?: string,
 
@@ -135,37 +171,65 @@ interface TinyMceProps {
 	/**
 	 * true if editor should be resizable (true, false or "both")
 	 */
-	resizable?: "both" | boolean,
+	resizable?: string | boolean,
 
 	/**
 	 * plugins
 	 */
-	plugins?: string,
+	plugins: string,
 
 	/**
 	 * mentions lookup URL
 	 */
-	mentionsLookupUrl?: string,
+	mentionsLookupUrl: string,
 
 /**
 	 * mentions query
 	 */
-	mentionsQuery?: string,
+	mentionsQuery: string,
 
 	/**
 	 * true if editor should allow react-component elements
 	 */
 	allowsReact?: boolean,
 
-	onSetup?: (editor: Editor) => void,
-	onChange?: (evt: any) => void,
+	/**
+	 * The template type when this editor is being used to edit a template.
+	 * 1 = web, 2 = email, 3 = pdf
+	 */
+	templateType?: number,
 
-	required?: boolean | string
+	/**
+	 * Validation rules for this field (e.g. ["Required"])
+	 */
+	validate?: string[],
+
+	/**
+	 * The current validation failure, if any
+	 */
+	validationFailure?: PublicError | null,
+
+	/**
+	 * Callback to provide the textarea element reference to the parent (e.g. Input.tsx)
+	 */
+	onInputRef?: (el: HTMLElement | null) => void,
+
+	/**
+	 * maximum permissable length in characters
+	 */
+	maxlength?: number,
 }
 
 const TinyMce: React.FC<TinyMceProps> = props => {
+	const tinyMceConfig = getConfig('tinymce') || [];
+	const filteredConfig = tinyMceConfig.filter(cfg =>
+		// strip entry if all fields within are equal to null
+		!Object.values(cfg).every(val => val === null)
+	);
+	const editorConfig = filteredConfig.length ? filteredConfig[0] : undefined;
+
 	const TINYMCE_DEFAULTS_ADMIN = {
-		toolbar: 'bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | grid_insert',
+		toolbar: 'bold italic underline strikethrough superscript subscript | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist | grid_insert',
 		
 		allowCode: true,
 		allowImages: true,
@@ -187,7 +251,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 	};
 
 	const TINYMCE_DEFAULTS_UI = {
-		toolbar: 'bold italic underline | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist',
+		toolbar: 'bold italic underline strikethrough superscript subscript | alignleft aligncenter alignright alignjustify | outdent indent | numlist bullist',
 		
 		allowCode: true,
 		allowImages: false,
@@ -209,37 +273,41 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 	// if document.body is undefined, we're on server-side rendering for the main UI front-end;
 	// if document.body is defined, check for the "admin" class on the HTML tag to differentiate between admin / UI
-	const TINYMCE_DEFAULTS = document?.body?.parentElement?.classList.contains("admin") ? TINYMCE_DEFAULTS_ADMIN : TINYMCE_DEFAULTS_UI;
+	const TINYMCE_DEFAULTS = document?.body?.parentElement.classList.contains("admin") ? TINYMCE_DEFAULTS_ADMIN : TINYMCE_DEFAULTS_UI;
 
 	const {
-		toolbar = TINYMCE_DEFAULTS['toolbar'],
-		allowCode = TINYMCE_DEFAULTS['allowCode'],
-		allowImages = TINYMCE_DEFAULTS['allowImages'],
-		embedImages = TINYMCE_DEFAULTS['embedImages'],
-		allowMedia = TINYMCE_DEFAULTS['allowMedia'],
-		allowEmojis = TINYMCE_DEFAULTS['allowEmojis'],
-		allowLinks = TINYMCE_DEFAULTS['allowLinks'],
-		allowTables = TINYMCE_DEFAULTS['allowTables'],
-		minHeight = props.minHeight || 275,
+		toolbar = props.toolbar ?? TINYMCE_DEFAULTS['toolbar'],
+		allowCode = props.allowCode ?? TINYMCE_DEFAULTS['allowCode'],
+		allowImages = props.allowImages ?? TINYMCE_DEFAULTS['allowImages'],
+		embedImages = props.embedImages ?? TINYMCE_DEFAULTS['embedImages'],
+		allowMedia = props.allowMedia ?? TINYMCE_DEFAULTS['allowMedia'],
+		allowEmojis = props.allowEmojis ?? TINYMCE_DEFAULTS['allowEmojis'],
+		allowLinks = props.allowLinks ?? TINYMCE_DEFAULTS['allowLinks'],
+		allowTables = props.allowTables ?? TINYMCE_DEFAULTS['allowTables'],
+		minHeight = props.minHeight ?? 275,
+		maxHeight = props.maxHeight ?? undefined,
 
-		showElementPath = TINYMCE_DEFAULTS['showElementPath'],
-		showWordCount = TINYMCE_DEFAULTS['showWordCount'],
-		resizable = TINYMCE_DEFAULTS['resizable'],
+		showElementPath = props.showElementPath ?? TINYMCE_DEFAULTS['showElementPath'],
+		showWordCount = props.showWordCount ?? TINYMCE_DEFAULTS['showWordCount'],
+		resizable = props.resizable ?? TINYMCE_DEFAULTS['resizable'],
 
-		plugins = TINYMCE_DEFAULTS['plugins'],
+		plugins = !!props.plugins?.length ? props.plugins : TINYMCE_DEFAULTS['plugins'],
 
-		mentionsLookupUrl = TINYMCE_DEFAULTS['mentionsLookupUrl'],
-		mentionsQuery = TINYMCE_DEFAULTS['mentionsQuery'],
+		mentionsLookupUrl = !!props.mentionsLookupUrl?.length ? props.mentionsLookupUrl : TINYMCE_DEFAULTS['mentionsLookupUrl'],
+		mentionsQuery = !!props.mentionsQuery?.length ? props.mentionsQuery : TINYMCE_DEFAULTS['mentionsQuery'],
 
 		onChange,
-		required,
+		validationFailure,
+		onInputRef,
+		maxlength,
 		...otherProps
 	} = props;
 
-	const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-	const editorRef = useRef<any | null>(null);
-	const [editor, setEditor] = useState<any | null>(null);
-	const timeoutRef = useRef<number | undefined>(undefined);
+	const textareaRef = useRef(null);
+	const editorRef = useRef(null);
+	const [editor, setEditor] = useState(null);
+	const timeoutRef = useRef(null);
+	const currentCharCount = useRef(0);
 
 	useEffect(() => {
 
@@ -249,20 +317,20 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 		const textarea = textareaRef.current;
 		const doc = textarea.ownerDocument;
-		const win = doc.defaultView || ((doc as any).parentWindow as Window);
-		let tinyMceUrl = getUrl(tinyMceRef as string) || '';
+		const win = doc.defaultView || doc.parentWindow;
+		let tinyMceUrl = getUrl(tinyMceRef);
 
 		// Cordova fix
 		if (tinyMceUrl[0] !== '/') {
 			tinyMceUrl = './' + tinyMceUrl;
 		}
 
-		lazyLoad(tinyMceUrl).then((imported:any) => {
-			const tinymce: TinyMCE = (win as any).tinymce as TinyMCE;
+		lazyLoad(tinyMceUrl, win).then(imported => {
+			const tinymce = win.tinymce;
 			tinymce.baseURL = tinyMceUrl.replace(/\/tinymce\.min\.js/gi, '');
 			tinymce.suffix = '.min';
 			return initEditor(textarea, tinymce);
-		}).then((editors:any) => {
+		}).then(editors => {
 			editorRef.current = editors[0];
 			setEditor(editors[0]);
 		});
@@ -276,120 +344,68 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		};
 	}, []);
 
-	const isValidUrl = (str: string) => {
+	const omit = (obj, fields) => {
+		const out = {}
+
+		Object.keys(obj).forEach(key => {
+			if (fields.includes(key)) {
+				return;
+			}
+			out[key] = obj[key];
+		})
+		return out;
+	};
+
+	const isValidUrl = (string) => {
 		try {
-			const url = new URL(str);
+			const url = new URL(string);
 			return true;
 		} catch (err) {
 			return false;
 		}
 	};
 
-	const initEditor = (target: HTMLTextAreaElement, tinymce: TinyMCE) => {
-		const contentCss: string[] = [];
-		const themeUrl = getUrl(themeRef as string);
-		themeUrl && contentCss.push(themeUrl);
-
+	const initEditor = (target, tinymce) => {
+		const contentCss = [getUrl(themeRef)];
 		const parentLinks = document?.querySelectorAll('link[rel="stylesheet"]');
 		parentLinks.forEach((link) => {
-			const anchor = (link as HTMLAnchorElement);
-			if (anchor.href.includes('main.css')) {
-				contentCss.push(anchor.href);
+			if (link.href.includes('main.css')) {
+				contentCss.push(link.href);
 			}
 		});
 
-	const getScrollParent = (node: HTMLElement | null) => {
-		if (!node || node === document.body) {
-			return window;
+		const isEmailTemplate = props.templateType === 2;
+
+		// include references to @font-face rules for email fonts
+		if (isEmailTemplate && !!editorConfig?.emailFontFamilies?.length) {
+			contentCss.push(...editorConfig.emailFontFamilies.map(font => font.fontFaceUrl));
 		}
 
-		const isScrollable = (el: HTMLElement) => {
-			const style = window.getComputedStyle(el);
-			const overflowY = style.getPropertyValue('overflow-y') || style.getPropertyValue('overflow');
-			const hasScrollStyle = /(auto|scroll)/.test(overflowY);
-			const isTallEnough = el.scrollHeight > el.clientHeight;
+		// build desktop / email font stacks
+		const desktopFontFamilies: string[] = !!editorConfig?.desktopFontFamilies?.length ? editorConfig.desktopFontFamilies.map(font => {
+			const fallbacks = font.fallbackFonts.endsWith(';') ? font.fallbackFonts : `${font.fallbackFonts};`;
+			return `'${font.familyName}'='${fallbacks}`;
+		}).join('') : "";
 
-			return hasScrollStyle && isTallEnough;
-		};
+		const emailFontFamilies: string[] = !!editorConfig?.emailFontFamilies?.length ? editorConfig.emailFontFamilies.map(font => {
+			const fallbacks = font.fallbackFonts.endsWith(';') ? font.fallbackFonts : `${font.fallbackFonts};`;
+			return `'${font.familyName}'='${fallbacks}`;
+		}).join('') : "";
 
-		if (isScrollable(node)) {
-			return node;
-		} else {
-			return getScrollParent(node.parentElement);
-		}
-	};
+		const fontFamiliesCount = isEmailTemplate ? emailFontFamilies.length : desktopFontFamilies.length;
 
-	const dockEditorHeader = (editor: any) => {
-		const container = editor.getContainer() as HTMLElement;
-		const header = container?.querySelector('.tox-editor-header') as HTMLElement;
-
-		if (!container || !header) {
-			return;
-		}
-
-		const headerRect = header.getBoundingClientRect();
-		container.style.position = 'relative';
-		container.style.paddingTop = `${headerRect.height}px`;
-
-		const updateHeaderStyles = () => {
-			const rect = container.getBoundingClientRect();
-			const scrollParent = getScrollParent(container);
-			const scrollParentDistance = scrollParent == window ? window.scrollY : (scrollParent as HTMLElement).scrollTop;
-
-			if (rect.width > 0) {
-				header.style.position = 'fixed';
-				header.style.top = `${rect.top + scrollParentDistance}px`;
-				header.style.width = `${rect.width}px`;
-			}
-
-		};
-
-		updateHeaderStyles();
-
-		// catches visibility changes (e.g. parent tab hidden / displayed)
-		const containerObserver = new IntersectionObserver((entries) => {
-			entries.forEach(entry => {
-				if (entry.isIntersecting) {
-					updateHeaderStyles();
-				}
-			});
-		}, {
-			threshold: 0.1
-		});
-
-		containerObserver.observe(container);
-
-		// watch for width/size changes
-		const ro = new ResizeObserver(() => updateHeaderStyles());
-		ro.observe(container);
-
-		// Clean up if the editor is destroyed
-		editor.on('remove', () => {
-			containerObserver.disconnect();
-			ro.disconnect();
-		});
-	};
-
-	const hasLoadingDiv = (parent : HTMLElement) => {
-
-		if (!parent) {
-			return false;
-		}
-
-		const firstElement = parent.firstElementChild;
-		return firstElement?.nodeName == "DIV" && firstElement.classList.contains("loading");
-	};
-
-	const config: EditorConfig = {
+		const config = {
 			target,
 			toolbar,
 			promotion: false,
 			branding: false,
-			toolbar_sticky: false,
+			toolbar_sticky: true,
+			toolbar_mode: 'wrap', // prevents toolbar collapsing to '...'
+			ui_mode: 'split',
 			autoresize_overflow_padding: 0,
 			selection_toolbar_sticky: true,
 			scroll_into_view_on_focus: false,
-			statusbar: showElementPath || showWordCount || !!resizable,
+			statusbar: props.hideStatusBar === false ? false : showElementPath || showWordCount || resizable,
 			elementpath: showElementPath,
 			resize: resizable,
 
@@ -401,12 +417,34 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			mentionsQuery,
 
 			content_css: contentCss,
+			content_style: isEmailTemplate && editorConfig?.emailStyles ? editorConfig.emailStyles : undefined,
+
+			font_family_formats: isEmailTemplate ? emailFontFamilies : desktopFontFamilies,
+			/* original list:
+				'Andale Mono=andale mono,monospace;' +
+				'Arial=arial,helvetica,sans-serif;' +
+				'Arial Black=arial black,sans-serif;' +
+				'Book Antiqua=book antiqua,palatino,serif;' +
+				'Comic Sans MS=comic sans ms,sans-serif;' +
+				'Courier New=courier new,courier,monospace;' +
+				'Georgia=georgia,palatino,serif;' +
+				'Helvetica=helvetica,arial,sans-serif;' +
+				'Impact=impact,sans-serif;' +
+				'Symbol=symbol;' +
+				'Tahoma=tahoma,arial,helvetica,sans-serif;' +
+				'Terminal=terminal,monaco,monospace;' +
+				'Times New Roman=times new roman,times,serif;' +
+				'Trebuchet MS=trebuchet ms,geneva,sans-serif;' +
+				'Verdana=verdana,geneva,sans-serif;' +
+				'Webdings=webdings;' +
+				'Wingdings=wingdings,zapf dingbats',
+			*/
 
 			contextmenu: props.contextMenu,
 
 			schema: props.allowsReact ? 'html5' : undefined,
 			automatic_uploads: true,
-			images_upload_handler: (blobInfo:any, progress: (val:number) => void) => new Promise((resolve, failure) => {
+			images_upload_handler: (blobInfo, progress) => new Promise((resolve, failure) => {
 				const xhr = new XMLHttpRequest();
 				var ep = props.uploadEndpoint || "upload/create";
 				var apiUrl = (window as any).ingestUrl || (window as any).apiHost || '';
@@ -438,7 +476,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 					var location = getUrl(json.result?.ref);
 
 					// This 'location' string is what gets inserted into the src/data attribute
-					resolve(location || '');
+					resolve(location);
 				};
 
 				xhr.onerror = () => {
@@ -449,76 +487,121 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 				xhr.send(blobInfo.blob());
 			}),
 
-			extended_valid_elements: props.allowsReact ? 'react-component[data-name|data-props|contenteditable|data-mounted|class],root-content[data-name|data-props|contenteditable|data-placeholder|class]' : undefined,
+			extended_valid_elements: props.allowsReact ?
+				'react-component[data-name|data-props|data-links|contenteditable|data-mounted|class],root-content[data-name|data-props|data-links|contenteditable|data-placeholder|class]' : undefined,
 			custom_elements: props.allowsReact ? 'react-component,root-content' : undefined,
+
+			// wihtout this, editable <summary> text is not saved
+			valid_children: props.allowsReact ? '+summary[root-content]' : undefined,
 
 			// This class tells the plugin to treat the component as a single unit
 			noneditable_noneditable_class: 'react-component',
 			// This allows your root-content to remain editable inside it
 			noneditable_editable_class: 'root-content',
 
+			// NB: by default, TinyMCE renders underlined text with <span style="text-decoration: underline;" />;
+			// while strictly speaking this is correct due to the semantic meaning of <u> changing in HTML5
+			// (ref: https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/u), we're also using
+			// this editor to produce email templates, so to avoid further confusing some email clients, use <u />
+			// (this also simplifies allowing underlined text within basic editors - see valid_elements)
 			formats: props.allowsReact ? {
 				reactComponent: {
-					block: 'react-component',
-					attributes: ['data-name', 'data-props', 'contenteditable', 'data-mounted', 'class']
+					tag_names: ['react-component'],
+					attributes: ['data-name', 'data-props', 'data-links', 'contenteditable', 'data-mounted', 'class']
 				},
 				rootContent: {
-					block: 'root-content',
-					attributes: ['data-name', 'data-props', 'contenteditable', 'data-placeholder', 'class']
-				}
-			} : undefined,
+					tag_names: ['root-content'],
+					attributes: ['data-name', 'data-props', 'data-links', 'contenteditable', 'data-placeholder', 'class']
+				},
+				underline: { inline: 'u', exact: true }
+			} : {
+				underline: { inline: 'u', exact: true }
+			},
 
-			setup: (editor: Editor) => {
+			setup: (editor) => {
 				props.onSetup && props.onSetup(editor);
-
-				editor.on('init', () => {
-
-					if (props.dockHeader) {
-						const iframe = editor.getContainer().querySelector("iframe");
-
-						if (!iframe) {
-							dockEditorHeader(editor);
-							return;
-						}
-
-						const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-						const reactComponent = iframeDoc?.body.querySelector("react-component") as HTMLElement;
-
-						if (!hasLoadingDiv(reactComponent)) {
-							dockEditorHeader(editor);
-							return;
-						}
-
-						const rcObserver = new MutationObserver((mutationsList, observer) => {
-							if (!hasLoadingDiv(reactComponent)) {
-								observer.disconnect();
-								dockEditorHeader(editor);
-							}
-						});
-
-						// Start observing the parent for changes to its child elements
-						rcObserver.observe(reactComponent, {
-							childList: true,
-							subtree: true
-						});
-
-					}
-
-				});
-
-				editor.on('Paste Change input Undo Redo', (e: any) => {
+				
+				const fireChange = () => {
 					if (onChange) {
 						clearTimeout(timeoutRef.current);
 						timeoutRef.current = setTimeout(() => {
-							const evt = {
-								target: {
-									value: editor.getContent()
+							onChange({ target: { value: editor.getContent() } });
+						}, 100);
 								}
 							};
-							onChange(evt);
-						}, 100);
+
+				editor.on('init', () => {
+					// ensure clicks on the outer label focus the editor
+					const label = document.querySelector(`label[for="${target.id}"]`);
+
+					if (label) {
+						label.addEventListener('click', (event) => {
+							event.preventDefault();
+							editor.focus();
+						});
 					}
 				});
+
+				editor.on('focus', () => {
+					editor.getContainer().closest('[role="application"]').classList.add('is-editor-focused');
+				});
+
+				editor.on('blur', () => {
+					editor.getContainer().closest('[role="application"]').classList.remove('is-editor-focused');
+				});
+
+				editor.on('change input undo redo', fireChange);
+
+				// maxlength support - utilises char count from wordcount plugin
+				if (maxlength) {
+
+					editor.on('wordCountUpdate', (e) => {
+						currentCharCount.current = e.wordCount.characters;
+					});
+
+					/*
+					editor.on('paste', (e) => {
+						var clipboardData = e.clipboardData || (window as any).clipboardData;
+
+						if (clipboardData) {
+							var pastedText = clipboardData.getData('text/plain');
+
+							if (pastedText && currentCharCount.current + pastedText.length > maxlength) {
+								e.preventDefault();
+								return;
+							}
+
+						}
+
+						fireChange();
+					});
+					*/
+
+					editor.on('keydown', (e) => {
+
+						if (currentCharCount.current >= maxlength) {
+							var keyCode = e.keyCode;
+
+							// Allow navigation, deletion, and control keys
+							if (
+								(keyCode >= 33 && keyCode <= 40) || // Page Up/Down, Home, End, arrows
+								keyCode === 8 || // Backspace
+								keyCode === 46 || // Delete
+								keyCode === 13 || // Enter
+								(e.ctrlKey || e.metaKey) || // Ctrl/Cmd shortcuts
+								keyCode === 27 // Escape
+							) {
+								return;
+							}
+
+							e.preventDefault();
+						}
+					});
+
+				} else {
+					editor.on('paste', fireChange);
+				}
+
 			},
 
 			//quickbars_insert_toolbar: false,
@@ -528,7 +611,12 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 
 			//quickbars_image_toolbar: 'alignleft aligncenter alignright',
 		};
-		
+
+		if (editorConfig) {
+			config.fr_styles_classes = editorConfig.styles;
+			config.fr_hr_classes = editorConfig.horizontalRules;
+		}
+
 		/* default menu:
 			menu: {
 				file: { title: 'File', items: 'newdocument restoredraft | preview | importword exportpdf exportword | print | deleteallconversations' },
@@ -553,12 +641,12 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			},
 			view: {
 				title: `View`,
-				items: `${allowCode ? 'code | ' : ''}preview${props.allowFullscreen ? ' | 4r-fullscreen' : ''}`
+				items: `${allowCode ? '4r-code | ' : ''}preview${props.allowFullscreen ? ' | 4r-fullscreen' : ''}`
 			},
 			format: {
 				title: `Format`,
 				//items: `bold italic underline strikethrough superscript subscript codeformat | styles blocks fontfamily fontsize align lineheight | forecolor backcolor | language | removeformat`
-				items: `bold italic underline strikethrough superscript subscript | styles blocks fontfamily fontsize align lineheight | forecolor backcolor | language | removeformat`
+				items: `bold italic underline strikethrough superscript subscript | styles blocks ${fontFamiliesCount > 0 ? 'fontfamily' : ''} fontsize align lineheight | forecolor backcolor | language | removeformat`
 			}
 			// NB: table / tools menus handled below
 		};
@@ -576,14 +664,20 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		if (allowCode || showWordCount) {
 			config.menu.tools = {
 				title: `Tools`,
-				items: `${allowCode ? 'code' : ''} ${showWordCount ? 'wordcount' : ''}`
+				items: `${allowCode ? '4r-code' : ''} ${showWordCount ? 'wordcount' : ''}`
 			};
 			config.menubar += " tools";
 		}
 
-		if (props.showMenubar === false) {
+		if (props.hideMenubar === true) {
 			config.menubar = false;
 		}
+
+		// insert styled horizontal rules
+		if (editorConfig?.horizontalRules?.length) {
+			config.plugins += " 4r-hr";
+			config.toolbar += " | 4r-hr ";
+		} 
 
 		// ref: https://www.tiny.cloud/docs/tinymce/latest/link/
 		if (allowLinks) {
@@ -644,7 +738,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			// If this option is set to false, the protocol and host of the document_base_url is added for relative links.
 			config.remove_script_host = true;
 
-			config.urlconverter_callback = (url: string, node: any, on_save: any, name: string) => {
+			config.urlconverter_callback = (url, node, on_save, name) => {
 				// Guard against non-string values (null, undefined, etc.)
 				if (typeof url !== 'string' || !url) {
 					return url;
@@ -705,7 +799,7 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 					*/
 
 					input.onchange = function () {
-						const file = (this as HTMLInputElement).files![0];
+						const file = this.files[0];
 						const reader = new FileReader();
 
 						reader.onload = function () {
@@ -715,16 +809,13 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 							  necessary, as we are looking to handle it internally.
 							*/
 							const id = 'blobid' + (new Date()).getTime();
-							const blobCache = tinymce.activeEditor?.editorUpload.blobCache;
-							const base64 = (reader.result as string)?.split(',')[1];
-							const blobInfo = blobCache?.create(id, file, base64);
+							const blobCache = tinymce.activeEditor.editorUpload.blobCache;
+							const base64 = reader.result.split(',')[1];
+							const blobInfo = blobCache.create(id, file, base64);
+							blobCache.add(blobInfo);
 
-							if (blobInfo) {
-								blobCache?.add(blobInfo);
-
-								// call the callback and populate the Title field with the file name
-								cb(blobInfo.blobUri(), { title: file.name });
-							}
+							// call the callback and populate the Title field with the file name
+							cb(blobInfo.blobUri(), { title: file.name });
 						};
 
 						reader.readAsDataURL(file);
@@ -795,17 +886,19 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		}
 
 		if (allowCode) {
-			config.plugins += " code ";
-			config.toolbar += " | code ";
+			config.plugins += " 4r-code ";
+			config.toolbar += " | 4r-code ";
 		}
 
-		if (showWordCount) {
+		// include wordcount plugin if we need to track text length
+		if (showWordCount || maxlength) {
 			config.plugins += " wordcount ";
 		}
 		
 		// enforce autoresizing (prevents potential double scrollbar / repaint issues in Chrome when rendered within tabs)
 		config.plugins += " autoresize";
 		config.min_height = minHeight;
+		config.max_height = maxHeight;
 		// config.autoresize_bottom_margin = 20;
 
 		/*
@@ -818,9 +911,8 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 		*/
 
 		// config.toolbar_sticky_offset = 150;
-		//config.event_root = '.admin-page__content';
-		//config.fixed_toolbar_container = '.admin-page__content';
-		//config.ui_container = '.admin-page__content';
+		// config.fixed_toolbar_container = '.admin-page__content';
+		config.ui_container = '.admin-page__content';
 
 		//console.log("tinymce config: ", config);
 
@@ -829,42 +921,148 @@ const TinyMce: React.FC<TinyMceProps> = props => {
 			config.plugins += " 4r-fullscreen";
 		}
 
+		if (editorConfig) {
+			config.fr_styles_classes = editorConfig.styles;
+			config.fr_hr_classes = editorConfig.horizontalRules;
+		}
+
+		if (editorConfig?.styles?.length) {
+			config.toolbar += " | 4r-styles";
+			config.plugins += " 4r-styles";
+		} 
+
+		if (!!props.rootBlock?.length) {
+			config.forced_root_block = props.rootBlock;
+		}
+
+		if (props.disableCarriageReturn) {
+			config.newline_behavior = 'linebreak';
+		}
+
+		if (!!props.validElements?.length) {
+			config.valid_elements = props.validElements;
+		}
+
+		if (props.basicEditor) {
+			config.menubar = false;
+			config.toolbar_sticky = false;
+			config.valid_elements = !!props.validElements?.length ? props.validElements : 'b,strong,em,i,u,br,s,strike,ins,del,mark,abbr,small,sub,sup,a';
+			config.min_height = props.minHeight ?? 40;
+			config.max_height = props.maxHeight ?? 200;
+
+			// basic editors always allow bold/italic/underline,
+			// but extended options such as links, images, media, emojis and code need to be explicitly allowed
+			if (!props.toolbar) {
+				var basicToolbar = "bold italic underline strikethrough | ";
+
+				if (props.allowLinks) {
+					basicToolbar += " link ";
+				}
+
+				if (props.allowImages) {
+					basicToolbar += " image ";
+				}
+
+				if (props.allowMedia) {
+					basicToolbar += " media ";
+				}
+
+				if (props.allowEmojis) {
+					basicToolbar += " emoticons ";
+				}
+
+				if (props.allowCode) {
+					basicToolbar += " 4r-code ";
+				}
+
+				config.toolbar = basicToolbar;
+			}
+
+			if (!isEmailTemplate) {
+				config.content_style = "body { padding: 5px 20px 0 20px !important; }";
+			}
+
+			// match field sizing to basic input fields
+			config.init_instance_callback = function (editor) {
+				const container = editor.getContainer();
+				container.style.border = '1px solid #ced4da';
+				container.style.borderRadius = '5px';
+				container.style.maxWidth = '50vw';
+				container.style.minWidth = '25rem';
+				container.style.width = '100%'; // Ensures it scales fluently between min and max
+			};
+
+			// Pasted content often carries its own paragraph breaks. Convert any
+			// literal newlines to <br> before TinyMCE processes them, otherwise
+			// valid_elements will just strip the wrapping <p> and the line break
+			// is lost entirely (text gets mashed together).
+			config.paste_preprocess = function (plugin, args) {
+				args.content = args.content.replace(/\r?\n/g, '<br>');
+			};
+
+		}
+
 		return tinymce.init(config);
 	};
 
 	useEffect(() => {
 		if (textareaRef.current) {
+			if (onInputRef) {
+				onInputRef(textareaRef.current);
+			}
 
-			// @ts-ignore
-			textareaRef.current.onGetValue = (val: string, ele: HTMLElement) => {
+			textareaRef.current.onGetValue = (val, ele) => {
 				if (ele === textareaRef.current && editor) {
-					const htmlContent = editor.getContent();
+					var htmlContent = editor.getContent();
 
-					if (typeof required === 'boolean' && required && !htmlContent) {
-						throw new PublicError("tiny-mce/validation", `This field is required.`);
+					// remove wrapping HTML tag?
+					if (props.unwrapHtml) {
+						const doc = new DOMParser().parseFromString(htmlContent, 'text/html');
+						const root = doc.body.firstElementChild;
+
+						if (!root) {
+							return htmlContent;
 					}
 
-					if (typeof required === 'string') {
-						var mtd = require("UI/Functions/Validation/" + required).default;
-						var error = mtd(htmlContent);
+						const tag = props.rootBlock || 'p';
+						htmlContent = (root?.tagName.toLowerCase() === tag.toLowerCase()) ? root.innerHTML : htmlContent;
+					}
 
-						if (error) {
-							throw error;
+					if (maxlength) {
+						var charCount = editor.plugins.wordcount
+							? editor.plugins.wordcount.body.getCharacterCount()
+							: currentCharCount.current;
+
+						if (charCount > maxlength) {
+							throw new PublicError("tiny-mce/validation", `Content must not exceed ${maxlength} characters (currently ${charCount}).`);
 						}
 					}
 
 					return htmlContent;
 				}
 			};
+
 		}
-	}, [editor, required]);
+	}, [editor, maxlength]);
 	
-	return (
-		<textarea className="form-control ui-form-control textarea--tinymce"
-			ref={textareaRef}
-			{...otherProps}
+	const textAreaClasses = ['form-control', 'ui-form-control', 'textarea-tinymce'];
+
+	if (validationFailure) {
+		textAreaClasses.push('is-invalid');
+	}
+
+	return <>
+		<textarea className={textAreaClasses.join(' ')}
+			ref={textareaRef} id={props.id}
+
+			// reason for this:
+			// the required attribute requires the textarea to be focusable, when "display: none" is in effect
+			// it isn't focusable, "display:none" happens due to tinymce, so instead I've omitted
+			// the required attribute, and handled it the same way the common Input component handles it
+			// @see https://stackoverflow.com/questions/22148080/an-invalid-form-control-with-name-is-not-focusable	
+			{...omit(otherProps, ['required'])}
 		/>
-	);
+	</>;
 }
 
 export default TinyMce;

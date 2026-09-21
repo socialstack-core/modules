@@ -1,3 +1,5 @@
+/* NB: edits made to L20 and L38 to prevent ACE source code editor styling from being affected (see 4r-code plugin) */
+
 .tox {
   box-shadow: none;
   box-sizing: content-box;
@@ -15,7 +17,7 @@
   vertical-align: initial;
   white-space: normal;
 }
-.tox *:not(svg):not(rect) {
+	.tox *:not(svg):not(rect):not(:where(.ace-source-editor,.ace-source-editor *)) {
   box-sizing: inherit;
   color: inherit;
   cursor: inherit;
@@ -33,7 +35,7 @@
   vertical-align: inherit;
   white-space: inherit;
 }
-.tox *:not(svg):not(rect) {
+	.tox *:not(svg):not(rect):not(:where(.ace-source-editor,.ace-source-editor *)) {
   /* stylelint-disable-line no-duplicate-selectors */
   background: transparent;
   border: 0;
