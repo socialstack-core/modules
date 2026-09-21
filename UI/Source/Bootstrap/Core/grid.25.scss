@@ -1,3 +1,5 @@
+@use "sass:map";
+
 // Row
 //
 // Rows contain your columns.
@@ -30,4 +32,128 @@
 
 @if $enable-grid-classes {
   @include make-grid-columns();
+}
+
+
+// fixes to allow row/col layouts to appear correctly within page editor views
+// (without this, interleaved react-component / root-content elements will break Bootstrap CSS)
+
+/* expected markup:
+
+<react-component data-name="UI/Row">
+  <div class="row">
+    <root-content>
+	  <react-component data-name="UI/Column">
+	    <div class="col-..." />
+	  </react-component>
+	  <react-component data-name="UI/Column">
+	    <div class="col-..." />
+	  </react-component>
+	</root-content>
+  </div>
+</react-component>
+*/
+
+@mixin make-editor-grid-columns($columns: $grid-columns, $gutter: $grid-gutter-width, $breakpoints: $grid-breakpoints) {
+  @each $breakpoint in map.keys($breakpoints) {
+    $infix: breakpoint-infix($breakpoint, $breakpoints);
+
+    @include media-breakpoint-up($breakpoint, $breakpoints) {
+      // Provide basic `.col-{bp}` classes for equal-width flexbox columns
+	  html body react-component[data-name="UI/Column"]:has(> .col#{$infix}) {
+		  flex: 1 0 0%;
+
+		  > .col#{$infix} {
+			  flex: 0 1 auto;
+		  }
+	  }
+
+	  html body react-component[data-name="UI/Column"]:has(> .col#{$infix}-auto) {
+		  @include make-col-auto();
+
+		  > .col#{$infix}-auto {
+			  flex: 0 1 auto;
+		  }
+	  }
+
+      @if $columns > 0 {
+        @for $i from 1 through $columns {
+
+			html body react-component[data-name="UI/Column"]:has(> .col#{$infix}-#{$i}) {
+				@include make-col($i, $columns);
+
+				> .col#{$infix}-#{$i} {
+					flex: 0 1 auto;
+					width: auto;
+					max-width: none;
+				}
+			}
+        }
+
+        // `$columns - 1` because offsetting by the width of an entire row isn't possible
+        @for $i from 0 through ($columns - 1) {
+          @if not ($infix == "" and $i == 0) { // Avoid emitting useless .offset-0
+
+			html body react-component[data-name="UI/Column"]:has(> .offset#{$infix}-#{$i}) {
+				@include make-col-offset($i, $columns);
+
+				> .offset#{$infix}-#{$i} {
+					margin-left: 0;
+				}
+
+			}
+          }
+        }
+      }
+
+      // Gutters
+      //
+      // Make use of `.g-*`, `.gx-*` or `.gy-*` utilities to change spacing between the columns.
+      @each $key, $value in $gutters {
+
+		  html body react-component[data-name="UI/Column"]:has(> .g#{$infix}-#{$key}, > .gx#{$infix}-#{$key}) {
+			  --#{$variable-prefix}gutter-x: #{$value};
+			  
+			  > .g#{$infix}-#{$key},
+			  > .gx#{$infix}-#{$key} {
+				  --#{$variable-prefix}gutter-x: 0;
+			  }
+
+		  }
+
+		  html body react-component[data-name="UI/Column"]:has(> .g#{$infix}-#{$key}, > .gy#{$infix}-#{$key}) {
+			  --#{$variable-prefix}gutter-y: #{$value};
+
+			  > .g#{$infix}-#{$key},
+			  > .gy#{$infix}-#{$key} {
+				  --#{$variable-prefix}gutter-y: 0;
+			  }
+
+		  }
+
+      }
+    }
+  }
+}
+
+react-component[data-name="UI/Row"] {
+
+	> div.row {
+		display: block;
+		margin-right: 0 !important;
+		margin-left: 0 !important;
+
+		> root-content {
+			@include make-row();
+
+			> * {
+				@include make-col-ready();
+			}
+		}
+	}
+
+}
+
+@if $enable-grid-classes {
+  @include make-editor-grid-columns();
 }

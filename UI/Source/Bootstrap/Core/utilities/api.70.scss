@@ -48,3 +48,23 @@
     }
   }
 }
+
+
+// fixes for page editor
+// Loop over each breakpoint
+@each $breakpoint in map.keys($grid-breakpoints) {
+
+  // Generate media query if needed
+  @include media-breakpoint-up($breakpoint) {
+    $infix: breakpoint-infix($breakpoint, $grid-breakpoints);
+
+    // Loop over each utility property
+    @each $key, $utility in $editor-utilities {
+      // The utility can be disabled with `false`, thus check if the utility is a map first
+      // Only proceed if responsive media queries are enabled or if it's the base media query
+      @if meta.type-of($utility) == "map" and (map.get($utility, responsive) or $infix == "") {
+        @include generate-editor-utility($utility, $infix);
+      }
+    }
+  }
+}
