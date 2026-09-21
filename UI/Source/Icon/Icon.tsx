@@ -85,14 +85,20 @@ type IconProps = IconBaseProps & {
 	/**
 	 * For internal use: favour regular/brand etc.
 	 */
-	variant?: string
+	variant?: string,
+
+	/**
+	 * Set true to reserve space for (but not show) the icon
+	 */
+	invisible?: boolean,
 }
 
 const Icon: React.FC<IconProps> = (props) => {
 	const {
 		type, light, solid, duotone, regular, brand, fixedWidth, spin, horizontalFlip, c,
 		xxs, xs, sm, md, lg, xl, xxl,
-		x2, x3, x4, x5, x6, x7, x8, x9, x10
+		x2, x3, x4, x5, x6, x7, x8, x9, x10,
+		invisible
 	} = props;
 
 	var variant = props.variant;
@@ -168,6 +174,10 @@ const Icon: React.FC<IconProps> = (props) => {
 
 	if (horizontalFlip) {
 		classNames.push("fa-flip-horizontal");
+	}
+
+	if (invisible) {
+		classNames.push("invisible");
 	}
 
 	// NB: count removal: if you need it, use a wrapping component instead
