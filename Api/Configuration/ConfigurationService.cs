@@ -562,9 +562,9 @@ namespace Api.Configuration
 		/// Gets the frontend config as a JS string.
 		/// </summary>
 		/// <returns></returns>
-		public string GetLatestFrontendConfigJs()
+		public async ValueTask<string> GetLatestFrontendConfigJs(uint localeId)
 		{
-			GetLatestFrontendConfigBytes();
+			await GetLatestFrontendConfigBytes(new Context(localeId, 0, 1));
 			return _frontendConfigJs;
 		}
 
@@ -572,27 +572,42 @@ namespace Api.Configuration
 		/// Gets the frontend config as a UTF8 encoded block of bytes. Can be null if there isn't any.
 		/// </summary>
 		/// <returns></returns>
-		public byte[] GetLatestFrontendConfigBytesJson()
+		public async ValueTask<byte[]> GetLatestFrontendConfigBytesJson(Context context)
 		{
-			GetLatestFrontendConfigBytes();
+			await GetLatestFrontendConfigBytes(context);
 			return _frontendConfigBytesJson;
 		}
 
 		/// <summary>
+		/// Invalidates the cached frontend config bytes, causing a rebuild on next access.
+		/// Call this when non-config data that affects the frontend config has changed
+		/// (e.g. exchange rates updated by an automation).
+		/// </summary>
+		public void InvalidateFrontendConfigCache()
+		{
+			_frontendConfigBytesJs = null;
+			_frontendConfigBytesJson = null;
+		}
+
+		/// <summary>
 		/// Gets the frontend config as a UTF8 encoded block of bytes.
+		/// If a context is provided, the OnFrontendConfigBuild event is dispatched
+		/// so modules can inject custom config members into the JSON object.
 		/// </summary>
 		/// <returns></returns>
-		public byte[] GetLatestFrontendConfigBytes()
+		public async ValueTask<byte[]> GetLatestFrontendConfigBytes(Context context)
 		{
-			if (_frontendConfigBytesJs != null)
+			var jsBytes = _frontendConfigBytesJs;
+			if (jsBytes != null)
 			{
-				return _frontendConfigBytesJs;
+				return jsBytes;
 			}
 
 			if (_allFrontendConfigs == null)
 			{
-				_frontendConfigBytesJs = Array.Empty<byte>();
-				return _frontendConfigBytesJs;
+				jsBytes = Array.Empty<byte>();
+				_frontendConfigBytesJs = jsBytes;
+				return jsBytes;
 			}
 
 			// For each FE config object..
@@ -600,15 +615,11 @@ namespace Api.Configuration
 
 			sb.Append("{");
 
-			var first = true;
+			await Events.OnFrontendConfigBuild.Dispatch(context, sb);
 
 			foreach (var kvp in _allFrontendConfigs)
 			{
-				if (first)
-				{
-					first = false;
-				}
-				else
+				if (sb.Length != 1)
 				{
 					sb.Append(',');
 				}
@@ -639,10 +650,12 @@ namespace Api.Configuration
 			sb.Append("}");
 
 			var configStrJson = sb.ToString();
-			_frontendConfigJs = "window.__cfg=" + configStrJson + ";";
-			_frontendConfigBytesJs = Encoding.UTF8.GetBytes(_frontendConfigJs);
+			var frontendJs = "window.__cfg=" + configStrJson + ";";
+			_frontendConfigJs = frontendJs;
+			jsBytes = Encoding.UTF8.GetBytes(frontendJs);
+			_frontendConfigBytesJs = jsBytes;
 			_frontendConfigBytesJson = Encoding.UTF8.GetBytes(configStrJson);
-			return _frontendConfigBytesJs;
+			return jsBytes;
 		}
 
 		/// <summary>

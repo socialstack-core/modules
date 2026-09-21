@@ -486,7 +486,7 @@ namespace Api.CanvasRenderer
             }
 
             // Need to load config into its scope as well:
-            engine.Execute(_configService.GetLatestFrontendConfigJs());
+            engine.Execute(await _configService.GetLatestFrontendConfigJs(localeId));
 
             /* engine.AddHostObject("host", new ExtendedHostFunctions());
 				engine.AddHostObject("lib", HostItemFlags.GlobalMembers, 
