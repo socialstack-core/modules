@@ -386,8 +386,13 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 
 		const componentData = JSON.parse(el.getAttribute('data-props') || '{}');
 		const componentLinks = JSON.parse(el.getAttribute('data-links') || '{}');
-		
-		const moduleRootPropNames = getRootPropTypes(componentName, componentData);
+
+		// Freshly inserted modules have empty props, so array content
+		// roots which come from defaultProps would not be enumerable.
+		// Fold the defaults in (read-only) just like the prop editor does.
+		const componentDataWithDefaults = { ...(Component?.defaultProps || {}), ...componentData };
+
+		const moduleRootPropNames = getRootPropTypes(componentName, componentDataWithDefaults);
 
 		const roots: Record<string, React.ReactNode> = {
 		};
@@ -429,7 +434,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 		// only bound when their container path already exists in the data, so stale array
 		// index names can't grow the arrays back.
 		for (var extraRootKey in currentRootLookup) {
-			if (extraRootKey.indexOf('.') != -1 && !roots[extraRootKey] && rootContainerExists(componentData, extraRootKey.split('.'))) {
+			if (extraRootKey.indexOf('.') != -1 && !roots[extraRootKey] && rootContainerExists(componentDataWithDefaults, extraRootKey.split('.'))) {
 				const rootValue = currentRootLookup[extraRootKey];
 				roots[extraRootKey] = <RootContent name={extraRootKey}>{loadRootValue(rootValue)}</RootContent>;
 			}
