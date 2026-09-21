@@ -13,7 +13,21 @@ import { resolveSingular } from 'UI/Token/TokenResolver';
 
 const resolveDotField = (obj: any, field: string): any => {
 	if (!obj || !field) return undefined;
-	return field.split('.').reduce((current, key) => current?.[key], obj);
+	// a.b.c|a.b.d
+	var optionals = field.split('|');
+	var first = undefined;
+	for(var i=0;i<optionals.length;i++){
+		var value = optionals[i].split('.').reduce((current, key) => current?.[key], obj);
+		if(value){
+			return value;
+		}
+		
+		if(i == 0){
+			first = value;
+		}
+	}
+	
+	return first;
 };
 
 var uniqueKey = 1;
@@ -165,12 +179,18 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 			if (node.links) {
 				for (var k in node.links) {
 					var link = node.links[k];
-
-				if (link.primary) {
-						props[k] = link.field ? resolveDotField(pageState.po, link.field) : pageState.po;
+					var val;
+					if (link.primary) {
+						val = link.field ? resolveDotField(pageState.po, link.field) : pageState.po;
 					} else {
-						props[k] = link.write ? (val: any) => setDataStoreField(link.field, val) : getDataStoreField(link.field);
+						val = link.write ? (val: any) => setDataStoreField(link.field, val) : getDataStoreField(link.field);
 					}
+					
+					if(link.parse){
+						val = val ? JSON.parse(val) : null;
+					}
+					
+					props[k] = val;
 				}
 			}
 
@@ -186,6 +206,28 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 
 					if (isChildren) {
 						children = rendered;
+					} else if (k.indexOf('.') != -1) {
+						// E.g. columns.1.content -> props["columns"][1]["content"] = rendered;
+						// creating objects along the way as needed.
+						// If a key is numeric then the object it is in is a regular array.
+
+						// Binding to a sub-object.
+						var parts = k.split('.');
+						var current: any = props;
+
+						for (var i = 0; i < parts.length - 1; i++) {
+							var part = parts[i];
+
+							if (current[part] == undefined) {
+								// If the next path segment is numeric then the object to be created is an array.
+								current[part] = /^\d+$/.test(parts[i + 1]) ? [] : {};
+							}
+
+							current = current[part];
+						}
+
+						current[parts[parts.length - 1]] = rendered;
+
 					} else {
 						props[k] = rendered;
 					}
