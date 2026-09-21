@@ -105,6 +105,7 @@ html:not(.admin) {
 
         .dropdown__label i:first-child {
             margin: 0;
+			font-size: px_to_rem(14);
         }
 
         .dropdown__arrow {

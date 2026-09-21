@@ -79,6 +79,18 @@ const AdminTrigger: React.FC<React.PropsWithChildren<AdminTriggerProps>> = props
 		});
 	}
 
+	const po = props.pageState?.po;
+	
+	if (po) {
+		ddItems.push({
+			href: '/en-admin/' + po.type.toLowerCase() + '/' + po.id,
+			text: `Edit this content`,
+			icon: <Icon type="fa-edit" light />
+		}, {
+			divider: true
+		});
+	}
+
 	ddItems.push({
 		href: '/en-admin',
 		text: `Return to admin`
