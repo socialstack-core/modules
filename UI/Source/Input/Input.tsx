@@ -27,6 +27,35 @@ export type InputProps<T extends keyof InputPropsRegistry> = InputPropsRegistry[
 	onCanvasChange?: (source: string) => void;
 };
 
+const generateValueFromName = (name: string) => {
+
+	if (!name?.length) {
+		return '';
+	}
+
+	let value = name
+		.toString()
+		.toLowerCase()
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '') // Strip accents
+		.replace(/&/g, 'and')           // Replace & with 'and'
+		.replace(/[^a-z0-9\s_-]/g, '')  // Strip illegal chars
+		.replace(/[\s\-_]+/g, '_')      // Normalize separators to '_'
+		.replace(/^_+|_+$/g, '');       // Trim leading/trailing underscores
+
+	if (!value) {
+		return '';
+	}
+
+	// prefix with an underscore if the string doesn't start with a-z
+	// (this allows us to also use this as a CSS class)
+	if (!/^[a-z]/.test(value)) {
+		value = '_' + value;
+	}
+
+	return value;
+};
+
 /**
  * Helps eliminate a significant amount of boilerplate around <input>, <textarea> and <select> elements.
  * Note that you can still use them directly if you want.
@@ -91,6 +120,12 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 	}
 
 	const renderLabel = (pos: string) => {
+
+		// no label for hidden fields
+		if (type == "hidden") {
+			return null;
+		}
+
 		// radio / checkbox have their own label
 		// (use fieldset > legend to associate a heading with groups of radio / checkbox controls)
 		const skipTypes = ['radio', 'checkbox', 'button', 'submit', 'reset'];
@@ -176,7 +211,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 	
 		if (!Array.isArray(validations)) {
 			// Make it one:
-			validations = [validations];
+			validations = (validations as string).split(',').map(v => v.trim());
 		}
 		
 		var field = inputRef as HTMLInputElement; // (can also be a textarea or a select)
@@ -309,11 +344,12 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 		return renderInput();
 	}
 
-	if (noWrapper) {
+	if (noWrapper && !groupClassName?.length) {
 		return renderField();
 	}
 
-	var groupClass = groupClassName ? "mb-3 " + groupClassName : "mb-3";
+	var spacingClass = noWrapper ? '' : 'mb-3';
+	var groupClass = groupClassName ? `${spacingClass} ${groupClassName}` : spacingClass;
 
 	if (labelPosition == 'below') {
 		groupClass = 'form-floating ' + groupClass;
@@ -327,3 +363,7 @@ const Input = <T extends keyof InputPropsRegistry>(props: InputProps<T>) => {
 }
 
 export default Input;
+
+export {
+	generateValueFromName
+}

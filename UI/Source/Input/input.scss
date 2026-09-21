@@ -104,15 +104,15 @@
 // ensure textareas have a sensible minimum height
 $textarea_minrows: 4;
 
-textarea.form-control {
+textarea.form-control.ui-form-control {
   min-height: calc((1.5em * #{$textarea_minrows}) + (.75rem + 2px));
 }
 
-textarea.form-control-sm {
+textarea.form-control.ui-form-control.form-control-sm {
   min-height: calc((1.5em * #{$textarea_minrows}) + (.5rem + 2px));
 }
 
-textarea.form-control-lg {
+textarea.form-control.ui-form-control.form-control-lg {
   min-height: calc((1.5em * #{$textarea_minrows}) + (1rem + 2px));
 }
 
