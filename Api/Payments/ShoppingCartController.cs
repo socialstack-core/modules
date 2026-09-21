@@ -1,12 +1,13 @@
 using Api.Addresses;
 using Api.Contexts;
 using Api.Startup;
+using Api.Users;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Api.Payments
@@ -14,7 +15,7 @@ namespace Api.Payments
     /// <summary>Handles shoppingCart endpoints.</summary>
     [Route("v1/shoppingCart")]
 	public partial class ShoppingCartController : AutoController<ShoppingCart>
-	{
+    {
 		private DeliveryOptionService _options = null;
 		
 		/// <summary>
@@ -51,6 +52,97 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Empties the user's cart
+		/// </summary>
+		/// <param name="context"></param>
+		/// <returns></returns>
+		[HttpGet("clear-self")]
+		public async ValueTask ClearPersonal(Context context)
+		{
+			if (context.User == null || context.User.ShoppingCartId == 0)
+			{
+				return;
+			}
+
+			await Services.Get<UserService>().Update(context, context.User, (Context ctx, User toUpdate, User orig) => {
+				toUpdate.ShoppingCartId = 0;
+			}, DataOptions.IgnorePermissions);
+		}
+
+		/// <summary>
+		/// Loads the user's cart, optionally merging in an anon device cart.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="cartId"></param>
+		/// <param name="anonKey"></param>
+		/// <returns></returns>
+		[HttpGet("get-self")]
+		public async ValueTask<ShoppingCart> LoadPersonal(Context context, [FromQuery] uint cartId, [FromQuery] string anonKey)
+		{
+			if (context.User == null)
+			{
+				return null;
+			}
+
+			var cart = await (_service as ShoppingCartService)
+				.Get(context,
+					context.User.ShoppingCartId,
+					DataOptions.IgnorePermissions
+				);
+
+			var cartIsNew = false;
+
+			if (cart == null || cart.CheckedOut)
+			{
+				// Spawn a new cart.
+				var locale = await context.GetLocale();
+
+				cart = await _service.Create(context, new ShoppingCart()
+				{
+					UserId = context.User.Id,
+					TaxJurisdiction = locale.DefaultTaxJurisdiction
+				}, DataOptions.IgnorePermissions);
+
+				// Assign to user:
+				await Services.Get<UserService>().Update(context, context.User, (Context ctx, User toUpdate, User orig) => {
+
+					toUpdate.ShoppingCartId = cart.Id;
+
+				}, DataOptions.IgnorePermissions);
+
+				cartIsNew = true;
+			}
+
+			var deviceCart = await (_service as ShoppingCartService)
+				.Get(context,
+					cartId, DataOptions.IgnorePermissions
+				);
+
+			if (deviceCart == null || deviceCart.AnonymousCartKey != anonKey || deviceCart.CheckedOut)
+			{
+				deviceCart = null;
+			}
+
+			if (deviceCart != null) {
+
+				// Merge its items unless they were already present
+				// We do not change the quantities; this is explicitly only by product ID.
+				var deviceItems = await (_service as ShoppingCartService).GetProductQuantities(context, deviceCart);
+				List<ProductQuantity> userItems = null;
+
+				if (!cartIsNew)
+				{
+					userItems = await (_service as ShoppingCartService).GetProductQuantities(context, cart);
+				}
+
+				// Perform the merge:
+				cart = await (_service as ShoppingCartService).MergeProductsIn(context, cart, deviceItems, userItems);
+			}
+
+			return cart;
+		}
+
+		/// <summary>
 		/// Loads a cart using anon key.
 		/// </summary>
 		/// <param name="context"></param>
@@ -72,6 +164,24 @@ namespace Api.Payments
 
 			return cart;
 		}
+
+		/// <summary>
+		/// Adds or removes items from the specified cart. The contextual user must have access to the cart.
+		/// Unlike ChangeItems, this only changes the specified cart. If you don't provide a cart, or the cart is inaccessible, this will fail.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="itemChanges"></param>
+		/// <returns></returns>
+		[HttpPost("change_specific_items")]
+        public async ValueTask<ShoppingCart> ChangeSpecificItems(Context context, [FromBody] CartItemChanges itemChanges)
+        {
+            return await (_service as ShoppingCartService)
+                .AddToSpecificCart(context,
+					itemChanges.ShoppingCartId,
+					itemChanges.AnonymousCartKey,
+                    itemChanges.Items
+                );
+        }
 
 		/// <summary>
 		/// Adds or removes items from the specified cart. The contextual user must have access to the cart.

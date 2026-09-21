@@ -2,8 +2,8 @@ using Api.Addresses;
 using Api.Contexts;
 using Api.Counters;
 using Api.Eventing;
-using Api.PasswordResetRequests;
 using Api.Startup;
+using Api.Users;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -251,6 +251,78 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Adds the given itemsToAdd if not already in the targetCartItems set.
+		/// If it is already in there, the quantity is *not* added.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="targetCart"></param>
+		/// <param name="itemsToAdd"></param>
+		/// <param name="targetCartItems"></param>
+		/// <returns></returns>
+		public async ValueTask<ShoppingCart> MergeProductsIn(Context context, ShoppingCart targetCart, List<ProductQuantity> itemsToAdd, List<ProductQuantity> targetCartItems)
+		{
+			if (itemsToAdd == null || itemsToAdd.Count == 0)
+			{
+				// Nothing to do.
+				return targetCart;
+			}
+
+			var quantities = targetCart.Mappings.GetCopy("ProductQuantities");
+			if (quantities == null)
+			{
+				quantities = new List<ulong>();
+			}
+
+			var changed = false;
+
+			foreach (var entry in itemsToAdd)
+			{
+				if (entry == null || entry.Quantity == 0)
+				{
+					continue;
+				}
+
+				if (targetCartItems != null)
+				{
+					if (targetCartItems.Find(pq => pq.ProductId == entry.ProductId) != null)
+					{
+						continue;
+					}
+				}
+
+				changed = true;
+
+				// Add this entry.
+				// Note if it was a dupe entry it will be duped in the target as well - this keeps the quantity correct 
+				// (updating targetCartItems would be wrong).
+
+				var pq = await _productQuantities.Create(context, new ProductQuantity()
+				{
+					ProductId = entry.ProductId,
+					Quantity = entry.Quantity
+				}, DataOptions.IgnorePermissions);
+
+				quantities.Add(pq.Id);
+			}
+
+			if (changed)
+			{
+				targetCart = await Update(context, targetCart, (Context ctx, ShoppingCart toUpdate, ShoppingCart orig) =>
+				{
+					// Update the carts editedUtc such that other checkout
+					// features are aware that the cart has changed.
+					toUpdate.EditedUtc = DateTime.UtcNow;
+
+					// Set the PQ's:
+					toUpdate.Mappings.Set("ProductQuantities", quantities);
+
+				}, DataOptions.IgnorePermissions);
+			}
+
+			return targetCart;
+		}
+
+		/// <summary>
 		/// Calculates the prices for the given cart.
 		/// </summary>
 		/// <param name="context"></param>
@@ -354,6 +426,32 @@ namespace Api.Payments
 		}
 
 		/// <summary>
+		/// Adds the given product to the cart. Does not spawn carts.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="cartId"></param>
+		/// <param name="anonKey"></param>
+		/// <param name="itemChanges"></param>
+		/// <returns></returns>
+		public async ValueTask<ShoppingCart> AddToSpecificCart(Context context, uint cartId, string anonKey, List<CartItemChange> itemChanges)
+		{
+			ShoppingCart cart = null;
+
+			if (cartId != 0)
+			{
+				// Get the cart:
+				cart = await Get(context, cartId, DataOptions.IgnorePermissions);
+
+				if (cart == null || cart.AnonymousCartKey != anonKey || cart.CheckedOut)
+				{
+					cart = null;
+				}
+			}
+
+			return await AddToCart(context, cart, itemChanges);
+		}
+
+		/// <summary>
 		/// Adds the given product to the cart. Will spawn new carts when necessary.
 		/// </summary>
 		/// <param name="context"></param>
@@ -364,6 +462,12 @@ namespace Api.Payments
 		public async ValueTask<ShoppingCart> AddToCart(Context context, uint cartId, string anonKey, List<CartItemChange> itemChanges)
 		{
 			ShoppingCart cart = null;
+
+			if (context.User != null)
+			{
+				// Always replaces regardless of what the anon cart is set to.
+				cartId = context.User.ShoppingCartId;
+			}
 
 			if (cartId != 0)
 			{
@@ -383,8 +487,37 @@ namespace Api.Payments
 
 				cart = await Create(context, new ShoppingCart()
 				{
+					UserId = context.UserId,
 					TaxJurisdiction = locale.DefaultTaxJurisdiction
 				}, DataOptions.IgnorePermissions);
+
+				if (context.User != null)
+				{
+					// Assign to user:
+					await Services.Get<UserService>().Update(context, context.User, (Context ctx, User toUpdate, User orig) =>
+					{
+						toUpdate.ShoppingCartId = cart.Id;
+					}, DataOptions.IgnorePermissions);
+				}
+
+			}
+
+			return await AddToCart(context, cart, itemChanges);
+		}
+
+		/// <summary>
+		/// Adds the given product to the cart. Will spawn new carts when necessary.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="cart"></param>
+		/// <param name="itemChanges"></param>
+		/// <returns></returns>
+		public async ValueTask<ShoppingCart> AddToCart(Context context, ShoppingCart cart, List<CartItemChange> itemChanges)
+		{
+			if (cart == null)
+			{
+				// Cart required!
+				throw new PublicException("Cart required", "cart/not_provided");
 			}
 
 			// Run change event:
