@@ -18,12 +18,32 @@ public partial class PageBuilder
 	/// Mandatory page key. Start it with admin_ for any admin page.
 	/// </summary>
 	public string Key;
-	
+
+	private string _url;
+
 	/// <summary>
 	/// Optional URL. Will be added as a permalink pointing at 
 	/// either this page or the primary type if the key is a primary one.
 	/// </summary>
-	public string Url;
+	public string Url
+	{
+		get {
+			return _url;
+		}
+		set {
+			if (string.IsNullOrWhiteSpace(value))
+			{
+				_url = null;
+				return;
+			}
+			_url = value.Trim();
+
+			if (!_url.StartsWith("/"))
+			{
+				_url = "/" + _url;
+			}
+		}
+	}
 
 	/// <summary>
 	/// Default page title.
