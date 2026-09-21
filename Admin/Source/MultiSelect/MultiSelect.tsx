@@ -66,12 +66,6 @@ export type MultiSelectProps<T extends Content<uint>> = {
  */
 export default function MultiSelect<T extends Content<uint>>(props: MultiSelectProps<T>) {
 
-	// Upload content types are handled by the dedicated multi-media selector,
-	// which reuses the same value/change-event contract as this component.
-	if ((props.contentType || '').toLowerCase() == 'upload') {
-		return <MultiMediaSelect {...(props as unknown as MultiMediaSelectProps)} />;
-	}
-
 	var initVal = (props.value || props.defaultValue || []).filter(t => t!=null);
 	var initMustLoad = false;
 
@@ -117,6 +111,12 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 			setValue(props.value.filter(t => t!=null));
 		}
 	}, [props.value]);
+
+	// Upload content types are handled by the dedicated multi-media selector,
+	// which reuses the same value/change-event contract as this component.
+	if ((props.contentType || '').toLowerCase() == 'upload') {
+		return <MultiMediaSelect { ...(props as unknown as MultiMediaSelectProps) } />;
+	}
 
 	function remove(entry : T) {
 		var newValue = value.filter(t => t!=entry && t!=null);

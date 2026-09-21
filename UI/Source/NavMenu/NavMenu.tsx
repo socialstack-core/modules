@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import navMenuApi, { NavMenu } from 'Api/NavMenu';
 import useApi from 'UI/Functions/UseApi';
 import Loading from 'UI/Loading';
@@ -176,7 +177,7 @@ const NavMenuItemComponent: React.FC<{
 /**
  * A nav menu component that renders items from the contentJson format.
  */
-const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
+const NavMenuDisplay: React.FC<NavMenuProps> = (props: NavMenuProps) => {
 	
 	// Check if contentOrKey has pre-parsed items or is a JSON string
 	const preParsedItems = typeof props.contentOrKey === 'object' && props.contentOrKey?.items 
@@ -218,19 +219,11 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		));
 	};
 
-	// If we have pre-parsed items, render directly
-		if (preParsedItems) {
-		return props.linksOnly ? renderLinks(preParsedItems) : renderItems(preParsedItems);
-	}
-
-	// If we have JSON content, parse and render directly
-	if (isJsonContent) {
-		const jsonItems = getItemsFromContent(props.contentOrKey);
-		return props.linksOnly ? renderLinks(jsonItems) : renderItems(jsonItems);
-		}
-
 	// Otherwise, load the menu by key or id
 	const [navMenu] = useApi<NavMenu | undefined>(() => {
+		if (preParsedItems || isJsonContent) {
+			return Promise.resolve(undefined);
+		}
 		if (props.id) {
 			return navMenuApi.load(props.id as int);
 		}
@@ -250,7 +243,18 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 
 		return Promise.resolve(undefined);
 	}, [props.id, props.menuKey, props.contentOrKey]);
-	
+
+	// If we have pre-parsed items, render directly
+	if (preParsedItems) {
+		return props.linksOnly ? renderLinks(preParsedItems) : renderItems(preParsedItems);
+	}
+
+	// If we have JSON content, parse and render directly
+	if (isJsonContent) {
+		const jsonItems = getItemsFromContent(props.contentOrKey);
+		return props.linksOnly ? renderLinks(jsonItems) : renderItems(jsonItems);
+	}
+
 	if (!navMenu) {
 		return props.disableLoader ? null : <Loading />;
 	}
