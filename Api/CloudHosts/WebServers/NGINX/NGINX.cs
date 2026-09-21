@@ -102,55 +102,11 @@ namespace Api.CloudHosts
 			}
 			*/
 
-			// locales can also be optionally redirected
-			var locales = GetAllLocales(context);
-
-			if (locales != null && locales.Count > 0)
-			{
-				foreach (var altLocale in locales)
-				{
-					if (altLocale.isRedirected && !redirectsList.Contains("/" + altLocale.Code))
-					{
-						var statusCode = altLocale.PermanentRedirect ? "301 " : "302 ";
-						redirectsList.Add("/" + altLocale.Code);
-						cfgContext.AddLocationContext($"= /" + altLocale.Code.ToLower()).AddDirective($"return", statusCode + "/"); // root
-						cfgContext.AddLocationContext($"~ /" + altLocale.Code.ToLower() + "/(.*)").AddDirective($"return", statusCode + "/$1"); // underlying pages
-					}
-				}
-			}
-
 			// Write it out:
 			configFile.WriteToFile(nginxConfigPath);
 
 			// Tell NGINX to reload:
 			await Reload();
-		}
-
-		/// <summary>
-		/// Get all the active locales 
-		/// </summary>
-		/// <param name="ctx"></param>
-		/// <returns></returns>
-		private List<Locale> GetAllLocales(Context ctx)
-		{
-			if (_allLocales != null && _allLocales.Any())
-			{
-				return _allLocales;
-			}
-
-			// Get all the current locales:
-			var locales = _localeService.Where("").ListAll(ctx).Result;
-
-			if (locales != null && locales.Any())
-			{
-				_allLocales = locales;
-			}
-			else
-			{
-				_allLocales = new List<Locale>();
-			}
-
-			return _allLocales;
 		}
 
 		/// <summary>
