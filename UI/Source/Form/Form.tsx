@@ -24,6 +24,7 @@ interface FormProps<ResponseType, FieldType> extends React.HTMLAttributes<HTMLFo
 	successMessage?: React.ReactNode,
 	submitEnabled?: boolean,
 	submitLabel?: string,
+	fallbackActionUrl?: string,
 	xs?: boolean,
 	sm?: boolean,
 	md?: boolean,
@@ -61,6 +62,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 		formRef,
 		showFailureDialog,
 		onValues,
+		fallbackActionUrl,
 		className,
 		...attribs
 	} = props;
@@ -169,6 +171,7 @@ const Form = <ResponseType extends any, FieldType extends any>(props: FormProps<
 			onReset={onReset}
 			ref={internalFormRef}
 			method={"post"}
+			action={fallbackActionUrl}
 			{...attribs}
 		>
 			{children}
