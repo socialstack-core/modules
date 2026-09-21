@@ -1,3 +1,5 @@
+import { useEditor } from 'UI/TinyMce';
+
 /**
  * Props for the spacer component.
  * @icon fal fa-arrows-alt-v
@@ -20,6 +22,7 @@ Just an invisible space of a specified height. The default is 20px.
 */
 const Spacer: React.FC<SpacerProps> = props => {
 	let { height, hidden } = props;
+	const { isEditing } = useEditor();
 
 	if (hidden) {
 		return;
@@ -30,7 +33,9 @@ const Spacer: React.FC<SpacerProps> = props => {
 	}
 
 	return <div className="spacer-container">
-		<div className="spacer" style={{ height: `${height}px` }}></div>
+		<div className={`spacer${isEditing ? ' spacer-editor' : ''}`} style={{ height: `${height}px` }}>
+			{isEditing && <span>{`Spacer ${height}px`}</span>}
+		</div>
 	</div>;
 }
 

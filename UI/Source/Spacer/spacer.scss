@@ -1,5 +1,19 @@
 .spacer-container{
 	clear: both;
+
+	.spacer-editor {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		min-height: 40px;
+		border: 1px dashed rgba(0, 0, 0, .25);
+		border-radius: 4px;
+		color: var(--primary, #6c757d);
+		font-size: 0.75rem;
+		font-weight: 600;
+		letter-spacing: .5px;
+		text-transform: uppercase;
+	}
 }
 
 @include media-breakpoint-down(sm) {
