@@ -397,11 +397,13 @@ namespace Api.CanvasRenderer
 					var fieldJson = jsonNode["field"];
 					var writeJson = jsonNode["write"];
 					var primaryJson = jsonNode["primary"];
+					var parseJson = jsonNode["parse"];
 
 					result.Links[kvp.Key] = new CanvasDataStoreLink(
 						fieldJson == null ? null : fieldJson.Value<string>(),
 						writeJson == null ? false : writeJson.Value<bool>(),
-						primaryJson == null ? false : primaryJson.Value<bool>()
+						primaryJson == null ? false : primaryJson.Value<bool>(),
+						parseJson == null ? false : parseJson.Value<bool>()
 					);
 				}
 			}
@@ -928,6 +930,11 @@ namespace Api.CanvasRenderer
 		public bool Write;
 
 		/// <summary>
+		/// True if it's the value should be JSON parsed.
+		/// </summary>
+		public bool Parse;
+
+		/// <summary>
 		/// The field.
 		/// </summary>
 		public string Field;
@@ -948,9 +955,26 @@ namespace Api.CanvasRenderer
 		/// <param name="field"></param>
 		/// <param name="write"></param>
 		/// <param name="primary"></param>
-		public CanvasDataStoreLink(string field, bool write, bool primary)
+		/// <param name="parse"></param>
+		public CanvasDataStoreLink(string field, bool write, bool primary, bool parse = false)
 		{
-			JsonString = "{\"write\": " + (write ? "true" : "false") + ",\"primary\": " + (primary ? "true" : "false") + ",\"field\":\"" + field + "\"}";
+			var str = "{\"field\":\"" + field + "\"";
+
+			if (write) {
+				str += ",\"write\":true";
+			}
+
+			if (primary)
+			{
+				str += ",\"primary\":true";
+			}
+
+			if (parse)
+			{
+				str += ",\"parse\":true";
+			}
+
+			JsonString = str + "}";
 		}
 	}
 
