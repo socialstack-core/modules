@@ -130,6 +130,12 @@ $paginator_justify_content: center;
 
 	}
 	
+	.page-link {
+		min-width: px_to_rem(44);
+		min-height: px_to_rem(44);
+	    text-align: center;
+	}
+
 }
 
 // >= 768px
