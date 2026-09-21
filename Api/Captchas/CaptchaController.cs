@@ -24,7 +24,7 @@ namespace Api.Captchas
         /// Checks a captcha response
         /// </summary>
         [HttpGet("check/{captchaId}")]
-        public async Task<bool> Check(Context context, [FromRoute] uint captchaId, [FromQuery] string tag)
+        public async ValueTask<bool> Check(Context context, [FromRoute] uint captchaId, [FromQuery] string tag)
         {
             var success = await Services.Get<CaptchaService>().Check(context, captchaId, tag);
             return success;

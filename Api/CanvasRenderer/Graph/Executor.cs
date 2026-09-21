@@ -50,31 +50,31 @@ namespace Api.CanvasRenderer
             Outputs = new JObject();
         }
 
-        /// <summary>
-        /// Gets a constant bool.
-        /// </summary>
-        /// <param name="fieldName"></param>
-        /// <param name="val"></param>
-        /// <returns></returns>
-        public bool GetConstBoolean(string fieldName, out bool val)
-        {
-            if (ConstantData.TryGetValue(fieldName, out JToken v))
-            {
-                val = v.Value<bool>();
-                return true;
-            }
+		/// <summary>
+		/// Gets a constant bool.
+		/// </summary>
+		/// <param name="fieldName"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
+		public bool GetConstBoolean(string fieldName, out bool val)
+		{
+			if (ConstantData.TryGetValue(fieldName, out JToken v))
+			{
+				val = v.Value<bool>();
+				return true;
+			}
 
-            val = false;
-            return false;
-        }
+			val = false;
+			return false;
+		}
 
-        /// <summary>
-        /// Gets a constant value.
-        /// </summary>
-        /// <param name="fieldName"></param>
-        /// <param name="val"></param>
-        /// <returns></returns>
-        public bool GetConstString(string fieldName, out string val)
+		/// <summary>
+		/// Gets a constant value.
+		/// </summary>
+		/// <param name="fieldName"></param>
+		/// <param name="val"></param>
+		/// <returns></returns>
+		public bool GetConstString(string fieldName, out string val)
         {
             if (ConstantData.TryGetValue(fieldName, out JToken v))
             {

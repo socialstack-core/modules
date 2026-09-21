@@ -172,7 +172,7 @@ namespace Api.Startup
 #if !DEBUG
 					httpContext.Response.Headers.Append("X-Content-Type-Options", "nosniff");
 					httpContext.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-#endif 
+#endif
 
 					try
 					{

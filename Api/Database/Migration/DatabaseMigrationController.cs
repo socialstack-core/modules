@@ -32,7 +32,7 @@ public partial class DatabaseMigrationController : AutoController
 		{
 			throw PermissionException.Create("migration", context);
 		}
-
+		
 		await Services.Get<DatabaseMigrationService>().Migrate(from, to, cc, dry);
 	}
 }

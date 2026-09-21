@@ -1013,7 +1013,7 @@ namespace Api.Startup
 			}
 		}
 		
-		private static readonly DateTime _unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, 0);
+		private static readonly DateTime _unixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
 		private static DateTime ConvertFromJsUnixTimestamp(double timestamp)
 		{

@@ -31,11 +31,12 @@ public partial class DatabaseMigrationController : AutoController
 		
 		var mysql = Services.Get<MySQLDatabaseService>();
 
-		await mysql.MigrateLocalizationAsync();
-
 		await mysql.MigrateMappingsToInterface(
 			replacements
 		);
+
+		await mysql.MigrateLocalizationAsync();
+
 	}
 
 }
