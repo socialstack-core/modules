@@ -3,7 +3,7 @@ import PopoverWrapper from 'UI/Popover/Wrapper';
 import popoverPolyfillJs from './static/popover.min.js';
 import { lazyLoad } from 'UI/Functions/WebRequest';
 import { getUrl } from 'UI/FileRef';
-import {FocusEvent, useEffect, useRef} from 'react';
+import { FocusEvent, useEffect, useRef } from 'react';
 //import { toggleFocusable } from 'UI/Functions/ToggleFocusable';
 
 export type PopoverAlignment = 'left' | 'right' | 'top' | 'bottom' | 'center' | 'maximize';
@@ -38,7 +38,7 @@ interface PopoverProps {
 	 * 
 	 * hint (DON'T USE)
 	 * - doesn't close auto popovers but will close other hints
-	 * NB: not to be used until we find a workaround for Firefox/Safari which currently don't support this
+	 * NB: not to be used until we find a workaround for Safari which as of June 2026 doesn't support this
 	 * 
 	 */
 	method?: "" | "auto" | "manual",
@@ -106,7 +106,7 @@ interface PopoverProps {
 	 * [never, always, or when-bg-disabled] (defaults to never)
 	 * NB: when-bg-disabled relies upon bgDisabledWidth
 	 */
-	closeOnInteractiveClick?: PopoverAutoClose
+	closeOnInteractiveClick?: PopoverAutoClose,
 
 	/**
 	 * used in conjunction with closeOnInteractiveClick; determines the width under which the background is considered disabled
@@ -118,7 +118,12 @@ interface PopoverProps {
 	 * @param e
 	 * @returns
 	 */
-	onToggle?: (e: ToggleEvent) => void
+	onToggle?: (e: ToggleEvent) => void,
+
+	/**
+	 * increment this value to force closure of the popover
+	 */
+	forceClose?: number
 }
 
 /**
@@ -152,7 +157,15 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 		}
 	}, [open, method]);
 
-	// TODO: investigate use of scrollbar-gutter: stable to prevent page content horizontally shifting
+	// close popover if forceClose prop has been updated
+	useEffect(() => {
+		let forceClose = props.forceClose || 0;
+
+		if (forceClose > 0) {
+			popoverRef?.current?.hidePopover();
+		}
+
+	}, [props.forceClose]);
 
 	function useScrollLockPopover() {
 		const scrollYRef = useRef(0);
@@ -276,9 +289,9 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 			return;
 		}
 
-		const header = reactRoot.querySelector("#wrapper > header");
-		const content = reactRoot.querySelector("#wrapper > #content");
-		const footer = reactRoot.querySelector("#wrapper > #content ~ footer");
+		const header = reactRoot.querySelector("#site-wrapper > header");
+		const content = reactRoot.querySelector("#site-wrapper > #site-content");
+		const footer = reactRoot.querySelector("#site-wrapper > #site-content ~ footer");
 
 		if (event.newState === "open") {
 

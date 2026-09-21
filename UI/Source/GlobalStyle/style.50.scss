@@ -1,4 +1,19 @@
 :root {
+	// base font size (in px)
+	--ui-base-font-size: 16;
+	font-size: calc(1px * var(--ui-base-font-size));
+
+	// scalable padding
+	--ui-padding-min: 20;
+	--ui-padding-expression: 3vw;
+	--ui-padding-max: 40;
+	--ui-padding: clamp(calc(1px * var(--ui-padding-min)), var(--ui-padding-expression), calc(1px * var(--ui-padding-max)));
+
+	// max page width (in px)
+	--ui-page-max-width: 1280;
+	--ui-page-width-full: minmax(var(--ui-padding), 1fr);
+	--ui-page-width-content: min(calc(1px * var(--ui-page-max-width)), calc(100% - var(--ui-padding) * 2));
+
 	// ensure we have a default scroll position
 	--page-scroll-y: 0px;
 
@@ -15,6 +30,11 @@
 	--grey-light: #f2f2f2;
 	--grey-mid: #999;
 	--grey-dark: #444;
+
+	--ui-letter-spacing: .21em;
+
+	// prevent 300ms delay for touch devices wondering if we're about to double-tap
+	touch-action: manipulation;
 }
 
 // generate lighter shades using relative colour
@@ -32,18 +52,21 @@
   
 }
 
-#react-view, #react-root, #content-root, #content-page, #react-loading {
+#react-view, #content-root, #content-page, #react-loading {
 	height: 100%;
 	width: 100%;
 	margin: 0;
 	touch-action: manipulation;
 }
 
-#react-root {
+// old-school 
+html:not(:has([data-version])) #react-root {
     height: auto;
+	width: 100%;
     min-height: 100%;
+	margin: 0;
 
-	> #wrapper {
+	> #site-wrapper {
 		min-height: 100vh;
 
 		// ensure header remains fixed when scrolling
@@ -67,24 +90,24 @@
 		// 
 		// ... then use flexbox to ensure content is always at least tall enough to place the footer at the bottom of the view
 		// (prevents short page content causing footer to render halfway up the page)
-		&:has(#content + footer) {
+		&:has(#site-content + footer) {
 			display: flex;
 			flex-direction: column;
 
-			> *:not(#content) {
+			> *:not(#site-content) {
 				flex-shrink: 0;
 			}
 
-			> #content {
+			> #site-content {
 				flex-grow: 1;
 			}
 		}
 
 		// check: header followed by content?
 		// ensure there's spacing between the two (except if there's a full width component in play)
-		&:has(header + #content):not(:has(.ui-component--full-width)) {
+		&:has(header + #site-content):not(:has(.ui-component--full-width)) {
 
-			> #content {
+			> #site-content {
 				margin-top: px_to_rem(30);
 			}
 		}
@@ -148,11 +171,6 @@ html:not(:has(body.mce-content-body)) {
 	&:not(.admin),
 	&.admin .panelled-editor__preview {
 	}
-}
-
-html > body {
-	color: var(--site-fg, #000);
-	background: var(--site-bg, #fff);
 }
 
 .loader {

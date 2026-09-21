@@ -377,9 +377,9 @@ html.admin {
 
 }
 
-#wrapper > header,
-#content,
-#content ~ footer {
+#site-wrapper > header,
+#site-content,
+#site-content ~ footer {
 	transition: filter .2s ease;
 }
 
@@ -387,7 +387,7 @@ html.admin {
 // NB: your project may require additional rules based on markup
 body[data-popover-blurred="true"] {
 
-	#content {
+	#site-content {
 		filter: blur(2px) grayscale(25%);
 		pointer-events: none;
 		user-select: none;
@@ -409,7 +409,7 @@ body[data-popover-blurred="true"] {
 	// additional rules to blur header if it's a full-height popover
 	&[data-popover-full-height="true"] {
 
-		#wrapper > header {
+		#site-wrapper > header {
 			filter: blur(2px) grayscale(25%);
 			pointer-events: none;
 			user-select: none;
@@ -430,7 +430,7 @@ body[data-scroll-fixed="true"] {
 
 	body[data-scroll-fixed="true"] {
 
-		#react-root > #wrapper > header {
+		#react-root > #site-wrapper > header {
 			transform: translateY(var(--page-scroll-y));
 		}
 
