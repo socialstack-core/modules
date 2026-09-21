@@ -1,0 +1,31 @@
+.nav-menu {
+
+	&-footer {
+		margin-bottom: px_to_rem(20);
+	}
+
+}
+
+@media (max-width: 680px) {
+
+	.nav-menu {
+
+		&-link {
+
+			&--hide-label-mobile {
+
+				.nav-menu-label {
+					display: none !important;
+				}
+
+			}
+
+			&--hide-mobile {
+				display: none !important;
+			}
+
+		}
+
+	}
+
+}

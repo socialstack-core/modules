@@ -2,8 +2,7 @@ import navMenuApi, { NavMenu } from 'Api/NavMenu';
 import useApi from 'UI/Functions/UseApi';
 import Loading from 'UI/Loading';
 import Dropdown from 'UI/Dropdown';
-import { IconRef } from 'UI/Icon';
-import { parse } from 'UI/FileRef';
+import Link from 'UI/Link';
 
 interface NavMenuItem {
 	id: string;
@@ -11,25 +10,32 @@ interface NavMenuItem {
 	iconRef?: string;
 	target: string;
 	openIn?: 'current' | 'newtab';
+	/**
+	 * optional popover target id - the item is rendered as a button toggling a
+	 * popover with this id (handled by the consuming component).
+	 */
+	popoverTarget?: string;
 	children?: NavMenuItem[];
+	hideLabelMobile?: boolean;
+	hideMobile?: boolean;
 }
 
 interface NavMenuProps {
 	/**
 	 * The menu ID.
 	 */
-	id?: number,
+	id?: number;
 
 	/**
 	 * The menu key (e.g. "primary", "footer").
 	 */
-	menuKey?: string,
+	menuKey?: string;
 
 	/**
 	 * Either a menu key (string), pre-parsed content object with items array, or JSON string.
 	 * This avoids an API request when content is provided inline.
 	 */
-	contentOrKey?: string | { items?: NavMenuItem[] },
+	contentOrKey?: string | { items?: NavMenuItem[] };
 
 	/**
 	 * Custom child render function.
@@ -38,6 +44,21 @@ interface NavMenuProps {
 	 * @returns The React node to render.
 	 */
 	children?: (item: NavMenuItem, index: number) => React.ReactNode;
+
+	/**
+	 * true if only bare links should be rendered (no wrapping <li/>)
+	 */
+	linksOnly?: boolean;
+
+	/**
+	 * optional classnames to add to each rendered link
+	 */
+	linkClass?: string;
+
+	/**
+	 * true if loading animation should be disabled
+	 */
+	disableLoader?: boolean;
 }
 
 const getItemsFromContent = (content: string | { items?: NavMenuItem[] } | undefined): NavMenuItem[] => {
@@ -80,26 +101,40 @@ const NavMenuItemComponent: React.FC<{
 	item: NavMenuItem;
 	index: number;
 	children?: (item: NavMenuItem, index: number) => React.ReactNode;
-}> = ({ item, index, children }) => {
+	linksOnly?: boolean;
+	linkClass?: string;
+}> = ({ item, index, children, linksOnly, linkClass }) => {
 	const hasChildren = item.children && item.children.length > 0;
+	const linkClasses = ['nav-menu-link'];
+
+	if (!!linkClass?.length) {
+		linkClasses.push(linkClass);
+	}
+
+	if (item.hideLabelMobile) {
+		linkClasses.push("nav-menu-link--hide-label-mobile");
+	}
+
+	if (item.hideMobile) {
+		linkClasses.push("nav-menu-link--hide-mobile");
+	}
 
 	const defaultContent = (
-		<a 
+		<Link
 			href={item.target} 
-			className="nav-menu-link"
+			className={linkClasses.join(' ')}
 			target={item.openIn === 'newtab' ? '_blank' : undefined}
 			rel={item.openIn === 'newtab' ? 'noopener noreferrer' : undefined}
 		>
 			{renderIcon(item.iconRef)}
 			<span className="nav-menu-label">{item.label}</span>
-		</a>
+		</Link>
 	);
 
 	const linkContent = children ? children(item, index) : defaultContent;
 
-	if (hasChildren) {
+	const renderDropdown = () => {
 		return (
-			<li className="nav-menu-item nav-menu-item--has-children">
 				<Dropdown
 					label={linkContent}
 				items={item.children!.map((child, childIndex) => ({
@@ -120,11 +155,18 @@ const NavMenuItemComponent: React.FC<{
 						)
 					}))}
 				/>
+		);
+	};
+
+	if (hasChildren) {
+		return linksOnly ? renderDropdown() : (
+			<li className="nav-menu-item nav-menu-item--has-children">
+				{renderDropdown()}
 			</li>
 		);
 	}
 
-	return (
+	return linksOnly ? linkContent : (
 		<li className="nav-menu-item">
 			{linkContent}
 		</li>
@@ -141,7 +183,9 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		? props.contentOrKey.items 
 		: null;
 	
-	const isKeyString = typeof props.contentOrKey === 'string';
+	// JSON string content (e.g. injected via the canvas) can be rendered without an API request
+	const isJsonContent = typeof props.contentOrKey === 'string' && props.contentOrKey.trim().startsWith('{');
+	const isKeyString = typeof props.contentOrKey === 'string' && !isJsonContent;
 
 	const renderItems = (items: NavMenuItem[]) => {
 		return (
@@ -153,6 +197,7 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 							item={item}
 							index={index}
 							children={props.children}
+							linkClass={props.linkClass}
 						/>
 					))}
 				</ul>
@@ -160,12 +205,32 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		);
 	};
 
-	// Otherwise, load the menu by key or id
-	const [navMenu] = useApi<NavMenu | undefined>(() => {
+	const renderLinks = (items: NavMenuItem[]) => {
+		return items.map((item, index) => (
+			<NavMenuItemComponent
+				key={item.id}
+				item={item}
+				index={index}
+				children={props.children}
+				linksOnly={props.linksOnly}
+				linkClass={props.linkClass}
+			/>
+		));
+	};
+
+	// If we have pre-parsed items, render directly
 		if (preParsedItems) {
-			return Promise.resolve(undefined);
+		return props.linksOnly ? renderLinks(preParsedItems) : renderItems(preParsedItems);
+	}
+
+	// If we have JSON content, parse and render directly
+	if (isJsonContent) {
+		const jsonItems = getItemsFromContent(props.contentOrKey);
+		return props.linksOnly ? renderLinks(jsonItems) : renderItems(jsonItems);
 		}
 
+	// Otherwise, load the menu by key or id
+	const [navMenu] = useApi<NavMenu | undefined>(() => {
 		if (props.id) {
 			return navMenuApi.load(props.id as int);
 		}
@@ -184,20 +249,17 @@ const NavMenuDisplay: React.FC<NavMenuProps> = (props) => {
 		}
 
 		return Promise.resolve(undefined);
-	}, [preParsedItems, props.id, props.menuKey, props.contentOrKey]);
-
-	// If we have pre-parsed items, render directly
-	if (preParsedItems) {
-		return renderItems(preParsedItems);
-	}
+	}, [props.id, props.menuKey, props.contentOrKey]);
 	
 	if (!navMenu) {
-		return <Loading />;
+		return props.disableLoader ? null : <Loading />;
 	}
 
 	const items = getItemsFromContent(navMenu.contentJson);
-	return items ? renderItems(items) : null;
+
+	return items ? (props.linksOnly ? renderLinks(items) : renderItems(items)) : null;
 };
 
 export default NavMenuDisplay;
 export type { NavMenuItem };
+export { getItemsFromContent };
