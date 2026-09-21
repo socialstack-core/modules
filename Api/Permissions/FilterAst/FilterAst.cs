@@ -634,7 +634,14 @@ namespace Api.Permissions{
 		{
 			foreach (var v in values)
 			{
-				if (val.Equals(v))
+				if (val == null)
+				{
+					if (v == null)
+					{
+						return true;
+					}
+				}
+				else if (val.Equals(v))
 				{
 					return true;
 				}
