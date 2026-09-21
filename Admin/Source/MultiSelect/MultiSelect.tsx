@@ -103,7 +103,7 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 			setValue(value.map(e => idLookup[e.id+'']).filter(t=>t!=null));
 
 		});
-	}, []);
+	}, [mustLoad, value, props.contentType, props.includes]);
 
 	// Sync value from props (replaces componentWillReceiveProps)
 	useEffect(() => {

@@ -3,7 +3,7 @@ import Search from 'UI/Search';
 import Link from 'UI/Link';
 import Button from "UI/Button";
 import { ApiList, ApiIncludes } from "UI/Functions/WebRequest";
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 import { Content } from 'Api/Database';
 import { AutoController, ListFilter } from 'Api/Startup';
 
@@ -60,7 +60,7 @@ export type ContentSelectProps<T extends Content<uint>> = {
  */
 export default function ContentSelect<T extends Content<uint>>(props: ContentSelectProps<T>) {
 
-	function getDefaultValue() {
+	const getDefaultValue = useCallback(() => {
 		var value = null;
 
 		if (props.defaultValue) {
@@ -72,7 +72,7 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 		}
 
 		return value;
-	}
+	}, [props.defaultValue]);
 
 	/**
 	 * Returns the best display title for a content object.
@@ -121,12 +121,11 @@ export default function ContentSelect<T extends Content<uint>>(props: ContentSel
 				if (!props.hideDefaultValue) {
 					items.unshift(null);
 				}
-				var sel = selected ? selected : getDefaultValue();
 				setAll(items);
-				setSelected(sel);
+				setSelected(current => current ? current : getDefaultValue());
 			});
 		}
-	}, [props.contentType, props.search, props.value, props.defaultValue]);
+	}, [props.contentType, props.search, props.value, props.defaultValue, props.hideDefaultValue, getDefaultValue]);
 
 	// Form reset listener (replaces componentDidMount / componentWillUnmount)
 	useEffect(() => {

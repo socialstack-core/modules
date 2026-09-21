@@ -242,6 +242,10 @@ const ArrayPropEditor: React.FC<ArrayPropEditorProps> = ({ label, fieldInfo, tar
 	);
 	const hiddenRef = useRef<HTMLInputElement>(null);
 	const skipPropagate = useRef(true);
+	const targetNodeRef = useRef(targetNode);
+	targetNodeRef.current = targetNode;
+	const onFieldChangeRef = useRef(onFieldChange);
+	onFieldChangeRef.current = onFieldChange;
 
 	useEffect(() => {
 		if (hiddenRef.current) {
@@ -259,12 +263,12 @@ const ArrayPropEditor: React.FC<ArrayPropEditorProps> = ({ label, fieldInfo, tar
 		// editor. Nested arrays then bubble up via onFieldChange until they reach the top.
 		const value = items.map(({ _key, ...rest }) => rest);
 
-		if (targetNode?.props) {
-			targetNode.props = setValueAtDotPath(targetNode.props, fieldInfo.name, value) as Record<string, unknown>;
+		if (targetNodeRef.current?.props) {
+			targetNodeRef.current.props = setValueAtDotPath(targetNodeRef.current.props, fieldInfo.name, value) as Record<string, unknown>;
 		}
 
-		onFieldChange?.(fieldInfo.name, value);
-	}, [items]);
+		onFieldChangeRef.current?.(fieldInfo.name, value);
+	}, [items, fieldInfo.name]);
 
 	const addItem = () => {
 		setItems([...items, { _key: Math.random().toString(36).substr(2) }]);

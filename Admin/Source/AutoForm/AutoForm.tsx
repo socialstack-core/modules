@@ -62,6 +62,9 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 	var { session, setSession } = useSession();
 	var { setPage, pageState, updateQuery } = useRouter();
 	const { query } = pageState;
+	const { onChange } = props;
+	const queryRef = useRef(query);
+	queryRef.current = query;
 
 	// True if any changes are currently unsaved
 	const [unsavedChanges, setUnsavedChanges] = useState(false);
@@ -155,7 +158,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 
 			// Redraw the fields:
 			setUpdateCount(updateCount + 1);
-			props.onChange && props.onChange(fieldData);
+			onChange && onChange(fieldData);
 		};
 
 		var value = fieldData[data.name];
@@ -167,7 +170,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 				data.defaultValue = value;
 			}
 		}
-	}, [fieldData, props.onChange]);
+	}, [fieldData, onChange, isEdit, updateCount]);
 
 	// Load the form fields - the initial content itself is provided via props.content
 	useEffect(() => {
@@ -190,7 +193,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 					fields.forEach((field: any) => {
 						const fieldName = field.data?.name;
 						if (fieldName) {
-							const urlValue = query.get(`initial-${fieldName}`);
+							const urlValue = queryRef.current.get(`initial-${fieldName}`);
 							if (urlValue !== null) {
 								initialValues[fieldName] = urlValue;
 								hasInitialValues = true;
@@ -298,7 +301,7 @@ const AutoForm: React.FC<AutoFormProps> = (props) => {
 				console.error(e);
 				setFailed(true);
 			});
-	}, [props.contentType]);
+	}, [props.contentType, props.isRevision, props.tabs, parsedId]);
 
 	// Unsaved changes prompt
 	useEffect(() => {

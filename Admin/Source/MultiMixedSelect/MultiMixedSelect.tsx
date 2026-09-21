@@ -128,7 +128,7 @@ export default function MultiMixedSelect(props: MultiMixedSelectProps) {
 			.catch(() => {
 				setMustLoad(false);
 			});
-	}, [mustLoad]);
+	}, [mustLoad, value]);
 
 	useEffect(() => {
 		if (props.value) {

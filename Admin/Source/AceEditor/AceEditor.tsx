@@ -60,6 +60,7 @@ const AceEditor: React.FC<AceEditorProps> = (props) => {
 	const editorRef = useRef<HTMLDivElement>(null);
 	const editorInstanceRef = useRef<any>(null);
 	const hiddenInputRef = useRef<HTMLInputElement>(null);
+	const propsRef = useRef(props);
 
 	useEffect(() => {
 		if (!editorRef.current) {
@@ -89,19 +90,19 @@ const AceEditor: React.FC<AceEditorProps> = (props) => {
 				ed.setTheme("ace/theme/monokai");
 			}
 
-			var type = props.type || 'json';
+			var type = propsRef.current.type || 'json';
 			ed.session.setMode("ace/mode/" + type);
-			ed.session.setValue(props.defaultValue || props.value || '');
+			ed.session.setValue(propsRef.current.defaultValue || propsRef.current.value || '');
 
-			if (props.readonly) {
+			if (propsRef.current.readonly) {
 				ed.session.setUseWorker(false);
 				ed.setShowPrintMargin(false);
 				ed.setReadOnly(true);
 			}
 
 			ed.session.on('change', () => {
-				if (props.onChange) {
-					props.onChange({ target: { value: ed.getValue() } });
+				if (propsRef.current.onChange) {
+					propsRef.current.onChange({ target: { value: ed.getValue() } });
 				}
 			});
 

@@ -27,7 +27,7 @@ const ModuleSelector: React.FC<ModuleSelectorProps> = (props) => {
 		collectModules(componentGroups).then(compSet => {
 			setComponentSet(compSet);
 		});
-	}, [props.componentGroups]);
+	}, [componentGroups]);
 
 	function updateSort(event: React.ChangeEvent<Element>) {
 		setSortOrder((event.target as HTMLSelectElement).value as 'alpha' | 'popularity');

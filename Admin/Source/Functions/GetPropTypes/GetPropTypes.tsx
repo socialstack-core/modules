@@ -1,5 +1,4 @@
 
-// eslint-disable-next-line no-restricted-imports
 import { getJson } from 'UI/Functions/WebRequest';
 import templateApi from 'Api/Template';
 import {AutoFormApi, AutoFormField} from 'Api/AutoForms';

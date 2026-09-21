@@ -87,6 +87,7 @@ interface ContentDialogState<T extends ContentListEditorNode> {
 
 function ContentListEditor<T extends ContentListEditorNode>(props: ContentListEditorProps<T>) {
 	const readonly = props.readonly || false;
+	const { serializeItems } = props;
 
 	const [items, setItems] = useState<T[]>(() => {
 		var initValString = props.value || props.defaultValue || '';
@@ -108,9 +109,9 @@ function ContentListEditor<T extends ContentListEditorNode>(props: ContentListEd
 	useEffect(() => {
 		const input = inputRef.current;
 		if (input) {
-			(input as any).onGetValue = () => props.serializeItems(items);
+			(input as any).onGetValue = () => serializeItems(items);
 		}
-	}, [items]);
+	}, [items, serializeItems]);
 
 	const updateItem = (id: string, updates: Partial<T>, itemList: T[]): T[] => {
 		return itemList.map(item => {

@@ -190,9 +190,9 @@ const AutoList: React.FC<React.PropsWithChildren<AutoListProps>> = (props) => {
 			.catch(e => {
 				console.error(e);
 			});
-	}, [props.contentType]);
+	}, [contentType]);
 
-	const includes = useMemo(() => (getPageIncludes() ?? '').split(','), [props.contentType]);
+	const includes = useMemo(() => (getPageIncludes() ?? '').split(','), [getPageIncludes]);
 
 	updateQueryRef.current = updateQuery;
 

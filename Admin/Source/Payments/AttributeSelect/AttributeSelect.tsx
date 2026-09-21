@@ -61,6 +61,7 @@ const AttributeSelect: React.FC<AttributeSelectProps> = (props) => {
 	
 	const fieldRef = useRef<HTMLDivElement | null>(null);
 	const inputRef = useRef<HTMLInputElement | null>(null);
+	const initialValuesLoaded = useRef(false);
 
 	// Parse initial values
 	const getInitialValueAndLoadState = () => {
@@ -107,6 +108,11 @@ const AttributeSelect: React.FC<AttributeSelectProps> = (props) => {
 
 	// Fetch detailed attributes on mount (replaces componentDidMount)
 	useEffect(() => {
+		if (initialValuesLoaded.current) {
+			return;
+		}
+		initialValuesLoaded.current = true;
+
 		if (value.length > 0) {
 			const filter = {
 				query: "Id=[?]",
@@ -126,7 +132,7 @@ const AttributeSelect: React.FC<AttributeSelectProps> = (props) => {
 		} else {
 			setMustLoad(false);
 		}
-	}, []);
+	}, [value]);
 
 	// Sync value from props (replaces componentWillReceiveProps)
 	useEffect(() => {

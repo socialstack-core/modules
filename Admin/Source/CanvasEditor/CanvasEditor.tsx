@@ -135,9 +135,11 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 	const [templateWrapper, setTemplateWrapper] = useState<TemplateWrapper | null>(null);
 	const [localPageState, setLocalPageState] = useState<any>(null);
 	const editorRef = useRef<any>(null);
+	const propsRef = useRef(props);
 	const session = useSession();
 	const { role } = session.session;
 	const urlQueryParams = new URLSearchParams(window.location?.search || '');
+	const contextQueryParam = urlQueryParams?.get("context");
 	
 	const setEmptyPageState = () => {
 		setLocalPageState({
@@ -155,7 +157,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 	};
 	
 	useEffect(() => {
-		let url = urlQueryParams?.get("context");
+		let url = contextQueryParam;
 		
 		if(url){
 			pageApi.pageState({
@@ -176,7 +178,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 			setEmptyPageState();
 		}
 	}, [
-		urlQueryParams.context
+		contextQueryParam
 	]);
 	
 	const getComponentGroupsForCursor = (editor: any): string[] | undefined => {
@@ -228,7 +230,7 @@ export default function CanvasEditor(props: CanvasEditorProps) {
 				const propTypeMeta = loadedTemplates[0] as EditableTypeMeta;
 				propTypeMeta.editableTemplates = loadedTemplates[1];
 
-				let rawValue = props.value || props.defaultValue;
+				let rawValue = propsRef.current.value || propsRef.current.defaultValue;
 
 				if (typeof rawValue === 'string') {
 					try {
