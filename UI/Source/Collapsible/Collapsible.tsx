@@ -1,6 +1,7 @@
 import Dropdown, { DropdownItem } from 'UI/Dropdown';
 import Input from 'UI/Input';
 import Button from 'UI/Button';
+import Link from 'UI/Link';
 import { useState } from 'react';
 
 /**
@@ -314,8 +315,6 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 						{props.jsx}
 					</span>}
 					{props.buttons?.map(button => {
-							var variant = button.variant || 'primary';
-							var btnClass = 'btn ui-btn btn-sm btn-outline-' + variant;
 
 							// split button
 							if (button.children && button.children.length) {
@@ -333,7 +332,7 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 
 							// standard button
 							if (button.onClick instanceof Function) {
-								return <Button className={btnClass} onClick={button.onClick} title={button.text} disabled={button.disabled}>
+								return <Button sm outlined variant={button.variant} onClick={button.onClick} title={button.text} disabled={button.disabled}>
 									{button.icon}
 									<span className={button.showLabel ? '' : 'sr-only'}>
 										{button.text}
@@ -341,12 +340,12 @@ const Collapsible: React.FC<React.PropsWithChildren<CollapsibleProps>> = props =
 								</Button>;
 							}
 
-							return <a href={button.onClick} className={btnClass} title={button.text} target={button.target}>
+							return <Link href={button.onClick} sm outlined variant={button.variant} title={button.text} target={button.target}>
 								{button.icon}
 								<span className={button.showLabel ? '' : 'sr-only'}>
 									{button.text}
 								</span>
-							</a>;
+							</Link>;
 
 						})
 					}
