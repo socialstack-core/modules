@@ -447,7 +447,7 @@ namespace Api.Emails
 			var bodyGenerator = await GenerateCanvas(context, template, writer, po);
 			writer.Write((byte)'}');
 
-			var cfgBytes = _configurationService.GetLatestFrontendConfigBytesJson();
+			var cfgBytes = await _configurationService.GetLatestFrontendConfigBytesJson(context);
 
 			if (cfgBytes != null)
 			{
@@ -752,7 +752,7 @@ namespace Api.Emails
 
 				// resolve any PrimaryContent tokens in the subject
 				// CustomData must be a primary object type
-				// e.g. For a purchase, "New order :: Reference - {Purchase.Reference}"
+				// e.g. For a purchase, "New order : Reference - {Purchase.Reference}"
 				if (recipient.CustomData != null && ContentTypes.IsContentType(recipient.CustomData.GetType()))
 				{
 					try
