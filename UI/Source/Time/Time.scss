@@ -1,0 +1,13 @@
+.ui-time {
+
+	&__internal {
+		display: flex;
+		align-items: center;
+		gap: px_to_rem(6);
+
+		> i {
+			font-size: inherit;
+		}
+	}
+
+}

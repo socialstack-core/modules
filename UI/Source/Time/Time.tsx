@@ -35,7 +35,12 @@ interface TimeProps extends React.HTMLAttributes<HTMLTimeElement> {
 	/**
 	 * Do not display the time, only the date
 	 */
-	dateOnly?: boolean
+	dateOnly?: boolean,
+
+	/**
+	 * optional icon classnames
+	 */
+	icon?: string,
 }
 
 /**
@@ -185,7 +190,7 @@ function timeAgoString(date : Date, absolute?: boolean, withDate?: boolean, date
 /**
 * Displays "x ago" phrase, or just an absolute date/time. 'ago' is the default unless absolute is specified.
 */
-const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateDisplay, dateOnly, ...props }) => {
+const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateDisplay, dateOnly, icon, ...props }) => {
 	const jsDate = useMemo(() => date ? dateTools.isoConvert(date) : new Date(), [date]);
 	const [agoTime, setAgoTime] = useState('');
 
@@ -210,8 +215,14 @@ const Time: React.FC<TimeProps> = ({ date, updateRate, absolute, withDate, dateD
 	var isoString = jsDate.toISOString();
 	var title = dateText(jsDate, dateDisplay);
 	
-	return <time title={title} dateTime={isoString} {...props}>
+	return <time className="ui-time" title={title} dateTime={isoString} {...props}>
+		{icon && <>
+			<div className="ui-time__internal">
+				<i className={icon}></i>
 		{agoTime}
+			</div>
+		</>}
+		{!icon && agoTime}
 	</time>;
 }
 
