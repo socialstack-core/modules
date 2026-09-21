@@ -316,6 +316,16 @@ export class FileRefInfo {
     handler: FileRefHandler;
 
     /**
+	 * Width of original image in pixels.
+	 */
+	width: number;
+
+	/**
+	 * Height of original image in pixels.
+	 */
+	height: number;
+
+    /**
      * Parses the general info from a FileRef.
      * @param src
      */
@@ -384,6 +394,8 @@ export class FileRefInfo {
         this.focalY = this.getNumericArg('fy', 50);
         this.altText = this.getArg('al', '');
         this.author = this.getArg('au', '');   
+		this.width = this.getNumericArg('w', 0);
+		this.height = this.getNumericArg('h', 0);
     }
 
     /**
