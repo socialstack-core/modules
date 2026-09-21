@@ -117,6 +117,30 @@ namespace Api.Startup
 
 			return tab;
 		}
+
+		/// <summary>
+		/// Gets an existing tab. 
+		/// Does nothing if the tab doesnt exist by key
+		/// </summary>
+		/// <param name="name"></param>
+		/// <returns>The tab that was actually added (or the existing one)</returns>
+		public AdminTab GetTab(string name)
+		{
+			if (Tabs == null)
+			{
+				return null;
+			}
+
+			var existing = Tabs.Find(existingTab => existingTab.Key == name);
+
+			if (existing != null)
+			{
+				return existing;
+			}
+
+			return null;
+		}
+
 	}
 
 	/// <summary>
