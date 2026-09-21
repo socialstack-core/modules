@@ -24,6 +24,7 @@ namespace Api.Captchas
         /// </summary>
         [Data("hint", "The prompt displayed to the user, asking them to click on the required section/object")]
         [Data("type", "canvas")]
+        [AdminSearchable(false)]
         public Localized<string> Prompt;
 
         /// <summary>
