@@ -4,6 +4,7 @@ import Button from 'UI/Button';
 import { useId, useState, useEffect, useRef } from 'react';
 import { ApiContent } from 'UI/Functions/WebRequest';
 import { Upload } from 'Api/Upload';
+import getConfig from 'UI/Config';
 
 var DEFAULT_ABORTED = `Upload aborted`;
 var DEFAULT_ERROR = `Unable to upload`;
@@ -55,7 +56,7 @@ export type UploaderProps = {
 /*
 * General purpose file uploader. Doesn't declare a form so can be used inline anywhere.
 */
-export default function Uploader(props: UploaderProps) {
+const Uploader: React.FC<UploaderProps> = (props: UploaderProps) => {
 	var defaultMessage = props.multiple ? DEFAULT_MESSAGE_MULTIPLE : DEFAULT_MESSAGE;
 	var initialMessage = props.label || defaultMessage;
 
@@ -506,7 +507,7 @@ export default function Uploader(props: UploaderProps) {
 							// use the original image and set background-size to auto
 							if (!!refInfo && canShowImage && !canShowVideo) {
 								labelStyle = {
-									backgroundImage: "url(" + fileRef.getUrl(refInfo, { size: '256' }) + ")",
+									backgroundImage: "url(" + fileRef.getUrl(refInfo, { size: props.compact ? '100' : '256' }) + ")",
 									backgroundSize: isCompact ? 'cover' : undefined
 								};
 							}
@@ -520,7 +521,7 @@ export default function Uploader(props: UploaderProps) {
 							}
 						}
 
-						var renderedSize = '256';
+						var renderedSize = props.compact ? '100' : '256';
 						var caption: string | boolean = hasFilename ? file.filename : false;
 
 						if (hasOriginalName) {
@@ -603,6 +604,7 @@ export default function Uploader(props: UploaderProps) {
 	var parsedRef = hasRef ? fileRef.parse(ref!) : undefined;
 	var canShowImage = hasRef ? parsedRef!.isImage(false) : false;
 	var canShowVideo = hasRef ? parsedRef!.isVideo(false) : false;
+	var internalStyle: React.CSSProperties = {};
 	var labelStyle: React.CSSProperties = {};
 	var uploaderClasses = ['uploader'];
 	var uploaderLabelClasses = ['uploader__label'];
@@ -662,8 +664,15 @@ export default function Uploader(props: UploaderProps) {
 		// TODO: check original image width/height values here; if both are less than 256px,
 		// use the original image and set background-size to auto
 		if (canShowImage && !canShowVideo) {
+
+			if (refInfo && refInfo.width && refInfo.height) {
+				internalStyle = {
+					aspectRatio: `${refInfo.width} / ${refInfo.height}`
+				};
+			}
+
 			labelStyle = {
-				backgroundImage: "url(" + fileRef.getUrl(refInfo!, { size: '256' }) + ")",
+				backgroundImage: "url(" + fileRef.getUrl(refInfo!, { size: props.compact ? '100' : '256' }) + ")",
 				backgroundSize: props.compact ? 'cover' : undefined
 			};
 		}
@@ -681,7 +690,7 @@ export default function Uploader(props: UploaderProps) {
 	var uploaderClass = uploaderClasses.join(' ');
 	var uploaderLabelClass = uploaderLabelClasses.join(' ');
 
-	var renderedSize = '256';
+	var renderedSize = props.compact ? '100' : '256';
 
 	var caption: string | boolean = hasFilename ? filename! : `None selected`;
 
@@ -691,20 +700,36 @@ export default function Uploader(props: UploaderProps) {
 
 	var currentXhr = fileIndex == undefined ? xhr : (files[fileIndex] ? files[fileIndex].xhr : undefined);
 
-	const iconClassName = props.iconOnly ? (
-		props.currentRef && typeof props.currentRef === 'string' &&
-		(
-			props.currentRef.startsWith("fas:") ||
-			props.currentRef.startsWith("far:") ||
-			props.currentRef.startsWith("fab:") ||
-			props.currentRef.startsWith("fal:")
-		) ?
-			props.currentRef.substring(0,3) + " " + props.currentRef.substring(4) : 
-			"fal fa-file uploader__file"
-	) : "fal fa-file uploader__file";
+	const getIconClassName = () => {
+		const currentRef = props?.currentRef;
+		var validIconRefs = ['fas', 'far', 'fab', 'fal'];
+
+		// check - custom icon fonts configured?
+		const config = getConfig('font') || [];
+		const filteredConfig = config.filter(cfg =>
+			// strip entry if all fields within are equal to null
+			!Object.values(cfg).every(val => val === null)
+		);
+		const fontConfig = filteredConfig.length ? filteredConfig[0] : undefined;
+
+		fontConfig?.iconFontFamilies?.forEach(family => {
+			validIconRefs.push(family.prefix);
+		});
+
+		if (typeof currentRef === 'string') {
+			const prefix = validIconRefs.find(ref => currentRef.startsWith(`${ref}:`));
+
+			if (prefix) {
+				const rest = currentRef.slice(prefix.length + 1);
+				return `${prefix} ${rest}`;
+			}
+		}
+
+		return "fal fa-file uploader__file";
+	};
 			
 	return <div className={uploaderClass}>
-		<div className={props.iconOnly ? "uploader__internal uploader__internal--icon" : "uploader__internal"}>
+		<div className={props.iconOnly ? "uploader__internal uploader__internal--icon" : "uploader__internal"} style={internalStyle}>
 
 			{(canShowImage || canShowVideo) &&
 				<div className="uploader__imagebackground">
@@ -726,10 +751,10 @@ export default function Uploader(props: UploaderProps) {
 
 				{/* has a reference, but isn't an image */}
 				{hasRef && !canShowImage && !canShowVideo && <>
-					<i className={iconClassName} />
+					<i className={getIconClassName()} />
 				</>}
 
-				{/* has an video  reference */}
+				{/* has a video reference */}
 				{hasRef && canShowVideo && <Video fileRef={ref} size={renderedSize} />}
 
 				{/* failed to upload */}
@@ -778,3 +803,4 @@ export default function Uploader(props: UploaderProps) {
 		</>}
 	</div>;
 }
+export default Uploader;
