@@ -10,6 +10,7 @@ import Debounce from 'UI/Functions/Debounce';
 import { getJson, ApiList } from 'UI/Functions/WebRequest';
 import * as fileRef from 'UI/FileRef';
 import { useState, useEffect, useRef } from 'react';
+import getConfig from 'UI/Config';
 
 let icons: Icon[] = [];
 let iconStyles: any[] = [];
@@ -43,7 +44,7 @@ export type CustomIconSet = {
 	prefix?: string
 };
 
-export default function IconSelector(props: IconSelectorProps) {
+const IconSelector: React.FC<IconSelectorProps> = (props: IconSelectorProps) => {
 	const [value, setValue] = useState<string | null>(null);
 	const [styleFilter, setStyleFilter] = useState<string | undefined>(undefined);
 	const [setFilter, setSetFilter] = useState<string | undefined>(undefined);
@@ -53,14 +54,58 @@ export default function IconSelector(props: IconSelectorProps) {
 		setSearchFilter(query.toLowerCase());
 	}));
 
+	const config = getConfig('font') || [];
+	const filteredConfig = config.filter(cfg =>
+		// strip entry if all fields within are equal to null
+		!Object.values(cfg).every(val => val === null)
+	);
+	const fontConfig = filteredConfig.length ? filteredConfig[0] : undefined;
+
 	useEffect(() => {
 		if (!icons.length) {
 
-			var styles = [{name: `All`, key: 'all'},{name:`Regular`, key: 'regular', prefix: 'far'}, {name:`Solid`, key: 'solid', prefix: 'fas'}, {name: `Brands`, key: 'brands', prefix: 'fab'}];
-			var sets = [{name: `All`, key: 'all'}, {name: `Default (FontAwesome)`, key: 'default'}];
+			var styles = [
+				{ name: `All`, key: 'all' },
+				{ name: `Regular`, key: 'regular', prefix: 'far' },
+				{ name: `Solid`, key: 'solid', prefix: 'fas' },
+				{ name: `Brands`, key: 'brands', prefix: 'fab' }
+			];
+
+			var sets = [
+				{ name: `All`, key: 'all' },
+				{ name: `Default`, key: 'default' }
+			];
 
 			var proms = [getJson<IconFile>(fileRef.getUrl((faIconsRef as any) as string)!)];
 
+			// custom icon support
+			fontConfig?.iconFontFamilies?.forEach(family => {
+				styles.push({
+					name: `Custom`,
+					key: "custom",
+					prefix: family.prefix
+				});
+
+				sets.push({
+					name: family.familyName,
+					key: "custom"
+				});
+
+				const fontIcons = family.icons?.map(icon => {
+					return {
+						name: icon.name,
+						set: 'custom',
+						styles: Array.isArray(icon.styles) ? (icon.styles.length > 0 ? icon.styles : ["custom"]) : ["custom"]
+					}
+				});
+
+				if (fontIcons) {
+					proms.push(Promise.resolve(fontIcons));
+				}
+
+			});
+
+			// deprecated method for adding custom icons
 			if((window as any).customIcons){
 				(window as any).customIcons.forEach((ci : CustomIconSet) => {
 					proms.push(getJson<IconFile>(fileRef.getUrl(ci.listRef)!).then(response=>{
@@ -101,7 +146,7 @@ export default function IconSelector(props: IconSelectorProps) {
 				<label htmlFor="icon-style">
 					{`Style`}
 				</label>
-				<Input type="select"
+				<Input type="select" sm
 					name="icon-style"
 					onChange={(e) => {
 						setStyleFilter((e.target as HTMLSelectElement).value);
@@ -114,7 +159,7 @@ export default function IconSelector(props: IconSelectorProps) {
 				<label htmlFor="icon-set">
 					{`Set`}
 				</label>
-				<Input type="select"
+				<Input type="select" sm
 					name="icon-set"
 					onChange={(e) => {
 						setSetFilter((e.target as HTMLSelectElement).value);
@@ -127,7 +172,7 @@ export default function IconSelector(props: IconSelectorProps) {
 				<label htmlFor="icon-search">
 					{`Search`}
 				</label>
-				<Input type="text" value={searchFilter} name="icon-search" onKeyUp={(e) => {
+				<Input type="text" sm value={searchFilter} name="icon-search" onKeyUp={(e) => {
 					debounceRef.current.handle((e.target as HTMLInputElement).value);
 				}}/>
 			</Col>
@@ -178,15 +223,18 @@ export default function IconSelector(props: IconSelectorProps) {
 								var readableName = icon.name.replace(/-/g, " ");
 								var styleClass = "icon-tile__style icon-tile__style--" + style.toLowerCase();
 
-								return <Button title={readableName} className="icon-tile" onClick={() => {
-									var newIcon = prefix + ":" + (icon.prefix || "fa") + "-" + icon.name;
+								// custom support
+								var iconPrefix = (style == "custom") ? prefix : (icon.prefix || "fa");
+								var newIcon = `${prefix}:${iconPrefix}-${icon.name}`;
+								var iconClasses = `${prefix} ${iconPrefix}-${icon.name}`;
 
+								return <Button title={readableName} className="icon-tile" onClick={() => {
 									setValue(newIcon);
 									props.onSelected && props.onSelected(newIcon);
 									closeModal();
 								}}>
 									<div className="icon-tile__preview">
-										<i className={prefix + " " + (icon.prefix || "fa") + "-" + icon.name} />
+										<i className={iconClasses} />
 										<span className={styleClass}>{style}</span>
 									</div>
 									<p className="icon-tile__name">{readableName}</p>
@@ -199,3 +247,4 @@ export default function IconSelector(props: IconSelectorProps) {
 		</Modal>
 	</div> : <></>;
 }
+export default IconSelector;

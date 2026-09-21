@@ -1,0 +1,105 @@
+.icon-selector {
+    .icon {
+        margin-left: px_to_rem(5);
+        margin-right: px_to_rem(5);
+        font-size: px_to_rem(24);
+    }
+
+    .icon-container {
+        overflow-y:auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: px_to_rem(8);
+    }
+
+    .icon-select-modal {
+
+        .modal-body {
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .icon-tile {
+            width: 100%;
+            height: 100%;
+            flex: 0 0 px_to_rem(116);
+            border-radius: 0;
+            padding: 0;
+            margin-bottom: px_to_rem(8);
+			background: transparent;
+			border: transparent;
+			display: inline-block !important;
+			color: inherit !important;
+			min-width: 0;
+
+            &__preview {
+                width: 100%;
+                aspect-ratio: 1/1;
+                border: 1px solid #eee;
+                border-radius: px_to_rem(3);
+                overflow: hidden;
+                margin-bottom: px_to_rem(4);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                position: relative;
+            }
+
+            &__style {
+                position: absolute;
+                top: px_to_rem(4);
+                right: px_to_rem(4);
+                font-size: px_to_rem(10);
+                border-radius: px_to_rem(3);
+                padding: px_to_rem(3) px_to_rem(5);
+                text-transform: uppercase;
+                background: #aaa;
+                color: #fff;
+
+                &--regular {
+                    background: var(--primary);
+                    color: var(--primary-fg);
+                }
+
+                &--solid {
+                    background: var(--secondary);
+                    color: var(--secondary-fg);
+                }
+
+                &--brands {
+                    background: var(--info);
+                    color: var(--info-fg);
+                }
+
+            }
+
+            &__name {
+		        font-size: px_to_rem(12);
+		        word-break: break-all;
+		        overflow: hidden;
+		        text-overflow: ellipsis;
+		        display: -webkit-box;
+		        line-clamp: 1;
+		        -webkit-line-clamp: 1;
+		        -webkit-box-orient: vertical;
+            }
+    
+            &:hover {
+                //cursor: pointer;
+            }
+    
+            .fab, .far, .fas, .fal, .fad, .fr {
+                font-size: px_to_rem(32);
+            }
+        }
+    }
+
+    .header-container {
+        width: 100%;
+
+		.ui-form-select, .ui-form-control {
+			width: 100%;
+		}
+    }
+}
