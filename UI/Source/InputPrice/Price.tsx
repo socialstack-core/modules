@@ -1,7 +1,6 @@
 import { DefaultInputType } from "UI/Input/Default";
 import { useSession } from "UI/Session";
 import Input from "UI/Input";
-import { formatCurrency } from "UI/Functions/CurrencyTools";
 import { useEffect, useState } from "react";
 import localeApi, { Locale } from "Api/Locale";
 import Loading from "UI/Loading";
@@ -93,10 +92,7 @@ const Price: React.FC<CustomInputTypeProps<"price">> = props => {
 			<div className={'price-field'}>
 				<Input
 					{...props?.field}
-					defaultValue={price !== null ? formatCurrency(price, {
-						currencyCode,
-						hideSymbol: true,
-					}) : ""}
+					value={price !== null ? String(price / 100) : ""}
 					name={undefined}
 					label={undefined}
 					help={undefined}
@@ -104,15 +100,21 @@ const Price: React.FC<CustomInputTypeProps<"price">> = props => {
 					step={0.01}
 					onChange={(e) => {
 						const rawValue = (e.target as HTMLInputElement).value;
+						var newPrice: number | null;
 						if (rawValue.trim() === '') {
-							setPrice(null);
+							newPrice = null;
 						} else {
-							setPrice(
-								Math.ceil(
-									parseFloat(rawValue) * 100
-								)
+							newPrice = Math.round(
+								parseFloat(rawValue) * 100
 							);
+							if (!Number.isFinite(newPrice)) {
+								newPrice = null;
+							}
 						}
+						setPrice(newPrice);
+						props.onChange && props.onChange({
+							target: { value: newPrice !== null ? String(newPrice) : "" }
+						} as React.ChangeEvent);
 					}}
 				/>
 				<input
