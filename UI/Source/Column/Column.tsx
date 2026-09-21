@@ -43,79 +43,100 @@ interface ColumnProps extends React.HTMLAttributes<HTMLDivElement> {
  * A 12 segment responsive column. Usually used within a <Row>.
  */
 
-const Column: React.FC<ColumnProps> = ({ className, noGutters, ...props }) => {
+const Column: React.FC<ColumnProps> = (props) => {
 	var colClass = '';
-
+	
+	let {
+		children,
+		className,
+		noGutters,
+		sizeMd,
+		size,
+		sizeXl,
+		sizeXs,
+		sizeSm,
+		sizeLg,
+		offset,
+		offsetXs,
+		offsetSm,
+		offsetMd,
+		offsetLg,
+		offsetXl,
+		margin,
+		customClass,
+		...attribs
+	} = props;
+	
 	// only define a default col-md- width if we don't have a col-xs- / col-sm- value which overrides it
-	var sizeMd = props.sizeMd || props.size || (!props.sizeXs && !props.sizeMd ? 6 : undefined);
+	sizeMd = sizeMd || size || (!sizeXs && !sizeMd ? 6 : undefined);
 
-	if (props.offset) {
+	if (offset) {
 
-		if (!props.offsetXs) {
-			props.offsetXs = props.offset;
+		if (!offsetXs) {
+			offsetXs = offset;
 		}
-		if (!props.offsetSm) {
-			props.offsetSm = props.offset;
+		if (!offsetSm) {
+			offsetSm = offset;
 		}
-		if (!props.offsetMd) {
-			props.offsetMd = props.offset;
+		if (!offsetMd) {
+			offsetMd = offset;
 		}
-		if (!props.offsetLg) {
-			props.offsetLg = props.offset;
+		if (!offsetLg) {
+			offsetLg = offset;
 		}
-		if (!props.offsetXl) {
-			props.offsetXl = props.offset;
+		if (!offsetXl) {
+			offsetXl = offset;
 		}
 
 	}
 
 	// size
-	if (props.sizeXs) {
+	if (sizeXs) {
 		// NB: no col-xs- prefix
 		// ref: https://getbootstrap.com/docs/4.3/layout/grid/
-		colClass = 'col-' + props.sizeXs;
+		colClass = 'col-' + sizeXs;
 	}
 
-	if (props.sizeSm) {
-		colClass += ' col-sm-' + props.sizeSm;
+	if (sizeSm) {
+		colClass += ' col-sm-' + sizeSm;
 	}
 
 	if (sizeMd) {
 		colClass += ' col-md-' + sizeMd;
 	}
 
-	if (props.sizeLg) {
-		colClass += ' col-lg-' + props.sizeLg;
+	if (sizeLg) {
+		colClass += ' col-lg-' + sizeLg;
 	}
 
-	if (props.sizeXl) {
-		colClass += ' col-xl-' + props.sizeXl;
+	if (sizeXl) {
+		colClass += ' col-xl-' + sizeXl;
 	}
 
 	// offset
-	if (props.offsetXs) {
-		colClass += ' offset-' + props.offsetXs;
+	if (offsetXs) {
+		colClass += ' offset-' + offsetXs;
 	}
 
-	if (props.offsetSm) {
-		colClass += ' offset-sm-' + props.offsetSm;
+	if (offsetSm) {
+		colClass += ' offset-sm-' + offsetSm;
 	}
 
-	if (props.offsetMd) {
-		colClass += ' offset-md-' + props.offsetMd;
+	if (offsetMd) {
+		colClass += ' offset-md-' + offsetMd;
 	}
 
-	if (props.offsetLg) {
-		colClass += ' offset-lg-' + props.offsetLg;
+	if (offsetLg) {
+		colClass += ' offset-lg-' + offsetLg;
 	}
 
-	if (props.offsetXl) {
-		colClass += ' offset-xl-' + props.offsetXl;
+	if (offsetXl) {
+		colClass += ' offset-xl-' + offsetXl;
 	}
 
 	// margin
-	if (props.margin) {
-		colClass += ' ' + props.margin;
+	if (margin) {
+		colClass += ' ' + margin;
 	}
 
 	if (noGutters) {
@@ -125,12 +146,16 @@ const Column: React.FC<ColumnProps> = ({ className, noGutters, ...props }) => {
 	if (className) {
 		colClass += ' ' + className;
 	}
-
+	
+	if(customClass){
+		colClass += ' ' + customClass;
+	}
+	
 	return <div
 		className={colClass} 
-		{...props}
+		{...attribs}
 	>
-		{props.children}
+		{children}
 	</div>;
 
 };
