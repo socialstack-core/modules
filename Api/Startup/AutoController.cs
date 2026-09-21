@@ -223,9 +223,11 @@ public partial class AutoController<T,ID> : AutoController
 		{
 			setFields(context, entity);
 		}
-
-		// Not permitted to create with a specified ID via the API. Ensure it's 0:
-		entity.SetId(default);
+		
+		if(!context.Role.CanViewAdmin) {
+			// Not permitted to create with a specified ID via the API. Ensure it's 0:
+			entity.SetId(default);
+		}
 
 		entity = await service.CreatePartial(context, entity, DataOptions.Default);
 		
