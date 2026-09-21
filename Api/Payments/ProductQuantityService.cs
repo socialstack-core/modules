@@ -630,12 +630,10 @@ namespace Api.Payments
 				// Next, factor in the coupon.
 				if (coupon != null)
 				{
-					var priceContext = context;
-
 					if (coupon.MinimumSpendAmount.TryGet(context, out uint minSpendAmount) && minSpendAmount > 0)
 					{	
 						// Are we above it?
-						if (collection.Total < minSpendAmount)
+						if (collection.TotalLessTax < minSpendAmount)
 						{
 							// No!
 							collection.ErrorMessage = "Can't use this coupon yet as the total is below the minimum spend.";
@@ -645,36 +643,9 @@ namespace Api.Payments
 
 					if (coupon.DiscountPercent != 0)
 					{
-						var discountedTotal = collection.Total * (1d - ((double)coupon.DiscountPercent / 100d));
+						var discountedTotalLessTax = collection.TotalLessTax * (1d - ((double)coupon.DiscountPercent / 100d));
 
-						if (discountedTotal <= 0)
-						{
-							// Becoming free!
-							collection.Total = 0;
-						}
-						else
-						{
-							if(_couponConfig.DiscountRounding == RoundingMode.Up)
-                            {
-                                // Round the total down
-								collection.Total = (ulong)Math.Floor(discountedTotal);
-                            }
-							else if(_couponConfig.DiscountRounding == RoundingMode.Nearest)
-                            {
-                                // Round to nearest pence/ cent
-								collection.Total = (ulong)Math.Round(discountedTotal);
-                            }
-							else
-                            {
-                                // Round the total up by default
-								collection.Total = (ulong)Math.Ceiling(discountedTotal);
-                            }
-							
-						}
-
-						discountedTotal = collection.TotalLessTax * (1d - ((double)coupon.DiscountPercent / 100d));
-
-						if (discountedTotal <= 0)
+						if (discountedTotalLessTax <= 0)
 						{
 							// Becoming free!
 							collection.TotalLessTax = 0;
@@ -683,35 +654,25 @@ namespace Api.Payments
 						{
 							if(_couponConfig.DiscountRounding == RoundingMode.Up)
                             {
-								// Round the total down
-								collection.TotalLessTax = (ulong)Math.Floor(discountedTotal);
-							}
+                                // Round the total down
+								collection.TotalLessTax = (ulong)Math.Floor(discountedTotalLessTax);
+                            }
 							else if(_couponConfig.DiscountRounding == RoundingMode.Nearest)
                             {
-								// Round to nearest pence/ cent
-								collection.TotalLessTax = (ulong)Math.Round(discountedTotal);
-							}
+                                // Round to nearest pence/ cent
+								collection.TotalLessTax = (ulong)Math.Round(discountedTotalLessTax);
+                            }
 							else
                             {
-								// Round the total up by default
-								collection.TotalLessTax = (ulong)Math.Ceiling(discountedTotal);
-							}
+                                // Round the total up by default
+								collection.TotalLessTax = (ulong)Math.Ceiling(discountedTotalLessTax);
+                            }
+							
 						}
 					}
 
 					if (coupon.DiscountFixedAmount.TryGet(context, out uint discountFixedAmount) && discountFixedAmount > 0)
 					{
-						if (collection.Total < discountFixedAmount)
-						{
-							// Becoming free!
-							collection.Total = 0;
-						}
-						else
-						{
-							// Discount a fixed number of units:
-							collection.Total -= (ulong)discountFixedAmount;
-						}
-
 						if (collection.TotalLessTax < discountFixedAmount)
 						{
 							// Becoming free!
@@ -720,9 +681,12 @@ namespace Api.Payments
 						else
 						{
 							// Discount a fixed number of units:
-							collection.TotalLessTax -= (ulong) discountFixedAmount;
+							collection.TotalLessTax -= (ulong)discountFixedAmount;
 						}
 					}
+
+					// Recalculate the total with tax:
+					collection.Total = taxCalc.Apply(collection.TotalLessTax);
 				}
 
 			}
