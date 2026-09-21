@@ -1,3 +1,5 @@
+using Api.AutoForms;
+using Api.CanvasRenderer;
 using Api.Contexts;
 using Api.Database;
 using Api.Eventing;
@@ -31,18 +33,60 @@ namespace Api.Pages
 		/// </summary>
 		public PermalinkService(PageService pages, PageGroupService pageGroups) : base(Events.Permalink)
         {
-			Events.Permalink.BeforeUpdate.AddEventListener((Context context, Permalink toUpdate, Permalink orig) => {
+			InstallAdminPages("Permalinks", "fa:fa-link", new string[] { "url", "target" });
+
+			Events.Permalink.BeforeUpdate.AddEventListener(async (Context context, Permalink toUpdate, Permalink orig) => {
 				if (toUpdate == null)
 				{
-					return new ValueTask<Permalink>(toUpdate);
+					return toUpdate;
 				}
 				
-				if (toUpdate.Url != orig.Url || toUpdate.Target != orig.Target)
+				if (toUpdate.Url != orig.Url)
 				{
-					throw new PublicException("Permalinks cannot be edited", "permalink/is-permanent");
+					throw new PublicException("Permalink URLs cannot be edited", "permalink/is-permanent");
 				}
 
-				return new ValueTask<Permalink>(toUpdate);
+				if (toUpdate.Target != orig.Target && toUpdate.Target != "404")
+				{
+					if (toUpdate.Target != null)
+					{
+						toUpdate.Target = toUpdate.Target.Trim().ToLower();
+					}
+
+					// If the target has changed, we need to make sure this permalinks CreatedUtc is actually before
+					// the current canonical permalink for the same target.
+					var currentCanonical = await GetCanonical(context, toUpdate.Target);
+
+					if (currentCanonical != null && currentCanonical.Id != orig.Id && currentCanonical.CreatedUtc < toUpdate.CreatedUtc)
+					{
+						// Only creation of a permalink can change the canonical order.
+						// Push its created date to before the canonical one.
+						toUpdate.CreatedUtc = currentCanonical.CreatedUtc.AddYears(-1);
+					}
+				}
+
+				return toUpdate;
+			});
+
+			Events.Permalink.BeforeCreate.AddEventListener(async (Context context, Permalink permalink) => {
+
+				if(string.IsNullOrEmpty(permalink.Url) || permalink.Url[0] != '/' || permalink.Url.StartsWith("http://") || permalink.Url.StartsWith("https://") || permalink.Url.StartsWith("://"))
+				{
+					throw new PublicException("Permalink URL must be a valid path starting with /", "permalink/url_invalid");
+				}
+
+				permalink.Url = permalink.Url.Trim();
+
+				// Does this permalink exist?
+				// If so, fail. The generate command disambiguates internally so it won't generate collisions.
+				var exists = await Where("Url=?", DataOptions.IgnorePermissions).Bind(permalink.Url).First(context);
+
+				if (exists != null)
+				{
+					throw new PublicException("Permalink URL already exists (its ID is #" + exists.Id + "). Edit the target of the existing one instead.", "permalink/url_exists");
+				}
+
+				return permalink;
 			});
 
 			Events.Permalink.AfterCreate.AddEventListener((Context context, Permalink link) => {
@@ -53,6 +97,13 @@ namespace Api.Pages
 			});
 
 			Events.Permalink.AfterDelete.AddEventListener((Context context, Permalink link) => {
+				_srcDictionary = null;
+				Router.RequestRebuild();
+
+				return new ValueTask<Permalink>(link);
+			});
+
+			Events.Permalink.AfterUpdate.AddEventListener((Context context, Permalink link, ChangedFields changes) => {
 				_srcDictionary = null;
 				Router.RequestRebuild();
 
@@ -218,8 +269,12 @@ namespace Api.Pages
 
 							if (sources.Count > 0)
 							{
+								var explicitPageId = sources[0].PageId;
+
 								// Pages are cached so we can ask for it here without a time penalty.
-								var page = await pages.Where("Key=?", DataOptions.IgnorePermissions).Bind(target).First(context);
+								var page = explicitPageId == 0 ? 
+									await pages.Where("Key=?", DataOptions.IgnorePermissions).Bind(target).First(context) :
+									await pages.Get(context, explicitPageId, DataOptions.IgnorePermissions);
 
 								if (page == null && pTargetContentId != null)
 								{
@@ -358,7 +413,7 @@ namespace Api.Pages
 						else
 						{
 							// Redirect to the canonical one.
-							builder.AddRedirect(src.Url, sources[0].Url);
+							builder.AddRedirect(src.Url, sources[0].Url, src.Id);
 						}
 					}
 				}
@@ -503,6 +558,55 @@ namespace Api.Pages
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
 		/// <param name="relativeField"></param>
+		/// <param name="permalinkGenerator">Generate a permalink with a URL relative to the given object's primary URL.</param>
+		/// <param name="svc"></param>
+		/// <exception cref="PublicException"></exception>
+		public void Generate<T, ID>(string relativeField, Func<Context, T, Permalink> permalinkGenerator, AutoService<T, ID> svc)
+			where T : VersionLinkedContent<ID>, new()
+			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
+		{
+			var relativeLoader = new RelativeUrlLoader(relativeField, svc);
+
+			Generate(async (Context context, T obj) => {
+
+				var url = await relativeLoader.GetRelativeTo(context, obj);
+
+				var permalink = permalinkGenerator(context, obj);
+
+				if (permalink == null)
+				{
+					return null;
+				}
+
+				var urlPattern = permalink.Url;
+
+				if (!urlPattern.StartsWith("/"))
+				{
+					urlPattern = "/" + urlPattern;
+				}
+
+				if (url.EndsWith("/"))
+				{
+					url = url + urlPattern.Substring(1);
+				}
+				else
+				{
+					url = url + urlPattern;
+				}
+
+				permalink.Url = url;
+				return permalink;
+			}, svc);
+		}
+
+		/// <summary>
+		/// Auto register the given service for permalinks using a simple pattern which can contain /${content.tokens} referencing fields of the content object.
+		/// The path is then appended to the object referenced by the given relative field. This relative field must be a virtual field referencing
+		/// another piece of content with an established permalink.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <typeparam name="ID"></typeparam>
+		/// <param name="relativeField"></param>
 		/// <param name="urlPattern">Relative to the given object's primary URL.</param>
 		/// <param name="svc"></param>
 		/// <exception cref="PublicException"></exception>
@@ -515,134 +619,12 @@ namespace Api.Pages
 				urlPattern = "/" + urlPattern;
 			}
 
-			AutoService relativeToService = null;
-			ContentField idSource = null;
-			Func<Context, object, ulong> idLoader = null;
+			var relativeLoader = new RelativeUrlLoader(relativeField, svc);
 
 			Generate(async (Context context, T obj) => {
 
-				if (relativeToService == null)
-				{
-					var fields = svc.GetContentFields();
-					if (!fields.TryGetOrGlobal(relativeField.ToLower(), out ContentField relative))
-					{
-						throw new PublicException("Incorrect content type configuration. The field used to generate the URL was not found: " + relativeField + " doesn't exist on " + svc.EntityName, "relative_field/required");
-					}
-
-					if (relative.VirtualInfo == null || relative.VirtualInfo.IsList)
-					{
-						throw new PublicException("Incorrect content type configuration. The field used to generate the URL was not an entity field: " + relativeField + " must be a virtual field on " + svc.EntityName, "relative_field/entity");
-					}
-
-					relativeToService = relative.VirtualInfo.Service;
-					idSource = relative.VirtualInfo.IdSource;
-
-					if (idSource == null || idSource.FieldInfo == null || relativeToService == null)
-					{
-						throw new PublicException("Incorrect content type configuration; unable to resolve the service for a virtual field (" + relativeField + ")", "relative/unresolved");
-					}
-
-					bool isLocalised = false;
-					bool isNullable = false;
-					var idFieldType = idSource.FieldType;
-					if (idFieldType.IsGenericType) {
-						var gtd = idFieldType.GetGenericTypeDefinition();
-
-						if (gtd == typeof(Localized<>))
-						{
-							isLocalised = true;
-							idFieldType = idFieldType.GetGenericArguments()[0];
-						}
-					}
-
-					var underType = Nullable.GetUnderlyingType(idFieldType);
-					if (underType != null)
-					{
-						isNullable = true;
-						idFieldType = underType;
-					}
-
-					if (idFieldType != typeof(uint) && idFieldType != typeof(ulong))
-					{
-						throw new PublicException("Incorrect content type configuration; cannot use specified ID field because it's a '" + idFieldType + "' (uint or ulong only).", "id/int_only");
-					}
-
-					bool isUint = idFieldType == typeof(uint);
-
-					if (isUint)
-					{
-						if (isLocalised)
-						{
-							if (isNullable)
-							{
-								idLoader = (Context context, object id) => ((Localized<uint?>)id).Get(context).GetValueOrDefault();
-							}
-							else
-							{
-								idLoader = (Context context, object id) => ((Localized<uint>)id).Get(context);
-							}
-						}
-						else
-						{
-							if (isNullable)
-							{
-								idLoader = (Context context, object id) => ((uint?)id).GetValueOrDefault();
-							}
-							else
-							{
-								idLoader = (Context context, object id) => (uint)id;
-							}
-						}
-					}
-					else
-					{
-						if (isLocalised)
-						{
-							if (isNullable)
-							{
-								idLoader = (Context context, object id) => ((Localized<ulong?>)id).Get(context).GetValueOrDefault();
-							}
-							else
-							{
-								idLoader = (Context context, object id) => ((Localized<ulong>)id).Get(context);
-							}
-						}
-						else
-						{
-							if (isNullable)
-							{
-								idLoader = (Context context, object id) => ((ulong?)id).GetValueOrDefault();
-							}
-							else
-							{
-								idLoader = (Context context, object id) => (ulong)id;
-							}
-						}
-					}
-
-				}
-
-				// Read the ID:
-				object id = idSource.FieldInfo.GetValue(obj);
-
-				if (id == null)
-				{
-					throw new PublicException("Unable to resolve relative ID for the URL (" + relativeField + ")", "relative/id_failed");
-				}
-
-				var ulongId = idLoader(context, id);
-
-				// Load the relative to object:
-				var forObject = await relativeToService.GetObject(context, ulongId);
-
-				var url = relativeToService.GetPrimaryUrlObject(context, forObject);
-
-				if (string.IsNullOrEmpty(url))
-				{
-					throw new PublicException("Unable to resolve the URL for the specified target object (" + ulongId + " #" + ulongId + ")", "relative/url_failed");
-				}
-
 				// urlPattern was normalised above to start with / always
+				var url = await relativeLoader.GetRelativeTo(context, obj);
 
 				if (url.EndsWith("/"))
 				{
@@ -653,7 +635,7 @@ namespace Api.Pages
 					url = url + urlPattern;
 				}
 
-				return url;
+				return new Permalink() { Url = url };
 			}, svc);
 		}
 
@@ -669,7 +651,7 @@ namespace Api.Pages
 			where T : VersionLinkedContent<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
-			Generate((Context context, T obj) => new ValueTask<string>(urlPattern), svc);
+			Generate((Context context, T obj) => new ValueTask<Permalink>(new Permalink() { Url = urlPattern }), svc);
 		}
 
 		/// <summary>
@@ -677,10 +659,10 @@ namespace Api.Pages
 		/// </summary>
 		/// <typeparam name="T"></typeparam>
 		/// <typeparam name="ID"></typeparam>
-		/// <param name="urlGenerator"></param>
+		/// <param name="permalinkGenerator"></param>
 		/// <param name="svc"></param>
 		/// <exception cref="PublicException"></exception>
-		public void Generate<T, ID>(Func<Context, T, ValueTask<string>> urlGenerator, AutoService<T, ID> svc)
+		public void Generate<T, ID>(Func<Context, T, ValueTask<Permalink>> permalinkGenerator, AutoService<T, ID> svc)
 			where T : VersionLinkedContent<ID>, new()
 			where ID : struct, IConvertible, IEquatable<ID>, IComparable<ID>
 		{
@@ -705,6 +687,29 @@ namespace Api.Pages
 				return content;
 			});
 
+			svc.EventGroup.AfterDelete.AddEventListener(async (Context context, T content) => {
+				if (content == null)
+				{
+					return content;
+				}
+
+				// Any permalinks targeting this content?
+				// If so, mark them as dangling by setting them to a target of 404.
+				var locator = CreatePrimaryTargetLocator(svc, content);
+				var targets = await Where("Target=?").Bind(locator).ListAll(context);
+
+				foreach (var link in targets)
+				{
+					await Update(context, link, (Context ctx, Permalink toUpdate, Permalink orig) => {
+
+						toUpdate.Target = "404";
+
+					}, DataOptions.IgnorePermissions);
+				}
+
+				return content;
+			});
+
 			svc.EventGroup.BeforeUpdate.AddEventListener(async (Context context, T content, T orig) => {
 				if (content == null)
 				{
@@ -713,18 +718,34 @@ namespace Api.Pages
 
 				if (content.Slug != orig.Slug && !string.IsNullOrEmpty(content.Slug))
 				{
-					var urlPattern = await urlGenerator(context, content);
+					var permalink = await permalinkGenerator(context, content);
 
-					if (!urlPattern.StartsWith("/"))
+					if (permalink == null || string.IsNullOrEmpty(permalink.Url))
 					{
-						urlPattern = "/" + urlPattern;
+						return content;
 					}
+
+					if (!permalink.Url.StartsWith("/"))
+					{
+						permalink.Url = "/" + permalink.Url;
+					}
+
+					if (string.IsNullOrEmpty(permalink.Target))
+					{
+						// Permalink target which will be for whichever page wants to handle this as its primary content.
+						// If a specific page for this content exists, it will ultimately pick that.
+						permalink.Target = CreatePrimaryTargetLocator(svc, content);
+					}
+
+					// These kinds of permalinks can use convenience ${tokens} in the Url.
+					permalink.Url = SubstitutePattern(permalink.Url, content);
+
+					await Disambiguate(context, permalink);
 
 					await Create(
 						context,
-						urlPattern,
-						svc,
-						content
+						permalink,
+						DataOptions.IgnorePermissions
 					);
 				}
 
@@ -737,23 +758,64 @@ namespace Api.Pages
 					return null;
 				}
 
-				var urlPattern = await urlGenerator(context, content);
+				Permalink permalink = await permalinkGenerator(context, content);
 
-				if (!urlPattern.StartsWith("/"))
+				if (permalink == null || string.IsNullOrEmpty(permalink.Url))
 				{
-					urlPattern = "/" + urlPattern;
+					return content;
 				}
+
+				if (!permalink.Url.StartsWith("/"))
+				{
+					permalink.Url = "/" + permalink.Url;
+				}
+
+				if (string.IsNullOrEmpty(permalink.Target))
+				{
+					// Permalink target which will be for whichever page wants to handle this as its primary content.
+					// If a specific page for this content exists, it will ultimately pick that.
+					permalink.Target = CreatePrimaryTargetLocator(svc, content);
+				}
+
+				// These kinds of permalinks can use convenience ${tokens} in the Url.
+				permalink.Url = SubstitutePattern(permalink.Url, content);
+
+				await Disambiguate(context, permalink);
 
 				await Create(
 					context,
-					urlPattern,
-					svc,
-					content
+					permalink,
+					DataOptions.IgnorePermissions
 				);
-
 				return content;
 			});
 
+		}
+
+		private async ValueTask Disambiguate(Context context, Permalink permalink)
+		{
+			// Disambiguate - if the url already exists, don't hijack it through creation.
+			// Instead, append a number to it.
+			for (var inc = 0; inc < 50; inc++)
+			{
+				var testedUrl = inc == 0 ? permalink.Url : permalink.Url + "-" + inc;
+
+				var anyOnThisUrl = await Where("Url=?", DataOptions.IgnorePermissions)
+					.Bind(testedUrl)
+					.First(context);
+
+				if (anyOnThisUrl == null)
+				{
+					if (inc != 0)
+					{
+						permalink.Url = testedUrl;
+					}
+
+					return;
+				}
+			}
+
+			throw new PublicException("Failed to disambiguate permalink URL '" + permalink.Url + "'.", "permalink/too-many-variants");
 		}
 
 		private string SubstitutePattern(string urlPattern, object content)
@@ -886,6 +948,7 @@ namespace Api.Pages
 			// primary:user
 			// admin_primary:user
 			// primary:user:42
+			// primary:user@PageId:42
 			// admin_primary:user:42 (not that this would ever happen, but we support it anyway!)
 
 			if (key == null)
@@ -931,6 +994,39 @@ namespace Api.Pages
 		}
 
 		/// <summary>
+		/// Gets the set of permalinks for a given Target string (primary, non-admin).
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="contentType"></param>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		public async ValueTask<List<Permalink>> GetPermalinksForTarget(Context context, string contentType, ulong id)
+		{
+			if (contentType == null || id == 0)
+			{
+				return null;
+			}
+
+			var target = "primary:" + contentType.ToLower() + ":" + id;
+			var sources = await GetSourcesByTarget(context);
+			sources.TryGetValue(target, out List<Permalink> result);
+			return result;
+		}
+
+		/// <summary>
+		/// Gets the set of permalinks for a given Target string. Usually either page:x or a primary locator which you can use the overload for.
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="target"></param>
+		/// <returns></returns>
+		public async ValueTask<List<Permalink>> GetPermalinksForTarget(Context context, string target)
+		{
+			var sources = await GetSourcesByTarget(context);
+			sources.TryGetValue(target, out List<Permalink> result);
+			return result;
+		}
+
+		/// <summary>
 		/// Gets a dictionary for all target URLs to all their sources.
 		/// </summary>
 		/// <param name="context"></param>
@@ -961,6 +1057,12 @@ namespace Api.Pages
 
 			foreach (var link in all)
 			{
+				if (string.IsNullOrEmpty(link.Target) || link.Target == "404")
+				{
+					// Skip danglers
+					continue;
+				}
+
 				AddToDictionary(link, result);
 			}
 
@@ -1027,6 +1129,25 @@ namespace Api.Pages
 
 			// It is the canonical link.
 			return targetUrl;
+		}
+
+		/// <summary>
+		/// Gets the canonical link if there is one. The provided target is e.g. `primary:type:id`
+		/// </summary>
+		/// <param name="context"></param>
+		/// <param name="target"></param>
+		/// <returns></returns>
+		public async ValueTask<Permalink> GetCanonical(Context context, string target)
+		{
+			var dict = await GetSourcesByTarget(context);
+
+			if (dict.TryGetValue(target, out List<Permalink> sources) && sources.Count > 0)
+			{
+				// The first source is the canonical link.
+				return sources[0];
+			}
+
+			return null;
 		}
 
 		/// <summary>

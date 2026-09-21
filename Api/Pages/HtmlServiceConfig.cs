@@ -126,12 +126,6 @@ namespace Api.Pages
 		public bool DisablePageCache { get; set; } = false;
 
 		/// <summary>
-		/// True if requests to the primary locale should be redirected to the root
-		/// (e.g. www.mydomain.com/en-gb/my-page -> www.mydomain.com/my-page)
-		/// </summary>
-		public bool RedirectPrimaryLocale { get; set; } = false;
-
-		/// <summary>
 		/// True if this redirect should be considered permanent (i.e. a 301);
 		/// Will default to a temporary 302 redirect if not set
 		/// </summary>

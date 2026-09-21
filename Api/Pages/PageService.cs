@@ -21,15 +21,16 @@ namespace Api.Pages
 	[HostType("web")]
 	public partial class PageService : AutoService<Page>
 	{
+		private PageServiceConfig _config;
+
 		/// <summary>
 		/// Instanced automatically. Use injection to use this service, or Startup.Services.Get.
 		/// </summary>
 		public PageService() : base(Events.Page)
 		{
+			_config = GetConfig<PageServiceConfig>();
 
-			var config = GetConfig<PageServiceConfig>();
-
-			if (config.InstallDefaultPages)
+			if (_config.InstallDefaultPages)
 			{
 				// If you don't have a homepage or admin area, this'll create them:
 				Install(
@@ -475,7 +476,7 @@ namespace Api.Pages
 			#if DEBUG
 			var buildTime = DateTime.UtcNow;
 			#else
-			var buildTime = new DateTime(Services.Get<FrontendCodeService>().Version);
+			var buildTime = new DateTime(1970, 1, 1, 0, 0 ,0,DateTimeKind.Utc).AddMilliseconds(Services.Get<FrontendCodeService>().Version);
 			#endif
 
 			// For each page to consider for install..
@@ -486,6 +487,7 @@ namespace Api.Pages
 				{
 					if (existingPage.LastInstallBuildTimeUtc >= buildTime)
 					{
+						WriteDebug(builder.Key, $"Ignored, last install > build :: {existingPage.LastInstallBuildTimeUtc} > {buildTime}");
 						continue;
 					}
 				}
@@ -505,6 +507,7 @@ namespace Api.Pages
 						DeepJsonEquals(builder.Page.BodyJson, existingPage.BodyJson))
 					{
 						// Nope!
+						WriteDebug(builder.Key, "Ignored, page layout not changed");
 						continue;
 					}
 
@@ -547,6 +550,7 @@ namespace Api.Pages
 					{
 						// User edits identified.
 						// This effectively permanently blocks the installer from running currently.
+						WriteDebug(builder.Key, $"Ignored, has been user edited :: Revisions {pageRevisions.Count} :: {skipRevisions}");
 						continue;
 					}
 
@@ -580,6 +584,17 @@ namespace Api.Pages
 					_ = await Create(context, builder.Page, DataOptions.IgnorePermissions);
 				}
 			}
+		}
+
+		private void WriteDebug(string key, string log)
+		{
+			if (!_config.DebugPageInstalls)
+			{
+				return;
+			}
+
+			Log.Info(LogTag, $"Page installer :: {key} :: {log}");
+
 		}
 
 	}

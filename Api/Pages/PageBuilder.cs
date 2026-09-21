@@ -209,6 +209,52 @@ public partial class PageBuilder
 	}
 
 	/// <summary>
+	/// Convenience mechanism for updating an existing admin tab if the page being installed is an AutoForm based one.
+	/// Does nothing if the tab doesn't exist by key.
+	/// </summary>
+	/// <param name="tab"></param>
+	public void UpdateAdminTab(AdminTab tab)
+	{
+		if (AdminPageOptions == null)
+		{
+			Log.Error("PageService", "You're trying to add an admin tab '" + tab.Name + "' to a page that isn't on the admin panel. The page is  '" + Key + "'. Are you missing a logic check?");
+			return;
+		}
+
+		var existingTab = AdminPageOptions.GetTab(tab.Key);
+
+		if (existingTab == null)
+		{
+			return;
+		}
+
+		existingTab.Content = tab.Content;
+	}
+
+	/// <summary>
+	/// Convenience mechanism for getting an existing admin tab if the page being installed is an AutoForm based one.
+	/// Does nothing if the tab doesn't exist by key.
+	/// </summary>
+	/// <param name="key"></param>
+	public AdminTab GetAdminTab(string key)
+	{
+		if (AdminPageOptions == null)
+		{
+			Log.Error("PageService", "You're trying to add an admin tab '" + key + "' to a page that isn't on the admin panel. The page is  '" + Key + "'. Are you missing a logic check?");
+			return null;
+		}
+
+		var existingTab = AdminPageOptions.GetTab(key);
+
+		if (existingTab != null)
+		{
+			return existingTab;
+		}
+
+		return null;
+	}
+
+	/// <summary>
 	/// Overrides the applied template with the named one if a template is present (doing nothing and returning false otherwise).
 	/// </summary>
 	/// <param name="templateName"></param>

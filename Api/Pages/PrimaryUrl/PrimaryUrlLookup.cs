@@ -64,21 +64,40 @@ public class PrimaryUrlLookup<T, ID> : PrimaryUrlLookup
 	/// </summary>
 	public Dictionary<ID, string> SpecificLookup;
 
+	private static bool? DisableUrlPrefix;
+
 	/// <summary>
 	/// Gets the URL for a specific piece of content.
 	/// </summary>
 	public string GetUrl(Context context, T content)
 	{
+		if (content == null)
+		{
+			return null;
+		}
+
 		var localeId = context.LocaleId;
 		var locale = ContentTypes.Locales != null && localeId <= ContentTypes.Locales.Length ? ContentTypes.Locales[localeId - 1] : null;
+		var prefix = locale == null ? null : locale.UrlPrefix;
+
+		if (!DisableUrlPrefix.HasValue)
+		{
+			var localeConfig = Services.Get<LocaleService>().GetLocaleConfig();
+			DisableUrlPrefix = localeConfig == null ? false : localeConfig.DisableUrlPrefix;
+		}
+
+		if (DisableUrlPrefix.Value)
+		{
+			prefix = null;
+		}
 
 		if (SpecificLookup != null)
 		{
 			if(SpecificLookup.TryGetValue(content.Id, out string val))
 			{
-				if (locale != null && !string.IsNullOrEmpty(locale.UrlPrefix))
+				if (locale != null && !string.IsNullOrEmpty(prefix))
 				{
-					return locale.UrlPrefix + (val.Length > 0 && val[0] == '/' ? val : "/" + val);
+					return prefix + (val.Length > 0 && val[0] == '/' ? val : "/" + val);
 				}
 
 				return val;
@@ -88,9 +107,9 @@ public class PrimaryUrlLookup<T, ID> : PrimaryUrlLookup
 		// Todo: FallbackUrl can contain tokens: need to render them out.
 		var url = FallbackUrl;
 
-		if (locale != null && !string.IsNullOrEmpty(locale.UrlPrefix))
+		if (locale != null && !string.IsNullOrEmpty(prefix))
 		{
-			return locale.UrlPrefix + (url.Length > 0 && url[0] == '/' ? url : "/" + url);
+			return prefix + (url.Length > 0 && url[0] == '/' ? url : "/" + url);
 		}
 
 		return url;

@@ -4,6 +4,7 @@ using Api.Permissions;
 using Api.SocketServerLibrary;
 using Api.Startup.Routing;
 using System.Collections.Generic;
+using System.Text;
 
 namespace Api.Eventing
 {
@@ -50,6 +51,11 @@ namespace Api.Eventing
 		/// Canvas node transformation.
 		/// </summary>
 		public EventHandler<CanvasNode> TransformCanvasNode;
+		
+		/// <summary>
+		/// During robots.txt generation.
+		/// </summary>
+		public EventHandler<StringBuilder> OnGenerateRobotsTxt;
 		
 		/// <summary>
 		/// Called when the HTML head is being generated, just before the closing head tag.

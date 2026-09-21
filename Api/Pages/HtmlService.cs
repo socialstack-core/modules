@@ -225,7 +225,7 @@ namespace Api.Pages
 		/// Gets robots.txt as a byte[].
 		/// </summary>
 		/// <returns></returns>
-		public byte[] GetRobotsTxt(Context context)
+		public async ValueTask<byte[]> GetRobotsTxt(Context context)
 		{
 			var config = (context.LocaleId < _configurationTable.Length) ? _configurationTable[context.LocaleId] : _defaultConfig;
 
@@ -233,8 +233,8 @@ namespace Api.Pages
 			{
 				var sb = new StringBuilder();
 				sb.Append("User-agent: *\r\n");
-				// sb.Append("Disallow: /v1\r\n");
-				// sb.Append("Sitemap: /sitemap.xml");
+				sb.Append("Disallow: /v1\r\n");
+				await Events.Page.OnGenerateRobotsTxt.Dispatch(context, sb);
 
 				if (config != null && config.RobotsTxt != null)
 				{
@@ -317,6 +317,10 @@ namespace Api.Pages
 			writer.WriteS(page.Title.Get(context));
 			writer.WriteASCII("\",\"id\":");
 			writer.WriteS(page.Id);
+			writer.WriteASCII(",\"createdUtc\":");
+			writer.WriteS(page.CreatedUtc);
+			writer.WriteASCII(",\"editedUtc\":");
+			writer.WriteS(page.EditedUtc);
 			if (!string.IsNullOrEmpty(page.PrimaryContentIncludes))
 			{
 				writer.WriteASCII(",\"primaryContentIncludes\":");
@@ -324,7 +328,7 @@ namespace Api.Pages
 			}
 			writer.Write((byte)'}');
 
-			var cfgBytes = _configurationService.GetLatestFrontendConfigBytesJson();
+			var cfgBytes = await _configurationService.GetLatestFrontendConfigBytesJson(context);
 
 			if (cfgBytes != null)
 			{
@@ -508,8 +512,9 @@ namespace Api.Pages
 		/// <param name="context"></param>
 		/// <param name="writer"></param>
 		/// <param name="pageWithTokens"></param>
+		/// <param name="exactUrl"></param>
 		/// <returns></returns>
-		private async ValueTask BuildHeader(Context context, Writer writer, PageWithTokens pageWithTokens)
+		private async ValueTask BuildHeader(Context context, Writer writer, PageWithTokens pageWithTokens, string exactUrl)
 		{
 			var terminal = pageWithTokens.PageTerminal;
 			var isAdmin = terminal == null ? true : terminal.IsAdmin;
@@ -552,24 +557,30 @@ namespace Api.Pages
 
 			if (_config.EnableCanonicalTag && page != null)
 			{
-				// todo!
-				var canonicalPath = "";
+				var pathUrl = exactUrl;
 
-				if (canonicalPath == "/")
+				if (pathUrl.EndsWith('/'))
 				{
-					canonicalPath = "";
+					pathUrl = pathUrl.Substring(0, pathUrl.Length - 1);
 				}
 
-				var canonicalUrl = UrlCombine(_frontend.GetPublicUrl(locale.Id), canonicalPath)?.ToLower();
+				var currentLangCanonicalUrl = UrlCombine(_frontend.GetPublicUrl(locale.Id), pathUrl);
 
 				writer.WriteASCII("<link rel=\"canonical\" href=");
-				writer.WriteEscaped(canonicalUrl);
+				writer.WriteEscaped(currentLangCanonicalUrl);
 				writer.WriteASCII(" />");
 
 				if (_config.EnableHrefLangTags)
 				{
 					// include x-default alternate
-					var defaultUrl = GetPathWithoutLocale(canonicalUrl);
+					var nonPrefixedUrl = pathUrl;
+
+					if (!string.IsNullOrEmpty(locale.UrlPrefix))
+					{
+						nonPrefixedUrl = nonPrefixedUrl.Substring(locale.UrlPrefix.Length);
+					}
+
+					var defaultUrl = locale.Id == 1 ? currentLangCanonicalUrl : UrlCombine(_frontend.GetPublicUrl(1), nonPrefixedUrl);
 
 					writer.WriteASCII("<link rel=\"alternate\" hreflang=\"x-default\" href=");
 					writer.WriteEscaped(defaultUrl);
@@ -582,14 +593,23 @@ namespace Api.Pages
 					{
 						foreach (var altLocale in locales)
 						{
-							// NB: locale with ID=1 is assumed to be the primary locale
-							if (_config.RedirectPrimaryLocale && altLocale.Id == 1)
+							string altUrl;
+
+							if (altLocale.Id == 1)
 							{
-								continue;
+								altUrl = defaultUrl;
 							}
+							else
+							{
+								// Never ends with /
+								var domain = _frontend.GetPublicUrl(altLocale.Id);
 
-							var altUrl = GetLocaleUrl(altLocale, defaultUrl)?.ToLower();
-
+								altUrl = UrlCombine(
+									// If it has a prefix, it is always "/xx"
+									string.IsNullOrEmpty(altLocale.UrlPrefix) ? domain : domain + altLocale.UrlPrefix, nonPrefixedUrl
+								);
+							}
+							
 							writer.WriteASCII("<link rel=\"alternate\" hreflang=\"");
 							writer.WriteASCII(altLocale.Code);
 							writer.WriteASCII("\" href=");
@@ -660,7 +680,7 @@ namespace Api.Pages
 			}
 			else
 			{
-				writer.WriteEscaped(pageDescription);
+				writer.WriteHtmlEscaped(pageDescription);
 			}
 			writer.WriteASCII(" /><title>");
 			if (pageTitle != null)
@@ -752,7 +772,7 @@ namespace Api.Pages
 
 			var isAdmin = terminal.IsAdmin;
 
-			var latestConfigBytes = _configurationService.GetLatestFrontendConfigBytes();
+			var latestConfigBytes = await _configurationService.GetLatestFrontendConfigBytes(context);
 
 			if (latestConfigBytes != _configJson)
 			{
@@ -781,8 +801,7 @@ namespace Api.Pages
 			// Start building the document:
 			writer.WriteASCII("<!doctype html><html");
 
-			var localeCode = locale.Code.Contains('-') ? locale.Code.Split('-')[0] : locale.Code;
-
+			var localeCode = locale.Code;
 			writer.WriteASCII(" class=\"");
 			writer.WriteASCII(isAdmin ? "admin web no-js" : "ui web no-js");
 			writer.WriteASCII("\" lang=\"");
@@ -803,10 +822,15 @@ namespace Api.Pages
 				writer.WriteASCII("\"");
 			}
 
+			// version tag
+			writer.WriteASCII(" data-version=\"");
+			writer.WriteASCII("2026.6");
+			writer.WriteASCII("\"");
+
 			// Closing the <html> tag
 			writer.WriteASCII(">");
 
-			await BuildHeader(context, writer, pageWithTokens);
+			await BuildHeader(context, writer, pageWithTokens, exactUrl);
 
 			writer.WriteASCII("<body data-ts=\"");
 			writer.WriteASCII(_frontend.VersionString);
@@ -1262,7 +1286,7 @@ namespace Api.Pages
 				response.Headers["Pragma"] = "no-cache";
 			}
 
-			response.StatusCode = 200;
+			// response.StatusCode = 200;
 
 			await Events.Page.BeforeNavigate.Dispatch(context, pageAndTokens);
 
@@ -1285,8 +1309,9 @@ namespace Api.Pages
 		/// <param name="context"></param>
 		/// <param name="responseStream"></param>
 		/// <param name="pageWithTokens"></param>
+		/// <param name="exactUrl"></param>
 		/// <returns></returns>
-		public async ValueTask BuildHeaderOnly(Context context, Stream responseStream, PageWithTokens? pageWithTokens = null)
+		public async ValueTask BuildHeaderOnly(Context context, Stream responseStream, string exactUrl, PageWithTokens? pageWithTokens = null)
 		{
 			// Does the locale exist? (intentionally using a blank context here - it must only vary by localeId)
 			var locale = await context.GetLocale();
@@ -1302,11 +1327,11 @@ namespace Api.Pages
 			if (pageWithTokens == null)
 			{
 				// Generic admin header
-				await BuildHeader(context, writer, new PageWithTokens() { });
+				await BuildHeader(context, writer, new PageWithTokens() { }, exactUrl);
 			}
 			else
 			{
-				await BuildHeader(context, writer, pageWithTokens.Value);
+				await BuildHeader(context, writer, pageWithTokens.Value, exactUrl);
 			}
 			await writer.CopyToAsync(responseStream);
 			writer.Release();
@@ -1367,57 +1392,6 @@ namespace Api.Pages
 			return url;
 		}
 
-
-		/// <summary>
-		/// Return a locale-specific version of the given URL.
-		/// </summary>
-		/// <param name="locale"></param>
-		/// <param name="url"></param>
-		/// <returns></returns>
-		private string GetLocaleUrl(Locale locale, string url)
-		{
-			var parsedUrl = new Uri(url);
-			var lowerLocale = locale.Code.ToLower();
-			//var port = parsedUrl.Port > -1 && parsedUrl.Port != 80 ? $":{parsedUrl.Port}" : "";
-
-			if (parsedUrl != null && parsedUrl.PathAndQuery == "/")
-			{
-				return UrlCombine($"{parsedUrl.Scheme}://{parsedUrl.Host}", lowerLocale);
-			}
-			else
-			{
-				return UrlCombine($"{parsedUrl.Scheme}://{parsedUrl.Host}", lowerLocale, parsedUrl.PathAndQuery);
-			}
-		}
-
-		/// <summary>
-		/// Strips any locale prefix (e.g. /en-us/) from the given path.
-		/// </summary>
-		/// <param name="path"></param>
-		/// <returns></returns>
-		private string GetPathWithoutLocale(string path)
-		{
-
-			if (_allLocales != null && _allLocales.Any())
-			{
-				var parsedUrl = new Uri(path);
-
-				foreach (var locale in _allLocales)
-				{
-					var localeCode = "/" + locale.Code.ToLower();
-
-					if (parsedUrl.LocalPath.StartsWith(localeCode))
-					{
-						return path.Replace(localeCode, "");
-					}
-
-				}
-
-			}
-
-			return path;
-		}
-
 		/// <summary>
 		/// Return the locale supplied in the given URL.
 		/// </summary>
@@ -1449,11 +1423,22 @@ namespace Api.Pages
 		/// <summary>
 		/// Combine segments of a URL, ensuring no double slashes.
 		/// </summary>
-		/// <param name="items"></param>
+		/// <param name="domain">A domain which never ends with a path.</param>
+		/// <param name="path"></param>
 		/// <returns></returns>
-		public static string UrlCombine(params string[] items)
+		public static string UrlCombine(string domain, string path)
 		{
-			return string.Join("/", items.Where(u => !string.IsNullOrWhiteSpace(u)).Select(u => u.Trim('/', '\\')));
+			if (string.IsNullOrEmpty(path))
+			{
+				return domain + '/';
+			}
+
+			if (path.StartsWith('/'))
+			{
+				return domain + path;
+			}
+
+			return domain + '/' + path;
 		}
 	}
 

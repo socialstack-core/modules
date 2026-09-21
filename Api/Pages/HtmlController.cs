@@ -58,7 +58,7 @@ namespace Api.Pages
 			response.Headers["Cache-Control"] = "no-store";
 
 			// header only. The body is empty.
-			await _htmlService.BuildHeaderOnly(context, response.Body);
+			await _htmlService.BuildHeaderOnly(context, response.Body, httpContext.Request.Path.ToString());
 		}
 
 		/// <summary>
@@ -66,10 +66,10 @@ namespace Api.Pages
 		/// </summary>
 		/// <returns></returns>
 		[Route("robots.txt")]
-		public FileContent Robots(Context context)
+		public async ValueTask<FileContent> Robots(Context context)
 		{
 			// Robots.txt as a byte[]:
-			var robots = _htmlService.GetRobotsTxt(context);
+			var robots = await _htmlService.GetRobotsTxt(context);
 			return new FileContent(robots, "text/plain;charset=UTF-8");
 		}
 

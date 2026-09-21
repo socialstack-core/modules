@@ -1,4 +1,5 @@
 using System;
+using Api.AutoForms;
 using Api.Database;
 using Api.Translate;
 using Api.Users;
@@ -22,7 +23,14 @@ namespace Api.Pages
 		/// The source URL. Always an absolute path ("/hello-world") which can contain ${tokens}. These token values appear 
 		/// in the JS via useRouter, and in the C# via the PageWithTokens struct.
 		/// </summary>
+		[Data("readonly", true)]
 		public string Url;
+
+		/// <summary>
+		/// Explicit page ID. If non-zero, it can identify an otherwise ambiguous page to render with.
+		/// </summary>
+		[Data("label", "Page Override")]
+		public uint PageId;
 
 		/// <summary>
 		/// The target. Can be an absolute path ("/hello-world") but is almost always a constant 'target locator'.
@@ -36,6 +44,8 @@ namespace Api.Pages
 		/// Essentially when the ID is not known, it will be resolved from an ID token. If you want a fancier URL with a slug etc, then you must generate that as a dedicated permalink. 
 		/// This is to achieve the main goal of permalinks: historical URLs are preserved when your potentially more dynamic (non-ID slugs) fields change.
 		/// </summary>
+		[Module("Admin/Permalink/Target")]
+		[Data("search", true)]
 		public string Target;
 	}
 

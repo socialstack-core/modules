@@ -152,7 +152,7 @@ public class RouterPageTerminal : TerminalNode
 			ChildKey = ExactMatch,
 			FullRoute = FullRoute,
 			ContentId = (ulong)Page.Id,
-			EditUrl = "/en-admin/page/" + Page.Id,
+			EditUrl = "/en-admin/page/" + Page.Id + "?context=" + FullRoute,
 			Type = "Page",
 		};
 	}
