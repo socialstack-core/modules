@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { ListFilter } from 'Api/Startup';
 import { Content } from 'Api/Database';
 import { ApiList, ApiIncludes } from 'UI/Functions/WebRequest';
+//import { ApiIncludes } from 'Api/Includes';
+//import { ListFilter, Content } from 'Api/Content'
 import Button from 'UI/Button';
 
 export type SearchProps<T extends Content<uint>> = {
@@ -9,7 +11,7 @@ export type SearchProps<T extends Content<uint>> = {
     value?: string;
     minLength?: number;
     exclude?: uint[];
-    includes?: ApiIncludes[];
+    includes?: ApiIncludes;
     field?: string;
     limit?: number;
     onResults?: (results: T[]) => void;
@@ -17,16 +19,17 @@ export type SearchProps<T extends Content<uint>> = {
     onFind?: (result: T) => void;
     // this should render some DOM when called
     // the usage in the component is an LTR op. 
-    onRender?: (result: T) => React.ReactNode;
+	onRender?: (result: T) => React.ReactElement | void;
     placeholder?: string;
     searchText?: string;
     name?: string;
     className?: string;
     inputClassName?: string;
     'data-theme'?: string;
-    endpoint?: (filter: ListFilter, includes?: ApiIncludes[]) => Promise<ApiList<T>>;
-    onInput?: (value: string) => void,
-	onNoResults?: () => React.ReactNode
+	endpoint?: (filter?: ListFilter, includes?: ApiIncludes) => Promise<ApiList<T>>;
+	onInput?: (value: string) => void;
+	onNoResults?: () => React.ReactNode;
+	id?: string;
 };
 
 type NoFieldWhereQuery = {
@@ -43,7 +46,7 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
 	let { onNoResults } = props;
 	
 	if (!onNoResults) {
-		onNoResults = () => <div className="no-results">No results found</div>;
+		onNoResults = () => <div className="no-results">{`No results found`}</div>;
 	}
 	
     const [loading, setLoading] = useState<boolean>(false);
@@ -148,6 +151,7 @@ const Search = <T extends Content<uint>,>(props: SearchProps<T>) => {
     return (
 		<div className={`search ${props.className}`} data-theme={props['data-theme'] || 'search-theme'}>
             <input
+				id={props.id}
 				ref={inputRef}
 				name={name}
                 onBlur={() => setResults(null)} // Clear results on blur
