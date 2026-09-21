@@ -11,6 +11,11 @@ import {
 } from 'react';
 import { resolveSingular } from 'UI/Token/TokenResolver';
 
+const resolveDotField = (obj: any, field: string): any => {
+	if (!obj || !field) return undefined;
+	return field.split('.').reduce((current, key) => current?.[key], obj);
+};
+
 var uniqueKey = 1;
 
 const loadJson = (bodyJson?: any, jsonString?: string, onContentNode?: (node: CanvasNode) => void) => {
@@ -161,8 +166,8 @@ const Canvas: React.FC<CanvasProps> = (props) => {
 				for (var k in node.links) {
 					var link = node.links[k];
 
-					if (link.primary) {
-						props[k] = link.field ? pageState.po?.[link.field] : pageState.po;
+				if (link.primary) {
+						props[k] = link.field ? resolveDotField(pageState.po, link.field) : pageState.po;
 					} else {
 						props[k] = link.write ? (val: any) => setDataStoreField(link.field, val) : getDataStoreField(link.field);
 					}
