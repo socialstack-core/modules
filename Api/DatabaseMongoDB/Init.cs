@@ -108,8 +108,9 @@ namespace Api.DatabaseMongoDB
 				try
 				{
 					var con = _database.GetConnection();
-					var collection = con.GetCollection<Locale>(MongoDBService.CollectionName(nameof(Locale)));
-					locales = await collection.Find(null).ToListAsync();
+					var collectionName = MongoDBService.CollectionName(nameof(Locale));
+					var collection = con.GetCollection<Locale>(collectionName);
+					locales = await collection.Find(Builders<Locale>.Filter.Empty).ToListAsync();
 				}
 				catch
 				{
@@ -596,12 +597,16 @@ namespace Api.DatabaseMongoDB
 					}
 				}
 
+				// this must align with the collation used in queries see MongoDbService -> GetResults
+				var collation = indexName == "Id_1" ? null : new Collation("en", false, CollationCaseFirst.Off, CollationStrength.Secondary);
+
 				var indexModel = new CreateIndexModel<T>(
 					indexKeys,
 					new CreateIndexOptions
 					{
 						Name = indexName,
-						Unique = indexInfo.Unique
+						Unique = indexInfo.Unique,
+						Collation = collation
 					}
 				);
 

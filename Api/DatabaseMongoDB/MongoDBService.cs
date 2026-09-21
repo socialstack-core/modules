@@ -328,7 +328,7 @@ public partial class MongoDBService : AutoService
 		{
 			Limit = (filterA.PageSize > 0 ? filterA.PageSize : null),
 			Skip = (filterA.Offset > 0 ? filterA.Offset : 0),
-			Collation = new Collation(localeCode, false, CollationCaseFirst.Off, CollationStrength.Secondary)
+			Collation = new Collation("en", false, CollationCaseFirst.Off, CollationStrength.Secondary)
 		};
 
 		if (filterA.SortField != null)
