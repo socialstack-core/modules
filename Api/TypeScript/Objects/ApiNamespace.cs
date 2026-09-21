@@ -1112,7 +1112,7 @@ public class ApiNamespace
 			method.AddParameter("includes", "ApiInclude[]").IsOptional = true;
 
 			// ?includes= or &includes=.
-			url += " + includeString(includes" + (url.Contains("?") ? ",false" : "") + ")";
+			url += " + includeString(includes" + (url.Contains("?") ? ",true" : "") + ")";
 			Import("includeString", "UI/Functions/WebRequest");
 			Import("ApiInclude", "UI/Functions/WebRequest");
 		}
