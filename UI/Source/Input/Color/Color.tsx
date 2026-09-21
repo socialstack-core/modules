@@ -63,7 +63,7 @@ const Color: React.FC<CustomInputTypeProps<"color">> = (props) => {
 
 	let colorClasses = ['input wrapper', 'color-input'];
 
-	if (attribs.noSelection?.length && colorValue == attribs.noSelection) {
+	if (!!attribs.noSelection?.length && colorValue == attribs.noSelection) {
 		colorClasses.push('color-input--unset');
 	}
 

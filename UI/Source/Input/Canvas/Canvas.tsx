@@ -9,7 +9,8 @@ declare global {
             onChange?: (e: React.FormEvent<HTMLInputElement>) => void,
             onBlur?: (e: React.FocusEvent) => void,
             defaultValue?: string,
-            onCanvasChange?: (source: string) => void
+			onCanvasChange?: (source: string) => void,
+			templateType?: number
         }
     }
 }
