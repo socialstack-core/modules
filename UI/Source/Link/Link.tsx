@@ -50,7 +50,12 @@ interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 	 * True if the link should be the outlined style.
 	 */
 	outlined?: boolean,
-
+	
+	/**
+	 *True to omit the ui-link class
+	 */
+	noClass?: boolean,
+	
 	/**
 	 * The style variant, "primary", "secondary" etc. no style (i.e. basic link) assumed.
 	 */
@@ -63,7 +68,7 @@ interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 }
 
 const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
-	children, className, href, variant, external,
+	children, className, href, variant, external, noClass,
 	disabled, outlined, noWrap, xs, sm, md, lg, xl, ...attribs
 }) => {
 	const { session } = useSession();
@@ -117,7 +122,7 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	if (styleAsButton) {
 		return <>
 			{/* @ts-ignore */}
-			<Button className={className} href={href} variant={variant} disabled={disabled}
+			<Button className={className} href={href} variant={variant} external={external} disabled={disabled}
 				outlined={outlined} allowWrap={false} xs={xs} sm={sm} md={md} lg={lg} xl={xl} {...attribs}>
 				{children}
 			</Button>
@@ -147,10 +152,11 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	if (noWrap) {
 		classes.unshift("ui-link--nowrap");
 	}
-
-	classes.unshift("ui-link");
-
-	var linkClass = classes.join(" ");
+	
+	if(!noClass){
+		classes.unshift("ui-link");
+	}
+	var linkClass = classes.length ? classes.join(" ") : undefined;
 
 	return <a href={url} inert={disabled ? true : undefined} className={linkClass}
 		target={external ? "_blank" : undefined}
