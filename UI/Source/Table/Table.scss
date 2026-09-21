@@ -61,8 +61,25 @@
 
 			> th {
 				vertical-align: middle;
+				border: 0;
 			}
 		}
+	}
+
+	> tbody {
+		border-top: 0 !important;
+
+		> tr {
+
+			&:nth-child(even) {
+				//background: #f9fafa;
+			}
+
+			> td {
+				border: 0;
+			}
+		}
+
 	}
 
 	&--sticky {

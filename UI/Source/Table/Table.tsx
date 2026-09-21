@@ -62,7 +62,17 @@ type TableProps<T> = LoopProps<T> & {
 	/**
 	 * True if the table should be the extra large style.
 	 */
-	xl?: boolean
+	xl?: boolean,
+
+	/**
+	 * Optional reference for use with <tbody>
+	 */
+	tbodyRef?: React.Ref<HTMLTableSectionElement>,
+
+	/**
+	 * Update this value to force a re-render.
+	 */
+	forcedUpdate?: number
 }
 
 /**
@@ -81,6 +91,8 @@ const Table = <T extends Content<uint>>(props: TableProps<T>) => {
 		xs, sm, md, lg, xl,
 		children,
 		colGroups,
+		tbodyRef,
+		forcedUpdate,
 		...loopProps
 	} = props;
 
@@ -121,7 +133,7 @@ const Table = <T extends Content<uint>>(props: TableProps<T>) => {
 	// Any is required on the props: the prop types are validated when Table is called.
 	// typescript is just unable to guarantee the type constraint as it passes through here.
 	return (
-		<Loop {...(loopProps as any)} onLayout={(content: React.ReactNode, results: T[] | null, loopStatus: LoopStatus, paginator?: React.ReactNode, pageCfg?: LoopPageConfig) => {
+		<Loop forcedUpdate={forcedUpdate} {...(loopProps as any)} onLayout={(content: React.ReactNode, results: T[] | null, loopStatus: LoopStatus, paginator?: React.ReactNode, pageCfg?: LoopPageConfig) => {
 			// Optionally use loopStatus to hide the header etc if it is actually empty/loading.
 
 			const table = <table className={tableClasses.join(' ')}>
@@ -134,7 +146,7 @@ const Table = <T extends Content<uint>>(props: TableProps<T>) => {
 				{colGroups && <colgroup>
 					{colGroups(results)}
 				</colgroup>}
-				<tbody>
+				<tbody ref={tbodyRef}>
 					{content}
 				</tbody>
 				{onFooter && <tfoot>
