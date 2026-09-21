@@ -204,15 +204,15 @@ function convertToNodesFromCanvas(node : any, onContentNode? : (node : CanvasNod
 			
 		}else{
 			var data = node.d || node.data;
-			result.props = {};
-			result.type = type;
-
+			
 			// Apply classname to node
-			if (data) {
-				var className = data.className || data.class;
-				result.props.className = className;
+			if (data?.class && !data.className) {
+				data.className = data.class;
 			}
 			
+			result.props = data;
+			result.type = type;
+
 			if(node.c){
 				// Canvas 2
 				loadCanvasChildren(node, result, onContentNode, dataMap);
