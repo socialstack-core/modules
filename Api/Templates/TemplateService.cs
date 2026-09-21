@@ -33,7 +33,7 @@ namespace Api.Templates
 
 			InitEvents();
 
-			InstallAdminPages("Templates", "fa:fa-file-medical", ["id", "title", "key"], null, "content_management");
+			InstallAdminPages("Templates", "fa:fa-file-code", ["id", "title", "key"], null, "content_management");
 			Cache();
 
 			// Install the two default templates (referenced by AddTemplate inside PageBuilder):
