@@ -95,7 +95,13 @@ interface DropdownProps {
 	/**
 	 * Items inside the dropdown
 	 */
-	items: (DropdownItem | null)[]
+	items?: (DropdownItem | null)[],
+
+	/**
+	 * Legacy custom menu contents. If this is provided instead of items the
+	 * markup is rendered as-is inside the menu.
+	 */
+	children?: React.ReactNode
 }
 
 /**
@@ -145,7 +151,7 @@ export interface DropdownItem {
 const Dropdown: React.FC<DropdownProps> = (props) => {
 	var { className, variant, title, label, arrow, isOutline, isLarge, isSmall,
 		splitCallback, initialState,
-		stayOpenOnSelection, align, position, disabled, menuTag, noMinWidth, items } = props;
+		stayOpenOnSelection, align, position, disabled, menuTag, noMinWidth, items, children } = props;
 	var dropdownClasses = ['dropdown'];
 
 	if (className) {
@@ -389,7 +395,7 @@ const Dropdown: React.FC<DropdownProps> = (props) => {
 			{open && (
 				<MenuTag className={dropdownMenuClass.join(' ')} data-source={className} aria-labelledby={dropdownId} ref={dropdownRef}>
 					{
-						items.map(menuitem => {
+						items ? items.map(menuitem => {
 							if (!menuitem) {
 								return null;
 							}
@@ -418,7 +424,7 @@ const Dropdown: React.FC<DropdownProps> = (props) => {
 									{menuitem.icon} {menuitem.text}
 								</a>
 							</li>;
-						})
+						}) : children
 					}
 				</MenuTag>
 			)}
