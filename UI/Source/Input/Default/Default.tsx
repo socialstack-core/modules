@@ -52,6 +52,7 @@ const Default: React.FC<DefaultProps> = (props) => {
 
 window.inputTypes['text'] = (props: CustomInputTypeProps<"text">) => <Default type="text" field={props.field} config={props} />;
 window.inputTypes['url'] = (props: CustomInputTypeProps<"url">) => <Default type="url" field={props.field} config={props} />;
+window.inputTypes['tel'] = (props: CustomInputTypeProps<"tel">) => <Default type="tel" field={props.field} config={props} />;
 window.inputTypes['email'] = (props: CustomInputTypeProps<"email">) => <Default type="email" field={props.field} config={props} />;
 window.inputTypes['number'] = (props: CustomInputTypeProps<"number">) => <Default type="number" field={props.field} config={props} />;
 window.inputTypes['hidden'] = (props: CustomInputTypeProps<"hidden">) => <Default type="hidden" field={props.field} config={props} />;
