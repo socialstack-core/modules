@@ -69,6 +69,8 @@ namespace Api.CanvasRenderer
 		private readonly TranslationServiceConfig _translationServiceConfig;
 
 		/// <summary>
+		/// Unix time in milliseconds (or epoch milliseconds) of last build. 
+		/// This regularly changes on a dev instance, but is constant on prod as it comes from a file.
 		/// UTC timestamp in milliseconds of last build. This regularly changes on a dev instance, but is constant on prod as it comes from a file.
 		/// </summary>
 		private long BuildTimestampMs = 1;
@@ -79,7 +81,7 @@ namespace Api.CanvasRenderer
 		private string BuildTimestampMsString = "1";
 
 		/// <summary>
-		/// UTC timestamp in milliseconds of last build. 
+		/// Unix time in milliseconds (or epoch milliseconds) of last build. 
 		/// </summary>
 		public long BuildTimestamp
 		{
@@ -836,8 +838,17 @@ namespace Api.CanvasRenderer
 				}
 
 				// Build time:
-				BuildTimestampMs = meta.BuildTime;
+				if (meta.BuildDateTime.HasValue && meta.BuildDateTime.Value > DateTime.MinValue)
+				{
+					BuildTimestampMs = (long)((meta.BuildDateTime.Value.ToUniversalTime().Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc))).TotalMilliseconds);
+				}
+				else
+				{
+					BuildTimestampMs = meta.BuildTime;
+				}
+
 				BuildTimestampMsString = BuildTimestampMs.ToString();
+
 				ContainsStarterModule = meta.Starter;
 				PrebuiltMeta = meta;
 
@@ -1306,7 +1317,7 @@ namespace Api.CanvasRenderer
 		/// </summary>
 		private void UpdateBuildTimestamp()
 		{
-			BuildTimestampMs = (long)((DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalMilliseconds);
+			BuildTimestampMs = (long)((DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc))).TotalMilliseconds);
 			BuildTimestampMsString = BuildTimestampMs.ToString();
 			
 			if (CssFile.FileContent != null)

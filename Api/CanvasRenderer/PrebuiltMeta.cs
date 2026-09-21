@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 namespace Api.CanvasRenderer
@@ -17,7 +19,13 @@ namespace Api.CanvasRenderer
 		/// Timestamp in ms that the file was built at.
 		/// </summary>
 		public long BuildTime {get; set;}
-		
+
+		/// <summary>
+		/// Timestamp as a ISO formatted string when the file was built at.
+		/// </summary>
+		[JsonProperty("buildTimeText")]
+		public DateTime? BuildDateTime { get; set; }
+
 		/// <summary>
 		/// The code module metadata.
 		/// </summary>
