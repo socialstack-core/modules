@@ -236,12 +236,12 @@ type LoopBaseProps<T> = {
 	/**
 	 * Optional custom class name.
 	 */
-	className?: string
+	className?: string;
 
 	/**
 	 * Starting page index. The first page is assumed if not specified.
 	 */
-	defaultPage?: number,
+	defaultPage?: number;
 
 	/**
 	 * An optional function which can manipulate the results set before it is iterated.
@@ -249,13 +249,13 @@ type LoopBaseProps<T> = {
 	 * @param listObj
 	 * @returns
 	 */
-	onResults?: (results: T[], listObj: ApiList<T>) => T[]
+	onResults?: (results: T[], listObj: ApiList<T>) => T[];
 
 	/**
 	 * True to reverse the result set before iterating over it. 
 	 * Note that this happens after onResults is invoked.
 	 */
-	reverse?: boolean,
+	reverse?: boolean;
 
 	/**
 	 * Is there a custom change handler, like URL based for instance.
@@ -267,7 +267,12 @@ type LoopBaseProps<T> = {
 	 * Optionally provide a layout function which handles any 
 	 * necessary surrounding structure and the paginator placement (if there is one).
 	 */
-	onLayout?: (content: React.ReactNode, results: T[] | null, status: LoopStatus, paginator?: React.ReactNode, pageConfig?: LoopPageConfig) => React.ReactNode
+	onLayout?: (content: React.ReactNode, results: T[] | null, status: LoopStatus, paginator?: React.ReactNode, pageConfig?: LoopPageConfig) => React.ReactNode;
+
+	/**
+	 * Update this value to force a re-render.
+	 */
+	forcedUpdate?: number
 }
 
 // Define the version where 'over' is used
@@ -362,7 +367,7 @@ const Loop = <T,>(props: LoopProps<T>) => {
 
 	const [results, setResults] = useApi<T[] | null>(() => {
 		return load(props.filter?.pageIndex || props.defaultPage || 1);
-	}, [filterStr, props.paged, props.over, props.source, props.includes]);
+	}, [filterStr, props.paged, props.over, props.source, props.includes, props.forcedUpdate]);
 
 	useEffect(() => {
 		var onContentUpdate = (e: CustomEvent<ContentChangeDetail>) => {
