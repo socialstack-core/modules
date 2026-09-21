@@ -28,6 +28,11 @@ type ConfirmDialogProps = React.PropsWithChildren<{
 
 	children?: React.ReactNode,
 
+	/**
+	 * optional unique ID
+	 */
+	id?: string,
+
 	variant?: string,
 	confirmVariant?: string,
 	confirmCallback: () => void,
@@ -38,14 +43,14 @@ type ConfirmDialogProps = React.PropsWithChildren<{
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = (props) => {
 	const {
-		title, isOpen, keepOpen, onClose, className, children,
+		title, isOpen, keepOpen, onClose, className, children, id,
 		confirmCallback, cancelCallback,
 		confirmText, cancelText } = props;
 	const variant = props.confirmVariant ?? props.variant;
 
 	return <>
 		<Dialog confirm={true} title={title} isOpen={isOpen} keepOpen={keepOpen} onClose={onClose} noClose={true} className={className}
-			confirmCallback={confirmCallback} cancelCallback={cancelCallback}
+			confirmCallback={confirmCallback} cancelCallback={cancelCallback} id={id}
 			confirmVariant={variant} confirmText={confirmText} cancelText={cancelText}>
 			{children}
 		</Dialog>

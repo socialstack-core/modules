@@ -10,7 +10,7 @@
     opacity: 0;
     margin: auto;
     border-radius: .3rem;
-    min-width: px_to_rem(375);
+    min-width: min(px_to_rem(375), calc(100vw - #{px_to_rem(32)}));
     max-width: px_to_rem(1140);
     min-height: px_to_rem(300);
     overflow: hidden;
@@ -95,6 +95,23 @@ html dialog.ui-dialog:not(:open) {
     overflow-y: auto;
     flex-grow: 1;
     text-align: left;
+
+	&:has(.ui-page__tabs) {
+		padding-top: 0;
+	}
+
+	.ui-page__tabs {
+
+		.ui-page__tab-links {
+			background: var(--ui-site-bg, #fff);
+
+			&::before, &::after {
+				background: var(--ui-site-bg, #fff);
+			}
+
+		}
+
+	}
 }
 
 .ui-dialog__alert {

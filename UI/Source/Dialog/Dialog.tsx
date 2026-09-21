@@ -42,6 +42,11 @@ export interface DialogProps {
 	children?: React.ReactNode,
 
 	/**
+	 * optional unique ID
+	 */
+	id?: string,
+
+	/**
 	 * set true to use ConfirmDialog defaults
 	 */
 	confirm?: boolean,
@@ -61,7 +66,7 @@ type DialogFooterProps = React.PropsWithChildren<{
 }>;
 
 function DialogRoot(props: DialogProps) {
-	const { isOpen, keepOpen, onClose, className, children,
+	const { isOpen, keepOpen, onClose, className, children, id,
 		confirm, confirmVariant, confirmCallback, cancelCallback, confirmText, cancelText,
 		...attribs } = props;
 	const [error, setError] = useState<Error>();
@@ -187,6 +192,29 @@ function DialogRoot(props: DialogProps) {
 
 	}, [isOpen]);
 
+	const onKeyDown = (e: React.KeyboardEvent<HTMLDialogElement>) => {
+
+		if (e.key !== 'Enter') {
+			return;
+		}
+
+		const target = e.target as HTMLElement;
+
+		const isTextInput =
+			target instanceof HTMLInputElement &&
+			!['checkbox', 'radio', 'button', 'submit', 'reset', 'file', 'image'].includes(target.type);
+
+		const isMultiSelect =
+			target instanceof HTMLSelectElement && target.multiple;
+
+		// on pressing return, input and multiple select fields will trigger a parent form submit button (if found)
+		if (isTextInput || isMultiSelect) {
+			e.preventDefault();
+			e.stopPropagation();
+		}
+
+	};
+
 	const flattenChildren = (children: React.ReactNode): any[] => {
 		if (children == null) return [];
 		return Array.isArray(children) ? children.flat() : [children];
@@ -215,7 +243,7 @@ function DialogRoot(props: DialogProps) {
 				{title}
 			</h2>
 			{!noClose && <>
-				<Button sm outlined onClick={onClose} className="ui-dialog__close">
+				<Button sm outlined onClick={onClose} command="close" commandFor={id} className="ui-dialog__close">
 					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<path d="M18 6 6 18" />
 						<path d="m6 6 12 12" />
@@ -292,8 +320,9 @@ function DialogRoot(props: DialogProps) {
 		{/* NB: only use [open] attribute here to render non-modal dialogs (not recommended - try UI/Popover)
 		  * also removed  closedby={noClose ? 'none' : 'closerequest'}  as this disables closing via Esc
 		  */}
-		<dialog className={classNames.join(' ')} 
+		<dialog className={classNames.join(' ')} id={id}
 			ref={dialogRef}
+			onKeyDown={onKeyDown}
 			onClose={onClose}
 			onCancel={(e) => {
 				// Prevents "Esc" from closing it without updating React state
