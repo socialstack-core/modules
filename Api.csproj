@@ -9,11 +9,11 @@
 		<DocumentationFile>SocialStack.Api.xml</DocumentationFile>
 	</PropertyGroup>
 	<ItemGroup>
-		<PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
-		<PackageReference Include="HtmlAgilityPack" Version="1.11.46" />
-		<PackageReference Include="Karambolo.PO.Compact" Version="1.11.1" />
+		<PackageReference Include="BouncyCastle.Cryptography" Version="2.7.0" />
+		<PackageReference Include="HtmlAgilityPack" Version="1.13.0" />
+		<PackageReference Include="Karambolo.PO.Compact" Version="1.13.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.5" />
-		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
 		<PackageReference Include="System.Drawing.Common" Version="8.0.5" />
 		<PackageReference Include="ZKWeb.System.Drawing" Version="4.0.1" />
 	</ItemGroup>
