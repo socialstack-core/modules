@@ -2,5 +2,21 @@
 	"name": "Comments",
 	"description": "Module for adding user comments to content.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Comments"
+		},
+		{
+			"key": "Replies"
+		},
+		{
+			"key": "Nested comments"
+		},
+		{
+			"key": "Inline comments"
+		},
+		{
+			"key": "Threaded comments"
+		}
+	]
 }

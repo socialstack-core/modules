@@ -3,5 +3,9 @@
 	"description": "Provides the Events.Automation method and associated machinery. It is used to define scheduled running of code based on a cron string defining the run pattern.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Background tasks"
+		}
+	]
 }

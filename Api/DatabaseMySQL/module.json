@@ -3,5 +3,11 @@
 	"description": "A database binding specifically for MySQL. See the Api/Database module for more information.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Database engine",
+			"exclusive": "usually",
+			"exclusion_notes": "Sites almost always have one database engine but it is permitted to have more than one at the same time for e.g. migrations or instances where a site requires it."
+		}
+	]
 }

@@ -3,5 +3,10 @@
 	"description": "Provides a swagger API structure",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "API access",
+			"exclusive": "never"
+		}
+	]
 }

@@ -14,16 +14,20 @@
 			"key": "Account deletion"
 		},
 		{
-			"key": "Profile management"
+			"key": "Profile management",
+			"exclusive": "never"
 		},
 		{
-			"key": "Avatar upload"
+			"key": "Avatar upload",
+			"exclusive": "never"
 		},
 		{
-			"key": "Bio editing"
+			"key": "Bio editing",
+			"exclusive": "never"
 		},
 		{
-			"key": "Contact info management"
+			"key": "Contact info management",
+			"exclusive": "never"
 		}
 	]
 }

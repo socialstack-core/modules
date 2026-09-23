@@ -3,5 +3,10 @@
 	"description": "A small module which tracks the last visit time of logged in user accounts.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "User tracking",
+			"exclusive": "never"
+		}
+	]
 }

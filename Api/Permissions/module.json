@@ -3,5 +3,14 @@
 	"description": "The essential roles and capabilities system which drives security through all modules by automatically mounting them with event listeners.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Security",
+			"subgroup": "essential",
+			"audience": {
+				"internal": "always"
+			},
+			"exclusive": "never"
+		}
+	]
 }

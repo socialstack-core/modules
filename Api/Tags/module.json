@@ -13,6 +13,10 @@
 			"key": "Tags"
 		},
 		{
+			"key": "Taxonomy",
+			"exclusive": "never"
+		},
+		{
 			"key": "Tag filters"
 		}
 	]

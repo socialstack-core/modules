@@ -3,5 +3,17 @@
 	"description": "Enforces reauthentication when editing sensitive fields such as email address on a user account.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Contact info management",
+			"exclusive": "never"
+		},
+		{
+			"key": "Security",
+			"audience": {
+				"external": "usually"
+			},
+			"exclusive": "never"
+		}
+	]
 }

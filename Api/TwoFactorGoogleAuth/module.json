@@ -2,5 +2,14 @@
 	"name": "Two factor Google auth",
 	"description": "Module for adding two factor authentication via Google Authenticator.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Authentication",
+			"subgroup": "secondary",
+			"exclusive": "always"
+		},
+		{
+			"key": "Two-factor authentication"
+		}
+	]
 }

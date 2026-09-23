@@ -8,5 +8,11 @@
 			"reason": "Used to assign incremental IDs to all content types."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Database engine",
+			"exclusive": "usually",
+			"exclusion_notes": "Sites almost always have one database engine but it is permitted to have more than one at the same time for e.g. migrations or instances where a site requires it."
+		}
+	]
 }

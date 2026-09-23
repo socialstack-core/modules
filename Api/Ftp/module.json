@@ -2,5 +2,12 @@
 	"name": "FTP",
 	"description": "Module for FTP based file transfer functionality.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "File transfer protocol",
+			"audience": {
+				"internal": "default"
+			}
+		}
+	]
 }

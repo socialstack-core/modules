@@ -2,5 +2,13 @@
 	"name": "Forms",
 	"description": "Module for building and processing custom forms.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Forms"
+		},
+		{
+			"key": "Feedback forms",
+			"exclusive": "never"
+		}
+	]
 }

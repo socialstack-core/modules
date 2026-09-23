@@ -2,5 +2,10 @@
 	"name": "Captchas",
 	"description": "Module for adding captcha protection to forms and actions.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Abuse prevention",
+			"exclusive": false
+		}
+	]
 }

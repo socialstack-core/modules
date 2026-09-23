@@ -8,5 +8,9 @@
 			"reason": "Renders the email template to HTML."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Email notifications"
+		}
+	]
 }

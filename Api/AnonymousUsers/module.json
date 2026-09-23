@@ -13,5 +13,9 @@
 			"reason": "Used as part of the tracking mechanism."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Anonymous users"
+		}
+	]
 }

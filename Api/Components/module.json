@@ -13,5 +13,10 @@
 			"reason": "The primary use case of component groups is template slots."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Content management",
+			"exclusive": "never"
+		}
+	]
 }

@@ -3,5 +3,13 @@
 	"description": "Handles hubspot integration. Add IHaveHubSpotId to any content type for it to be synced to HubSpot.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Customer relationship management",
+			"audience": {
+				"internal": "always"
+			},
+			"exclusive": "usually"
+		}
+	]
 }

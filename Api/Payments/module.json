@@ -8,6 +8,9 @@
 			"key": "Payment methods"
 		},
 		{
+			"key": "Product listings"
+		},
+		{
 			"key": "Payment gateways",
 			"options": [
 				{"key": "Stripe"},
@@ -28,6 +31,48 @@
 		},
 		{
 			"key": "Free shipping thresholds"
+		},
+		{
+			"key": "Shopping cart"
+		},
+		{
+			"key": "Checkout"
+		},
+		{
+			"key": "Guest checkout"
+		},
+		{
+			"key": "Saved carts"
+		},
+		{
+			"key": "Product pages"
+		},
+		{
+			"key": "Product variations"
+		},
+		{
+			"key": "Product options"
+		},
+		{
+			"key": "Bundles"
+		},
+		{
+			"key": "Coupons"
+		},
+		{
+			"key": "Promo codes"
+		},
+		{
+			"key": "Discounts"
+		},
+		{
+			"key": "Recurring billing"
+		},
+		{
+			"key": "Subscriptions"
+		},
+		{
+			"key": "Freemium tiers"
 		}
 	]
 }

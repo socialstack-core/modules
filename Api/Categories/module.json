@@ -8,5 +8,13 @@
 			"reason": "Usually used with tags as well."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Taxonomy",
+			"exclusive": "never"
+		},
+		{
+			"key": "Categories"
+		}
+	]
 }
