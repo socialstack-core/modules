@@ -1,6 +1,10 @@
 {
 	"name": "Articles",
-	"description": "Module for managing article based content.",
+	"description": "Module for managing article based content similar to but distinct from blogs.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Articles"
+		}
+	]
 }

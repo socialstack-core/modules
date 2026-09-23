@@ -3,5 +3,9 @@
 	"description": "Adds open graph meta tags to your html header.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Open Graph tags"
+		}
+	]
 }

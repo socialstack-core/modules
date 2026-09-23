@@ -3,5 +3,9 @@
 	"description": "Handles password reset requests.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Password reset"
+		}
+	]
 }

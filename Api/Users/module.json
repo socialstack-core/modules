@@ -9,6 +9,21 @@
 		},
 		{
 			"key": "Login"
+		},
+		{
+			"key": "Account deletion"
+		},
+		{
+			"key": "Profile management"
+		},
+		{
+			"key": "Avatar upload"
+		},
+		{
+			"key": "Bio editing"
+		},
+		{
+			"key": "Contact info management"
 		}
 	]
 }

@@ -8,5 +8,12 @@
 			"reason": "Usually used with categories as well."
 		}
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Tags"
+		},
+		{
+			"key": "Tag filters"
+		}
+	]
 }

@@ -3,5 +3,15 @@
 	"description": "Handles the localisation of a site, including pot file generation.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Multilingual support"
+		},
+		{
+			"key": "Language switching"
+		},
+		{
+			"key": "Localization"
+		}
+	]
 }

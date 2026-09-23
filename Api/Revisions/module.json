@@ -3,5 +3,15 @@
 	"description": "Automatically mounts all VersionedContent types and adds revisions to them. Also supports draft content.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Drafts"
+		},
+		{
+			"key": "Version history"
+		},
+		{
+			"key": "Revision control"
+		}
+	]
 }

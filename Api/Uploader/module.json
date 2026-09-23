@@ -3,5 +3,30 @@
 	"description": "Handles file access - both uploading and retrieval.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Media library"
+		},
+		{
+			"key": "Media upload"
+		},
+		{
+			"key": "Image optimization"
+		},
+		{
+			"key": "Image hosting"
+		},
+		{
+			"key": "Video hosting"
+		},
+		{
+			"key": "Audio hosting"
+		},
+		{
+			"key": "Document hosting"
+		},
+		{
+			"key": "File preview"
+		}
+	]
 }

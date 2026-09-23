@@ -3,5 +3,21 @@
 	"description": "The primary module for pages of a website. Includes a serverside rendering mechanism.",
 	"modules": [
 	],
-	"features": []
+	"features": [
+		{
+			"key": "Robots.txt management"
+		},
+		{
+			"key": "Canonical URLs"
+		},
+		{
+			"key": "Pages"
+		},
+		{
+			"key": "URL redirects"
+		},
+		{
+			"key": "Permalinks"
+		}
+	]
 }

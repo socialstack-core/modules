@@ -2,5 +2,24 @@
 	"name": "Reactions",
 	"description": "Module for allowing users to react to content with emojis.",
 	"modules": [],
-	"features": []
+	"features": [
+		{
+			"key": "Reactions"
+		},
+		{
+			"key": "Emojis"
+		},
+		{
+			"key": "Likes"
+		},
+		{
+			"key": "Dislikes"
+		},
+		{
+			"key": "Upvotes"
+		},
+		{
+			"key": "Downvotes"
+		}
+	]
 }
