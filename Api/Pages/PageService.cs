@@ -79,7 +79,8 @@ namespace Api.Pages
 					{
 						Url = "/en-admin/stdout",
 						Key = "admin_stdout",
-						Title = "Server log monitoring",
+						Title = "Server Log",
+						PageType = CommonPageType.AdminLanding,
 						BuildBody = (PageBuilder builder) =>
 						{
 							return builder.AddTemplate(
@@ -87,23 +88,25 @@ namespace Api.Pages
 							);
 						}
 					},
-					new PageBuilder()
+					/* new PageBuilder()
 					{
 						Url = "/en-admin/stress",
 						Key = "admin_stress",
-						Title = "Stress testing the API",
+						Title = "API Stress Test",
+						PageType = CommonPageType.AdminLanding,
 						BuildBody = (PageBuilder builder) =>
 						{
 							return builder.AddTemplate(
 								new CanvasNode("Admin/Dashboards/StressTest")
 							);
 						}
-					},
+					},*/
 					new PageBuilder()
 					{
 						Url = "/en-admin/database",
 						Key = "admin_database",
-						Title = "Developer Database Access",
+						Title = "Database Access",
+						PageType = CommonPageType.AdminLanding,
 						BuildBody = (PageBuilder builder) =>
 						{
 							return builder.AddTemplate(
@@ -132,6 +135,7 @@ namespace Api.Pages
 						Url = "/en-admin/permissions",
 						Key = "admin_permissions",
 						Title = "Permissions",
+						PageType = CommonPageType.AdminLanding,
 						BuildBody = (PageBuilder builder) =>
 						{
 							return builder.AddTemplate(

@@ -45,6 +45,7 @@ namespace Api.Translate
             {
                 AdminRelativeUrl = "translation/upload",
                 Title = "Translation Upload",
+                PageType = CommonPageType.AdminLanding,
                 BuildBody = (PageBuilder builder) => {
                     return builder.AddTemplate(
 						new CanvasNode("Admin/Tile")

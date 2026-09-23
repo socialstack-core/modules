@@ -26,6 +26,7 @@ namespace Api.Automations
 				Title = "Automations",
 				AdminRelativeUrl = "automations",
 				AdminNavMenuIcon = "fa:fa-clock",
+				PageType = CommonPageType.AdminLanding,
 				BuildBody = (PageBuilder builder) => {
 					return builder.AddTemplate(
 						new CanvasNode("Admin/Layouts/Automations")

@@ -250,6 +250,8 @@ namespace Api.NavMenus
 
 				if (contentService is null)
 				{
+					// Always grant for now - e.g. standalone pages
+					grantedMenuItems.Add(item);
 					continue;
 				}
 
