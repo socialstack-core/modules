@@ -19,7 +19,8 @@ namespace Api.Counters
 		{
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
-			{ Remove public viewing (as it's enabled by default):
+			{
+				// Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("counter_load", "counter_list");
 				Roles.Public.Revoke("counter_load", "counter_list");
 				Roles.Member.Revoke("counter_load", "counter_list");
