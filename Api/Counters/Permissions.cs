@@ -19,25 +19,10 @@ namespace Api.Counters
 		{
 			// Hook the default role setup. It's done like this so it can be removed by a plugin if wanted.
 			Events.CapabilityOnSetup.AddEventListener((Context context, object source) =>
-			{
-				/*
-				Example permission rules.
-				
-				Member role: A verified user account. Not an admin.
-				Guest role: A user account. The transition from guest to member is up to you.
-				Public role: Not logged in at all.
-				
-				// Allow public creation (as it's disabled by default):
-				Roles.Member.Grant("counter_create");
-				Roles.Public.Grant("counter_create");
-				Roles.Guest.Grant("counter_create");
-				
-				// Remove public viewing (as it's enabled by default):
+			{ Remove public viewing (as it's enabled by default):
 				Roles.Guest.Revoke("counter_load", "counter_list");
 				Roles.Public.Revoke("counter_load", "counter_list");
 				Roles.Member.Revoke("counter_load", "counter_list");
-				*/
-				
 				return new ValueTask<object>(source);
 			}, 20);
 		}
