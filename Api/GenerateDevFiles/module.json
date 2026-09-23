@@ -1,0 +1,6 @@
+{
+	"name": "Generate dev files",
+	"description": "Module that generates developer helper files during the build process.",
+	"modules": [],
+	"features": []
+}

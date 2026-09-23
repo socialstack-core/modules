@@ -1,0 +1,6 @@
+{
+	"name": "Mixed contents",
+	"description": "Provides the ability to include and use multiple content types at once. Useful for e.g. feeds where you might have signposts for more than one content type visible at the same time.",
+	"modules": [],
+	"features": []
+}

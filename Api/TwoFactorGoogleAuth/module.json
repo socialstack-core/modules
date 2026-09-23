@@ -1,0 +1,6 @@
+{
+	"name": "Two factor Google auth",
+	"description": "Module for adding two factor authentication via Google Authenticator.",
+	"modules": [],
+	"features": []
+}

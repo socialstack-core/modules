@@ -1,0 +1,6 @@
+{
+	"name": "Login on register",
+	"description": "Module that automatically logs a user in after registration.",
+	"modules": [],
+	"features": []
+}
