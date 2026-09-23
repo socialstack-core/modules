@@ -1,0 +1,23 @@
+{
+	"name": "Media Sharing",
+	"description": "Enables users to share media through the site.",
+	"modules": [
+	],
+	"features": [
+		{
+			"key": "File sharing"
+		},
+		{
+			"key": "Image sharing"
+		},
+		{
+			"key": "Video sharing"
+		},
+		{
+			"key": "Audio sharing"
+		},
+		{
+			"key": "Document sharing"
+		}
+	]
+}
