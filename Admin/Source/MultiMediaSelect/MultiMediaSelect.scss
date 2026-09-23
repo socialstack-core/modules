@@ -65,6 +65,54 @@
 			display: flex;
 			gap: .5rem;
 		}
+
+		&.dragging {
+			opacity: 0.4;
+		}
+
+		&.drag-over {
+			box-shadow: 0 0 0 2px var(--primary, #0d6efd);
+		}
+	}
+
+	&__drag-handle {
+		display: inline-block;
+		touch-action: none;
+		cursor: grab;
+		font-size: .85rem;
+		line-height: 1;
+		color: rgba(0, 0, 0, 0.30);
+
+		&:hover,
+		&:active {
+			color: rgba(0, 0, 0, 0.70);
+			cursor: grabbing;
+		}
+	}
+
+	&.dragging-active {
+		// Prevent text selection and the entries from being hit while dragging.
+		user-select: none;
+		-webkit-user-select: none;
+	}
+
+	&__ghost {
+		position: fixed;
+		left: 0;
+		top: 0;
+		transform-origin: 0 0;
+		pointer-events: none;
+		z-index: 2000;
+		max-width: 90vw;
+
+		.multi-media-select__entry {
+			box-sizing: border-box;
+			box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+		}
+
+		.multi-media-select__ghost-entry {
+			box-sizing: border-box;
+		}
 	}
 
 	&__thumb {

@@ -24,6 +24,10 @@ let lastId = 0;
 const CLOSEST_MULTIPLE = 2;
 const PREVIEW_SIZE = 512 as int;
 
+// Ghost drag feedback sits just below/right of the pointer so the entry it's over stays visible.
+const GHOST_OFFSET_X = 14;
+const GHOST_OFFSET_Y = 10;
+
 var searchFields = ['originalName', 'alt', 'author', 'id'];
 
 type ModalFileType = "all" | "img" | "vid" | "audio" | "doc" | "other";
@@ -180,6 +184,20 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 	const [value, setValue] = useState<Upload[]>(initVal);
 	const [mustLoad, setMustLoad] = useState<boolean>(initMustLoad);
 	const inputRef = useRef<HTMLInputElement>(null);
+	const [dragId, setDragId] = useState<string | null>(null);
+	const [dragOverId, setDragOverId] = useState<string | null>(null);
+	const [dragSnapshot, setDragSnapshot] = useState<string | null>(null);
+	// Latest selection so drag release commits against current state, not the drag-start closure.
+	const valueRef = useRef<Upload[]>(value);
+	valueRef.current = value;
+	// The entry being dragged, plus the hovered drop target. Refs avoid relying on the HTML5
+	// drag and drop data store, which isn't delivered reliably in this application.
+	const dragIdRef = useRef<string | null>(null);
+	const dragOverIdRef = useRef<string | null>(null);
+	// Ghost drag feedback: a snapshot of the dragged entry that follows the pointer,
+	// positioned imperatively to avoid re-rendering the editor on every move.
+	const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+	const ghostRef = useRef<HTMLDivElement>(null);
 	const [showDialog, setShowDialog] = useState<boolean>(false);
 	const [fileType, setFileType] = useState<ModalFileType>('all');
 	const [searchFilter, setSearchFilter] = useState<string | null>(null);
@@ -235,7 +253,7 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			setValue(value.map(e => idLookup[e.id + '']).filter(t => t != null));
 
 		});
-	}, [mustLoad, value]);
+	}, []);
 
 	// Sync value from props (replaces componentWillReceiveProps)
 	useEffect(() => {
@@ -255,6 +273,123 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 		props.onRawChange && props.onRawChange(e);
 		props.onChange && props.onChange(e);
 	}
+
+	const moveEntry = (fromId: string, toId: string, list: Upload[]): Upload[] => {
+		const fromIndex = list.findIndex(entry => entry.id + '' === fromId);
+		const toIndex = list.findIndex(entry => entry.id + '' === toId);
+
+		if (fromIndex !== -1 && toIndex !== -1) {
+			const newList = [...list];
+			const [moved] = newList.splice(fromIndex, 1);
+			newList.splice(toIndex, 0, moved);
+			return newList;
+		}
+
+		return list;
+	};
+
+	const startDrag = (e: React.PointerEvent, id: string) => {
+		if (e.button !== 0) {
+			return;
+		}
+		e.preventDefault();
+		dragIdRef.current = id;
+		dragOverIdRef.current = null;
+		dragStartRef.current = {
+			x: e.clientX + GHOST_OFFSET_X,
+			y: e.clientY + GHOST_OFFSET_Y
+		};
+		// Snapshot the dragged entry so a compact, width-matched "ghost" of it can follow
+		// the pointer, minus its buttons and handle but keeping the thumbnail.
+		const entryElement = (e.currentTarget as HTMLElement).closest('.multi-media-select__entry') as HTMLElement | null;
+		if (entryElement) {
+			const width = entryElement.getBoundingClientRect().width;
+			const clone = entryElement.cloneNode(true) as HTMLElement;
+			clone.removeAttribute('style');
+			clone.style.width = `${width}px`;
+			// Hide anything interactive (buttons, the handle); keep the thumbnail preview.
+			clone.querySelectorAll('.multi-media-select__drag-handle, button, input, select, textarea').forEach(node => node.remove());
+			clone.querySelectorAll('.multi-media-select__entry-options').forEach(node => {
+				if (!node.hasChildNodes()) {
+					node.remove();
+				}
+			});
+			clone.classList.add('multi-media-select__ghost-entry');
+			clone.classList.remove('dragging', 'drag-over');
+			setDragSnapshot(clone.outerHTML);
+		} else {
+			setDragSnapshot(null);
+		}
+		setDragId(id);
+		setDragOverId(null);
+	};
+
+	// While a drag is in progress, track the hovered entry and finish the move on release.
+	useEffect(() => {
+		if (!dragId) {
+			return;
+		}
+
+		const positionGhost = (clientX: number, clientY: number) => {
+			if (ghostRef.current) {
+				// Positioned imperatively so pointer moves don't re-render the component.
+				ghostRef.current.style.transform = `translate(${clientX + GHOST_OFFSET_X}px, ${clientY + GHOST_OFFSET_Y}px)`;
+			}
+		};
+
+		const entryIdAt = (clientX: number, clientY: number): string | null => {
+			if (typeof document === 'undefined') {
+				return null;
+			}
+			const element = document.elementFromPoint(clientX, clientY) as HTMLElement | null;
+			const entry = element && element.closest ? element.closest('.multi-media-select__entry') : null;
+			return entry ? entry.getAttribute('data-multimedia-item-id') : null;
+		};
+
+		const onPointerMove = (e: PointerEvent) => {
+			positionGhost(e.clientX, e.clientY);
+			const id = entryIdAt(e.clientX, e.clientY);
+			if (id !== dragOverIdRef.current) {
+				dragOverIdRef.current = id;
+				setDragOverId(id);
+			}
+		};
+
+		const finishDrag = (e: PointerEvent, commit: boolean) => {
+			const fromId = dragIdRef.current;
+			const toId = commit ? entryIdAt(e.clientX, e.clientY) : null;
+			if (commit && fromId && toId && fromId !== toId) {
+				const next = moveEntry(fromId, toId, valueRef.current);
+				if (next !== valueRef.current) {
+					runChange(next);
+				}
+			}
+			dragIdRef.current = null;
+			dragOverIdRef.current = null;
+			dragStartRef.current = null;
+			setDragId(null);
+			setDragOverId(null);
+			setDragSnapshot(null);
+		};
+
+		const onPointerUp = (e: PointerEvent) => finishDrag(e, true);
+		const onPointerCancel = (e: PointerEvent) => finishDrag(e, false);
+
+		document.addEventListener('pointermove', onPointerMove);
+		document.addEventListener('pointerup', onPointerUp);
+		document.addEventListener('pointercancel', onPointerCancel);
+
+		const startPosition = dragStartRef.current;
+		if (startPosition) {
+			positionGhost(startPosition.x, startPosition.y);
+		}
+
+		return () => {
+			document.removeEventListener('pointermove', onPointerMove);
+			document.removeEventListener('pointerup', onPointerUp);
+			document.removeEventListener('pointercancel', onPointerCancel);
+		};
+	}, [dragId]);
 
 	var atMax = false;
 
@@ -610,8 +745,13 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 
 	var addButtonLabel = value.length ? `Select uploads` : `Add uploads`;
 
+	var multiMediaClasses = "file-selector multi-media-select";
+	if (dragId) {
+		multiMediaClasses += ' dragging-active';
+	}
+
 	return <>
-		<div className="file-selector multi-media-select">
+		<div className={multiMediaClasses}>
 
 			{props.label && !props.hideLabel && (
 				<label className="form-label multi-media-select__label">
@@ -630,41 +770,66 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			{/* selected uploads */}
 			<ul className="multi-media-select__entries">
 				{
-					value.map(entry => (
-						<li key={entry.id} className="multi-media-select__entry">
-							<div className="multi-media-select__entry-main">
-								{props.renderEntry ? props.renderEntry(entry) : (
-									<span className="multi-media-select__entry-display">
-										<span className="multi-media-select__thumb">
-											{renderThumb(entry, 32)}
-										</span>
-										<span className="multi-media-select__entry-name">
-											{entry.originalName}
-										</span>
-									</span>
-								)}
-							</div>
+					value.map(entry => {
+						var entryClasses = 'multi-media-select__entry';
+						if (dragId === entry.id + '') {
+							entryClasses += ' dragging';
+						}
+						if (dragOverId === entry.id + '') {
+							entryClasses += ' drag-over';
+						}
 
-							<div className="multi-media-select__entry-options">
-								{props.showEntryActions && (
-									<Button sm outlined className="btn-entry-select-action btn-view-entry" title={`Edit`}
-										onClick={e => handleEditEntry(entry, e)}>
-										<i className="fal fa-fw fa-edit"></i> <span className="sr-only">{`Edit`}</span>
+						return (
+							<li key={entry.id} className={entryClasses} data-multimedia-item-id={entry.id}>
+								<span
+									className="multi-media-select__drag-handle"
+									title={`Drag to reorder`}
+									onPointerDown={(e) => startDrag(e, entry.id + '')}
+								>
+									<i className="fal fa-fw fa-grip-vertical"></i>
+								</span>
+
+								<div className="multi-media-select__entry-main">
+									{props.renderEntry ? props.renderEntry(entry) : (
+										<span className="multi-media-select__entry-display">
+											<span className="multi-media-select__thumb">
+												{renderThumb(entry, 32)}
+											</span>
+											<span className="multi-media-select__entry-name">
+												{entry.originalName}
+											</span>
+										</span>
+									)}
+								</div>
+
+								<div className="multi-media-select__entry-options">
+									{props.showEntryActions && (
+										<Button sm outlined className="btn-entry-select-action btn-view-entry" title={`Edit`}
+											onClick={e => handleEditEntry(entry, e)}>
+											<i className="fal fa-fw fa-edit"></i> <span className="sr-only">{`Edit`}</span>
+										</Button>
+									)}
+
+									<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry" title={`Remove`}
+										onClick={e => {
+											remove(entry);
+											e.preventDefault();
+										}}>
+										<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
 									</Button>
-								)}
-
-								<Button sm outlined variant="danger" className="btn-entry-select-action btn-remove-entry" title={`Remove`}
-									onClick={e => {
-										remove(entry);
-										e.preventDefault();
-									}}>
-									<i className="fal fa-fw fa-times"></i> <span className="sr-only">{`Remove`}</span>
-								</Button>
-							</div>
-						</li>
-					))
+								</div>
+							</li>
+						);
+					})
 				}
 			</ul>
+			{dragId && dragSnapshot && (
+				<div
+					ref={ghostRef}
+					className="multi-media-select__ghost"
+					dangerouslySetInnerHTML={{ __html: dragSnapshot }}
+				/>
+			)}
 
 			<input type="hidden" name={props.name} ref={ele => {
 				inputRef.current = ele;
@@ -694,10 +859,10 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 						<i className="fal fa-fw fa-plus"></i> {`New`}
 					</Button>
 				)}
-<Button className="file-selector__select multi-media-select__add-btn" onClick={() => setShowDialog(true)}>
-				<i className="fal fa-fw fa-images"></i> {addButtonLabel}
-			</Button>
-		</footer>
+				<Button className="file-selector__select multi-media-select__add-btn" onClick={() => setShowDialog(true)}>
+					<i className="fal fa-fw fa-images"></i> {addButtonLabel}
+				</Button>
+			</footer>
 
 			{/* upload browser */}
 			{showDialog && <Dialog isOpen={showDialog} onClose={() => setShowDialog(false)} className="image-select-dialog multi-media-select__dialog">
@@ -710,13 +875,13 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 				</Dialog.Header>
 
 				<div className="file-selector__grid multi-media-select__grid">
-<Loop source={source} filter={combinedFilter} paged
-					loader={() => (
-						<div className="multi-media-select__loading">
-							<i className="fal fa-fw fa-spinner fa-spin"></i> {`Loading`}
-						</div>
-					)}
-					orNone={() => renderEmpty()}>
+					<Loop source={source} filter={combinedFilter} paged
+						loader={() => (
+							<div className="multi-media-select__loading">
+								<i className="fal fa-fw fa-spinner fa-spin"></i> {`Loading`}
+							</div>
+						)}
+						orNone={() => renderEmpty()}>
 						{
 							entry => {
 								// NB: API has been seen to report valid images with isImage=false
