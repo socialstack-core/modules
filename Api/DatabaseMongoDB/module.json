@@ -7,5 +7,6 @@
 			"key": "Api/Counters",
 			"reason": "Used to assign incremental IDs to all content types."
 		}
-	]
+	],
+	"features": []
 }

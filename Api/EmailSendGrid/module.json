@@ -7,5 +7,6 @@
 			"key": "Api/Emails",
 			"reason": "Actually handles the construction and send of the email; this module just accelerates specifically the send via SendGrid."
 		}
-	]
+	],
+	"features": []
 }

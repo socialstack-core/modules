@@ -7,5 +7,6 @@
 			"key": "Admin/CustomFieldEditor",
 			"reason": "An admin UI for creating and editing these types. Whilst you could define them without it, it would be unnecessarily awkward!"
 		}
-	]
+	],
+	"features": []
 }

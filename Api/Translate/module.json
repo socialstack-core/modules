@@ -2,5 +2,6 @@
 	"name": "Translations",
 	"description": "Handles the localisation of a site, including pot file generation.",
 	"modules": [
-	]
+	],
+	"features": []
 }

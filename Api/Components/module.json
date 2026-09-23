@@ -12,5 +12,6 @@
 			"key": "Api/Templates",
 			"reason": "The primary use case of component groups is template slots."
 		}
-	]
+	],
+	"features": []
 }

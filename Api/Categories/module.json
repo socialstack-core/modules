@@ -7,5 +7,6 @@
 			"key": "Api/Tags",
 			"reason": "Usually used with tags as well."
 		}
-	]
+	],
+	"features": []
 }

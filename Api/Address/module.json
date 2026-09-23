@@ -7,5 +7,10 @@
 			"key": "UI/Address/Book",
 			"reason": "End users can manage their addresses using this module."
 		}
+	],
+	"features": [
+		{
+			"key": "Address book"
+		}
 	]
 }

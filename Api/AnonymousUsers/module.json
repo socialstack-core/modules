@@ -12,5 +12,6 @@
 			"key": "Api/UserLastVisited",
 			"reason": "Used as part of the tracking mechanism."
 		}
-	]
+	],
+	"features": []
 }

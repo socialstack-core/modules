@@ -2,5 +2,6 @@
 	"name": "Blogs",
 	"description": "Often used for news articles on a site, this is a minimal blogging engine.",
 	"modules": [
-	]
+	],
+	"features": []
 }

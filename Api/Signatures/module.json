@@ -2,5 +2,6 @@
 	"name": "Signatures",
 	"description": "Generates crypographic signatures, typically used by authentication.",
 	"modules": [
-	]
+	],
+	"features": []
 }

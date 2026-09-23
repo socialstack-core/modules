@@ -2,5 +2,32 @@
 	"name": "SocialStack e-commerce",
 	"description": "A broad e-commerce module which includes handling payments through multiple gateway providers, shopping carts, order management and more.",
 	"modules": [
+	],
+	"features": [
+		{
+			"key": "Payment methods"
+		},
+		{
+			"key": "Payment gateways",
+			"options": [
+				{"key": "Stripe"},
+				{"key": "Opayo"}
+			]
+		},
+		{
+			"key": "Delivery estimates"
+		},
+		{
+			"key": "Digital product delivery"
+		},
+		{
+			"key": "Subscription entitlements"
+		},
+		{
+			"key": "Buy now pay later"
+		},
+		{
+			"key": "Free shipping thresholds"
+		}
 	]
 }

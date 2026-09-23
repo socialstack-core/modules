@@ -7,5 +7,6 @@
 			"key": "Api/CanvasRenderer",
 			"reason": "Renders the email template to HTML."
 		}
-	]
+	],
+	"features": []
 }
