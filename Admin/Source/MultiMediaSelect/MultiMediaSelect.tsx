@@ -253,7 +253,7 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			setValue(value.map(e => idLookup[e.id + '']).filter(t => t != null));
 
 		});
-	}, []);
+	}, [mustLoad]);
 
 	// Sync value from props (replaces componentWillReceiveProps)
 	useEffect(() => {

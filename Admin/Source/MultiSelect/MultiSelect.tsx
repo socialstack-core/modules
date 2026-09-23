@@ -69,13 +69,8 @@ export type MultiSelectProps<T extends Content<uint>> = {
  * A general use "multi-selection"; primarily used for tags and categories.
  */
 export default function MultiSelect<T extends Content<uint>>(props: MultiSelectProps<T>) {
-
-	// Upload content types are handled by the dedicated multi-media selector,
-	// which reuses the same value/change-event contract as this component.
-	if ((props.contentType || '').toLowerCase() == 'upload') {
-		return <MultiMediaSelect {...(props as unknown as MultiMediaSelectProps)} />;
-	}
-
+	
+	const isUpload = (props.contentType || '').toLowerCase() == 'upload';
 	var initVal = (props.value || props.defaultValue || []).filter(t => t != null);
 	var initMustLoad = false;
 
@@ -104,7 +99,7 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 
 	// Load full objects when initial value was just IDs (replaces componentDidMount)
 	useEffect(() => {
-		if (!mustLoad) {
+		if (!mustLoad || isUpload) {
 			return;
 		}
 
@@ -127,14 +122,14 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 			setValue(value.map(e => idLookup[e.id + '']).filter(t => t != null));
 
 		});
-	}, []);
+	}, [mustLoad, isUpload, value, props.contentType, props.includes]);
 
 	// Sync value from props (replaces componentWillReceiveProps)
 	useEffect(() => {
-		if (props.value) {
+		if (props.value && !isUpload) {
 			setValue(props.value.filter(t => t != null));
 		}
-	}, [props.value]);
+	}, [props.value, isUpload]);
 
 	function remove(entry: T) {
 		var newValue = value.filter(t => t != entry && t != null);
@@ -200,7 +195,7 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 
 	// While a drag is in progress, track the hovered entry and finish the move on release.
 	useEffect(() => {
-		if (!dragId) {
+		if (!dragId || isUpload) {
 			return;
 		}
 
@@ -263,7 +258,13 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 			document.removeEventListener('pointerup', onPointerUp);
 			document.removeEventListener('pointercancel', onPointerCancel);
 		};
-	}, [dragId]);
+	}, [dragId, isUpload]);
+
+	// Upload content types are handled by the dedicated multi-media selector,
+	// which reuses the same value/change-event contract as this component.
+	if (isUpload) {
+		return <MultiMediaSelect {...(props as unknown as MultiMediaSelectProps)} />;
+	}
 
 	var fieldName = props.field;
 
