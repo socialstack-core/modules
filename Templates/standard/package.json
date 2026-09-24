@@ -23,6 +23,7 @@
   "Admin/Layouts",
   "Admin/LoginForm",
   "Admin/MultiSelect",
+  "Admin/MultiMediaSelect",
   "Admin/NavMenu",
   "Admin/Page",
   "Admin/PasswordResetButton",
