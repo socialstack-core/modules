@@ -157,6 +157,11 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 		return list;
 	};
 
+	const runChangeRef = useRef(runChange);
+	runChangeRef.current = runChange;
+	const moveEntryRef = useRef(moveEntry);
+	moveEntryRef.current = moveEntry;
+
 	const startDrag = (e: React.PointerEvent, id: string) => {
 		if (e.button !== 0) {
 			return;
@@ -228,9 +233,9 @@ export default function MultiSelect<T extends Content<uint>>(props: MultiSelectP
 			const fromId = dragIdRef.current;
 			const toId = commit ? entryIdAt(e.clientX, e.clientY) : null;
 			if (commit && fromId && toId && fromId !== toId) {
-				const next = moveEntry(fromId, toId, valueRef.current);
+				const next = moveEntryRef.current(fromId, toId, valueRef.current);
 				if (next !== valueRef.current) {
-					runChange(next);
+					runChangeRef.current(next);
 				}
 			}
 			dragIdRef.current = null;

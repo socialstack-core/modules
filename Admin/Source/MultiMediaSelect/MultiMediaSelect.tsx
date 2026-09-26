@@ -238,9 +238,11 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			return;
 		}
 
+		var pending = valueRef.current;
+
 		var filter = {
 			query: "Id=[?]",
-			args: [value.map(e => e.id)]
+			args: [pending.map(e => e.id)]
 		} as ListFilter;
 
 		uploadApi.list(filter).then((response: ApiList<Upload>) => {
@@ -250,7 +252,7 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			response.results.forEach(r => { idLookup[r.id + ''] = r; });
 
 			setMustLoad(false);
-			setValue(value.map(e => idLookup[e.id + '']).filter(t => t != null));
+			setValue(pending.map(e => idLookup[e.id + '']).filter(t => t != null));
 
 		});
 	}, [mustLoad]);
@@ -287,6 +289,11 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 
 		return list;
 	};
+
+	const runChangeRef = useRef(runChange);
+	runChangeRef.current = runChange;
+	const moveEntryRef = useRef(moveEntry);
+	moveEntryRef.current = moveEntry;
 
 	const startDrag = (e: React.PointerEvent, id: string) => {
 		if (e.button !== 0) {
@@ -359,9 +366,9 @@ const MultiMediaSelect = (props: MultiMediaSelectProps) => {
 			const fromId = dragIdRef.current;
 			const toId = commit ? entryIdAt(e.clientX, e.clientY) : null;
 			if (commit && fromId && toId && fromId !== toId) {
-				const next = moveEntry(fromId, toId, valueRef.current);
+				const next = moveEntryRef.current(fromId, toId, valueRef.current);
 				if (next !== valueRef.current) {
-					runChange(next);
+					runChangeRef.current(next);
 				}
 			}
 			dragIdRef.current = null;
