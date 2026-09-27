@@ -1,3 +1,6 @@
+import Tip from 'UI/Tip';
+import { useId } from "react";
+
 /**
  * Props for the button component.
  * @icon fal fa-mouse-pointer
@@ -91,7 +94,17 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>  {
 	/**
 	 * true if button should use display: inline-flex (defaults to display: flex)
 	 */
-	inline?: boolean
+	inline?: boolean;
+
+	/**
+	 * optional ID (generated automatically if not provided)
+	 */
+	id?: string;
+
+	/**
+	 * optional tooltip
+	 */
+	tip?: React.ReactNode;
 }
 
 /**
@@ -99,7 +112,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>  {
  * ref: https://getbootstrap.com/docs/5.0/components/buttons/
  */
 const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
-	children, className, tag, href, external, variant, inline,
+	children, className, tag, href, external, variant, inline, id, tip,
 	disabled, outlined, close, allowWrap, xs, sm, md, lg, xl, ...props
 }) => {
 	let buttonType = props.type || props.buttonType;
@@ -111,6 +124,8 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 
 	var classes = className ? className.split(" ") : [];
 	var Tag = href ? "a" : (tag || "button");
+	const btnId = id || useId();
+	const tipId = `${btnId}_tip`;
 
 	if (!buttonType) {
 		buttonType = "button";
@@ -220,8 +235,13 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 	const mouseDown: any = (e: any) => handleMouseDown(e as React.MouseEvent<HTMLElement>);
 	const keyDown: any = (e: any) => handleKeyDown(e as React.KeyboardEvent<HTMLElement>);
 
-	return (
+	const style = {
+		'anchor-name': tip ? `--${tipId}` : undefined
+	};
+
+	return <>
 		<Tag className={btnClass}
+			id={btnId}
 			disabled={Tag != "a" && disabled ? true : undefined}
 			inert={Tag == "a" && disabled ? true : undefined}
 			aria-disabled={disabled ? "true" : undefined}
@@ -234,11 +254,19 @@ const Button: React.FC<React.PropsWithChildren<ButtonProps>> = ({
 			role={Tag == "a" ? "button" : undefined}
 			onMouseDown={mouseDown}
 			onKeyDown={keyDown}
+			interestfor={tip ? tipId : undefined}
+			aria-describedby={tip ? tipId : undefined}
+			style={style}
 			{...(props as any)}
 		>
 			{children}
 		</Tag>
-	);
+		{tip && <>
+			<Tip baseId={btnId}>
+				{tip}
+			</Tip>
+		</>}
+	</>;
 }
 
 export default Button;

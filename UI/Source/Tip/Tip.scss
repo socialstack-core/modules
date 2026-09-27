@@ -1,0 +1,18 @@
+[popover="hint"].ui-tip {
+	inset: auto;
+	margin: px_to_rem(6);
+	border: 0;
+	padding: px_to_rem(6) px_to_rem(10);
+	border-radius: px_to_rem(4);
+	background: #333;
+	color: #eee;
+	font-size: px_to_rem(12);
+	font-weight: 300;
+	text-wrap: pretty;
+	width: max-content;
+	max-width: min(#{px_to_rem(380)}, calc(100vw - (2 * #{px_to_rem(20)})));
+	position: fixed;
+	position-area: top;
+	position-try-fallbacks: bottom;
+	outline: 1px solid rgba(255 255 255 / 0.4);
+}

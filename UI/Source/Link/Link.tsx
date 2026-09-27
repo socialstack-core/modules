@@ -1,6 +1,8 @@
 import { useSession } from 'UI/Session';
 import { useTokens } from 'UI/Token';
 import Button from 'UI/Button';
+import Tip from 'UI/Tip';
+import { useId } from "react";
 
 /**
  * Props for the link component.
@@ -64,11 +66,21 @@ interface LinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 	/**
 	 * True if the link should be opened within a new tab.
 	 */
-	external?: boolean,
+	external?: boolean;
+
+	/**
+	 * optional ID (generated automatically if not provided)
+	 */
+	id?: string;
+
+	/**
+	 * optional tooltip
+	 */
+	tip?: React.ReactNode;
 }
 
 const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
-	children, className, href, variant, external, noClass,
+	children, className, href, variant, external, noClass, id, tip,
 	disabled, outlined, noWrap, xs, sm, md, lg, xl, ...attribs
 }) => {
 	const { session } = useSession();
@@ -76,6 +88,9 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 
 	var children = children;
 	var url = useTokens(href || '');
+
+	const linkId = id || useId();
+	const tipId = `${linkId}_tip`;
 
 	if (url) {
 		// if url contains :// it must be as-is (which happens anyway).
@@ -122,7 +137,7 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	if (styleAsButton) {
 		return <>
 			{/* @ts-ignore */}
-			<Button className={className} href={href} variant={variant} external={external} disabled={disabled}
+			<Button className={className} href={href} variant={variant} external={external} disabled={disabled} id={linkId} tip={tip}
 				outlined={outlined} allowWrap={false} xs={xs} sm={sm} md={md} lg={lg} xl={xl} {...attribs}>
 				{children}
 			</Button>
@@ -156,14 +171,30 @@ const Link: React.FC<React.PropsWithChildren<LinkProps>> = ({
 	if(!noClass){
 		classes.unshift("ui-link");
 	}
+
 	var linkClass = classes.length ? classes.join(" ") : undefined;
 
-	return <a href={url} inert={disabled ? true : undefined} className={linkClass}
-		target={external ? "_blank" : undefined}
-		rel={external ? "noopener noreferrer" : undefined}
-		{...attribs}>
-		{children}
-	</a>;
+	const style = {
+		'anchor-name': tip ? `--${tipId}` : undefined
+	};
+
+	return <>
+		<a href={url} inert={disabled ? true : undefined} className={linkClass}
+			id={linkId}
+			target={external ? "_blank" : undefined}
+			rel={external ? "noopener noreferrer" : undefined}
+			interestfor={tip ? linkId : undefined}
+			aria-describedby={tip ? linkId : undefined}
+			style={style}
+			{...attribs}>
+			{children}
+		</a>
+		{tip && <>
+			<Tip baseId={linkId}>
+				{tip}
+			</Tip>
+		</>}
+	</>;
 }
 
 export default Link;
