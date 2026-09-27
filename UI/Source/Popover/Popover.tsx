@@ -36,12 +36,12 @@ interface PopoverProps {
 	 * manual
 	 * - can only be displayed / closed using declarative buttons or JavaScript
 	 * 
-	 * hint (DON'T USE)
+	 * hint
 	 * - doesn't close auto popovers but will close other hints
-	 * NB: not to be used until we find a workaround for Safari which as of June 2026 doesn't support this
+	 * NB: UI/Tip is provided as a wrapper for hint popovers
 	 * 
 	 */
-	method?: "" | "auto" | "manual",
+	method?: "" | "auto" | "manual" | "hint",
 
 	/**
 	 * optional additional classes
@@ -243,9 +243,18 @@ const PopoverRoot: React.FC<React.PropsWithChildren<PopoverProps>> = (props) => 
 
 	function isPopoverApiSupported() {
 		const test = document.createElement('div');
-		return 'popover' in test &&
+		var popoverSupport = 'popover' in test &&
 			typeof HTMLElement.prototype.showPopover === 'function' &&
 			typeof HTMLElement.prototype.hidePopover === 'function';
+
+		// as of Sep 2026, Safari supports most popovers, but not popover="hint";
+		// double-check for hint support, as the polyfill may still be necessary
+		if (popoverSupport) {
+			test.setAttribute('popover', 'hint');
+			popoverSupport = test.popover === 'hint';
+		}
+
+		return popoverSupport;
 	}
 
 	// checks for focus leaving the popover - close if this happens, otherwise we run the risk of focusing a blurred background element
