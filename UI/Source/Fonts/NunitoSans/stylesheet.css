@@ -1,0 +1,18 @@
+/* nunito sans (variable font) */
+@font-face {
+    font-family: 'Nunito Sans';
+    src: url('/pack/static/fonts/nunitosans/NunitoSansItalic.woff2') format('woff2'),
+        url('/pack/static/fonts/nunitosans/NunitoSansItalic.woff') format('woff');
+	font-weight: 200 1000;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Nunito Sans';
+    src: url('/pack/static/fonts/nunitosans/NunitoSans.woff2') format('woff2'),
+        url('/pack/static/fonts/nunitosans/NunitoSans.woff') format('woff');
+	font-weight: 200 1000;
+    font-style: normal;
+    font-display: swap;
+}
