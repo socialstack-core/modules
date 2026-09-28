@@ -1,0 +1,512 @@
+/* 4 Roads - SS-CORE-2026 icon font */
+
+@font-face {
+    font-family: 'FourRoads';
+    src:
+         url('/pack/static/fonts/fourroads/FourRoads.woff?v=1.0.0') format('woff'),
+         url('/pack/static/fonts/fourroads/FourRoads.ttf?v=1.0.0') format('truetype'),
+         url('/pack/static/fonts/fourroads/FourRoads.svg?v=1.0.0#fourroads') format('svg');
+    font-weight: normal;
+    font-style: normal;
+}
+
+.fr {
+	display: inline-block;
+	font: normal normal normal 14px/1 FourRoads;
+	font-size: inherit;
+	text-rendering: auto;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.fr.fr-overlay {
+    position: relative;
+    width: 1em;
+    height: 1em;
+}
+
+.fr.fr-overlay::before {
+    position: absolute;
+}
+
+.fr.fr-overlay::after {
+    position: absolute;
+}
+
+
+/* makes the font 33% larger relative to the icon container */
+.fr-lg {
+  font-size: 1.33333333em;
+  line-height: 0.75em;
+  vertical-align: -15%;
+}
+
+.fr-1-5x {
+    font-size: 1.5em;
+}
+
+.fr-2x {
+    font-size: 2em;
+}
+
+.fr-3x {
+    font-size: 3em;
+}
+
+.fr-4x {
+    font-size: 4em;
+}
+
+.fr-5x {
+    font-size: 5em;
+}
+
+.fr-6x {
+    font-size: 6em;
+}
+
+.fr-7x {
+    font-size: 7em;
+}
+
+.fr-8x {
+    font-size: 8em;
+}
+
+.fr-9x {
+    font-size: 8em;
+}
+
+.fr-10x {
+    font-size: 10em;
+}
+
+.fr-fw {
+  width: 1.28571429em;
+  text-align: center;
+}
+
+.fr-ul {
+  padding-left: 0;
+  margin-left: 2.14285714em;
+  list-style-type: none;
+}
+
+.fr-ul.fr-1-5x {
+    margin-left: 2.64285714em;
+}
+
+.fr-ul.fr-ul-2x {
+  margin-left: 3.14285714em;
+}
+
+.fr-ul > li {
+  position: relative;
+}
+
+.fr-li {
+  position: absolute;
+  left: -2.14285714em;
+  width: 2.14285714em;
+  top: 0.14285714em;
+  text-align: center;
+}
+
+.fr-li.fr-lg {
+  left: -1.85714286em;
+}
+
+.fr-border {
+  padding: .2em .25em .15em;
+  border: solid 0.08em #eeeeee;
+  border-radius: .1em;
+}
+
+.fr-pull-left {
+  float: left;
+}
+
+.fr-pull-right {
+  float: right;
+}
+
+.fr.fr-pull-left {
+  margin-right: .3em;
+}
+
+.fr.fr-pull-right {
+  margin-left: .3em;
+}
+
+.fr-spin {
+  -webkit-animation: fr-spin 2s infinite linear;
+  animation: fr-spin 2s infinite linear;
+}
+.fr-pulse {
+  -webkit-animation: fr-spin 1s infinite steps(8);
+  animation: fr-spin 1s infinite steps(8);
+}
+
+@-webkit-keyframes fr-spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+@keyframes fr-spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(359deg);
+    transform: rotate(359deg);
+  }
+}
+
+.fr-rotate-90 {
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=1)";
+  -webkit-transform: rotate(90deg);
+  -ms-transform: rotate(90deg);
+  transform: rotate(90deg);
+}
+
+.fr-rotate-180 {
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2)";
+  -webkit-transform: rotate(180deg);
+  -ms-transform: rotate(180deg);
+  transform: rotate(180deg);
+}
+
+.fr-rotate-270 {
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=3)";
+  -webkit-transform: rotate(270deg);
+  -ms-transform: rotate(270deg);
+  transform: rotate(270deg);
+}
+
+.fr-flip-horizontal {
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=0, mirror=1)";
+  -webkit-transform: scale(-1, 1);
+  -ms-transform: scale(-1, 1);
+  transform: scale(-1, 1);
+}
+
+.fr-flip-vertical {
+  -ms-filter: "progid:DXImageTransform.Microsoft.BasicImage(rotation=2, mirror=1)";
+  -webkit-transform: scale(1, -1);
+  -ms-transform: scale(1, -1);
+  transform: scale(1, -1);
+}
+
+:root .fr-rotate-90,
+:root .fr-rotate-180,
+:root .fr-rotate-270,
+:root .fr-flip-horizontal,
+:root .fr-flip-vertical {
+  filter: none;
+}
+
+.fr-stack {
+  position: relative;
+  display: inline-block;
+  width: 2em;
+  height: 2em;
+  line-height: 2em;
+  vertical-align: middle;
+}
+
+.fr-stack-1x,
+.fr-stack-2x {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  text-align: center;
+}
+
+.fr-stack-1x {
+  line-height: inherit;
+}
+
+.fr-stack-2x {
+  font-size: 2em;
+}
+
+.fr-inverse {
+  color: #ffffff;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+.sr-only-focusable:active,
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+}
+
+/* icon definitions */
+.fr-returns::before {
+  content: "\ea0a";
+}
+
+.fr-search::before {
+  content: "\f002";
+}
+
+.fr-heart::before {
+  content: "\f004";
+}
+
+.fr-star::before {
+  content: "\f005";
+}
+
+.fr-user::before {
+  content: "\f007";
+}
+
+.fr-th-list::before {
+  content: "\f00b";
+}
+
+.fr-check::before {
+  content: "\f00c";
+}
+
+.fr-times::before {
+  content: "\f00d";
+}
+
+.fr-search-plus::before {
+  content: "\f00e";
+}
+
+.fr-search-minus::before {
+  content: "\f010";
+}
+
+.fr-cog::before {
+  content: "\f013";
+}
+
+.fr-download::before {
+  content: "\f019";
+}
+
+.fr-refresh::before {
+  content: "\f01e";
+}
+
+.fr-lock::before {
+  content: "\f023";
+}
+
+.fr-barcode::before {
+  content: "\f02a";
+}
+
+.fr-tag::before {
+  content: "\f02b";
+}
+
+.fr-bookmark::before {
+  content: "\f02e";
+}
+
+.fr-list::before {
+  content: "\f03a";
+}
+
+.fr-edit::before {
+  content: "\f044";
+}
+
+.fr-chevron-left::before {
+  content: "\f053";
+}
+
+.fr-chevron-right::before {
+  content: "\f054";
+}
+
+.fr-check-circle::before {
+  content: "\f058";
+}
+
+.fr-question-circle::before {
+  content: "\f059";
+}
+
+.fr-information-circle::before {
+  content: "\f05a";
+}
+
+.fr-arrow-left::before {
+  content: "\f060";
+}
+
+.fr-arrow-right::before {
+  content: "\f061";
+}
+
+.fr-arrow-up::before {
+  content: "\f062";
+}
+
+.fr-arrow-down::before {
+  content: "\f063";
+}
+
+.fr-plus::before {
+  content: "\f067";
+}
+
+.fr-minus::before {
+  content: "\f068";
+}
+
+.fr-exclamation-circle::before {
+  content: "\f06a";
+}
+
+.fr-chevron-up::before {
+  content: "\f077";
+}
+
+.fr-chevron-down::before {
+  content: "\f078";
+}
+
+.fr-shopping-cart::before {
+  content: "\f07a";
+}
+
+.fr-external-link::before {
+  content: "\f08e";
+}
+
+.fr-unlock::before {
+  content: "\f09c";
+}
+
+.fr-credit-card::before {
+  content: "\f09d";
+}
+
+.fr-tasks::before {
+  content: "\f0ae";
+}
+
+.fr-filter::before {
+  content: "\f0b0";
+}
+
+.fr-users::before {
+  content: "\f0c0";
+}
+
+.fr-bars::before {
+  content: "\f0c9";
+}
+
+.fr-truck::before {
+  content: "\f0d1";
+}
+
+.fr-envelope::before {
+  content: "\f0e0";
+}
+
+.fr-file::before {
+  content: "\f15b";
+}
+
+.fr-thumbs-up::before {
+  content: "\f164";
+}
+
+.fr-shopping-basket::before {
+  content: "\f291";
+}
+
+.fr-trash-alt::before {
+  content: "\f2ed";
+}
+
+.fr-arrow-180::before {
+  content: "\f40a";
+}
+
+.fr-arrow-90::before {
+  content: "\f40b";
+}
+
+.fr-box-timer::before {
+  content: "\f40c";
+}
+
+.fr-calendar-time::before {
+  content: "\f40d";
+}
+
+.fr-chat::before {
+  content: "\f40e";
+}
+
+.fr-delivery-location::before {
+  content: "\f40f";
+}
+
+.fr-grid::before {
+  content: "\f410";
+}
+
+.fr-palette-picking::before {
+  content: "\f411";
+}
+
+.fr-expand-alt::before {
+  content: "\f424";
+}
+
+.fr-box::before {
+  content: "\f466";
+}
+
+.fr-hotel::before {
+  content: "\f594";
+}
+
+.fr-luggage-cart::before {
+  content: "\f59d";
+}
+
+.fr-times-alt::before {
+  content: "\f59e";
+}
+
+.fr-edit-alt::before {
+  content: "\f59f";
+}
+
+.fr-phone-alt::before {
+  content: "\f879";
+}
